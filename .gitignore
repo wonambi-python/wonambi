@@ -1,0 +1,4 @@
+.spyderproject
+doc/
+*/_pycache_/
+*.pyc
