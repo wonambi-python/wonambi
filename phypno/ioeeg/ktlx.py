@@ -25,7 +25,7 @@ from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
-from numpy import zeros
+from numpy import zeros, ones, concatenate, expand_dims
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub, match
@@ -47,8 +47,8 @@ def _calculate_conversion(hdr):
 
     Returns
     -------
-    conv_factor : int
-        conversion factor (TODO: maybe it's best if it's a vector)
+    conv_factor : numpy.ndarray
+        channel-long vector with the channel-specific conversion factor
 
     Notes
     -----
@@ -60,7 +60,44 @@ def _calculate_conversion(hdr):
     hdr['gain'] = (8711. / (2 ** 21 - 0.5)) * 2 ** hdr['discardbits']
 
     """
-    return 1
+    discardbits = hdr['discardbits']
+    n_chan = hdr['num_channels']
+
+    if hdr['headbox_type'][0] == 4:
+        # 0 - 23
+        ch1 = ones((24)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        # 24 - 27
+        ch2 = ones((4)) * ((5000000. / (210 - 0.5)) / 26) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2))
+
+    elif hdr['headbox_type'][0] == 21:
+        # 0 -127
+        ch1 = ones((128)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        # 128 - 129
+        ch2 = ones((2)) * (1 / 26) * 2 ** discardbits
+        # 130 - 255
+        ch3 = ones((126)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3))
+
+    elif hdr['headbox_type'][0] == 22:
+        # 0 -31
+        ch1 = ones((32)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        # 32 - 39
+        ch2 = ones((8)) * ((10800000. / 65536.) / 26) * 2 ** discardbits
+        # 40 - 41
+        ch3 = ones((2)) * (1 / 26) * 2 ** discardbits
+        # 42
+        ch4 = ones((1)) * ((10800000. / 65536.) / 26) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3, ch4))
+
+    else:
+        raise NotImplementedError('Implement conversion factor for headbox ' +
+        str(hdr['headbox_type'][0]))
+
+    return factor[:n_chan]
 
 
 def _filetime_to_dt(ft):
@@ -134,7 +171,7 @@ def _read_ent(ent_file):
 
 
 def _read_erd(erd_file, n_samples):
-    """Read the raw data and return a matrix, no conversion to real units.
+    """Read the raw data and return a matrix, converted to microvolts.
 
     Parameters
     ----------
@@ -207,7 +244,7 @@ def _read_erd(erd_file, n_samples):
                 for v1, v2 in zip(hx_deltamask[::2], hx_deltamask[1::2]):
                     deltamask += read_bits(v1 + v2)
 
-            c = []  # TODO: transform this in bool list
+            absvalue = [False] * n_chan
             for i_c, m in enumerate(deltamask[:n_chan]):
                 if m == '1':
                     s = f.read(2)
@@ -215,20 +252,20 @@ def _read_erd(erd_file, n_samples):
                     s = f.read(1)
 
                 if s == abs_delta:
-                    c.append(True)  # read the full value below
+                    absvalue[i_c] = True  # read the full value below
                 else:
-                    c.append(False)  # read only the difference
                     if m == '1':
                         output[i_c, i] = output[i_c, i - 1] + unpack('h', s)[0]
                     elif m == '0':
                         output[i_c, i] = output[i_c, i - 1] + unpack('b', s)[0]
 
-            for i_c in range(n_chan):
-                if c[i_c]:
+            for i_c, to_read in enumerate(absvalue):
+                if to_read:
                     s = f.read(4)  # read the full value
                     output[i_c, i] = unpack('i', s)[0]
 
-    return output
+    factor = _calculate_conversion(hdr)
+    return expand_dims(factor, 1) * output
 
 
 def _read_etc(etc_file):
@@ -427,7 +464,7 @@ def _read_hdr_file(ktlx_file):
 
 class Ktlx():
     def __init__(self, ktlx_dir):
-        if isinstance(Ktlx_dir, str):
+        if isinstance(ktlx_dir, str):
             self.ktlx_dir = ktlx_dir
             self._read_hdr_dir()
 
@@ -466,8 +503,7 @@ class Ktlx():
         pass
 
     def return_hdr(self):
-        """
-        Returns the header for further use.
+        """Return the header for further use.
 
         Returns
         -------
