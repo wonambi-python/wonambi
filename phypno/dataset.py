@@ -23,7 +23,7 @@ def detect_format(filename):
 
     """
     if isdir(filename):
-        if glob(join(filename, '*.ent')):
+        if glob(join(filename, '*.eeg')) and glob(join(filename, '*.erd')):
             recformat = 'KTLX'
         else:
             recformat = 'unknown'

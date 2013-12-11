@@ -514,18 +514,18 @@ class Ktlx():
             the name of the files inside the directory
 
         """
-        erd_file = join(self.ktlx_dir, basename(self.ktlx_dir) + '.erd')
-        if exists(erd_file):
+        eeg_file = join(self.ktlx_dir, basename(self.ktlx_dir) + '.eeg')
+        if exists(eeg_file):
             self._basename = splitext(basename(self.ktlx_dir))[0]
         else:  # if the folder was renamed
             eeg_file = glob(join(self.ktlx_dir, '*.eeg'))
             if len(eeg_file) == 1:
-                self._basename = splitext(basename(erd_file[0]))[0]
+                self._basename = splitext(basename(eeg_file[0]))[0]
             elif len(eeg_file) == 0:
                 raise IOError('Could not find any .eeg file.')
             else:
                 raise IOError('Found too many .eeg files: ' +
-                              '\n'.join(erd_file))
+                              '\n'.join(eeg_file))
 
         hdr = {}
 
