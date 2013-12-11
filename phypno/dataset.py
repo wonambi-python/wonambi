@@ -45,52 +45,6 @@ def detect_format(filename):
     return recformat
 
 
-class Header:
-    """Contain general information about the dataset.
-
-    Parameters
-    ----------
-    filename : str
-        name of the file
-
-    Attributes
-    ----------
-    subj_id : str
-        subject identification code
-    start_time : datetime
-        start time of the dataset
-    s_freq : float
-        sampling frequency
-    chan_name : list of str
-        list of all the channels
-    n_samples : int
-        number of samples in the dataset
-    orig : dict
-        additional information taken directly from the header
-
-    """
-
-    def __init__(self, filename):
-        if not exists(filename):
-            raise IOError('File ' + filename + 'not found')
-
-        format_ = detect_format(filename)
-        if format_ == 'EDF':
-            dataset = Edf(filename)
-        elif format_ == 'KTLX':
-            dataset = Ktlx(filename)
-        else:
-            raise UnrecognizedFormat('Unrecognized format ("' + format_ + '")')
-
-        output = dataset.return_hdr()
-        self.subj_id = output[0]
-        self.start_time = output[1]
-        self.s_freq = output[2]
-        self.chan_name = output[3]
-        self.n_samples = output[4]
-        self.orig = output[5]
-
-
 class Dataset:
     """Contain specific information and methods, associated with a dataset.
 
@@ -105,17 +59,46 @@ class Dataset:
         name of the file
     format : str
         format of the file
-    header : instance of Header class
+    header : dict
+        - subj_id : str
+            subject identification code
+        - start_time : datetime
+            start time of the dataset
+        - s_freq : float
+            sampling frequency
+        - chan_name : list of str
+            list of all the channels
+        - n_samples : int
+            number of samples in the dataset
+        - orig : dict
+            additional information taken directly from the header
+    dataset : instance of a class which depends on format,
+        this requires at least two methods:
+          - return_hdr
+          - return_dat
 
     """
-
     def __init__(self, filename):
         self.filename = filename
         self.format = detect_format(filename)
-        try:
-            self.header = Header(filename)
-        except UnrecognizedFormat:
-            print('could not recognized format of ' + basename(filename))
+
+        if self.format_ == 'EDF':
+            self.dataset = Edf(filename)
+        elif self.format == 'KTLX':
+            self.dataset = Ktlx(filename)
+        else:
+            raise UnrecognizedFormat('Unrecognized format ("' + self.format +
+                                     '")')
+
+        output = self.dataset.return_hdr()
+        hdr = {}
+        hdr['subj_id'] = output[0]
+        hdr['start_time'] = output[1]
+        hdr['s_freq'] = output[2]
+        hdr['chan_name'] = output[3]
+        hdr['n_samples'] = output[4]
+        hdr['orig'] = output[5]
+        self.header = hdr
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None, ref_chan=None):
@@ -179,6 +162,8 @@ class Dataset:
 
         if self.format == 'EDF':
             dataset = Edf(self.filename)
+        elif self.format_ == 'KTLX':
+            dataset = Ktlx(self.filename)
 
         dat = empty(shape=(len(chan), endsam - begsam), dtype='float32')
         for i, i_chan in enumerate(idx_chan):
