@@ -25,7 +25,7 @@ from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
-from numpy import zeros, ones, concatenate, expand_dims, hstack
+from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub
@@ -548,19 +548,41 @@ class Ktlx():
 
         """
 
+        if isinstance(chan, int):
+            chan = [chan]
+
         stc, all_stamp = _read_stc(join(self.ktlx_dir, self._basename +
                                         '.stc'))
 
         all_erd = [x['segment_name'] for x in all_stamp]
         all_samples = [x['sample_span'] for x in all_stamp]
+        n_sam_rec = concatenate((array([0]), cumsum(all_samples)))
 
-        dat = []
-        for erd, n_samples in zip(all_erd, all_samples):
-            print(erd)
-            erd_file = join(self.ktlx_dir, erd + '.erd')
-            dat.append(_read_erd(erd_file, n_samples)[chan, :])
+        begrec = where(n_sam_rec <= begsam)[0][-1]
+        endrec = where(n_sam_rec <= endsam)[0][-1]
 
-        return hstack(dat)
+        dat = zeros((len(chan), endsam - begsam))
+        d1 = 0
+        for rec in range(begrec, endrec + 1):
+            if rec == begrec:
+                begpos_rec = begsam - n_sam_rec[rec]
+            else:
+                begpos_rec = 0
+
+            if rec == endrec:
+                endpos_rec = endsam - n_sam_rec[rec]
+            else:
+                endpos_rec = n_sam_rec[rec]
+
+            d2 = endpos_rec - begpos_rec
+
+            erd_file = join(self.ktlx_dir, all_erd[rec] + '.erd')
+            dat_rec = _read_erd(erd_file, all_samples[rec])
+            dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
+
+            d1 = begpos_rec + 1
+
+        return dat
 
     def return_hdr(self):
         """Return the header for further use.
@@ -652,5 +674,5 @@ class Ktlx():
 
 
 if __name__ == "__main__":
-    filename = '/home/gio/smb4k/MAD.RESEARCH.PARTNERS.ORG/cashlab/lab_files/Original Data/MG/MG60/MG60_Raw_Xltek/Xxxxxx~ Xxxxx_80341a65-40c9-4299-acf4-3180d86ecf6b'
-    k = Ktlx(filename)
+    k = Ktlx('/home/gio/recordings/MG59/eeg/raw/MG59_eeg_sessA_d00_16_18_25')
+    dat = k.return_dat(1, 1, 10)
