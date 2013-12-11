@@ -25,7 +25,7 @@ from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
-from numpy import zeros, ones, concatenate, expand_dims
+from numpy import zeros, ones, concatenate, expand_dims, hstack
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub, match
@@ -114,9 +114,13 @@ def _filetime_to_dt(ft):
     return dt
 
 
-def _make_str(t):
-    t = t[:t.index('\x00')]
-    return ''.join(t)
+def _make_str(t_in):
+    t_out = []
+    for t in t_in:
+        if t == b'\x00':
+            break
+        t_out.append(t.decode('utf-8'))
+    return ''.join(t_out)
 
 
 def _read_eeg(eeg_file):
@@ -137,7 +141,21 @@ def _read_eeg(eeg_file):
 
 
 def _read_ent(ent_file):
-    with open(ent_file, 'r') as f:
+    """Read notes stored in .ent file.
+
+    This is a basic implementation, that relies on turning the information in
+    the string in the dict format, and then evaluate it. It's not very flexible
+    and it might not read some notes, but it's fast. I could not implement a
+    nice, recursive approach.
+
+    Notes
+    -----
+    TODO:
+        in Python 3, it doesn't read the note, I think it needs to be converted
+        somewhere, but I don't know where.
+
+    """
+    with open(ent_file, 'rb') as f:
         f.seek(352)  # end of header
 
         note_hdr_length = 16
@@ -211,17 +229,14 @@ def _read_erd(erd_file, n_samples):
     n_chan = hdr['num_channels']
     l_deltamask = int(ceil(n_chan / BITS_IN_BYTE + 0.5))  # deltamask length
 
-    # read single bits as they appear, one by one
-    read_bits = lambda x: bin(int(x, 16))[2:].zfill(BITS_IN_BYTE)[::-1]
-
-    with open(erd_file, 'r') as f:
+    with open(erd_file, 'rb') as f:
         if hdr['file_schema'] in (7,):
             f.seek(4560)
-            abs_delta = '\x80'  # one byte: 10000000
+            abs_delta = b'\x80'  # one byte: 10000000
 
         if hdr['file_schema'] in (8, 9):
             f.seek(8656)
-            abs_delta = '\xff\xff'
+            abs_delta = b'\xff\xff'
 
         output = zeros((n_chan, n_samples))
 
@@ -229,20 +244,20 @@ def _read_erd(erd_file, n_samples):
 
             # Event Byte
             eventbite = f.read(1)
-            if eventbite == '':
+            if eventbite == b'':
                 break
-            assert hexlify(eventbite) == '00'
+            assert eventbite == b'\x00'
 
             # Delta Information
             if hdr['file_schema'] in (7,):
                 deltamask = '0' * n_chan
 
             if hdr['file_schema'] in (8, 9):
-                # TODO: convert using bitwise operations
-                hx_deltamask = hexlify(f.read(l_deltamask))  # deltamask as hex
-                deltamask = ''
-                for v1, v2 in zip(hx_deltamask[::2], hx_deltamask[1::2]):
-                    deltamask += read_bits(v1 + v2)
+                # read single bits as they appear, one by one
+                byte_deltamask = unpack('B' * l_deltamask, f.read(l_deltamask))
+                deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
+                deltamask = ''.join(deltamask)
+                print(deltamask)
 
             absvalue = [False] * n_chan
             for i_c, m in enumerate(deltamask[:n_chan]):
@@ -368,16 +383,16 @@ def _read_stc(stc_file):
     with a generic EEG file header, and is followed by a series of fixed length
     records called the STC entries. ERD segments are named according to the
     following schema:
-    <FIRST_NAME>, <LAST_NAME>_<GUID>.ERD (first)
-    <FIRST_NAME>, <LAST_NAME>_<GUID>.ETC (first)
-    <FIRST_NAME>, <LAST_NAME>_<GUID>_<INDEX>.ERD (second and subsequent files)
-    <FIRST_NAME>, <LAST_NAME>_<GUID>_<INDEX>.ETC (second and subsequent files)
+      - <FIRST_NAME>, <LAST_NAME>_<GUID>.ERD (first)
+      - <FIRST_NAME>, <LAST_NAME>_<GUID>.ETC (first)
+      - <FIRST_NAME>, <LAST_NAME>_<GUID>_<INDEX>.ERD (second and subsequent)
+      - <FIRST_NAME>, <LAST_NAME>_<GUID>_<INDEX>.ETC (second and subsequent)
 
     <INDEX> is formatted with "%03d" format specifier and starts at 1 (initial
     value being 0 and omitted for compatibility with the previous versions).
 
     """
-    with open(stc_file, 'r') as f:
+    with open(stc_file, 'rb') as f:
         f.seek(0, SEEK_END)
         endfile = f.tell()
         f.seek(352)  # end of header
@@ -500,7 +515,19 @@ class Ktlx():
         to read the complete recording.
 
         """
-        pass
+
+        stc, all_stamp = _read_stc(join(self.ktlx_dir, self._basename +
+                                        '.stc'))
+
+        all_erd = [x['segment_name'] for x in all_stamp]
+        all_samples = [x['sample_span'] for x in all_stamp]
+
+        dat = []
+        for erd, n_samples in zip(all_erd, all_samples):
+            erd_file = join(self.ktlx_dir, erd + '.erd')
+            dat.append(_read_erd(erd_file, n_samples)[chan, :])
+
+        return dat
 
     def return_hdr(self):
         """Return the header for further use.
@@ -591,5 +618,5 @@ class Ktlx():
 
 
 if __name__ == "__main__":
-    filename = '/home/gio/smb4k/MAD.RESEARCH.PARTNERS.ORG/cashlab/lab_files/Original Data/MG/MG55/MG55_Raw_Xltek/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2_070.erd'
-    a = _read_erd(filename, 1)
+    filename = '/home/gio/smb4k/MAD.RESEARCH.PARTNERS.ORG/cashlab/lab_files/Original Data/MG/MG55/MG55_Raw_Xltek/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2_001.erd'
+    a = _read_erd(filename, 10)
