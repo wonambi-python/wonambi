@@ -28,7 +28,7 @@ from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, hstack
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
-from re import sub, match
+from re import sub
 from struct import unpack
 
 
@@ -438,13 +438,15 @@ def _read_hdr_file(ktlx_file):
     -----
     p.3: says long, but python-long requires 8 bytes, so we use f.read(4)
 
+    GUID is correct, BUT little/big endian problems somewhere
+
     """
     with open(ktlx_file, 'rb') as f:
 
         hdr = {}
         assert f.tell() == 0
 
-        hdr['file_guid'] = hexlify(f.read(16))  # GUID, BUT little/big endian problems somewhere
+        hdr['file_guid'] = hexlify(f.read(16))
         hdr['file_schema'], = unpack('H', f.read(2))
         try:
             assert hdr['file_schema'] in (1, 7, 8, 9)
@@ -459,8 +461,8 @@ def _read_hdr_file(ktlx_file):
             raise NotImplementedError('Reading header not implemented for ' +
                                       'base_schema ' + str(hdr['base_schema']))
 
-        hdr['creation_time'] = datetime.fromtimestamp(
-                                unpack('i', f.read(4))[0])
+        hdr['creation_time'] = datetime.fromtimestamp(unpack('i',
+                                                             f.read(4))[0])
         hdr['patient_id'], = unpack('i', f.read(4))
         hdr['study_id'], = unpack('i', f.read(4))
         hdr['pat_last_name'] = _make_str(unpack('c' * 80, f.read(80)))
@@ -474,7 +476,7 @@ def _read_hdr_file(ktlx_file):
             hdr['num_channels'], = unpack('i', f.read(4))
             hdr['deltabits'], = unpack('i', f.read(4))
             hdr['phys_chan'] = unpack('i' * hdr['num_channels'],
-                                 f.read(hdr['num_channels'] * 4))
+                                      f.read(hdr['num_channels'] * 4))
 
             f.seek(4464)
             hdr['headbox_type'] = unpack('i' * 4, f.read(16))
@@ -495,12 +497,21 @@ class Ktlx():
     def __init__(self, ktlx_dir):
         if isinstance(ktlx_dir, str):
             self.ktlx_dir = ktlx_dir
-            self._read_hdr_dir()
+            self._hdr = self._read_hdr_dir()
 
     def _read_hdr_dir(self):
         """Read the header for basic information.
 
-        Especially, it's useful to have the sampling frequency
+        Returns
+        -------
+        hdr : dict
+          - 'erd': header of .erd file
+          - 'stc': general part of .stc file
+          - 'stamps' : time stamp for each file
+
+        Also, it adds the attribute
+        _basename : str
+            the name of the files inside the directory
 
         """
         erd_file = join(self.ktlx_dir, basename(self.ktlx_dir) + '.erd')
@@ -516,9 +527,16 @@ class Ktlx():
                 raise IOError('Found too many .eeg files: ' +
                               '\n'.join(erd_file))
 
+        hdr = {}
+
         # use .erd because it has extra info, such as sampling freq
-        self._orig = _read_hdr_file(join(self.ktlx_dir,
-                                         self._basename + '.erd'))
+        hdr['erd'] = _read_hdr_file(join(self.ktlx_dir, self._basename +
+                                         '.erd'))
+
+        stc = _read_stc(join(self.ktlx_dir, self._basename + '.stc'))
+        hdr['stc'], hdr['stamps'] = stc
+
+        return hdr
 
     def return_dat(self, chan, begsam, endsam):
         """TODO: prepare functions
@@ -564,7 +582,7 @@ class Ktlx():
 
         """
 
-        orig = self._orig
+        orig = self._hdr['erd']
         if orig['patient_id']:
             subj_id = orig['patient_id']
         else:
@@ -573,8 +591,9 @@ class Ktlx():
 
         start_time = orig['creation_time']
         s_freq = orig['sample_freq']
+
         chan_name = ['']  # TODO
-        n_samples = 0  # TODO
+        n_samples = sum([x['sample_span'] for x in self._hdr['stamps']])
 
         try:
             orig['notes'] = self._read_notes()
@@ -595,14 +614,14 @@ class Ktlx():
         for n in ent_notes:
             allnote.append(n['value'])
 
-        s_freq = self._orig['sample_freq']
-        start_time = self._orig['creation_time']
+        s_freq = self._hdr['erd']['sample_freq']
+        start_time = self._hdr['erd']['creation_time']
         pcname = '0CFEBE72-DA20-4b3a-A8AC-CDD41BFE2F0D'
         note_time = []
         note_name = []
         note_note = []
         for n in allnote:
-            if n['Text'] == 'Analyzed Data Note':  # seems some automatic message
+            if n['Text'] == 'Analyzed Data Note':
                 continue
             if not n['Text']:
                 continue
@@ -620,18 +639,18 @@ class Ktlx():
             else:
                 note_name.append(n['Data']['User'].split()[0])
             note_time.append(start_time +
-                            timedelta(seconds=n['Stamp'] / s_freq))
+                             timedelta(seconds=n['Stamp'] / s_freq))
             note_note.append(n['Text'])
 
         s = []
         for time, name, note in zip(note_time, note_name, note_note):
             s.append(datetime.strftime(time, '%Y-%m-%dT%H:%M:%S') +
-            ',' + '0' + ',' +  # zero duration
-            note + ' (' + name + ')')
+                     ',' + '0' + ',' +  # zero duration
+                     note + ' (' + name + ')')
 
         return '\n'.join(s)
 
 
 if __name__ == "__main__":
-    filename = '/home/gio/smb4k/MAD.RESEARCH.PARTNERS.ORG/cashlab/lab_files/Original Data/MG/MG55/MG55_Raw_Xltek/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2/Xxxxxxxxxxx~ X_90d439a0-6217-4045-a325-0836fe1c11a2_001.erd'
-    a = _read_erd(filename, 10)
+    filename = '/home/gio/smb4k/MAD.RESEARCH.PARTNERS.ORG/cashlab/lab_files/Original Data/MG/MG60/MG60_Raw_Xltek/Xxxxxx~ Xxxxx_80341a65-40c9-4299-acf4-3180d86ecf6b'
+    k = Ktlx(filename)
