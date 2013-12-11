@@ -99,7 +99,7 @@ def _calculate_conversion(hdr):
 
     else:
         raise NotImplementedError('Implement conversion factor for headbox ' +
-        str(hdr['headbox_type'][0]))
+                                  str(hdr['headbox_type'][0]))
 
     return factor[:n_chan]
 
@@ -434,8 +434,11 @@ def _read_hdr_file(ktlx_file):
     dict
         dict with information about the file
 
-    """
+    Notes
+    -----
+    p.3: says long, but python-long requires 8 bytes, so we use f.read(4)
 
+    """
     with open(ktlx_file, 'rb') as f:
 
         hdr = {}
@@ -443,15 +446,23 @@ def _read_hdr_file(ktlx_file):
 
         hdr['file_guid'] = hexlify(f.read(16))  # GUID, BUT little/big endian problems somewhere
         hdr['file_schema'], = unpack('H', f.read(2))
-        assert hdr['file_schema'] in (7, 8, 9)
+        try:
+            assert hdr['file_schema'] in (1, 7, 8, 9)
+        except:
+            raise NotImplementedError('Reading header not implemented for ' +
+                                      'file_schema ' + str(hdr['file_schema']))
 
         hdr['base_schema'], = unpack('H', f.read(2))
-        assert hdr['base_schema'] == 1  # p.3: base_schema 0 is rare, I think
+        try:  # p.3: base_schema 0 is rare, I think
+            assert hdr['base_schema'] == 1
+        except:
+            raise NotImplementedError('Reading header not implemented for ' +
+                                      'base_schema ' + str(hdr['base_schema']))
 
         hdr['creation_time'] = datetime.fromtimestamp(
                                 unpack('i', f.read(4))[0])
-        hdr['patient_id'], = unpack('i', f.read(4))  # p.3: says long, but python-long requires 8 bytes
-        hdr['study_id'], = unpack('i', f.read(4))  # p.3: says long, but python-long requires 8 bytes
+        hdr['patient_id'], = unpack('i', f.read(4))
+        hdr['study_id'], = unpack('i', f.read(4))
         hdr['pat_last_name'] = _make_str(unpack('c' * 80, f.read(80)))
         hdr['pat_first_name'] = _make_str(unpack('c' * 80, f.read(80)))
         hdr['pat_middle_name'] = _make_str(unpack('c' * 80, f.read(80)))
@@ -558,7 +569,7 @@ class Ktlx():
             subj_id = orig['patient_id']
         else:
             subj_id = (orig['pat_first_name'] + orig['pat_middle_name'] +
-            orig['pat_last_name'])
+                       orig['pat_last_name'])
 
         start_time = orig['creation_time']
         s_freq = orig['sample_freq']
