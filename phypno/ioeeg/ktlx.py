@@ -63,7 +63,11 @@ def _calculate_conversion(hdr):
     discardbits = hdr['discardbits']
     n_chan = hdr['num_channels']
 
-    if hdr['headbox_type'][0] == 4:
+    if hdr['headbox_type'][0] == 1:
+        # all channels
+        factor = ones((n_chan)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+
+    elif hdr['headbox_type'][0] == 4:
         # 0 - 23
         ch1 = ones((24)) * (8711. / (221 - 0.5)) * 2 ** discardbits
         # 24 - 27
@@ -257,7 +261,6 @@ def _read_erd(erd_file, n_samples):
                 byte_deltamask = unpack('B' * l_deltamask, f.read(l_deltamask))
                 deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
                 deltamask = ''.join(deltamask)
-                print(deltamask)
 
             absvalue = [False] * n_chan
             for i_c, m in enumerate(deltamask[:n_chan]):
@@ -493,16 +496,16 @@ class Ktlx():
         if exists(erd_file):
             self._basename = splitext(basename(self.ktlx_dir))[0]
         else:  # if the folder was renamed
-            erd_files = glob(join(self.ktlx_dir, '*.erd'))
-            # search for the one ERD file that doesn't end in _xxx.erd
-            erd_file = [x for x in erd_files
-                        if not match('_[0-9]{3}.erd', x[-8:])]
-            if len(erd_file) == 1:
+            eeg_file = glob(join(self.ktlx_dir, '*.eeg'))
+            if len(eeg_file) == 1:
                 self._basename = splitext(basename(erd_file[0]))[0]
+            elif len(eeg_file) == 0:
+                raise IOError('Could not find any .eeg file.')
             else:
-                raise IOError('could not find one erd file. Found: ' +
+                raise IOError('Found too many .eeg files: ' +
                               '\n'.join(erd_file))
 
+        # use .erd because it has extra info, such as sampling freq
         self._orig = _read_hdr_file(join(self.ktlx_dir,
                                          self._basename + '.erd'))
 
@@ -524,10 +527,11 @@ class Ktlx():
 
         dat = []
         for erd, n_samples in zip(all_erd, all_samples):
+            print(erd)
             erd_file = join(self.ktlx_dir, erd + '.erd')
             dat.append(_read_erd(erd_file, n_samples)[chan, :])
 
-        return dat
+        return hstack(dat)
 
     def return_hdr(self):
         """Return the header for further use.
