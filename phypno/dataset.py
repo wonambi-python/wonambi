@@ -52,6 +52,8 @@ class Dataset:
     ----------
     filename : str
         name of the file
+    memmap : bool, optional
+        whether to use memory mapping for the file
 
     Attributes
     ----------
@@ -73,16 +75,25 @@ class Dataset:
         - orig : dict
             additional information taken directly from the header
     dataset : instance of a class which depends on format,
-        this requires at least two methods:
+        this requires at least three attributes:
+          - filename
           - return_hdr
           - return_dat
 
+    Notes
+    -----
+    There is a difference between Dataset.filename and Dataset.dataset.filename
+    because the format is where the file that you want to read (the argument),
+    while the latter is the file that you really read. There might be
+    differences, for example, if the argument points to a file within a
+    directory, or if the file is mapped to memory.
+
     """
-    def __init__(self, filename):
+    def __init__(self, filename, memmap=False):
         self.filename = filename
         self.format = detect_format(filename)
 
-        if self.format_ == 'EDF':
+        if self.format == 'EDF':
             self.dataset = Edf(filename)
         elif self.format == 'KTLX':
             self.dataset = Ktlx(filename)
@@ -118,33 +129,39 @@ class Dataset:
             if it's int, it's assumed it's s;
             if it's datedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time
-        begsample : int
+        begsam : int
             first sample to read
-        endsample : int
+        endsam : int
             last sample to read
 
         Returns
         -------
         An instance of DataRaw
 
+        Notes
+        -----
+        begsam and endsam follow Python convention, which starts at zero,
+        includes begsam but DOES NOT include endsam.
+
         """
 
         data = DataRaw()
-        data.start_time = self.header.start_time
+        data.start_time = self.header['start_time']
+        if not chan:
+            chan = self.header['chan_name']
         if not isinstance(chan, list) or not all(isinstance(x, str)
-                                                for x in chan):
+                                                 for x in chan):
             raise ValueError('chan should be a list of strings')
-        if not chan:  # TODO: function to select channels
-            chan = self.header.chan_name
         data.chan_name = chan
-        idx_chan = [self.header.chan_name.index(x) for x in chan]
+        idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
         if ref_chan:
-            idx_ref_chan = [self.header.chan_name.index(x) for x in ref_chan]
+            idx_ref_chan = [self.header['chan_name'].index(x)
+                            for x in ref_chan]
 
         if begtime is not None:  # TODO: check begtime and begsample as mutually exclusive
             if isinstance(begtime, datetime):
-                begtime = begtime - self.header.datetime
+                begtime = begtime - self.header['datetime']
             if isinstance(begtime, int) or isinstance(begtime, float):
                 begtime = timedelta(seconds=begtime)
             if isinstance(begtime, timedelta):
@@ -152,23 +169,22 @@ class Dataset:
 
         if endtime is not None:  # TODO: check endtime and endsample as mutually exclusive
             if isinstance(endtime, datetime):
-                endtime = endtime - self.header.start_time
+                endtime = endtime - self.header['datetime']
             if isinstance(endtime, int) or isinstance(endtime, float):
                 endtime = timedelta(seconds=endtime)
             if isinstance(endtime, timedelta):
                 endsam = ceil(endtime.total_seconds() * self.header.s_freq)
 
-        data.time = arange(begsam, endsam) / self.header.s_freq
+        data.time = arange(begsam, endsam) / self.header['s_freq']
 
-        if self.format == 'EDF':
-            dataset = Edf(self.filename)
-        elif self.format_ == 'KTLX':
-            dataset = Ktlx(self.filename)
-
+        dataset = self.dataset
         dat = empty(shape=(len(chan), endsam - begsam), dtype='float32')
+
+        # TODO: should pass all the channels at the same time
         for i, i_chan in enumerate(idx_chan):
             dat[i, :] = dataset.return_dat(i_chan, begsam, endsam)
 
+        # TODO: should pass all the channels at the same time
         if ref_chan:
             ref_dat = empty(shape=(len(ref_chan), endsam - begsam),
                             dtype='float32')
