@@ -578,7 +578,7 @@ class Ktlx():
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
             info(erd_file)
-            dat_rec = _read_erd(erd_file, all_samples[rec])
+            dat_rec = _read_erd(erd_file, endpos_rec)
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
 
             d1 = d2
@@ -682,4 +682,4 @@ class Ktlx():
 
 if __name__ == "__main__":
     k = Ktlx('/home/gio/tools/read_xltek/MG59')
-    dat = k.return_dat(1, 0, 10)
+    dat = k.return_dat(1, 0, 4000)
