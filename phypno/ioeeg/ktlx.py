@@ -24,7 +24,7 @@ from __future__ import division
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
-from logging import info
+from logging import info, debug
 from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
@@ -151,9 +151,6 @@ def _read_ent(ent_file):
 
     Notes
     -----
-    TODO:
-        in Python 3, it doesn't read the note, I think it needs to be converted
-        somewhere, but I don't know where.
 
     """
     with open(ent_file, 'rb') as f:
@@ -172,20 +169,21 @@ def _read_ent(ent_file):
                 break
             s = f.read(note['length'] - note_hdr_length)
             s = s[:-2]  # it ends with one empty byte
+            s.decode('utf-8')
+            s1 = s.replace('\n', ' ')
+            s1 = s1.replace('\\xd ', '')
+            s1 = s1.replace('(.', '{')
+            s1 = s1.replace(')', '}')
+            s1 = s1.replace('",', '" :')
+            s1 = s1.replace('{"', '"')
+            s1 = s1.replace('},', ',')
+            s1 = s1.replace('}}', '}')
+            s1 = sub(r'\(([0-9 ,-\.]*)\}', r'[\1]', s1)
             try:
-                s1 = s.replace('\n', ' ')
-                s1 = s1.replace('\\xd ', '')
-                s1 = s1.replace('(.', '{')
-                s1 = s1.replace(')', '}')
-                s1 = s1.replace('",', '" :')
-                s1 = s1.replace('{"', '"')
-                s1 = s1.replace('},', ',')
-                s1 = s1.replace('}}', '}')
-                s1 = sub(r'\(([0-9 ,-\.]*)\}', r'[\1]', s1)
                 note['value'] = eval(s1)
                 allnote.append(note)
             except:
-                pass
+                debug(s)
     return allnote
 
 
@@ -701,9 +699,3 @@ class Ktlx():
                      note + ' (' + name + ')')
 
         return '\n'.join(s)
-
-
-if __name__ == "__main__":
-    k = Ktlx('/home/gio/tools/read_xltek/MG59')
-    dat = k.return_dat(10, 200000, 207000)
-

@@ -159,30 +159,26 @@ class Dataset:
             idx_ref_chan = [self.header['chan_name'].index(x)
                             for x in ref_chan]
 
-        if begtime is not None:  # TODO: check begtime and begsample as mutually exclusive
+        if begtime is not None:
             if isinstance(begtime, datetime):
                 begtime = begtime - self.header['datetime']
             if isinstance(begtime, int) or isinstance(begtime, float):
                 begtime = timedelta(seconds=begtime)
             if isinstance(begtime, timedelta):
-                begsam = ceil(begtime.total_seconds() * self.header.s_freq)
+                begsam = ceil(begtime.total_seconds() * self.header['s_freq'])
 
-        if endtime is not None:  # TODO: check endtime and endsample as mutually exclusive
+        if endtime is not None:
             if isinstance(endtime, datetime):
                 endtime = endtime - self.header['datetime']
             if isinstance(endtime, int) or isinstance(endtime, float):
                 endtime = timedelta(seconds=endtime)
             if isinstance(endtime, timedelta):
-                endsam = ceil(endtime.total_seconds() * self.header.s_freq)
+                endsam = ceil(endtime.total_seconds() * self.header['s_freq'])
 
         data.time = arange(begsam, endsam) / self.header['s_freq']
 
         dataset = self.dataset
-        dat = empty(shape=(len(chan), endsam - begsam), dtype='float32')
-
-        # TODO: should pass all the channels at the same time
-        for i, i_chan in enumerate(idx_chan):
-            dat[i, :] = dataset.return_dat(i_chan, begsam, endsam)
+        dat = dataset.return_dat(idx_chan, begsam, endsam)
 
         # TODO: should pass all the channels at the same time
         if ref_chan:
