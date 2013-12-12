@@ -24,6 +24,7 @@ from __future__ import division
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
+from logging import info
 from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
@@ -216,7 +217,6 @@ def _read_erd(erd_file, n_samples):
       - Delta Information
       - Absolute Channel Values
 
-
     Event Byte:
       Bit 0 of the event byte indicates the presence of the external trigger
       during the sample period. It's very rare.
@@ -303,7 +303,7 @@ def _read_etc(etc_file):
         v4_b = unpack('h', f.read(2))[0]  # maybe this one is unsigned (H)
 
         f.seek(352)  # end of header
-        print(hexlify(f.read(16)))
+        info(hexlify(f.read(16)))
     return v1, v2, v3, (v4_a, v4_b)
 
 
@@ -496,7 +496,7 @@ def _read_hdr_file(ktlx_file):
 class Ktlx():
     def __init__(self, ktlx_dir):
         if isinstance(ktlx_dir, str):
-            self.ktlx_dir = ktlx_dir
+            self.filename = ktlx_dir
             self._hdr = self._read_hdr_dir()
 
     def _read_hdr_dir(self):
@@ -514,11 +514,11 @@ class Ktlx():
             the name of the files inside the directory
 
         """
-        eeg_file = join(self.ktlx_dir, basename(self.ktlx_dir) + '.eeg')
+        eeg_file = join(self.filename, basename(self.filename) + '.eeg')
         if exists(eeg_file):
-            self._basename = splitext(basename(self.ktlx_dir))[0]
+            self._basename = splitext(basename(self.filename))[0]
         else:  # if the folder was renamed
-            eeg_file = glob(join(self.ktlx_dir, '*.eeg'))
+            eeg_file = glob(join(self.filename, '*.eeg'))
             if len(eeg_file) == 1:
                 self._basename = splitext(basename(eeg_file[0]))[0]
             elif len(eeg_file) == 0:
@@ -530,10 +530,10 @@ class Ktlx():
         hdr = {}
 
         # use .erd because it has extra info, such as sampling freq
-        hdr['erd'] = _read_hdr_file(join(self.ktlx_dir, self._basename +
+        hdr['erd'] = _read_hdr_file(join(self.filename, self._basename +
                                          '.erd'))
 
-        stc = _read_stc(join(self.ktlx_dir, self._basename + '.stc'))
+        stc = _read_stc(join(self.filename, self._basename + '.stc'))
         hdr['stc'], hdr['stamps'] = stc
 
         return hdr
@@ -551,7 +551,7 @@ class Ktlx():
         if isinstance(chan, int):
             chan = [chan]
 
-        stc, all_stamp = _read_stc(join(self.ktlx_dir, self._basename +
+        stc, all_stamp = _read_stc(join(self.filename, self._basename +
                                         '.stc'))
 
         all_erd = [x['segment_name'] for x in all_stamp]
@@ -559,7 +559,7 @@ class Ktlx():
         n_sam_rec = concatenate((array([0]), cumsum(all_samples)))
 
         begrec = where(n_sam_rec <= begsam)[0][-1]
-        endrec = where(n_sam_rec <= endsam)[0][-1]
+        endrec = where(n_sam_rec < endsam)[0][-1]
 
         dat = zeros((len(chan), endsam - begsam))
         d1 = 0
@@ -572,15 +572,16 @@ class Ktlx():
             if rec == endrec:
                 endpos_rec = endsam - n_sam_rec[rec]
             else:
-                endpos_rec = n_sam_rec[rec]
+                endpos_rec = n_sam_rec[rec] + 1
 
-            d2 = endpos_rec - begpos_rec
+            d2 = endpos_rec - begpos_rec + d1
 
-            erd_file = join(self.ktlx_dir, all_erd[rec] + '.erd')
+            erd_file = join(self.filename, all_erd[rec] + '.erd')
+            info(erd_file)
             dat_rec = _read_erd(erd_file, all_samples[rec])
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
 
-            d1 = begpos_rec + 1
+            d1 = d2
 
         return dat
 
@@ -602,6 +603,11 @@ class Ktlx():
         orig : dict
             additional information taken directly from the header
 
+        Notes
+        -----
+        TODO:
+            add real channel names
+
         """
 
         orig = self._hdr['erd']
@@ -614,7 +620,8 @@ class Ktlx():
         start_time = orig['creation_time']
         s_freq = orig['sample_freq']
 
-        chan_name = ['']  # TODO
+        chan_name = ['chan{0:002d}'.format(ch)
+                     for ch in range(orig['num_channels'])]
         n_samples = sum([x['sample_span'] for x in self._hdr['stamps']])
 
         try:
@@ -629,7 +636,7 @@ class Ktlx():
         However, this function formats the note already in the EDFBrowser
         format. Maybe the format should be more general.
         """
-        ent_file = join(self.ktlx_dir, self._basename + '.ent')
+        ent_file = join(self.filename, self._basename + '.ent')
 
         ent_notes = _read_ent(ent_file)
         allnote = []
@@ -674,5 +681,5 @@ class Ktlx():
 
 
 if __name__ == "__main__":
-    k = Ktlx('/home/gio/recordings/MG59/eeg/raw/MG59_eeg_sessA_d00_16_18_25')
-    dat = k.return_dat(1, 1, 10)
+    k = Ktlx('/home/gio/tools/read_xltek/MG59')
+    dat = k.return_dat(1, 0, 10)

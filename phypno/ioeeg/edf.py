@@ -38,7 +38,7 @@ class Edf:
 
     def __init__(self, edffile):
         if isinstance(edffile, str):
-            self.edffile = edffile
+            self.filename = edffile
             self._read_hdr()
 
     def _read_hdr(self):
@@ -48,7 +48,7 @@ class Edf:
 
         """
 
-        with open(self.edffile, 'rb') as f:
+        with open(self.filename, 'rb') as f:
 
             hdr = {}
             assert f.tell() == 0
@@ -165,7 +165,7 @@ class Edf:
         dat = empty(shape=(endsam - begsam), dtype='int16')
         i_dat = 0
 
-        with open(self.edffile, 'rb') as f:
+        with open(self.filename, 'rb') as f:
             for rec in range(begrec, endrec + 1):
                 if rec == begrec:
                     begpos_rec = begsam_rec

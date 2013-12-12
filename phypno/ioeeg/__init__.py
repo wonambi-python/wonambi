@@ -1,4 +1,6 @@
 """Package to import and export common formats. Main classes:
+  - filename: the name of the filename or directory
+
   - return_hdr, which returns the header
 
     - subj_id : str
