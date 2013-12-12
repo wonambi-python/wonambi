@@ -24,7 +24,7 @@ from __future__ import division
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
-from logging import info, warning
+from logging import info
 from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
@@ -704,6 +704,6 @@ class Ktlx():
 
 
 if __name__ == "__main__":
-    k = Ktlx('/home/gio/recordings/MG23/eeg/raw/MG23_eeg_sessA_d03_07_00_04')
+    k = Ktlx('/home/gio/tools/read_xltek/MG59')
     dat = k.return_dat(10, 200000, 207000)
 
