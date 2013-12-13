@@ -24,7 +24,7 @@ from __future__ import division
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
-from logging import info, debug
+from logging import info, debug, warning
 from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
@@ -115,6 +115,34 @@ def _filetime_to_dt(ft):
     return dt
 
 
+def _find_channels(note):
+    """Find the channel names within a string.
+
+    The channel names are stored in the .ent file. We can read the file with
+    _read_ent and we can parse most of the notes (comments) with _read_notes
+    however the note containing the montage cannot be read because it's too
+    complex. So, instead of parsing it, we just pass the string of the note
+    around. This function takes the string and finds where the channel
+    definition is.
+
+    Parameters
+    ----------
+    note : str
+        string read from .ent file, it's the note which contains montage.
+
+    Returns
+    -------
+    chan_name : list of str
+        the names of the channels.
+
+    """
+    id_ch = note.index('ChanNames')
+    chan_beg = note.index('(', id_ch)
+    chan_end = note.index(')', chan_beg)
+    note_with_chan = note[chan_beg+1:chan_end]
+    return [x.strip('" ') for x in note_with_chan.split(',')]
+
+
 def _make_str(t_in):
     t_out = []
     for t in t_in:
@@ -149,8 +177,25 @@ def _read_ent(ent_file):
     and it might not read some notes, but it's fast. I could not implement a
     nice, recursive approach.
 
+    Returns
+    -------
+    allnote : a list of dict
+        where each dict contains keys such as:
+          - type
+          - length : length of the note in B,
+          - prev_length : length of the previous note in B,
+          - unused,
+          - value : the actual content of the note.
+
     Notes
     -----
+    The notes are stored in a format called 'Excel list' but could not find
+    more information. It's based on "(" and "(.", and I found it very hard to
+    parse. With some basic regex and substitution, it can be evaluated into
+    a dict, with sub dictionaries. However, the note containing the name of the
+    electrodes (I think they called it "montage") cannot be parsed, because
+    it's too complicated. If it cannot be converted into a dict, the whole
+    string is passed as value.
 
     """
     with open(ent_file, 'rb') as f:
@@ -626,13 +671,8 @@ class Ktlx():
         orig : dict
             additional information taken directly from the header
 
-        Notes
-        -----
-        TODO:
-            add real channel names
-
         """
-
+        # information contained in .erd
         orig = self._hdr['erd']
         if orig['patient_id']:
             subj_id = orig['patient_id']
@@ -643,14 +683,22 @@ class Ktlx():
         start_time = orig['creation_time']
         s_freq = orig['sample_freq']
 
-        chan_name = ['chan{0:002d}'.format(ch)
-                     for ch in range(orig['num_channels'])]
+        # information contained in .stc
         n_samples = sum([x['sample_span'] for x in self._hdr['stamps']])
+
+        try:
+            ent_file = join(self.filename, self._basename + '.ent')
+            ent_notes = _read_ent(ent_file)
+        except IOError:
+            warning('could not find .ent file, channels have arbitrary names')
+
+        chan_name = _find_channels(ent_notes[1]['value'])
 
         try:
             orig['notes'] = self._read_notes()
         except IOError:
             orig['notes'] = 'could not find .ent file'
+
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
     def _read_notes(self):
@@ -664,7 +712,12 @@ class Ktlx():
         ent_notes = _read_ent(ent_file)
         allnote = []
         for n in ent_notes:
-            allnote.append(n['value'])
+            try:
+                n['value'].keys()
+                allnote.append(n['value'])
+            except AttributeError:
+                debug('Note of length {} was not '
+                      'converted to dict'.format(n['length']))
 
         s_freq = self._hdr['erd']['sample_freq']
         start_time = self._hdr['erd']['creation_time']
