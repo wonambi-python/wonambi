@@ -20,18 +20,19 @@ meaningful. Absolute time is stored in the header of all the files, and in
 .snc. In addition, check the 'start_stamp' in .erd does not start at zero.
 
 """
-from __future__ import division
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
-from logging import info, debug, warning
+from logging import getLogger
 from math import ceil
 from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub
 from struct import unpack
+from ..utils import read_filebytes
 
+lg = getLogger(__name__)
 
 BITS_IN_BYTE = 8
 # http://support.microsoft.com/kb/167296
@@ -282,8 +283,7 @@ def _read_erd(erd_file, n_samples):
     n_chan = hdr['num_channels']
     l_deltamask = int(ceil(n_chan / BITS_IN_BYTE))  # deltamask length
 
-    with open(erd_file, 'rb') as f:
-        filebytes = f.read()
+    filebytes = read_filebytes(erd_file)
 
     if hdr['file_schema'] in (7,):
         i = 4560
@@ -304,7 +304,7 @@ def _read_erd(erd_file, n_samples):
             break
         try:
             assert eventbite in (b'\x00', b'\x01')
-            info('eventbite: ' + str(eventbite))
+            lg.debug('eventbite: ' + str(eventbite))
         except:
             Exception('at pos ' + str(i) +
                       ', eventbite (should be x00 or x01): ' + str(eventbite))
@@ -320,7 +320,7 @@ def _read_erd(erd_file, n_samples):
             i += l_deltamask
             deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
             deltamask = ''.join(deltamask)
-            info('deltamask: ' + deltamask)
+            lg.debug('deltamask: ' + deltamask)
 
         absvalue = [False] * n_chan
         info_toread = ''
@@ -343,7 +343,7 @@ def _read_erd(erd_file, n_samples):
                     output[i_c, sam] = output[i_c, sam - 1] + unpack('b',
                                                                      val)[0]
                 info_toread += 'F'
-        info(info_toread)
+        lg.debug(info_toread)
 
         for i_c, to_read in enumerate(absvalue):
             if to_read:
@@ -371,7 +371,7 @@ def _read_etc(etc_file):
         v4_b = unpack('h', f.read(2))[0]  # maybe this one is unsigned (H)
 
         f.seek(352)  # end of header
-        info(hexlify(f.read(16)))
+        lg.debug(hexlify(f.read(16)))
     return v1, v2, v3, (v4_a, v4_b)
 
 
@@ -564,6 +564,7 @@ def _read_hdr_file(ktlx_file):
 class Ktlx():
     def __init__(self, ktlx_dir):
         if isinstance(ktlx_dir, str):
+            lg.info('Reading {}'.format(ktlx_dir))
             self.filename = ktlx_dir
             self._hdr = self._read_hdr_dir()
 
@@ -645,7 +646,7 @@ class Ktlx():
             d2 = endpos_rec - begpos_rec + d1
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
-            info(erd_file)
+            lg.info(erd_file)
             dat_rec = _read_erd(erd_file, endpos_rec)
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
 
@@ -690,9 +691,16 @@ class Ktlx():
             ent_file = join(self.filename, self._basename + '.ent')
             ent_notes = _read_ent(ent_file)
         except IOError:
-            warning('could not find .ent file, channels have arbitrary names')
+            lg.warning('could not find .ent file, channels have arbitrary '
+                       'names')
 
-        chan_name = _find_channels(ent_notes[1]['value'])
+        for ent_note in ent_notes:
+            try:
+                chan_name = _find_channels(ent_note['value'])
+            except:
+                continue
+            else:
+                break
 
         try:
             orig['notes'] = self._read_notes()
@@ -716,8 +724,8 @@ class Ktlx():
                 n['value'].keys()
                 allnote.append(n['value'])
             except AttributeError:
-                debug('Note of length {} was not '
-                      'converted to dict'.format(n['length']))
+                lg.info('Note of length {} was not '
+                        'converted to dict'.format(n['length']))
 
         s_freq = self._hdr['erd']['sample_freq']
         start_time = self._hdr['erd']['creation_time']
