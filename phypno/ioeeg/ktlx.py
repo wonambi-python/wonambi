@@ -583,17 +583,17 @@ class Ktlx():
             the name of the files inside the directory
 
         """
-        eeg_file = join(self.filename, basename(self.filename) + '.eeg')
+        eeg_file = join(self.filename, basename(self.filename) + '.stc')
         if exists(eeg_file):
             self._basename = splitext(basename(self.filename))[0]
         else:  # if the folder was renamed
-            eeg_file = glob(join(self.filename, '*.eeg'))
+            eeg_file = glob(join(self.filename, '*.stc'))
             if len(eeg_file) == 1:
                 self._basename = splitext(basename(eeg_file[0]))[0]
             elif len(eeg_file) == 0:
-                raise IOError('Could not find any .eeg file.')
+                raise IOError('Could not find any .stc file.')
             else:
-                raise IOError('Found too many .eeg files: ' +
+                raise IOError('Found too many .stc files: ' +
                               '\n'.join(eeg_file))
 
         hdr = {}
@@ -690,6 +690,8 @@ class Ktlx():
         # make a fake chan_name, it'll be replace if it exists
         try:
             ent_file = join(self.filename, self._basename + '.ent')
+            if not exists(ent_file):
+                ent_file = join(self.filename, self._basename + '.ent.old')
             ent_notes = _read_ent(ent_file)
         except IOError:
             lg.warning('could not find .ent file, channels have arbitrary '
@@ -719,6 +721,8 @@ class Ktlx():
         format. Maybe the format should be more general.
         """
         ent_file = join(self.filename, self._basename + '.ent')
+        if not exists(ent_file):
+            ent_file = join(self.filename, self._basename + '.ent.old')
 
         ent_notes = _read_ent(ent_file)
         allnote = []
