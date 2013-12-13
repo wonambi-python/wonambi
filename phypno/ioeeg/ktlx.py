@@ -25,11 +25,11 @@ from datetime import timedelta, datetime
 from glob import glob
 from logging import getLogger
 from math import ceil
-from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub
 from struct import unpack
+from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
 from ..utils import read_filebytes
 
 lg = getLogger(__name__)
@@ -687,20 +687,23 @@ class Ktlx():
         # information contained in .stc
         n_samples = sum([x['sample_span'] for x in self._hdr['stamps']])
 
+        # make a fake chan_name, it'll be replace if it exists
         try:
             ent_file = join(self.filename, self._basename + '.ent')
             ent_notes = _read_ent(ent_file)
         except IOError:
             lg.warning('could not find .ent file, channels have arbitrary '
                        'names')
-
-        for ent_note in ent_notes:
-            try:
-                chan_name = _find_channels(ent_note['value'])
-            except:
-                continue
-            else:
-                break
+            chan_name = ['chan{0:03}'.format(x) for x in
+                         range(orig['num_channels'])]
+        else:
+            for ent_note in ent_notes:
+                try:
+                    chan_name = _find_channels(ent_note['value'])
+                except:
+                    continue
+                else:
+                    break
 
         try:
             orig['notes'] = self._read_notes()
