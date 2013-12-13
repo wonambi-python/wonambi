@@ -45,7 +45,7 @@ def _read_csv(elec_file):
     with open(elec_file, 'r') as f:
         for i, l in enumerate(f):
             a, b, c, d = [t(s) for t, s in zip((str, float, float, float),
-                            l.split(','))]
+                          l.split(','))]
             chan_label.append(a)
             chan_pos[i, :] = [b, c, d]
 
@@ -79,13 +79,12 @@ class Chan():
 
     def __init__(self, chan_input):
         format_ = detect_format(chan_input)  # TODO: if file at all
+        self.xy = None
+
         if format_ == 'csv':
             self.chan_name, self.xyz = _read_csv(chan_input)
         else:
             raise UnrecognizedFormat('Unrecognized format ("' + format_ + '")')
-        self.chan_name = None
-        self.xy = None
-        self.xyz = None
 
     def n_chan(self):
         """Returns the number of channels.
