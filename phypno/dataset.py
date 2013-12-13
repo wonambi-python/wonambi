@@ -147,6 +147,7 @@ class Dataset:
 
         data = DataRaw()
         data.start_time = self.header['start_time']
+        data.s_freq = self.header['s_freq']
         if not chan:
             chan = self.header['chan_name']
         if not isinstance(chan, list) or not all(isinstance(x, str)

@@ -27,8 +27,9 @@ class Data:
         self.data = array([])
         self.chan_name = []
         self.start_time = None
+        self.s_freq = None
         self.attr = {'surf': None,  # TODO: instance of class surf
-                     'chan': None,  # TODO: instance of class surf
+                     'chan': None,  # TODO: instance of class chan
                      }
 
 
