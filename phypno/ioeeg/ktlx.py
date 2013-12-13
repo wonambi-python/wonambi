@@ -169,21 +169,23 @@ def _read_ent(ent_file):
                 break
             s = f.read(note['length'] - note_hdr_length)
             s = s[:-2]  # it ends with one empty byte
-            s.decode('utf-8')
+            s = s.decode('utf-8')
             s1 = s.replace('\n', ' ')
             s1 = s1.replace('\\xd ', '')
             s1 = s1.replace('(.', '{')
+            s1 = sub(r'\(([A-Za-z0-9," ]*)\)', r'[\1]', s1)
             s1 = s1.replace(')', '}')
-            s1 = s1.replace('",', '" :')
+            # s1 = s1.replace('",', '" :')
+            s1 = sub(r'(\{[\w"]*),', r'\1 :', s1)
             s1 = s1.replace('{"', '"')
             s1 = s1.replace('},', ',')
             s1 = s1.replace('}}', '}')
             s1 = sub(r'\(([0-9 ,-\.]*)\}', r'[\1]', s1)
             try:
                 note['value'] = eval(s1)
-                allnote.append(note)
             except:
-                debug(s)
+                note['value'] = s
+            allnote.append(note)
     return allnote
 
 
