@@ -52,6 +52,25 @@ def _read_csv(elec_file):
     return chan_label, chan_pos
 
 
+def export_csv(chan, elec_file):
+    """Write the elec coordinates into a csv file.
+
+    Parameters
+    ----------
+    chan : instance of class Chan
+        the definition of the channels
+    elec_file : str
+        path to file where to save csv
+
+    """
+    with open(elec_file, 'w') as f:
+        for i, l in enumerate(chan.chan_name):
+            line = "%s, %.1f, %.1f, %.1f\n" % (l, chan.xyz[i, 0],
+                                               chan.xyz[i, 1],
+                                               chan.xyz[i, 2])
+            f.write(line)
+
+
 class Chan():
     """Provide class Chan, generic class for channel location.
 
@@ -91,3 +110,16 @@ class Chan():
 
         """
         return len(self.chan_name)
+
+    def export(self, elec_file):
+        """Export channel name and location to file.
+
+        Parameters
+        ----------
+        elec_file : str
+            path to file where to save csv
+
+        """
+        ext = splitext(elec_file)[1]
+        if ext == '.csv':
+            export_csv(self, elec_file)
