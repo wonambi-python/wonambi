@@ -74,20 +74,30 @@ def export_csv(chan, elec_file):
 class Chan():
     """Provide class Chan, generic class for channel location.
 
+    You can read from a file, and then you pass only one argument.
+    Or you can directly assign the chan names and the coordinates.
+
     Parameters
     ----------
     chan_input : various formats
         information about the channels.
-        Possible formats are: csv of format: label, x-pos, y-pos, z-pos
+          - csv of format: label, x-pos, y-pos, z-pos
+
+    Parameters
+    ----------
+    chan_name : list of str
+        the name of the channel
+    coords : numpy.ndarray
+       location in 3D, with shape (3, n_chan)
 
     Attributes
     ----------
-    chan_name : list
+    chan_name : list of str
         the name of the channel
     xy : numpy.ndarray
-        location in 2D, with shape (2, n_chan, d)
+        location in 2D, with shape (2, n_chan)
     xyz : numpy.ndarray
-        location in 3D, with shape (3, n_chan, d)
+        location in 3D, with shape (3, n_chan)
 
     Raises
     ------
@@ -96,14 +106,20 @@ class Chan():
 
     """
 
-    def __init__(self, chan_input):
-        format_ = detect_format(chan_input)  # TODO: if file at all
+    def __init__(self, *args):
         self.xy = None
 
-        if format_ == 'csv':
-            self.chan_name, self.xyz = _read_csv(chan_input)
-        else:
-            raise UnrecognizedFormat('Unrecognized format ("' + format_ + '")')
+        if len(args) == 1:
+            format_ = detect_format(args[0])
+            if format_ == 'csv':
+                self.chan_name, self.xyz = _read_csv(args[0])
+            else:
+                raise UnrecognizedFormat('Unrecognized format ("' + format_ +
+                                         '")')
+
+        elif len(args) == 2:
+            self.chan_name = args[0]
+            self.xyz = args[1]
 
     def n_chan(self):
         """Returns the number of channels.
