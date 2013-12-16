@@ -155,7 +155,7 @@ class Chan():
         """
         if chan_name:
             chan_pos = self.return_chan_xyz(chan_name)
-            region, _ = anat.find_brain_region(chan_pos)
+            region, _ = anat.find_brain_region(chan_pos, approx)
             return region
 
     def export(self, elec_file):
