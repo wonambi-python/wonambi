@@ -38,28 +38,6 @@ def _find_neighboring_regions(pos, mri_dat, region, approx):
     return regions
 
 
-def detect_format(filename):
-    """Detect file format of the channels based on extension.
-
-    Parameters
-    ----------
-    filename : str
-        name of the filename
-
-    Returns
-    -------
-    str
-        file format
-
-    """
-    if splitext(filename)[1] == '.csv':
-        recformat = 'csv'
-    else:
-        recformat = 'unknown'
-
-    return recformat
-
-
 def import_freesurfer_LUT(fs_lut=None):
     """Import Look-up Table with colors and labels for anatomical regions.
 
