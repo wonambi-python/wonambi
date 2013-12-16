@@ -127,6 +127,30 @@ class Chan():
         """
         return len(self.chan_name)
 
+    def assign_region(self, anat, chan_name=None, approx=3):
+        """Assign a brain region based on the channel location.
+
+        Parameters
+        ----------
+        anat : instance of phypno.attr.anat.Freesurfer
+            anatomical information taken from freesurfer.
+        chan_name : str, optional
+            the channel name
+        approx : int
+            approximation to define position of the electrode.
+
+        Returns
+        -------
+        region : str
+            the label of the region in which the electrode is located.
+
+        """
+        if chan_name:
+            idx_ch = self.chan_name.index(chan_name)
+            chan_pos = self.xyz[idx_ch, :]
+            region, _ = anat.find_brain_region(chan_pos)
+            return region
+
     def export(self, elec_file):
         """Export channel name and location to file.
 
