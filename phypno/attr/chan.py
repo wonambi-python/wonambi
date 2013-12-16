@@ -171,6 +171,36 @@ class Chan():
         if ext == '.csv':
             export_csv(self, elec_file)
 
+    def find_chan_in_region(self, anat, region_name):
+        """Find which channels are in a specific region.
+
+        Parameters
+        ----------
+        anat : instance of phypno.attr.anat.Freesurfer
+            anatomical information taken from freesurfer.
+        region_name : str
+            the name of the region, according to FreeSurferColorLUT.txt
+
+        Returns
+        -------
+        chan_in_region : list of str
+            list of the channels that are in one region.
+
+        Notes
+        -----
+        It can be made more fuzzy, for example, by using regex.
+
+        """
+        chan_in_region = []
+        for chan in self.chan_name:
+            region = self.assign_region(anat, chan)
+            if region_name in region:
+                lg.debug('{}: region {} matches search pattern {}'.format(chan,
+                         region, region_name))
+                chan_in_region.append(chan)
+
+        return chan_in_region
+
     def return_chan_xyz(self, chan_name):
         """Returns the location in xyz for a particular channel name.
 
