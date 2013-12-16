@@ -3,11 +3,14 @@
 
 """
 from collections import Counter
+from logging import getLogger
 from os import environ
 from os.path import exists, join, splitext
 from nibabel import load
 from nibabel.freesurfer import read_geometry, read_annot
 from numpy import array, empty, vstack, around, dot, append, reshape, meshgrid
+
+lg = getLogger(__name__)
 
 FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
@@ -78,22 +81,27 @@ def import_freesurfer_LUT(fs_lut=None):
         one row is a brain region and the columns are the RGB + alpha colors
 
     """
-    if not fs_lut:
+    if fs_lut:
+        lg.info('Reading user-specified lookuptable {}'.format(fs_lut))
+    else:
         try:
             fs_home = environ['FREESURFER_HOME']
         except KeyError:
             raise EnvironmentError('Freesurfer is not installed or '
                                    'FREESURFER_HOME is not defined as '
                                    'environmental variable')
-        fs_lut = join(fs_home, 'FreeSurferColorLUT.txt')
+        else:
+            fs_lut = join(fs_home, 'FreeSurferColorLUT.txt')
+            lg.info('Reading lookuptable in FREESURFER_HOME {}'.format(fs_lut))
 
     idx = []
     label = []
     rgba = empty((0, 4))
     with open(fs_lut, 'r') as f:
         for l in f:
-            if len(l) == 0 or l[0] == '#' or l[0] == '\r':
+            if len(l) <= 1 or l[0] == '#' or l[0] == '\r':
                 continue
+            # lg.debug('({0: 3}):{1}'.format(len(l), l))
             (t0, t1, t2, t3, t4, t5) = [t(s) for t, s in
                                         zip((int, str, int, int, int, int),
                                         l.split())]
@@ -148,10 +156,15 @@ class Freesurfer:
     """
     def __init__(self, freesurfer_dir, fs_lut=None):
         if not exists(freesurfer_dir):
-            raise IOError(freesurfer_dir + ' does not exist')
+            raise OSError(freesurfer_dir + ' does not exist')
         self.dir = freesurfer_dir
-        lut = import_freesurfer_LUT(fs_lut)
-        self.lookuptable = {'index': lut[0], 'label': lut[1], 'RGBA': lut[2]}
+        try:
+            lut = import_freesurfer_LUT(fs_lut)
+            self.lookuptable = {'index': lut[0], 'label': lut[1],
+                                'RGBA': lut[2]}
+        except (IOError, OSError):  # IOError for 2.7, OSError for 3.3
+            lg.warning('Could not find lookup table, some functions that rely '
+                       'on it might complain or crash.')
 
     def find_brain_region(self, abs_pos, max_approx=0):
         """Find the name of the brain region in which an electrode is located.
@@ -181,10 +194,12 @@ class Freesurfer:
         """
         # convert to freesurfer coordinates of the MRI
         pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3]
+        lg.debug('Position in the MRI matrix: {}'.format(pos))
 
         mri_dat, _ = self.read_seg()
 
         for approx in range(max_approx + 1):
+            lg.debug('Trying approx {}'.format(approx))
             regions = _find_neighboring_regions(pos, mri_dat,
                                                      self.lookuptable, approx)
             if regions:
@@ -217,7 +232,6 @@ class Freesurfer:
             names of the labels
 
         """
-
         parc_file = join(self.dir, 'label', hemi + '.' + parc_type + '.annot')
         vert_val, region_color, region_name = read_annot(parc_file)
         return vert_val, region_color, region_name
