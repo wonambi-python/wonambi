@@ -6,11 +6,15 @@ from __future__ import division
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
+from logging import getLogger
 from os.path import isdir, join
 from numpy import empty, arange, mean
 from .ioeeg import Edf, Ktlx
 from .datatype import DataRaw
 from .utils import UnrecognizedFormat
+
+
+lg = getLogger('phypno')
 
 
 def detect_format(filename):
@@ -162,23 +166,29 @@ class Dataset:
 
         if begtime is not None:
             if isinstance(begtime, datetime):
-                begtime = begtime - self.header['datetime']
+                begtime = begtime - self.header['start_time']
             if isinstance(begtime, int) or isinstance(begtime, float):
                 begtime = timedelta(seconds=begtime)
             if isinstance(begtime, timedelta):
+                lg.debug(begtime)
                 begsam = ceil(begtime.total_seconds() * self.header['s_freq'])
+            begsam = int(begsam)
 
         if endtime is not None:
             if isinstance(endtime, datetime):
-                endtime = endtime - self.header['datetime']
+                endtime = endtime - self.header['start_time']
             if isinstance(endtime, int) or isinstance(endtime, float):
                 endtime = timedelta(seconds=endtime)
             if isinstance(endtime, timedelta):
+                lg.debug(endtime)
                 endsam = ceil(endtime.total_seconds() * self.header['s_freq'])
+            endsam = int(endsam)
 
         data.time = arange(begsam, endsam) / self.header['s_freq']
 
         dataset = self.dataset
+
+        lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
         dat = dataset.return_dat(idx_chan, begsam, endsam)
 
         # TODO: should pass all the channels at the same time
