@@ -8,4 +8,4 @@ Possibly include forward and inverse models.
 
 """
 from .chan import Chan
-from .anat import Surf
+from .anat import Surf, Freesurfer
