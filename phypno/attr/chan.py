@@ -10,9 +10,12 @@ two electrodes.
 In other words, the channel is where you want to plot the signal.
 
 """
+from logging import getLogger
 from os.path import splitext
 from numpy import zeros
 from ..utils import UnrecognizedFormat
+
+lg = getLogger(__name__)
 
 
 def detect_format(filename):
