@@ -6,9 +6,11 @@ from collections import Counter
 from logging import getLogger
 from os import environ
 from os.path import exists, join
-from nibabel import load
+
 from nibabel.freesurfer import read_geometry, read_annot
 from numpy import array, empty, vstack, around, dot, append, reshape, meshgrid
+
+from ..utils.caching import read_seg
 
 lg = getLogger(__name__)
 
@@ -235,10 +237,7 @@ class Freesurfer:
 
         """
         seg_file = join(self.dir, 'mri', parc_type + '+aseg.mgz')
-        seg_mri = load(seg_file)
-        seg_aff = seg_mri.get_affine()
-        seg_dat = seg_mri.get_data()
-        return seg_dat, seg_aff
+        return read_seg(seg_file)
 
     def read_surf(self, hemi, surf_type='pial'):
         """Read the surface for each hemisphere.

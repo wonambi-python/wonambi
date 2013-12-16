@@ -5,6 +5,7 @@
 from logging import getLogger
 from tempfile import mkdtemp
 from joblib import Memory
+from nibabel import load
 
 lg = getLogger(__name__)
 
@@ -19,3 +20,10 @@ def read_filebytes(binary_file):
     with open(binary_file, 'rb') as f:
         filebytes = f.read()
     return filebytes
+
+@memory.cache
+def read_seg(seg_file):
+    seg_mri = load(seg_file)
+    seg_aff = seg_mri.get_affine()
+    seg_dat = seg_mri.get_data()
+    return seg_dat, seg_aff
