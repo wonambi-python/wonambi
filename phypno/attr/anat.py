@@ -5,7 +5,7 @@
 from collections import Counter
 from logging import getLogger
 from os import environ
-from os.path import exists, join, splitext
+from os.path import exists, join
 from nibabel import load
 from nibabel.freesurfer import read_geometry, read_annot
 from numpy import array, empty, vstack, around, dot, append, reshape, meshgrid
@@ -79,7 +79,6 @@ def import_freesurfer_LUT(fs_lut=None):
         for l in f:
             if len(l) <= 1 or l[0] == '#' or l[0] == '\r':
                 continue
-            # lg.debug('({0: 3}):{1}'.format(len(l), l))
             (t0, t1, t2, t3, t4, t5) = [t(s) for t, s in
                                         zip((int, str, int, int, int, int),
                                         l.split())]
@@ -113,7 +112,11 @@ class Surf:
 
     def __init__(self, freesurfer_dir, hemi, surf_type='pial'):
         fs = Freesurfer(freesurfer_dir)
-        self.vert, self.tri = fs.read_surf(hemi, surf_type)
+        try:
+            self.vert, self.tri = fs.read_surf(hemi, surf_type)
+        except ValueError:
+            raise NotImplementedError('Nibabel/read_geometry throws an error '
+                                      'about reshape in Python 3 only')
 
 
 class Freesurfer:
@@ -212,6 +215,7 @@ class Freesurfer:
         """
         parc_file = join(self.dir, 'label', hemi + '.' + parc_type + '.annot')
         vert_val, region_color, region_name = read_annot(parc_file)
+        region_name = [x.decode('utf-8') for x in region_name]
         return vert_val, region_color, region_name
 
     def read_seg(self, parc_type='aparc'):
