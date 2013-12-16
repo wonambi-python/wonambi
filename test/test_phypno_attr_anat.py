@@ -34,7 +34,7 @@ def test_import_freesurfer_LUT_02():
     import_freesurfer_LUT('/opt/freesurfer/FreeSurferColorLUT.txt')
 
 
-@raises(OSError)
+@raises(IOError, OSError)
 def test_import_freesurfer_LUT_03():
     lg.info('---\nfunction: ' + stack()[0][3])
     import_freesurfer_LUT('/aaa')

@@ -75,4 +75,5 @@ def test_find_chan_in_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Chan(elec_file)
     fs = Freesurfer(fs_dir)
-    assert ch.find_chan_in_region(fs, 'cingulate') == ['LAF1', 'LAF2', 'LMF2']
+    assert ch.find_chan_in_region(fs, 'cingulate') == ['LOF1', 'LOF2', 'LAF1',
+                                                       'LAF2', 'LMF2']

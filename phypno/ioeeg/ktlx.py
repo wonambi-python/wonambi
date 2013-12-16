@@ -591,9 +591,9 @@ class Ktlx():
             if len(eeg_file) == 1:
                 self._basename = splitext(basename(eeg_file[0]))[0]
             elif len(eeg_file) == 0:
-                raise IOError('Could not find any .stc file.')
+                raise OSError('Could not find any .stc file.')
             else:
-                raise IOError('Found too many .stc files: ' +
+                raise OSError('Found too many .stc files: ' +
                               '\n'.join(eeg_file))
 
         hdr = {}
@@ -616,7 +616,6 @@ class Ktlx():
         to read the complete recording.
 
         """
-
         if isinstance(chan, int):
             chan = [chan]
 
