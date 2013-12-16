@@ -1,31 +1,22 @@
 from inspect import stack
-from logging import getLogger, FileHandler, DEBUG
-from os.path import join, basename, splitext
+from logging import getLogger
 from nose.tools import raises
+from os.path import join
 from subprocess import check_output
-from sys import version_info
 
 
+lg = getLogger('phypno')
 git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
                        "awk '{print $2}'",
                        shell=True).decode('utf-8').strip()
-
-log_dir = '/home/gio/tools/phypno/test/log'
-log_file = join(log_dir, splitext(basename(__file__))[0] + '_v' +
-                str(version_info[0]) + '.log')
-lg = getLogger('phypno')
-lg.setLevel(DEBUG)
-h_lg = FileHandler(log_file, mode='w')
-lg.addHandler(h_lg)
 lg.info('phypno ver: ' + git_ver)
+lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
-lg.info('Module: ' + __name__)
 lg.info('Missing KeyError because I cannot del environ["FREESURFER_HOME"] in '
         'import_freesurfer_LUT')
 lg.info('Nibabel in Python 3 cannot read_geometry')
 
-#-----------------------------------------------------------------------------#
 from numpy import array
 from phypno.attr import Freesurfer, Surf
 from phypno.attr.anat import import_freesurfer_LUT
@@ -90,4 +81,3 @@ def test_Freesurfer_03():
     assert l1.shape == (36, 5)
     assert l1[-1, -1] == 2146559
     assert l2[-1] == 'insula'
-
