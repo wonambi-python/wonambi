@@ -146,8 +146,7 @@ class Chan():
 
         """
         if chan_name:
-            idx_ch = self.chan_name.index(chan_name)
-            chan_pos = self.xyz[idx_ch, :]
+            chan_pos = self.return_chan_xyz(chan_name)
             region, _ = anat.find_brain_region(chan_pos)
             return region
 
@@ -163,3 +162,19 @@ class Chan():
         ext = splitext(elec_file)[1]
         if ext == '.csv':
             export_csv(self, elec_file)
+
+    def return_chan_xyz(self, chan_name):
+        """Returns the location in xyz for a particular channel name.
+
+        Parameters
+        ----------
+        chan_name : str
+            the name of one channel.
+
+        Returns
+        -------
+        chan_xyz : numpy.ndarray
+            a 3x0 vector with the position of a channel.
+
+        """
+        return self.xyz[self.chan_name.index(chan_name), :]
