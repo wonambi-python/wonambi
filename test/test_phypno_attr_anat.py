@@ -1,7 +1,6 @@
 from inspect import stack
 from logging import getLogger
 from nose.tools import raises
-from os.path import join
 from subprocess import check_output
 
 
@@ -43,7 +42,7 @@ def test_import_freesurfer_LUT_03():
 @raises(NotImplementedError)
 def test_Surf_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    vert, tri = Surf(fs_dir, 'lh', 'pial')
+    Surf(fs_dir, 'lh', 'pial')
 
 
 @raises(OSError)

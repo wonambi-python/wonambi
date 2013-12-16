@@ -8,7 +8,7 @@ from glob import glob
 from math import ceil
 from logging import getLogger
 from os.path import isdir, join
-from numpy import empty, arange, mean
+from numpy import arange, mean
 from .ioeeg import Edf, Ktlx
 from .datatype import DataRaw
 from .utils import UnrecognizedFormat
@@ -191,12 +191,8 @@ class Dataset:
         lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
         dat = dataset.return_dat(idx_chan, begsam, endsam)
 
-        # TODO: should pass all the channels at the same time
         if ref_chan:
-            ref_dat = empty(shape=(len(ref_chan), endsam - begsam),
-                            dtype='float32')
-            for i, i_chan in enumerate(idx_ref_chan):
-                ref_dat[i, :] = dataset.return_dat(i_chan, begsam, endsam)
+            ref_dat = dataset.return_dat(idx_ref_chan, begsam, endsam)
             dat = dat - mean(ref_dat, 0)
 
         data.data = dat

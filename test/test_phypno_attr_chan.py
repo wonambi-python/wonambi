@@ -1,7 +1,6 @@
 from inspect import stack
 from logging import getLogger
 from nose.tools import raises
-from os.path import join
 from subprocess import check_output
 
 
@@ -13,6 +12,7 @@ lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
+from os.path import join
 from numpy import array
 from numpy.random import random
 from tempfile import mkdtemp
