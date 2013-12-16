@@ -98,9 +98,9 @@ class Chan():
     chan_name : list of str
         the name of the channel
     xy : numpy.ndarray
-        location in 2D, with shape (2, n_chan)
+        location in 2D, with shape (n_chan, 2)
     xyz : numpy.ndarray
-        location in 3D, with shape (3, n_chan)
+        location in 3D, with shape (n_chan, 3)
 
     Raises
     ------
@@ -122,7 +122,12 @@ class Chan():
 
         elif len(args) == 2:
             self.chan_name = args[0]
-            self.xyz = args[1]
+            if args[1].shape[1] == 3:
+                self.xyz = args[1]
+            else:
+                raise ArithmeticError('Incorrect shape: the second dimension '
+                                      'should be 3, not ' +
+                                      str(args[1].shape[1]))
 
     def n_chan(self):
         """Returns the number of channels.
