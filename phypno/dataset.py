@@ -6,7 +6,7 @@ from __future__ import division
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
-from os.path import exists, isdir, join, basename
+from os.path import isdir, join
 from numpy import empty, arange, mean
 from .ioeeg import Edf, Ktlx
 from .datatype import DataRaw
