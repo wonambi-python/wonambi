@@ -1,4 +1,6 @@
 .spyderproject
 doc/
+test/log/
+temp/
 */_pycache_/
 *.pyc
