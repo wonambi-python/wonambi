@@ -75,8 +75,11 @@ def test_Freesurfer_03():
     region_label, approx = fs.find_brain_region([0, 0, 0], 5)
     assert region_label == 'Left-VentralDC'
     assert approx == 4
+
     l0, l1, l2 = fs.read_label('lh')
     assert l0[-1] == 27
     assert l1.shape == (36, 5)
     assert l1[-1, -1] == 2146559
     assert l2[-1] == 'insula'
+
+    # s0, s1 = fs.read_surf('lh')

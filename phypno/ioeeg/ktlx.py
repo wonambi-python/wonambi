@@ -407,19 +407,19 @@ def _read_snc(snc_file):
     such as Video (which works in FILETIME).
 
     """
-    with open(snc_file, 'r') as f:
-        f.seek(0, SEEK_END)
-        endfile = f.tell()
-        f.seek(352)  # end of header
+    filebytes = read_filebytes(snc_file)
+    i = 352  # end of header
 
-        sampleStamp = []
-        sampleTime = []
-        while True:
-            sampleStamp.append(unpack('i', f.read(4))[0])
-            sampleTime.append(_filetime_to_dt(unpack('l', f.read(8))[0]))
-            if f.tell() == endfile:
-                break
-        return sampleStamp, sampleTime
+    sampleStamp = []
+    sampleTime = []
+    while i < len(filebytes):
+        sampleStamp.append(unpack('i', filebytes[i:(i + 4)])[0])
+        i += 4
+        sampleTime.append(_filetime_to_dt(unpack('l',
+                                                 filebytes[i:(i + 8)])[0]))
+        i += 8
+
+    return sampleStamp, sampleTime
 
 
 def _read_stc(stc_file):
