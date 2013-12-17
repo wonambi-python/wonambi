@@ -1,6 +1,7 @@
+from ..graphoelement import Spindle
 
 
-class Spindle:
+class DetectSpindle:
     def __init__(self):
         pass
 
@@ -11,4 +12,4 @@ class Spindle:
         pass
 
     def apply_(self, data):
-        pass
+        return Spindle()

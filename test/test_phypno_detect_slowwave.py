@@ -13,11 +13,12 @@ lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
 
-from phypno.detect import SlowWave
+from phypno.graphoelement import SlowWave
+from phypno.detect import DetectSlowWave
 
 def test_slowwave_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    sw = SlowWave()
-    sw.design()
-    sw.apply(None)
-
+    det_sw = DetectSlowWave()
+    det_sw.design()
+    sw = det_sw.apply_(None)
+    assert isinstance(sw, SlowWave)

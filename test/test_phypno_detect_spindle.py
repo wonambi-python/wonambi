@@ -13,11 +13,13 @@ lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
 
-from phypno.detect import Spindle
+from phypno.graphoelement import Spindle
+from phypno.detect import DetectSpindle
+
 
 def test_spindle_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    sp = Spindle()
-    sp.design()
-    sp.apply(None)
-
+    det_sp = DetectSpindle()
+    det_sp.design()
+    sp = det_sp.apply_(None)
+    assert isinstance(sp, Spindle)

@@ -1,6 +1,6 @@
+from ..graphoelement import SlowWave
 
-
-class SlowWave:
+class DetectSlowWave:
     def __init__(self):
         pass
 
@@ -11,4 +11,4 @@ class SlowWave:
         pass
 
     def apply_(self, data):
-        pass
+        return SlowWave()

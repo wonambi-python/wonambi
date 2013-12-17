@@ -19,5 +19,4 @@ def test_filter_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     f = Filter()
     f.design()
-    f.apply(None)
-
+    f.apply_(None)

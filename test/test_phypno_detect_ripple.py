@@ -13,11 +13,12 @@ lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
 
-from phypno.detect import Ripple
+from phypno.graphoelement import Ripple
+from phypno.detect import DetectRipple
 
 def test_ripple_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    r = Ripple()
-    r.design()
-    r.apply(None)
-
+    det_rp = DetectRipple()
+    det_rp.design()
+    rp = det_rp.apply_(None)
+    assert isinstance(rp, Ripple)
