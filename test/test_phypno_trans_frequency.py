@@ -12,8 +12,13 @@ lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
+from phypno import Dataset
 from phypno.trans import Freq, TimeFreq
 
+
+edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+d = Dataset(edf_file)
+data = d.read_data(chan=['LMF6'], begtime=0, endtime=10)
 
 def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
