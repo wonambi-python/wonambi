@@ -19,6 +19,5 @@ from phypno.detect import DetectRipple
 def test_ripple_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     det_rp = DetectRipple()
-    det_rp.design()
     rp = det_rp.apply_(None)
     assert isinstance(rp, Ripple)

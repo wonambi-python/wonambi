@@ -18,12 +18,10 @@ from phypno.trans import Freq, TimeFreq
 def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     f = Freq()
-    f.design()
-    f.apply_(None)
+    f(None)
 
 
 def test_timefreq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     tf = TimeFreq()
-    tf.design()
-    tf.apply_(None)
+    tf(None)

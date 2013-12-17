@@ -19,6 +19,5 @@ from phypno.detect import DetectSlowWave
 def test_slowwave_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     det_sw = DetectSlowWave()
-    det_sw.design()
-    sw = det_sw.apply_(None)
+    sw = det_sw(None)
     assert isinstance(sw, SlowWave)

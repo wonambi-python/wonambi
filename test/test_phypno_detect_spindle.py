@@ -20,6 +20,5 @@ from phypno.detect import DetectSpindle
 def test_spindle_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     det_sp = DetectSpindle()
-    det_sp.design()
-    sp = det_sp.apply_(None)
+    sp = det_sp(None)
     assert isinstance(sp, Spindle)

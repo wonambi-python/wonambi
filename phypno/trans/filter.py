@@ -1,18 +1,71 @@
+from __future__ import division
+from logging import getLogger
+from scipy.signal import butter, filtfilt
+
+lg = getLogger('phypno')
 
 
 class Filter:
-    def __init__(self):
-        self.a = None
-        self.b = None
+    """Design filter and apply it.
 
-    def design(self):
-        """Design filter
+    Parameters
+    ----------
+    low_cut : float, optional
+        low cutoff for high-pass filter
+    high_cut : float, optional
+        high cutoff for low-pass filter
+    order : int, optional
+        filter order
+    s_freq : float, optional
+        sampling frequency
 
-        """
-        pass
+    Attributes
+    ----------
+    b, a : numpy.ndarray
+        filter values
 
-    def apply_(self, data):
-        """Apply the filter to the data
+    Notes
+    -----
+    At the moment, it only uses a butterworth filter.
+
+    If you specify low_cut only, it generates a high-pass filter.
+    If you specify high_cut only, it generates a low-pass filter.
+    If you specify both, it generates a band-pass filter.
+
+    low_cut and high_cut should be given as ratio of the Nyquist. But if you
+    specify s_freq, then the ratio will be computed automatically.
+
+    """
+    def __init__(self, low_cut=None, high_cut=None, order=8, s_freq=None):
+
+        if s_freq:
+            nyquist = s_freq / 2.
+        else:
+            nyquist = 1
+
+        btype = None
+        if low_cut and high_cut:
+            btype = 'bandpass'
+            Wn = (low_cut / nyquist,
+                  high_cut / nyquist)
+        elif low_cut:
+            btype = 'highpass'
+            Wn = low_cut / nyquist
+        elif high_cut:
+            btype = 'lowpass'
+            Wn = high_cut / nyquist
+
+        if not btype:
+            raise ValueError('You should specify at least low_cut or high_cut')
+
+        lg.debug('order {0: 2}, Wn {1}, btype {2}'.format(order, str(Wn),
+                                                          btype))
+        b, a = butter(order, Wn, btype=btype)
+        self.b = b
+        self.a = a
+
+    def __call__(self, data):
+        """Apply the filter to the data.
 
         Parameters
         ----------
@@ -25,4 +78,5 @@ class Filter:
             filtered data
 
         """
+        data.data = filtfilt(self.b, self.a, data.data)
         return data

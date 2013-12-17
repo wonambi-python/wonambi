@@ -2,14 +2,11 @@ from ..graphoelement import Spindle
 
 
 class DetectSpindle:
+    """Design spindle detection
+
+    """
     def __init__(self):
         pass
 
-    def design(self):
-        """Design spindle detection
-
-        """
-        pass
-
-    def apply_(self, data):
+    def __call__(self, data):
         return Spindle()

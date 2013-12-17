@@ -1,14 +1,11 @@
 from ..graphoelement import SlowWave
 
 class DetectSlowWave:
+    """Design slow wave detection
+
+    """
     def __init__(self):
         pass
 
-    def design(self):
-        """Design slow wave detection
-
-        """
-        pass
-
-    def apply_(self, data):
+    def __call__(self, data):
         return SlowWave()

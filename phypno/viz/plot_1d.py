@@ -8,5 +8,5 @@ def plot_data(data, xaxis='time', xlog=False, ylog=False):
 
     """
     xval = getattr(data, xaxis)
-    for i_ch in range(len('chan_name')):
+    for i_ch in range(len(data.chan_name)):
         plot(xval, data.data[i_ch, :])

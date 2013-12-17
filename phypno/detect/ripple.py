@@ -3,9 +3,6 @@ from ..graphoelement import Ripple
 
 class DetectRipple:
     def __init__(self):
-        pass
-
-    def design(self):
         """Design ripple detection.
 
         1. Axmacher, N., Elger, C. E. & Fell, J. Brain 131, 1806–17 (2008).
@@ -18,5 +15,5 @@ class DetectRipple:
         """
         pass
 
-    def apply_(self, data):
+    def __call__(self, data):
         return Ripple()
