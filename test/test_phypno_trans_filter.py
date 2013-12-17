@@ -17,7 +17,7 @@ from phypno.trans import Filter
 
 edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
 d = Dataset(edf_file)
-data = d.read_data(chan=['LMF6'], begsam=0, endsam=1)
+data = d.read_data(chan=['LMF6'], begtime=0, endtime=100)
 
 
 @raises(ValueError)

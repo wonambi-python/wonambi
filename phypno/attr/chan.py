@@ -83,8 +83,7 @@ class Chan():
     Parameters
     ----------
     chan_input : various formats
-        information about the channels.
-          - csv of format: label, x-pos, y-pos, z-pos
+        information about the channels
 
     Parameters
     ----------
@@ -106,6 +105,11 @@ class Chan():
     ------
     UnrecognizedFormat
         If the format is not recognized
+
+    Notes
+    -----
+    chan_input can be a csv file without header and with format:
+    label, x-pos, y-pos, z-pos
 
     """
 

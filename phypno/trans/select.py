@@ -4,26 +4,27 @@ lg = getLogger('phypno')
 
 
 class Select:
-    """Class to select channel, time points, frequency.
+    """Define the selection of channel, time points, frequency.
+
+    Parameters
+    ----------
+    chan : list of str
+        which channels you want
+
+    time : tuple of 2 float
+        which periods you want. If one of the tuple is None, keep it.
+
+    freq : tuple of 2 float
+        which frequency you want. If one of the tuple is None, keep it.
+
+    Returns
+    -------
+    instance as the input.
 
     """
     def __init__(self, chan=None, time=None, freq=None):
         """Design the selection of channels.
 
-        Parameters
-        ----------
-        chan : list of str
-            which channels you want
-
-        time : tuple of 2 float
-            which periods you want. If one of the tuple is None, keep it.
-
-        freq : tuple of 2 float
-            which frequency you want. If one of the tuple is None, keep it.
-
-        Returns
-        -------
-        instance as the input.
 
         """
         self.chan = chan
