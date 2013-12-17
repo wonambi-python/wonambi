@@ -298,7 +298,7 @@ def _read_erd(erd_file, n_samples):
     for sam in range(n_samples):
 
         # Event Byte
-        eventbite = filebytes[i:i+1]
+        eventbite = filebytes[i:i + 1]
         i += 1
         if eventbite == b'':
             break
@@ -316,7 +316,7 @@ def _read_erd(erd_file, n_samples):
         if hdr['file_schema'] in (8, 9):
             # read single bits as they appear, one by one
             byte_deltamask = unpack('B' * l_deltamask,
-                                    filebytes[i:i+l_deltamask])
+                                    filebytes[i:i + l_deltamask])
             i += l_deltamask
             deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
             deltamask = ''.join(deltamask)
@@ -326,10 +326,10 @@ def _read_erd(erd_file, n_samples):
         info_toread = ''
         for i_c, m in enumerate(deltamask[:n_chan]):
             if m == '1':
-                val = filebytes[i:i+2]
+                val = filebytes[i:i + 2]
                 i += 2
             elif m == '0':
-                val = filebytes[i:i+1]
+                val = filebytes[i:i + 1]
                 i += 1
 
             if val == abs_delta:
@@ -347,7 +347,7 @@ def _read_erd(erd_file, n_samples):
 
         for i_c, to_read in enumerate(absvalue):
             if to_read:
-                output[i_c, sam] = unpack('i', filebytes[i:i+4])[0]
+                output[i_c, sam] = unpack('i', filebytes[i:i + 4])[0]
                 i += 4
 
     factor = _calculate_conversion(hdr)
@@ -413,8 +413,10 @@ def _read_snc(snc_file):
     sampleStamp = []
     sampleTime = []
     while i < len(filebytes):
+        lg.debug(filebytes[i:(i + 4)])
         sampleStamp.append(unpack('i', filebytes[i:(i + 4)])[0])
         i += 4
+        lg.debug(filebytes[i:(i + 8)])
         sampleTime.append(_filetime_to_dt(unpack('l',
                                                  filebytes[i:(i + 8)])[0]))
         i += 8
@@ -616,9 +618,6 @@ class Ktlx():
         to read the complete recording.
 
         """
-        if isinstance(chan, int):
-            chan = [chan]
-
         stc, all_stamp = _read_stc(join(self.filename, self._basename +
                                         '.stc'))
 

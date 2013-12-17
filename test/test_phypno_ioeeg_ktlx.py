@@ -12,17 +12,35 @@ lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
+from glob import glob
 from os.path import join
 from phypno.ioeeg import Ktlx
-from phypno.ioeeg.ktlx import _read_ent, _read_etc, _read_snc
+from phypno.ioeeg.ktlx import (_read_ent, _read_etc, _read_snc, _read_erd,
+                               _read_eeg)
 
 ktlx_dir = '/home/gio/recordings/MG65/eeg/raw/MG65_eeg_sessA_d01_06_39_33'
+sine_dir = '/home/gio/tools/phypno/test/data/sine1'
+
+@raises(OSError, IOError)
+def test_sine_dir():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    k = Ktlx(sine_dir)
+
+
+def test_sine_erd():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    _read_erd(glob(join(sine_dir, '*.erd'))[0], 10)
 
 
 def test_read_ent():
     lg.info('---\nfunction: ' + stack()[0][3])
     k = Ktlx(ktlx_dir)
     _read_ent(join(k.filename, k._basename + '.ent'))
+
+def test_read_eeg():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    k = Ktlx(ktlx_dir)
+    _read_eeg(join(k.filename, k._basename + '.eeg'))
 
 def test_read_etc():
     lg.info('---\nfunction: ' + stack()[0][3])

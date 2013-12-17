@@ -198,7 +198,7 @@ class Edf:
 
         Parameters
         ----------
-        chan : int or list
+        chan : list of str
             index (indices) of the channels to read
         begsam : int
             index of the first sample
@@ -212,10 +212,6 @@ class Edf:
             dimension are the channels
 
         """
-
-        if isinstance(chan, int):
-            chan = [chan]
-
         hdr = self.hdr
         dig_min = hdr['digital_min']
         phys_min = hdr['physical_min']
