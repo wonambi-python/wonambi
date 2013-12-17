@@ -33,7 +33,7 @@ class Data:
                      }
 
 
-class DataRaw(Data):
+class DataTime(Data):
     """Specific class for time-voltage recordings.
 
     Attributes

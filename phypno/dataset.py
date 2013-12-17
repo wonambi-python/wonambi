@@ -10,7 +10,7 @@ from logging import getLogger
 from os.path import isdir, join
 from numpy import arange, mean
 from .ioeeg import Edf, Ktlx
-from .datatype import DataRaw
+from .datatype import DataTime
 from .utils import UnrecognizedFormat
 
 
@@ -117,7 +117,7 @@ class Dataset:
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None, ref_chan=None):
-        """Read the data and creates a DataRaw instance
+        """Read the data and creates a DataTime instance
 
         Parameters
         ----------
@@ -140,7 +140,7 @@ class Dataset:
 
         Returns
         -------
-        An instance of DataRaw
+        An instance of DataTime
 
         Notes
         -----
@@ -149,7 +149,7 @@ class Dataset:
 
         """
 
-        data = DataRaw()
+        data = DataTime()
         data.start_time = self.header['start_time']
         data.s_freq = self.header['s_freq']
         if not chan:

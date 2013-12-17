@@ -12,12 +12,18 @@ lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
 #-----------------------------------------------------------------------------#
+from phypno.trans import Freq, TimeFreq
 
-from phypno.trans import Filter
 
-
-def test_filter_01():
+def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Filter()
+    f = Freq()
     f.design()
     f.apply_(None)
+
+
+def test_timefreq_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    tf = TimeFreq()
+    tf.design()
+    tf.apply_(None)

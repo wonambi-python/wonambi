@@ -7,3 +7,5 @@ basic elements, use the package "detect" for example.
 
 """
 from .filter import Filter
+from .frequency import Freq, TimeFreq
+from .select import Select
