@@ -22,8 +22,8 @@ data = d.read_data(chan=['LMF6'], begtime=0, endtime=10)
 
 def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Freq()
-    f(None)
+    calc_freq = Freq()
+    fr = calc_freq(data)
 
 
 def test_timefreq_01():
