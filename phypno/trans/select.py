@@ -1,4 +1,6 @@
+from copy import deepcopy
 from logging import getLogger
+from numpy import where
 
 lg = getLogger('phypno')
 
@@ -32,6 +34,8 @@ class Select:
         self.freq = freq
 
     def __call__(self, data):
+        output = deepcopy(data)
+
         if self.chan:
             idx = []
             for ch in self.chan:
@@ -39,13 +43,27 @@ class Select:
 
             lg.info('Selecting {0: 3} channels out of {0: 3}'.format(
                     len(idx), len(data.chan_name)))
-            data.data = data.data[idx, :]
-            data.chan_name = self.chan
+            output.data = output.data[idx, :]
+            output.chan_name = self.chan
 
         if self.time:
-            pass
+            begsam = int(where(data.time >= self.time[0])[0][0])
+            endsam = int(where(data.time >= self.time[1])[0][0])
+            lg.info('Selecting {0: 3}-{1: 3} time, while data is between '
+                    '{2: 3}-{3: 3}'.format(self.time[0], self.time[1],
+                                           data.time[0], data.time[-1]))
+            lg.debug('Selecting first sample {0: 5} and last sample '
+                     '{1: 5}'.format(begsam, endsam))
+
+            output.time = data.time[begsam:endsam]
+            if len(output.data.shape) == 2:
+                output.data = output.data[:, begsam:endsam]
+            else:
+                raise NotImplementedError('You need to check when there are '
+                                          'different n of dim')
 
         if self.freq:
+            # remember to do output.data = output.data
             pass
 
-        return data
+        return output
