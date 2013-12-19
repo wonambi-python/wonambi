@@ -23,7 +23,7 @@ class Data:
             - chan
 
     """
-    def __init(self):
+    def __init__(self):
         self.data = array([])
         self.chan_name = []
         self.start_time = None
@@ -42,7 +42,9 @@ class DataTime(Data):
         1d matrix with the time stamp
 
     """
-    time = array([])
+    def __init__(self):
+        super().__init__()
+        self.time = array([])
 
     def __call__(self):
         """Return the recordings and their time stamps.
@@ -71,7 +73,9 @@ class DataFreq(Data):
         1d matrix with the frequency
 
     """
-    freq = array([])
+    def __init__(self):
+        super().__init__()
+        self.freq = array([])
 
     def __call__(self):
         """Return the power spectrum and their frequency indices.
@@ -91,7 +95,7 @@ class DataFreq(Data):
         return self.data, self.freq
 
 
-class DataTimeFreq(Data):
+class DataTimeFreq(DataTime, DataFreq):
     """Specific class for time-frequency representation.
 
     Attributes
@@ -102,8 +106,8 @@ class DataTimeFreq(Data):
         1d matrix with the frequency
 
     """
-    time = array([])
-    freq = array([])
+    def __init__(self):
+        super().__init__()
 
     def __call__(self):
         """Return the power spectrum and their time and frequency indices.
