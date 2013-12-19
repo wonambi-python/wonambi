@@ -1,4 +1,5 @@
 from __future__ import division
+from copy import deepcopy
 from logging import getLogger
 from scipy.signal import butter, filtfilt
 
@@ -23,6 +24,8 @@ class Filter:
     ----------
     b, a : numpy.ndarray
         filter values
+    info : dict
+        information about type, order, and cut-off of the filter.
 
     Notes
     -----
@@ -58,6 +61,15 @@ class Filter:
         if not btype:
             raise ValueError('You should specify at least low_cut or high_cut')
 
+        try:
+            freq = '-'.join([str(x) for x in Wn])
+        except TypeError:
+            freq = str(Wn)
+
+        self.info = {'order': order,
+                     'type': btype,
+                     'freq': freq}
+
         lg.debug('order {0: 2}, Wn {1}, btype {2}'.format(order, str(Wn),
                                                           btype))
         b, a = butter(order, Wn, btype=btype)
@@ -78,5 +90,6 @@ class Filter:
             filtered data
 
         """
-        data.data = filtfilt(self.b, self.a, data.data)
-        return data
+        fdata = deepcopy(data)
+        fdata.data = filtfilt(self.b, self.a, data.data)
+        return fdata
