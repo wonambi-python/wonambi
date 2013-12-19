@@ -1,23 +1,16 @@
-import pyqtgraph as pg
-
-
-win = pg.GraphicsWindow(title="Basic plotting examples")
-win.resize(1000,600)
-win.setWindowTitle('pyqtgraph example: Plotting')
-
-# Enable antialiasing for prettier plots
-pg.setConfigOptions(antialias=True)
-
-p2 = win.addPlot(title="Multiple curves")
+from pyqtgraph import GraphicsWindow
 
 
 def plot_data(data, xaxis='time', xlog=False, ylog=False):
     """Plot data in 2d.
 
     """
-
-
+    win = GraphicsWindow(title="plot data")
     xval = getattr(data, xaxis)
-    for i_ch in range(len(data.chan_name)):
-        p2.plot(xval, data.data[i_ch, :])
 
+    for i_ch in range(len(data.chan_name)):
+        p = win.addPlot(title=data.chan_name[i_ch])
+        p.plot(xval, data.data[i_ch, :])
+        win.nextRow()
+
+    return win  # avoid garbage-collection
