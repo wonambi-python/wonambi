@@ -23,6 +23,11 @@ class Select:
     -------
     instance as the input.
 
+    Notes
+    -----
+    TODO: this should be part of datatype, so you can call it directly.
+    It's more intuitive.
+
     """
     def __init__(self, chan=None, time=None, freq=None):
         """Design the selection of channels.

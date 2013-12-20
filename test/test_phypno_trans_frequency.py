@@ -29,4 +29,4 @@ def test_freq_01():
 def test_timefreq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     tf = TimeFreq()
-    tf(None)
+    tf(data)

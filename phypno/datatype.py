@@ -2,6 +2,12 @@
 
 The main class is Data, all the other classes should depend on it.
 
+Notes
+-----
+Maybe we could use slice notation (using __getitem__()) instead of call.
+I quite like __call__ because it returns a tuple, which is pretty interesting.
+But I'm not sure if it's useful.
+
 """
 from numpy import array
 
