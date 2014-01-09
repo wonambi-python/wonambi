@@ -1,0 +1,49 @@
+from inspect import stack
+from logging import getLogger
+from numpy.testing import assert_array_equal
+from nose.tools import raises
+from subprocess import check_output
+
+
+lg = getLogger('phypno')
+git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
+                       "awk '{print $2}'",
+                       shell=True).decode('utf-8').strip()
+lg.info('phypno ver: ' + git_ver)
+lg.info('Module: ' + __name__)
+
+#-----------------------------------------------------------------------------#
+from phypno import Dataset
+
+
+edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+d = Dataset(edf_file)
+data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=10)
+
+
+def test_DataTime_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    time_limits = (0, 1)
+    sel_dat, sel_time = data(time=time_limits)
+    assert sel_time[0] == data.time[0]
+    assert sel_time[-1] <= time_limits[1]
+    assert sel_time.shape[0] == sel_dat.shape[1]
+    assert sel_dat.shape[0] == 3
+
+
+def test_DataTime_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    chan_limits = ['LOF1', 'LOF2']
+    sel_dat, sel_time = data(chan=chan_limits)
+    assert sel_time.shape[0] == sel_dat.shape[1]
+    assert sel_dat.shape[0] == 2
+
+
+def test_DataTime_03():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
+    dat1, time1 = subdata()
+    dat2, time2 = data(chan=['LOF1', 'LOF2'], time=(0, 1))
+    assert_array_equal(dat1, dat2)
+    assert_array_equal(time1, time2)
+

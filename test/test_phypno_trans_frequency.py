@@ -20,13 +20,21 @@ edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
 d = Dataset(edf_file)
 data = d.read_data(chan=['LMF6'], begtime=0, endtime=10)
 
+
 def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     calc_freq = Freq()
     fr = calc_freq(data)
 
 
+@raises(TypeError)
 def test_timefreq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    tf = TimeFreq()
+    tf = TimeFreq()  # without toi
+    tf(data)
+
+
+def test_timefreq_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    tf = TimeFreq(toi=range(2, 8))
     tf(data)

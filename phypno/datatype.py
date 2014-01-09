@@ -7,9 +7,21 @@ Notes
 Maybe we could use slice notation (using __getitem__()) instead of call.
 I quite like __call__ because it returns a tuple, which is pretty interesting.
 But I'm not sure if it's useful.
+In addition, the slice notation is not robust enough. The data is a
+representation which is only meaningful when including the other parameters,
+such as time, freq, chan.
+It's always possible to use slice notation on data.data.
+
+With the current implementation, when you call a class in datatype, you get
+tuple of matrices. To get a subset of the data, call the functions in the
+trans.select module.
+
+There is a circular import (we use Select, which depends on datatype)
 
 """
+from logging import getLogger
 from numpy import array
+lg = getLogger('phypno')
 
 
 class Data:
@@ -52,7 +64,7 @@ class DataTime(Data):
         super().__init__()
         self.time = array([])
 
-    def __call__(self):
+    def __call__(self, chan=None, time=None):
         """Return the recordings and their time stamps.
 
         Parameters
@@ -62,12 +74,15 @@ class DataTime(Data):
         Returns
         -------
         data : numpy.ndarray
-            time X chan matrix of the recordings
+            chan X time matrix of the recordings
         time : numpy.ndarray
             1d matrix with the time stamp
 
         """
-        return self.data, self.time
+        from .trans.select import Select
+        selection = Select(chan, time)
+        output = selection(self)
+        return output.data, output.time
 
 
 class DataFreq(Data):
@@ -93,9 +108,15 @@ class DataFreq(Data):
         Returns
         -------
         data : numpy.ndarray
-            time X chan matrix of the power spectrum
+            chan X freq matrix of the power spectrum
         freq : numpy.ndarray
             1d matrix with the frequency
+
+        Notes
+        -----
+        Internally, .data is stored as a 3d matrix, with chan X time X freq,
+        but time is always one dimension. When you call the function directly,
+        it returns a 2d matrix, with chan X freq, where time doesn't exist.
 
         """
         return self.data, self.freq
@@ -115,7 +136,7 @@ class DataTimeFreq(DataTime, DataFreq):
     def __init__(self):
         super().__init__()
 
-    def __call__(self):
+    def __call__(self, chan=None, time=None, freq=None):
         """Return the power spectrum and their time and frequency indices.
 
         Parameters
@@ -125,11 +146,14 @@ class DataTimeFreq(DataTime, DataFreq):
         Returns
         -------
         data : numpy.ndarray
-            time X chan matrix of the power spectrum
+            chan X time X freq matrix of the power spectrum
         time : numpy.ndarray
             1d matrix with the time stamp
         freq : numpy.ndarray
             1d matrix with the frequency
 
         """
-        return self.data, self.time, self.freq
+        from .trans.select import Select
+        selection = Select(chan, time, freq)
+        output = selection(self)
+        return output.data, output.time, output.freq

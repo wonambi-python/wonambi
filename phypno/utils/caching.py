@@ -21,6 +21,7 @@ def read_filebytes(binary_file):
         filebytes = f.read()
     return filebytes
 
+
 @memory.cache
 def read_seg(seg_file):
     seg_mri = load(seg_file)

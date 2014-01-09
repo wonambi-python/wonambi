@@ -48,12 +48,12 @@ class TimeFreq:
 
     Parameters
     ----------
-    method : str
-        the method to compute the time-frequency representation, such as
-        'stft' (short-time fourier transform).
     toi : numpy.ndarray
         1d array with the time of interest.
-    duration : float
+    method : str, optional
+        the method to compute the time-frequency representation, such as
+        'stft' (short-time fourier transform).
+    duration : float, optional
         length/duration in s to compute fourier-transform.
 
     Attributes
@@ -62,7 +62,7 @@ class TimeFreq:
         the method to compute the time-frequency representation.
 
     """
-    def __init__(self, method='stft', toi=None, duration=1):
+    def __init__(self, toi, method='stft', duration=1):
         self.method = method
         self.toi = toi
         self.duration = duration
