@@ -1,4 +1,4 @@
-from numpy import empty
+from numpy import empty, squeeze
 from scipy.signal import periodogram
 from ..datatype import DataFreq, DataTimeFreq
 from ..trans import Select
@@ -29,6 +29,7 @@ class Freq:
             freq.chan_name = data.chan_name
             freq.start_time = data.start_time
             freq.data = empty((len(freq.chan_name),
+                               1,
                                int(data.s_freq / 2) + 1
                                ))
 
@@ -36,7 +37,7 @@ class Freq:
                 f, Pxx = periodogram(data.data[i_ch, :],
                                      fs=data.s_freq,
                                      nfft=int(data.s_freq))
-                freq.data[i_ch, :] = Pxx
+                freq.data[i_ch, 0, :] = Pxx
 
             freq.freq = f
 
@@ -89,7 +90,8 @@ class TimeFreq:
                 sel_time = Select(time=(t1, t2))
 
                 freq = calc_freq(sel_time(data))
-                timefreq.data[:, i_t, :] = freq.data
+                # TODO: there must be a better way than squeeze
+                timefreq.data[:, i_t, :] = squeeze(freq.data, axis=1)
 
             timefreq.freq = freq.freq
 

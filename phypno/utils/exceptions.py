@@ -2,6 +2,7 @@
 
 """
 
+
 class UnrecognizedFormat(Exception):
     """Could not recognize the format of the file for channels.
 

@@ -20,7 +20,7 @@ There is a circular import (we use Select, which depends on datatype)
 
 """
 from logging import getLogger
-from numpy import array
+from numpy import array, squeeze
 lg = getLogger('phypno')
 
 
@@ -80,7 +80,7 @@ class DataTime(Data):
 
         """
         from .trans.select import Select
-        selection = Select(chan, time)
+        selection = Select(chan=chan, time=time)
         output = selection(self)
         return output.data, output.time
 
@@ -98,7 +98,7 @@ class DataFreq(Data):
         super().__init__()
         self.freq = array([])
 
-    def __call__(self):
+    def __call__(self, chan=None, freq=None):
         """Return the power spectrum and their frequency indices.
 
         Parameters
@@ -119,7 +119,10 @@ class DataFreq(Data):
         it returns a 2d matrix, with chan X freq, where time doesn't exist.
 
         """
-        return self.data, self.freq
+        from .trans.select import Select
+        selection = Select(chan, freq=freq)
+        output = selection(self)
+        return squeeze(output.data, axis=1), output.freq
 
 
 class DataTimeFreq(DataTime, DataFreq):
@@ -154,6 +157,6 @@ class DataTimeFreq(DataTime, DataFreq):
 
         """
         from .trans.select import Select
-        selection = Select(chan, time, freq)
+        selection = Select(chan=chan, time=time, freq=freq)
         output = selection(self)
         return output.data, output.time, output.freq

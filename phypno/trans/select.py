@@ -27,16 +27,21 @@ def _select_time(output, time):
              '{1: 5}'.format(begsam, endsam))
 
     output.time = output.time[begsam:endsam]
-    if len(output.data.shape) == 2:
-        output.data = output.data[:, begsam:endsam]
-    else:
-        raise NotImplementedError('You need to check when there are '
-                                  'different n of dim')
+    output.data = output.data[:, begsam:endsam, ...]
     return output
 
 
-def _select_freq(output, time):
+def _select_freq(output, freq):
+    begfrq = int(where(output.freq >= freq[0])[0][0])
+    endfrq = int(where(output.freq >= freq[1])[0][0])
+    lg.info('Selecting {0: 3}-{1: 3} Hz, while data is between '
+            '{2: 3}-{3: 3} Hz'.format(freq[0], freq[1],
+                                   output.freq[0], output.freq[-1]))
+    lg.debug('Selecting first sample {0: 5} and last sample '
+             '{1: 5}'.format(begfrq, endfrq))
 
+    output.freq = output.freq[begfrq:endfrq]
+    output.data = output.data[:, :, begfrq:endfrq]
     return output
 
 
