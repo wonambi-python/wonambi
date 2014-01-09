@@ -52,10 +52,8 @@ class Select:
     ----------
     chan : list of str
         which channels you want
-
     time : tuple of 2 float
         which periods you want. If one of the tuple is None, keep it.
-
     freq : tuple of 2 float
         which frequency you want. If one of the tuple is None, keep it.
 

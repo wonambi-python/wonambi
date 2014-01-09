@@ -69,7 +69,10 @@ class DataTime(Data):
 
         Parameters
         ----------
-        TODO: index for channels and time
+        chan : list of str
+            which channels you want
+        time : tuple of 2 float
+            which periods you want. If one of the tuple is None, keep it.
 
         Returns
         -------
@@ -103,7 +106,10 @@ class DataFreq(Data):
 
         Parameters
         ----------
-        TODO: index for channels and frequency
+        chan : list of str
+            which channels you want
+        freq : tuple of 2 float
+            which frequency you want. If one of the tuple is None, keep it.
 
         Returns
         -------
@@ -144,7 +150,12 @@ class DataTimeFreq(DataTime, DataFreq):
 
         Parameters
         ----------
-        TODO: index for channels, frequency and time
+        chan : list of str
+            which channels you want
+        time : tuple of 2 float
+            which periods you want. If one of the tuple is None, keep it.
+        freq : tuple of 2 float
+            which frequency you want. If one of the tuple is None, keep it.
 
         Returns
         -------
