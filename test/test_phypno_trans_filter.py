@@ -20,7 +20,7 @@ d = Dataset(edf_file)
 data = d.read_data(chan=['LMF6'], begtime=0, endtime=100)
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_filter_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     f = Filter()
@@ -30,6 +30,7 @@ def test_filter_02():
     lg.info('---\nfunction: ' + stack()[0][3])
     f = Filter(low_cut=.1)
     f(data)
+
 
 def test_filter_03():
     lg.info('---\nfunction: ' + stack()[0][3])

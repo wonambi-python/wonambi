@@ -59,7 +59,7 @@ class Filter:
             Wn = high_cut / nyquist
 
         if not btype:
-            raise ValueError('You should specify at least low_cut or high_cut')
+            raise TypeError('You should specify at least low_cut or high_cut')
 
         try:
             freq = '-'.join([str(x) for x in Wn])
