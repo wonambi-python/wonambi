@@ -42,14 +42,15 @@ def scroll_recordings(data, xaxis='time', xlog=False, ylog=False):
     region.setZValue(10)
     p2.addItem(region, ignoreBounds=True)
 
+    p1_sub = {}
     for ch in data.chan_name:
-        p1_sub = p1.addPlot(name=ch)
-        p1_sub.plot(xval, data(chan=[ch])[0][0])
-        p1_sub.hideAxis('bottom')
-        p1_sub.setXLink(data.chan_name[0])
-        p1_sub.setYLink(data.chan_name[0])
+        p1_sub[ch] = p1.addPlot(name=ch)
+        p1_sub[ch].plot(xval, data(chan=[ch])[0][0])
+        p1_sub[ch].hideAxis('bottom')
+        p1_sub[ch].setXLink(data.chan_name[0])
+        p1_sub[ch].setYLink(data.chan_name[0])
         p1.nextRow()
-    p1_sub.showAxis('bottom')  # only for the last one
+    p1_sub[ch].showAxis('bottom')  # only for the last one
 
     for ch in data.chan_name:
         p2.plot(xval, data(chan=[ch])[0][0])
@@ -57,14 +58,16 @@ def scroll_recordings(data, xaxis='time', xlog=False, ylog=False):
     def update():
         region.setZValue(10)  # on top
         minX, maxX = region.getRegion()
-        p1_sub.setXRange(minX, maxX, padding=0)
+        for ch in p1_sub:
+            p1_sub[ch].setXRange(minX, maxX, padding=0)
 
     def updateRegion(window, viewRange):
         rgn = viewRange[0]
         region.setRegion(rgn)
 
     region.sigRegionChanged.connect(update)
-    p1_sub.sigRangeChanged.connect(updateRegion)
+    for ch in p1_sub:
+        p1_sub[ch].sigRangeChanged.connect(updateRegion)
 
     region.setRegion([0, WINDOW_SIZE])
 

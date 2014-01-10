@@ -20,7 +20,7 @@ from phypno.trans import Freq, TimeFreq
 
 edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
 d = Dataset(edf_file)
-data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=10)
+data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
 
 
 def test_DataTime_01():
