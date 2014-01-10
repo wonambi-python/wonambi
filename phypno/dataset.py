@@ -116,7 +116,7 @@ class Dataset:
         self.header = hdr
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
-                  endsam=None, ref_chan=None):
+                  endsam=None):
         """Read the data and creates a DataTime instance
 
         Parameters
@@ -160,10 +160,6 @@ class Dataset:
         data.chan_name = chan
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
-        if ref_chan:
-            idx_ref_chan = [self.header['chan_name'].index(x)
-                            for x in ref_chan]
-
         if begtime is not None:
             if isinstance(begtime, datetime):
                 begtime = begtime - self.header['start_time']
@@ -190,10 +186,6 @@ class Dataset:
 
         lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
         dat = dataset.return_dat(idx_chan, begsam, endsam)
-
-        if ref_chan:
-            ref_dat = dataset.return_dat(idx_ref_chan, begsam, endsam)
-            dat = dat - mean(ref_dat, 0)
 
         data.data = dat
         return data
