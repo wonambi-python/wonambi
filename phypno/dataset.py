@@ -148,7 +148,6 @@ class Dataset:
         includes begsam but DOES NOT include endsam.
 
         """
-
         data = DataTime()
         data.start_time = self.header['start_time']
         data.s_freq = self.header['s_freq']
@@ -156,7 +155,7 @@ class Dataset:
             chan = self.header['chan_name']
         if not isinstance(chan, list) or not all(isinstance(x, str)
                                                  for x in chan):
-            raise ValueError('chan should be a list of strings')
+            raise TypeError('chan should be a list of strings')
         data.chan_name = chan
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
