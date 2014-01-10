@@ -8,7 +8,7 @@ from glob import glob
 from math import ceil
 from logging import getLogger
 from os.path import isdir, join
-from numpy import arange, mean
+from numpy import arange
 from .ioeeg import Edf, Ktlx
 from .datatype import DataTime
 from .utils import UnrecognizedFormat

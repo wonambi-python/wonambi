@@ -36,7 +36,7 @@ def _select_freq(output, freq):
     endfrq = int(where(output.freq >= freq[1])[0][0])
     lg.info('Selecting {0: 3}-{1: 3} Hz, while data is between '
             '{2: 3}-{3: 3} Hz'.format(freq[0], freq[1],
-                                   output.freq[0], output.freq[-1]))
+                                      output.freq[0], output.freq[-1]))
     lg.debug('Selecting first sample {0: 5} and last sample '
              '{1: 5}'.format(begfrq, endfrq))
 
