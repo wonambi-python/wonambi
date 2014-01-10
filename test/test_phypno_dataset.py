@@ -41,7 +41,7 @@ def test_Dataset_03():
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
     d.read_data(chan=['MFD1'], begtime=0, endtime=1)
     d.read_data(chan=['MFD1'], begtime=datetime(2013, 4, 3, 6, 39, 33),
-                endtime=datetime(2013, 4, 3, 6, 39, 34))
+                endtime=datetime(2013, 4, 3, 7, 9, 34))
     d.read_data(chan=['MFD1'], begtime=timedelta(seconds=1),
                 endtime=timedelta(seconds=2))
 
