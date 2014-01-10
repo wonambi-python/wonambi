@@ -50,10 +50,9 @@ def test_Dataset_04():
     d = Dataset(edf_file)
     d.read_data(begsam=0, endsam=1)
     d.read_data(chan=['LMF6'], begsam=0, endsam=1)
-    d.read_data(chan=['LMF6'], ref_chan=['LMF6'], begsam=0, endsam=1)
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_Dataset_05():
     d = Dataset(edf_file)
     d.read_data(chan='aaa', begsam=0, endsam=1)
