@@ -69,6 +69,6 @@ def scroll_recordings(data, xaxis='time', xlog=False, ylog=False):
     for ch in p1_sub:
         p1_sub[ch].sigRangeChanged.connect(updateRegion)
 
-    region.setRegion([0, WINDOW_SIZE])
+    region.setRegion([xval[0], xval[0] + WINDOW_SIZE])
 
     return win
