@@ -304,7 +304,6 @@ def _read_erd(erd_file, n_samples):
             break
         try:
             assert eventbite in (b'\x00', b'\x01')
-            lg.debug('eventbite: ' + str(eventbite))
         except:
             Exception('at pos ' + str(i) +
                       ', eventbite (should be x00 or x01): ' + str(eventbite))
@@ -320,7 +319,6 @@ def _read_erd(erd_file, n_samples):
             i += l_deltamask
             deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
             deltamask = ''.join(deltamask)
-            lg.debug('deltamask: ' + deltamask)
 
         absvalue = [False] * n_chan
         info_toread = ''
@@ -343,7 +341,6 @@ def _read_erd(erd_file, n_samples):
                     output[i_c, sam] = output[i_c, sam - 1] + unpack('b',
                                                                      val)[0]
                 info_toread += 'F'
-        lg.debug(info_toread)
 
         for i_c, to_read in enumerate(absvalue):
             if to_read:
@@ -628,6 +625,7 @@ class Ktlx():
         begrec = where(n_sam_rec <= begsam)[0][-1]
         endrec = where(n_sam_rec < endsam)[0][-1]
 
+        lg.debug('begrec: {0}, endrec: {1}'.format(begrec, endrec))
         dat = zeros((len(chan), endsam - begsam))
         d1 = 0
         for rec in range(begrec, endrec + 1):
@@ -639,13 +637,16 @@ class Ktlx():
             if rec == endrec:
                 endpos_rec = endsam - n_sam_rec[rec]
             else:
-                endpos_rec = n_sam_rec[rec] + 1
+                endpos_rec = all_samples[rec]
 
             d2 = endpos_rec - begpos_rec + d1
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
             lg.info(erd_file)
             dat_rec = _read_erd(erd_file, endpos_rec)
+            lg.debug('begpos_rec: {0}, endpos_rec: {1}'.format(begpos_rec,
+                     endpos_rec))
+            lg.debug('d1: {0}, d2: {1}'.format(d1, d2))
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
 
             d1 = d2
