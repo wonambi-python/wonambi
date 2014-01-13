@@ -730,8 +730,8 @@ class Ktlx():
                 n['value'].keys()
                 allnote.append(n['value'])
             except AttributeError:
-                lg.info('Note of length {} was not '
-                        'converted to dict'.format(n['length']))
+                lg.debug('Note of length {} was not '
+                         'converted to dict'.format(n['length']))
 
         s_freq = self._hdr['erd']['sample_freq']
         start_time = self._hdr['erd']['creation_time']
