@@ -3,7 +3,7 @@ from numpy import diff, squeeze
 from scipy import arange
 from PySide.QtGui import (QMainWindow, QAction, QIcon, QPainterPath,
                           QGraphicsView, QGraphicsScene)
-from ioeeg import edf
+from phypno import Dataset
 
 """
 configuration parameters
@@ -65,18 +65,18 @@ def plotLine(x, y, xpos, ypos, ylim=(-100, 100)):
     return path
 
 def readdat(chan, i):
-    e = edf('/home/gio/recordings/MG67/eeg/raw/MG67_d9_FEM.edf')
-    d = e.readdat(chan, i, i + 400)
-    return d
+    d = Dataset('/home/gio/tools/phypno/test/data/sample.edf')
+    data = d.read_data(chan=['FZ'], begsam=i, endsam=i + 400)
+    return data.data
 
 
 class SleepScoring(QMainWindow):
 
     def __init__(self):
         super(SleepScoring, self).__init__()
-        
+
         self.info = info
-        
+
         self.initUI()
 
     def initUI(self):
@@ -132,7 +132,7 @@ class SleepScoring(QMainWindow):
 
         self.info['time'] -= self.info['xscroll']
         self.addChannels()
-        
+
     def ActNext(self):
 
         self.info['time'] += self.info['xscroll']
@@ -155,7 +155,7 @@ class SleepScoring(QMainWindow):
             l = squeeze(readdat(i + 1, self.info['time']))
             ypos = self.info['chandist'] * i
             self.scene.addPath(plotLine(arange(400), l, (100, 500), (ypos,
-                                        ypos + self.info['chandist']), 
+                                        ypos + self.info['chandist']),
                                         self.info['ylim']))
 
 ex = SleepScoring()
