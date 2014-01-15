@@ -2,6 +2,7 @@ from __future__ import division
 from numpy import diff, squeeze, arange
 from PyQt4.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
                           QGraphicsView, QGraphicsScene)
+from pyqtgraph import PlotWidget
 from phypno import Dataset
 
 """
@@ -11,7 +12,7 @@ TODO: use ConfigParser
 """
 
 config = {
-    'time': 0,  # location in time
+    'idx': 0,  # location in time
     'xscroll': 300,  # amount to scroll in time in pixels
     'ylim': (-100, 100),  # size of the datawindow
     }
@@ -31,6 +32,8 @@ class Scroll_Data(QMainWindow):
         super().__init__()
 
         self.info = {}
+        self.info['idx'] = config['idx']
+        self.info['xscroll'] = config['xscroll']
 
         ActOpen = QAction(IconOpen, 'Open', self)
         ActOpen.triggered.connect(self.ActOpen)
@@ -59,25 +62,24 @@ class Scroll_Data(QMainWindow):
 
         self.info['d'] = Dataset(self.info['dataset'])
 
-        self.read_data(0)
         self.plot_data()
 
     def ActPrev(self):
-        pass
-
-    def ActNext(self):
-
+        self.info['idx'] -= self.info['xscroll']
         self.plot_data()
 
-    def read_data(self, idx):
-        self.info['data'] = self.info['d'].read_data(chan=['PZ'],
-                                                     begsam=idx,
-                                                     endsam=idx +
-                                                     config['xscroll'])
+    def ActNext(self):
+        self.info['idx'] += self.info['xscroll']
+        self.plot_data()
 
     def plot_data(self):
+        begsam = self.info['idx']
+        endsam = begsam + self.info['xscroll']
+        data = self.info['d'].read_data(chan=['PZ'],
+                                                     begsam=begsam,
+                                                     endsam=endsam)
         p = PlotWidget()
-        dat, time = self.info['data']()
+        dat, time = data()
         p.plotItem.plot(time, squeeze(dat, axis=0))
         self.setCentralWidget(p)
 
