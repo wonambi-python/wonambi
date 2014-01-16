@@ -1,9 +1,12 @@
 # %%
 from numpy import diff, squeeze, arange
 from sys import argv
-from PyQt4.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
+from PySide.QtCore import QCoreApplication
+from PySide.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
                           QGraphicsView, QGraphicsScene, QApplication,
-                          QGridLayout, QWidget)
+                          QGridLayout, QWidget, QStatusBar)
+from PySide.QtGui import (QListWidget, QListWidgetItem, QAbstractItemView,
+                          QPushButton, QVBoxLayout, QHBoxLayout, QWidget)
 from pyqtgraph import PlotWidget, LayoutWidget
 
 from phypno import Dataset
@@ -24,6 +27,74 @@ config = {
 
 # %%
 
+
+class SelectChannels(QWidget):
+    """Create a widget to choose channels.
+
+    Parameters
+    ----------
+    chan_name : list of str
+        list of all the possible channels
+    chan_to_plot : list of str
+        list of channels to plot
+
+    Attributes
+    ----------
+    chan_to_plot : list of str
+        list of channels to plot
+
+    """
+    def __init__(self, chan_name, chan_to_plot, main_wndw):
+        super().__init__()
+
+        self.main_wndw = main_wndw
+
+        okButton = QPushButton("OK")
+        okButton.clicked.connect(self.okButton)
+        cancelButton = QPushButton("Cancel")
+        cancelButton.clicked.connect(self.cancelButton)
+
+        l = QListWidget()
+        ExtendedSelection = QAbstractItemView.SelectionMode(3)
+        l.setSelectionMode(ExtendedSelection)
+        for chan in chan_name:
+            item = QListWidgetItem(chan)
+            l.addItem(item)
+            if chan in chan_to_plot:
+                item.setSelected(True)
+            else:
+                item.setSelected(False)
+        self.list = l
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(cancelButton)
+        hbox.addWidget(okButton)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(l)
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
+        self.setWindowTitle('Select Channels')
+        self.show()
+
+    def okButton(self):
+        selectedItems = self.list.selectedItems()
+        chan_to_plot = []
+        for selected in selectedItems:
+            chan_to_plot.append(selected.text())
+
+        self.main_wndw.info['chan_to_plot'] = chan_to_plot
+        self.main_wndw.plot_data()
+
+        self.close()
+
+    def cancelButton(self):
+        self.close()
+
+
+# %%
+
 IconOpen = QIcon.fromTheme('document-open')
 IconPrev = QIcon.fromTheme('go-previous')
 IconNext = QIcon.fromTheme('go-next')
@@ -33,6 +104,7 @@ IconZoomIn = QIcon.fromTheme('zoom-in')
 IconZoomOut = QIcon.fromTheme('zoom-out')
 IconZoomNext = QIcon.fromTheme('zoom-next')
 IconZoomPrev = QIcon.fromTheme('zoom-previous')
+IconSelChan = QIcon.fromTheme('mail-mark-task')
 
 
 class Scroll_Data(QMainWindow):
@@ -45,6 +117,12 @@ class Scroll_Data(QMainWindow):
         self.info['xscroll'] = config['xscroll']
         self.info['ylim'] = config['ylim']
 
+        self.create_toolbar()
+        self.setGeometry(400, 300, 800, 600)
+        self.setWindowTitle('Sleep Scoring')
+        self.show()
+
+    def create_toolbar(self):
         ActOpen = QAction(IconOpen, 'Open', self)
         ActOpen.triggered.connect(self.ActOpen)
 
@@ -72,6 +150,9 @@ class Scroll_Data(QMainWindow):
         ActYdown.setShortcut('-')
         ActYdown.triggered.connect(self.ActYDown)
 
+        SelChan = QAction(IconSelChan, 'Select Channels', self)
+        SelChan.triggered.connect(self.SelChan)
+
         menu = self.addToolBar('File Management')
         menu.addAction(ActOpen)
 
@@ -85,17 +166,17 @@ class Scroll_Data(QMainWindow):
         menu.addAction(ActYup)
         menu.addAction(ActYdown)
 
-        self.setGeometry(400, 300, 800, 600)
-        self.setWindowTitle('Sleep Scoring')
-        self.show()
+        menu = self.addToolBar('Selection')
+        menu.addAction(SelChan)
 
     def ActOpen(self):
         #self.info['dataset'] = QFileDialog.getOpenFileName(self,
-        #                                                     'Open file',
-        #            '/home/gio/tools/phypno/test/data')
-
-        self.info['dataset'] = '/home/gio/tools/phypno/test/data/sample.edf'
+        #                                                    'Open file',
+        #            '/home/gio/recordings/MG71/eeg/raw')
+        self.info['dataset'] = '/home/gio/recordings/MG71/eeg/raw/MG71_eeg_sessA_d01_09_53_17'
+        # self.info['dataset'] = '/home/gio/tools/phypno/test/data/sample.edf'
         self.info['d'] = Dataset(self.info['dataset'])
+        self.info['chan_to_plot'] = self.info['d'].header['chan_name'][1:5]
         self.plot_data()
 
     def ActPrev(self):
@@ -122,11 +203,16 @@ class Scroll_Data(QMainWindow):
         self.info['ylim'] *= 2
         self.set_ylimit()
 
+    def SelChan(self):
+        s = SelectChannels(self.info['d'].header['chan_name'],
+                           self.info['chan_to_plot'], self)
+        self.s = s  # garbage collection
+
     def plot_data(self):
         begsam = self.info['idx']
         endsam = begsam + self.info['xscroll']
-        all_chan = ['PZ', 'P3']
-        data = self.info['d'].read_data(chan=all_chan, begtime=begsam,
+        chan_to_plot = self.info['chan_to_plot']
+        data = self.info['d'].read_data(chan=chan_to_plot, begtime=begsam,
                                         endtime=endsam)
         self.p = QGridLayout()
         w = QWidget()
@@ -134,7 +220,7 @@ class Scroll_Data(QMainWindow):
         self.setCentralWidget(w)
 
         chan_plot = []
-        for row, chan in enumerate(all_chan):
+        for row, chan in enumerate(chan_to_plot):
             dat, time = data(chan=[chan])
             chan_plot.append(PlotWidget())
             chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
@@ -148,4 +234,3 @@ class Scroll_Data(QMainWindow):
 
 
 q = Scroll_Data()
-
