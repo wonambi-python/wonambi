@@ -46,13 +46,22 @@ def test_montage_03():
                               decimal=4)
 
 
-@raises(TypeError)
 def test_montage_04():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    make_reref = Montage(ref_chan=[])
+    reref = make_reref(data)
+    dat1, _ = reref()
+    assert id(data) != id(reref)  # test deepcopy
+    assert_array_equal(data.data, reref.data)
+
+
+@raises(TypeError)
+def test_montage_05():
     lg.info('---\nfunction: ' + stack()[0][3])
     Montage(ref_chan=['LMF5'], ref_to_avg=True)
 
 
-def test_montage_05():
+def test_montage_06():
     lg.info('---\nfunction: ' + stack()[0][3])
     make_reref = Montage(ref_to_avg=True)
     reref = make_reref(data)
