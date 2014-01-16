@@ -61,7 +61,7 @@ def import_freesurfer_LUT(fs_lut=None):
         one row is a brain region and the columns are the RGB + alpha colors
 
     """
-    if fs_lut:
+    if fs_lut is not None:
         lg.info('Reading user-specified lookuptable {}'.format(fs_lut))
     else:
         try:

@@ -80,10 +80,10 @@ class Select:
     def __call__(self, data):
         output = deepcopy(data)
 
-        if self.chan:
+        if self.chan is None:
             output = _select_chan(output, self.chan)
-        if self.time:
+        if self.time is None:
             output = _select_time(output, self.time)
-        if self.freq:
+        if self.freq is None:
             output = _select_freq(output, self.freq)
         return output

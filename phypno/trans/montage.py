@@ -20,11 +20,11 @@ class Montage:
 
     """
     def __init__(self, ref_chan=None, ref_to_avg=False):
-        if ref_to_avg and ref_chan:
+        if ref_to_avg and ref_chan is not None:
             raise TypeError('You cannot specify reference to the average and '
                             'the channels to use as reference')
 
-        if ref_chan:
+        if ref_chan is not None:
             if not isinstance(ref_chan, list) or not all(isinstance(x, str)
                                                          for x in ref_chan):
                 raise TypeError('chan should be a list of strings')

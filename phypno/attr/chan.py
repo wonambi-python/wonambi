@@ -157,7 +157,7 @@ class Chan():
             the label of the region in which the electrode is located.
 
         """
-        if chan_name:
+        if chan_name is not None:
             chan_pos = self.return_chan_xyz(chan_name)
             region, _ = anat.find_brain_region(chan_pos, approx)
             return region

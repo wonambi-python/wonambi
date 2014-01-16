@@ -41,20 +41,20 @@ class Filter:
     """
     def __init__(self, low_cut=None, high_cut=None, order=8, s_freq=None):
 
-        if s_freq:
+        if s_freq is not None:
             nyquist = s_freq / 2.
         else:
             nyquist = 1
 
         btype = None
-        if low_cut and high_cut:
+        if low_cut is not None and high_cut is not None:
             btype = 'bandpass'
             Wn = (low_cut / nyquist,
                   high_cut / nyquist)
-        elif low_cut:
+        elif low_cut is not None:
             btype = 'highpass'
             Wn = low_cut / nyquist
-        elif high_cut:
+        elif high_cut is not None:
             btype = 'lowpass'
             Wn = high_cut / nyquist
 

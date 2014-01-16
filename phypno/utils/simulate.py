@@ -42,25 +42,25 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
         raise ValueError('Datatype should be one of ' +
                          ', '.join(possible_datatypes))
 
-    if not s_freq:
+    if s_freq is None:
         s_freq = 512
 
-    if time:
+    if time is not None:
         if isinstance(time, tuple) and len(time) == 2:
             time = arange(time[0], time[1], 1. / s_freq)
     else:
         time = arange(0, 1, 1. / s_freq)
 
-    if freq:
+    if freq is not None:
         if isinstance(freq, tuple) and len(freq) == 2:
             freq = arange(freq[0], freq[1])
     else:
         freq = arange(0, s_freq / 2. + 1)
 
-    if not chan_name:
+    if chan_name is None:
         chan_name = ['chan{0:02}'.format(i) for i in range(n_chan)]
 
-    if not start_time:
+    if start_time is None:
         start_time = datetime.now()
 
     if datatype == 'DataTime':

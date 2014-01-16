@@ -28,3 +28,11 @@ def test_select_01():
     data1 = s(data)
     assert data1.chan_name == ['GR9']
     assert data1.data.shape[0] == 1
+
+
+def test_select_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    s = Select(chan=[])
+    data1 = s(data)
+    assert len(data1.chan_name) == 0
+    assert data1.data.shape[0] == 0
