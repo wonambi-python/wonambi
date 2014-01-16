@@ -5,11 +5,11 @@ from PySide.QtCore import Qt
 from PySide.QtGui import (QApplication,
                           QMainWindow,
                           QGridLayout,
-                          QVBoxLayout,
                           QHBoxLayout,
                           QWidget,
                           QDockWidget,
                           QPushButton,
+                          QLabel,
                           QListWidget,
                           QListWidgetItem,
                           QFileDialog,
@@ -20,6 +20,7 @@ from PySide.QtGui import (QApplication,
 from pyqtgraph import PlotWidget
 
 from phypno import Dataset
+from phypno.trans import Montage
 
 """
 configuration parameters
@@ -60,7 +61,7 @@ class SelectChannels(QWidget):
         list of channels to plot
 
     """
-    def __init__(self, chan_name, chan_to_plot, main_wndw):
+    def __init__(self, chan_name, chan_to_plot, ref_chan, main_wndw):
         super().__init__()
 
         self.main_wndw = main_wndw
@@ -70,37 +71,60 @@ class SelectChannels(QWidget):
         cancelButton = QPushButton("Cancel")
         cancelButton.clicked.connect(self.cancelButton)
 
-        l = QListWidget()
         ExtendedSelection = QAbstractItemView.SelectionMode(3)
-        l.setSelectionMode(ExtendedSelection)
+
+        l0 = QListWidget()
+        l0.setSelectionMode(ExtendedSelection)
         for chan in chan_name:
             item = QListWidgetItem(chan)
-            l.addItem(item)
+            l0.addItem(item)
             if chan in chan_to_plot:
                 item.setSelected(True)
             else:
                 item.setSelected(False)
-        self.list = l
+
+        l1 = QListWidget()
+        l1.setSelectionMode(ExtendedSelection)
+        for chan in chan_name:
+            item = QListWidgetItem(chan)
+            l1.addItem(item)
+            if chan in ref_chan:
+                item.setSelected(True)
+            else:
+                item.setSelected(False)
 
         hbox = QHBoxLayout()
         hbox.addWidget(cancelButton)
         hbox.addWidget(okButton)
 
-        vbox = QVBoxLayout()
-        vbox.addWidget(l)
-        vbox.addLayout(hbox)
+        layout = QGridLayout()
+        layout.addWidget(QLabel('Channels to Visualize'), 0, 0)
+        layout.addWidget(QLabel('Reference Channels'), 0, 1)
+        layout.addWidget(l0, 1, 0)
+        layout.addWidget(l1, 1, 1)
+        layout.addLayout(hbox, 2, 1)
 
-        self.setLayout(vbox)
+        self.l0 = l0
+        self.l1 = l1
+        self.setLayout(layout)
         self.setWindowTitle('Select Channels')
         self.show()
 
     def okButton(self):
-        selectedItems = self.list.selectedItems()
+        selectedItems = self.l0.selectedItems()
         chan_to_plot = []
         for selected in selectedItems:
             chan_to_plot.append(selected.text())
 
-        self.main_wndw.info['chan_to_plot'] = chan_to_plot
+        selectedItems = self.l1.selectedItems()
+        ref_chan = []
+        for selected in selectedItems:
+            ref_chan.append(selected.text())
+
+        self.main_wndw.viz['chan_to_plot'] = chan_to_plot
+        self.main_wndw.viz['ref_chan'] = ref_chan
+        self.main_wndw.create_scroll()
+        self.main_wndw.read_data()
         self.main_wndw.plot_scroll()
 
         self.close()
@@ -160,7 +184,8 @@ class Scroll_Data(QMainWindow):
             'win_beg': config['win_beg'],  # beginning of the window
             'win_len': config['win_len'],  # end of the window
             'ylim': config['ylim'],  # max of the y axis
-            'chan_to_plot': None,
+            'chan_to_plot': [],
+            'ref_chan': [],
             }
         self.dataset = {
             'filename': None,  # name of the file or directory
@@ -288,7 +313,9 @@ class Scroll_Data(QMainWindow):
 
         """
         sel_chan = SelectChannels(self.dataset['dataset'].header['chan_name'],
-                                  self.viz['chan_to_plot'], self)
+                                  self.viz['chan_to_plot'],
+                                  self.viz['ref_chan'],
+                                  self)
         self.widgets['sel_chan'] = sel_chan
 
     def create_scroll(self):
@@ -307,10 +334,12 @@ class Scroll_Data(QMainWindow):
         win_beg = self.viz['win_beg']
         win_end = win_beg + self.viz['win_len']
         chan_to_plot = self.viz['chan_to_plot']
-        data = self.dataset['dataset'].read_data(chan=chan_to_plot,
+        ref_chan = self.viz['ref_chan']
+        data = self.dataset['dataset'].read_data(chan=chan_to_plot + ref_chan,
                                                  begtime=win_beg,
                                                  endtime=win_end)
-        self.data['data'] = data
+        reref = Montage(ref_chan=ref_chan)
+        self.data['data'] = reref(data)
 
     def plot_scroll(self):
         chan_to_plot = self.viz['chan_to_plot']
