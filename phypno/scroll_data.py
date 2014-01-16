@@ -323,6 +323,7 @@ class Scroll_Data(QMainWindow):
         """
         scroll = QWidget()
         layout = QGridLayout()
+        layout.setVerticalSpacing(0)
 
         scroll.setLayout(layout)
         self.setCentralWidget(scroll)
@@ -351,9 +352,11 @@ class Scroll_Data(QMainWindow):
             dat, time = data(chan=[chan])
             chan_plot.append(PlotWidget())
             chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
+            chan_plot[row].plotItem.showAxis('bottom', False)
             chan_plot[row].plotItem.setXRange(time[0], time[-1])
             layout.addWidget(chan_plot[row], row, 0)
 
+        chan_plot[row].plotItem.showAxis('bottom', True)
         self.widgets['scroll_chan'] = chan_plot
         self.set_ylimit()
 
