@@ -1,8 +1,11 @@
-from __future__ import division
+# %%
 from numpy import diff, squeeze, arange
+from sys import argv
 from PyQt4.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
-                          QGraphicsView, QGraphicsScene, QApplication)
-from pyqtgraph import PlotWidget
+                          QGraphicsView, QGraphicsScene, QApplication,
+                          QGridLayout, QWidget)
+from pyqtgraph import PlotWidget, LayoutWidget
+
 from phypno import Dataset
 
 """
@@ -11,7 +14,7 @@ TODO: use ConfigParser
 
 """
 
-app = QApplication()
+app = QApplication(argv)
 
 config = {
     'idx': 0,  # location in time
@@ -19,7 +22,7 @@ config = {
     'ylim': -100,  # size of the datawindow
     }
 
-
+# %%
 
 IconOpen = QIcon.fromTheme('document-open')
 IconPrev = QIcon.fromTheme('go-previous')
@@ -84,7 +87,6 @@ class Scroll_Data(QMainWindow):
 
         self.setGeometry(400, 300, 800, 600)
         self.setWindowTitle('Sleep Scoring')
-
         self.show()
 
     def ActOpen(self):
@@ -92,13 +94,9 @@ class Scroll_Data(QMainWindow):
         #                                                     'Open file',
         #            '/home/gio/tools/phypno/test/data')
 
-        self.info['dataset'] = '/home/gio/ieeg/tools/phypno/test/data/sample.edf'
+        self.info['dataset'] = '/home/gio/tools/phypno/test/data/sample.edf'
         self.info['d'] = Dataset(self.info['dataset'])
-
-        self.p = PlotWidget()
-        self.setCentralWidget(self.p)
         self.plot_data()
-        self.set_ylimit()
 
     def ActPrev(self):
         self.info['idx'] -= self.info['xscroll']
@@ -127,13 +125,21 @@ class Scroll_Data(QMainWindow):
     def plot_data(self):
         begsam = self.info['idx']
         endsam = begsam + self.info['xscroll']
-        data = self.info['d'].read_data(chan=['PZ'],
-                                                     begtime=begsam,
-                                                     endtime=endsam)
+        all_chan = ['PZ', 'P3']
+        data = self.info['d'].read_data(chan=all_chan, begtime=begsam,
+                                        endtime=endsam)
+        self.p = QGridLayout()
+        w = QWidget()
+        w.setLayout(self.p)
+        self.setCentralWidget(w)
 
-        dat, time = data()
-        self.p.plotItem.plot(time, squeeze(dat, axis=0))
-        self.p.plotItem.setXRange(time[0], time[-1])
+        chan_plot = []
+        for row, chan in enumerate(all_chan):
+            dat, time = data(chan=[chan])
+            chan_plot.append(PlotWidget())
+            chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
+            chan_plot[row].plotItem.setXRange(time[0], time[-1])
+            self.p.addWidget(chan_plot[row], row, 0)
 
 
     def set_ylimit(self):
@@ -142,3 +148,4 @@ class Scroll_Data(QMainWindow):
 
 
 q = Scroll_Data()
+
