@@ -1,10 +1,10 @@
 # %%
 from numpy import diff, squeeze, arange
 from sys import argv
-from PySide.QtCore import QCoreApplication
+from PySide.QtCore import QCoreApplication, Qt
 from PySide.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
                           QGraphicsView, QGraphicsScene, QApplication,
-                          QGridLayout, QWidget, QStatusBar)
+                          QGridLayout, QWidget, QStatusBar, QDockWidget)
 from PySide.QtGui import (QListWidget, QListWidgetItem, QAbstractItemView,
                           QPushButton, QVBoxLayout, QHBoxLayout, QWidget)
 from pyqtgraph import PlotWidget, LayoutWidget
@@ -204,8 +204,13 @@ class Scroll_Data(QMainWindow):
         self.set_ylimit()
 
     def SelChan(self):
+        dockWidget = QDockWidget("Select Channel", self)
+        dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea |
+                                   Qt.RightDockWidgetArea)
         s = SelectChannels(self.info['d'].header['chan_name'],
                            self.info['chan_to_plot'], self)
+        dockWidget.setWidget(s)
+        self.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         self.s = s  # garbage collection
 
     def plot_data(self):
