@@ -1,13 +1,23 @@
 # %%
-from numpy import diff, squeeze, arange
+from numpy import squeeze
 from sys import argv
-from PySide.QtCore import QCoreApplication, Qt
-from PySide.QtGui import (QMainWindow, QAction, QIcon, QToolBar, QFileDialog,
-                          QGraphicsView, QGraphicsScene, QApplication,
-                          QGridLayout, QWidget, QStatusBar, QDockWidget)
-from PySide.QtGui import (QListWidget, QListWidgetItem, QAbstractItemView,
-                          QPushButton, QVBoxLayout, QHBoxLayout, QWidget)
-from pyqtgraph import PlotWidget, LayoutWidget
+from PySide.QtCore import Qt
+from PySide.QtGui import (QApplication,
+                          QMainWindow,
+                          QGridLayout,
+                          QVBoxLayout,
+                          QHBoxLayout,
+                          QWidget,
+                          QDockWidget,
+                          QPushButton,
+                          QListWidget,
+                          QListWidgetItem,
+                          QFileDialog,
+                          QAction,
+                          QKeySequence,
+                          QIcon,
+                          QAbstractItemView)
+from pyqtgraph import PlotWidget
 
 from phypno import Dataset
 
@@ -17,15 +27,21 @@ TODO: use ConfigParser
 
 """
 
-app = QApplication(argv)
+try:
+    app = QApplication(argv)
+except RuntimeError:
+    pass
+
+
+DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
+                   'MG71_eeg_sessA_d01_09_53_17')
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
 config = {
-    'idx': 0,  # location in time
-    'xscroll': 30,  # amount to scroll in time in pixels
-    'ylim': -100,  # size of the datawindow
+    'win_beg': 0,
+    'win_len': 30,
+    'ylim': 100,
     }
-
-# %%
 
 
 class SelectChannels(QWidget):
@@ -85,7 +101,7 @@ class SelectChannels(QWidget):
             chan_to_plot.append(selected.text())
 
         self.main_wndw.info['chan_to_plot'] = chan_to_plot
-        self.main_wndw.plot_data()
+        self.main_wndw.plot_scroll()
 
         self.close()
 
@@ -93,136 +109,213 @@ class SelectChannels(QWidget):
         self.close()
 
 
-# %%
-
-IconOpen = QIcon.fromTheme('document-open')
-IconPrev = QIcon.fromTheme('go-previous')
-IconNext = QIcon.fromTheme('go-next')
-IconUp = QIcon.fromTheme('go-up')
-IconDown = QIcon.fromTheme('go-down')
-IconZoomIn = QIcon.fromTheme('zoom-in')
-IconZoomOut = QIcon.fromTheme('zoom-out')
-IconZoomNext = QIcon.fromTheme('zoom-next')
-IconZoomPrev = QIcon.fromTheme('zoom-previous')
-IconSelChan = QIcon.fromTheme('mail-mark-task')
+icon = {
+    'open': QIcon.fromTheme('document-open'),
+    'prev': QIcon.fromTheme('go-previous'),
+    'next': QIcon.fromTheme('go-next'),
+    'up': QIcon.fromTheme('go-up'),
+    'down': QIcon.fromTheme('go-down'),
+    'zoomin': QIcon.fromTheme('zoom-in'),
+    'zoomout': QIcon.fromTheme('zoom-out'),
+    'zoomnext': QIcon.fromTheme('zoom-next'),
+    'zoomprev': QIcon.fromTheme('zoom-previous'),
+    'selchan': QIcon.fromTheme('mail-mark-task'),
+    }
 
 
 class Scroll_Data(QMainWindow):
+    """Scroll through data.
 
+    Methods
+    -------
+    create_actions : add self.action
+    create_toolbar : add toolbars
+    create_scroll : create main widget, scroll + scroll_layout
+    read_data : read data
+    plot_scroll : plot data to scroll
+    set_ylimit : set y limits for scroll data
+    action_*** : various actions
+
+    Attributes
+    ----------
+    action : dict
+        names of all the actions to perform
+    viz : dict
+        visualization options, such as window start time, window height and
+        width, channels to plot.
+    dataset : dict
+        information about the dataset, such as name, instance of Dataset.
+    data : dict
+        current data, time stamps.
+    widgets : dict
+        pointers to active widgets, to avoid garbage collection
+    chan_plot : dict
+        pointers to each individual channel plot
+
+    """
     def __init__(self):
         super().__init__()
 
-        self.info = {}
-        self.info['idx'] = config['idx']
-        self.info['xscroll'] = config['xscroll']
-        self.info['ylim'] = config['ylim']
+        self.viz = {
+            'win_beg': config['win_beg'],  # beginning of the window
+            'win_len': config['win_len'],  # end of the window
+            'ylim': config['ylim'],  # max of the y axis
+            'chan_to_plot': None,
+            }
+        self.dataset = {
+            'filename': None,  # name of the file or directory
+            'dataset': None,  # instance of Dataset
+            }
+        self.data = {
+            'data': None,
+            }
+        self.widgets = {
+            'scroll': None,
+            'scroll_layout': None,
+            'scroll_chan': None,
+            }
 
+        self.create_actions()
         self.create_toolbar()
+
         self.setGeometry(400, 300, 800, 600)
         self.setWindowTitle('Sleep Scoring')
         self.show()
 
+    def create_actions(self):
+        actions = {}
+        actions['open'] = QAction(icon['open'], 'Open', self)
+        actions['open'].setShortcut(QKeySequence.Open)
+        actions['open'].triggered.connect(self.action_open)
+
+        actions['prev'] = QAction(icon['prev'], 'Previous Page', self)
+        actions['prev'].setShortcut(QKeySequence.MoveToPreviousChar)
+        actions['prev'].triggered.connect(self.action_prevpage)
+
+        actions['next'] = QAction(icon['next'], 'Next Page', self)
+        actions['next'].setShortcut(QKeySequence.MoveToNextChar)
+        actions['next'].triggered.connect(self.action_nextpage)
+
+        actions['X_more'] = QAction(icon['zoomprev'], 'Wider Time Window',
+                                    self)
+        actions['X_more'].setShortcut(QKeySequence.ZoomIn)
+        actions['X_more'].triggered.connect(self.action_X_more)
+
+        actions['X_less'] = QAction(icon['zoomnext'], 'Narrower Time Window',
+                                    self)
+        actions['X_less'].setShortcut(QKeySequence.ZoomOut)
+        actions['X_less'].triggered.connect(self.action_X_less)
+
+        actions['Y_less'] = QAction(icon['zoomin'], 'Larger Amplitude', self)
+        actions['Y_less'].setShortcut(QKeySequence.MoveToPreviousLine)
+        actions['Y_less'].triggered.connect(self.action_Y_less)
+
+        actions['Y_more'] = QAction(icon['zoomout'], 'Smaller Amplitude', self)
+        actions['Y_more'].setShortcut(QKeySequence.MoveToPreviousLine)
+        actions['Y_more'].triggered.connect(self.action_Y_more)
+
+        actions['sel_chan'] = QAction(icon['selchan'], 'Select Channels', self)
+        actions['sel_chan'].triggered.connect(self.action_select_chan)
+
+        self.action = actions  # actions was already taken
+
     def create_toolbar(self):
-        ActOpen = QAction(IconOpen, 'Open', self)
-        ActOpen.triggered.connect(self.ActOpen)
+        actions = self.action
 
-        ActPrev = QAction(IconPrev, 'Previous Page', self)
-        ActPrev.setShortcut('<')
-        ActPrev.triggered.connect(self.ActPrev)
+        toolbar = self.addToolBar('File Management')
+        toolbar.addAction(actions['open'])
 
-        ActNext = QAction(IconNext, 'Next Page', self)
-        ActNext.setShortcut('>')
-        ActNext.triggered.connect(self.ActNext)
+        toolbar = self.addToolBar('Scroll')
+        toolbar.addAction(actions['prev'])
+        toolbar.addAction(actions['next'])
+        toolbar.addSeparator()
+        toolbar.addAction(actions['X_more'])
+        toolbar.addAction(actions['X_less'])
+        toolbar.addSeparator()
+        toolbar.addAction(actions['Y_less'])
+        toolbar.addAction(actions['Y_more'])
 
-        ActXup = QAction(IconZoomPrev, 'Larger X', self)
-        ActXup.setShortcut('+')
-        ActXup.triggered.connect(self.ActXUp)
+        toolbar = self.addToolBar('Selection')
+        toolbar.addAction(actions['sel_chan'])
 
-        ActXdown = QAction(IconZoomNext, 'Smaller X', self)
-        ActXdown.setShortcut('-')
-        ActXdown.triggered.connect(self.ActXDown)
-
-        ActYup = QAction(IconZoomIn, 'Larger Y', self)
-        ActYup.setShortcut('+')
-        ActYup.triggered.connect(self.ActYUp)
-
-        ActYdown = QAction(IconZoomOut, 'Smaller Y', self)
-        ActYdown.setShortcut('-')
-        ActYdown.triggered.connect(self.ActYDown)
-
-        SelChan = QAction(IconSelChan, 'Select Channels', self)
-        SelChan.triggered.connect(self.SelChan)
-
-        menu = self.addToolBar('File Management')
-        menu.addAction(ActOpen)
-
-        menu = self.addToolBar('Scroll')
-        menu.addAction(ActPrev)
-        menu.addAction(ActNext)
-        menu.addSeparator()
-        menu.addAction(ActXup)
-        menu.addAction(ActXdown)
-        menu.addSeparator()
-        menu.addAction(ActYup)
-        menu.addAction(ActYdown)
-
-        menu = self.addToolBar('Selection')
-        menu.addAction(SelChan)
-
-    def ActOpen(self):
+    def action_open(self):
         #self.info['dataset'] = QFileDialog.getOpenFileName(self,
         #                                                    'Open file',
         #            '/home/gio/recordings/MG71/eeg/raw')
-        self.info['dataset'] = '/home/gio/recordings/MG71/eeg/raw/MG71_eeg_sessA_d01_09_53_17'
-        # self.info['dataset'] = '/home/gio/tools/phypno/test/data/sample.edf'
-        self.info['d'] = Dataset(self.info['dataset'])
-        self.info['chan_to_plot'] = self.info['d'].header['chan_name'][1:5]
-        self.plot_data()
+        self.dataset['filename'] = DATASET_EXAMPLE
+        self.dataset['dataset'] = Dataset(self.dataset['filename'])
+        self.viz['chan_to_plot'] = self.dataset['dataset'].header['chan_name'][:6]
 
-    def ActPrev(self):
-        self.info['idx'] -= self.info['xscroll']
-        self.plot_data()
+        self.create_scroll()
+        self.read_data()
+        self.plot_scroll()
 
-    def ActNext(self):
-        self.info['idx'] += self.info['xscroll']
-        self.plot_data()
+    def action_prevpage(self):
+        self.viz['win_beg'] -= self.viz['win_len']
+        self.read_data()
+        self.plot_scroll()
 
-    def ActXUp(self):
-        self.info['xscroll'] *= 2
-        self.plot_data()
+    def action_nextpage(self):
+        self.viz['win_beg'] += self.viz['win_len']
+        self.read_data()
+        self.plot_scroll()
 
-    def ActXDown(self):
-        self.info['xscroll'] /= 2
-        self.plot_data()
+    def action_X_more(self):
+        """It would be nice to have predefined zoom levels.
+        Also, a value that can be shown and edited.
+        """
+        self.viz['win_len'] *= 2
+        self.read_data()
+        self.plot_scroll()
 
-    def ActYUp(self):
-        self.info['ylim'] /= 2
+    def action_X_less(self):
+        self.viz['win_len'] /= 2
+        self.read_data()
+        self.plot_scroll()
+
+    def action_Y_less(self):
+        """See comments to action_X_more.
+        """
+        self.viz['ylim'] /= 2
         self.set_ylimit()
 
-    def ActYDown(self):
-        self.info['ylim'] *= 2
+    def action_Y_more(self):
+        self.viz['ylim'] *= 2
         self.set_ylimit()
 
-    def SelChan(self):
-        dockWidget = QDockWidget("Select Channel", self)
-        dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea |
-                                   Qt.RightDockWidgetArea)
-        s = SelectChannels(self.info['d'].header['chan_name'],
-                           self.info['chan_to_plot'], self)
-        dockWidget.setWidget(s)
-        self.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
-        self.s = s  # garbage collection
+    def action_select_chan(self):
+        """Create new widget to select channels.
 
-    def plot_data(self):
-        begsam = self.info['idx']
-        endsam = begsam + self.info['xscroll']
-        chan_to_plot = self.info['chan_to_plot']
-        data = self.info['d'].read_data(chan=chan_to_plot, begtime=begsam,
-                                        endtime=endsam)
-        self.p = QGridLayout()
-        w = QWidget()
-        w.setLayout(self.p)
-        self.setCentralWidget(w)
+        """
+        sel_chan = SelectChannels(self.dataset['dataset'].header['chan_name'],
+                                  self.viz['chan_to_plot'], self)
+        self.widgets['sel_chan'] = sel_chan
+
+    def create_scroll(self):
+        """Probably delete previous scroll widget.
+        """
+        scroll = QWidget()
+        layout = QGridLayout()
+
+        scroll.setLayout(layout)
+        self.setCentralWidget(scroll)
+
+        self.widgets['scroll'] = scroll
+        self.widgets['scroll_layout'] = layout
+
+    def read_data(self):
+        win_beg = self.viz['win_beg']
+        win_end = win_beg + self.viz['win_len']
+        chan_to_plot = self.viz['chan_to_plot']
+        data = self.dataset['dataset'].read_data(chan=chan_to_plot,
+                                                 begtime=win_beg,
+                                                 endtime=win_end)
+        self.data['data'] = data
+
+    def plot_scroll(self):
+        chan_to_plot = self.viz['chan_to_plot']
+        data = self.data['data']
+        layout = self.widgets['scroll_layout']
 
         chan_plot = []
         for row, chan in enumerate(chan_to_plot):
@@ -230,12 +323,26 @@ class Scroll_Data(QMainWindow):
             chan_plot.append(PlotWidget())
             chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
             chan_plot[row].plotItem.setXRange(time[0], time[-1])
-            self.p.addWidget(chan_plot[row], row, 0)
+            layout.addWidget(chan_plot[row], row, 0)
 
+        self.widgets['scroll_chan'] = chan_plot
+        self.set_ylimit()
 
     def set_ylimit(self):
-        self.p.plotItem.setYRange(-1 * self.info['ylim'],
-                                  self.info['ylim'])
+        chan_plot = self.widgets['scroll_chan']
+        for single_chan_plot in chan_plot:
+            single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
+                                                self.viz['ylim'])
 
 
 q = Scroll_Data()
+
+
+"""
+dockWidget = QDockWidget("Select Channel", self)
+dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea |
+
+dockWidget.setWidget(s)
+self.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
+                           Qt.RightDockWidgetArea)
+"""
