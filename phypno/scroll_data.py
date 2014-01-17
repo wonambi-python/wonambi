@@ -16,11 +16,14 @@ from PySide.QtGui import (QApplication,
                           QListWidget,
                           QListWidgetItem,
                           QFileDialog,
+                          QColorDialog,
                           QAction,
                           QKeySequence,
                           QIcon,
-                          QAbstractItemView)
-from pyqtgraph import PlotWidget
+                          QAbstractItemView,
+                          QPen,
+                          QColor,)
+from pyqtgraph import PlotWidget, setConfigOption
 
 lg = getLogger('phypno')  # replace with lg = getLogger(__name__)
 lg.setLevel(INFO)
@@ -49,6 +52,8 @@ config = {
     'win_len': 30,
     'ylim': 100,
     }
+
+setConfigOption('background', 'w')
 
 # %%
 class SelectChannels(QWidget):
@@ -79,6 +84,9 @@ class SelectChannels(QWidget):
         addButton.clicked.connect(lambda: self.ask_name('new'))
         renameButton = QPushButton('Rename')
         renameButton.clicked.connect(lambda: self.ask_name('rename'))
+        colorButton = QPushButton('Color')
+        colorButton.clicked.connect(self.color_group)
+        self.colorButton = colorButton
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
@@ -95,9 +103,9 @@ class SelectChannels(QWidget):
         self.current = self.list_grp.currentText()
 
         hdr = QHBoxLayout()
-        hdr.addWidget(self.list_grp, stretch=1)
         hdr.addWidget(addButton)
         hdr.addWidget(renameButton)
+        hdr.addWidget(colorButton)
         hdr.addWidget(delButton)
 
         hbox = QHBoxLayout()
@@ -105,7 +113,8 @@ class SelectChannels(QWidget):
         hbox.addWidget(okButton)
 
         layout = QGridLayout()
-        layout.addLayout(hdr, 0, 0, columnSpan=2)
+        layout.addWidget(self.list_grp, 0, 0)
+        layout.addLayout(hdr, 0, 1)
         layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
         layout.addWidget(QLabel('Reference Channels'), 1, 1)
         layout.addLayout(hbox, 3, 1)
@@ -186,7 +195,7 @@ class SelectChannels(QWidget):
         self.chan_grp.append({'name': new_grp_name,
                               'chan_to_plot': [],
                               'ref_chan': [],
-                              'color': None,
+                              'color': QColor('black'),
                               'filter': None,
                               })
         idx = self.list_grp.currentIndex()
@@ -203,6 +212,11 @@ class SelectChannels(QWidget):
         idx = self.list_grp.currentIndex()
         self.list_grp.setItemText(idx, new_grp_name)
 
+    def color_group(self):
+        idx = [x['name'] for x in self.chan_grp].index(self.current)
+        newcolor = QColorDialog.getColor(self.chan_grp[idx]['color'])
+        self.chan_grp[idx]['color'] = newcolor
+
     def delete_group(self):
         idx = self.list_grp.currentIndex()
         self.list_grp.removeItem(idx)
@@ -212,7 +226,7 @@ class SelectChannels(QWidget):
 
 
 # all_chan = ['c' + str(i) for i in range(10)]
-# chan_grp = [{'name': 'ant', 'chan_to_plot': ['c1', 'c2'], 'ref_chan': ['c3'], 'color': None}, {'name': 'pos', 'chan_to_plot': ['c4', 'c2'], 'ref_chan': ['c1'], 'color': None}]
+# chan_grp = [{'name': 'ant', 'chan_to_plot': ['c1', 'c2'], 'ref_chan': ['c3'], 'color': QColor('black')}, {'name': 'pos', 'chan_to_plot': ['c4', 'c2'], 'ref_chan': ['c1'], 'color': None}]
 # q = SelectChannels(all_chan, chan_grp, None)
 
 # %%
@@ -274,7 +288,7 @@ class Scroll_Data(QMainWindow):
         self.chan = [{'name': 'General',
                       'chan_to_plot': [],
                       'ref_chan': [],
-                      'color': None,
+                      'color': QColor('black'),
                       'filter': {},
                       }]
         self.dataset = {
@@ -441,7 +455,8 @@ class Scroll_Data(QMainWindow):
             for chan in one_grp['chan_to_plot']:
                 dat, time = reref(chan=[chan])
                 chan_plot.append(PlotWidget())
-                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
+                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
+                                             pen=QPen(one_grp['color']))
                 chan_plot[row].plotItem.showAxis('bottom', False)
                 chan_plot[row].plotItem.setXRange(time[0], time[-1])
                 layout.addWidget(chan_plot[row], row, 0)
