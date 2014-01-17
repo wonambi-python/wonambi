@@ -1,4 +1,5 @@
 # %%
+from logging import getLogger, INFO
 from numpy import squeeze
 from sys import argv
 from PySide.QtCore import Qt
@@ -19,6 +20,9 @@ from PySide.QtGui import (QApplication,
                           QAbstractItemView)
 from pyqtgraph import PlotWidget
 
+lg = getLogger('phypno')  # replace with lg = getLogger(__name__)
+lg.setLevel(INFO)
+
 from phypno import Dataset
 from phypno.trans import Montage
 
@@ -36,7 +40,7 @@ except RuntimeError:
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_09_53_17')
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
 config = {
     'win_beg': 0,

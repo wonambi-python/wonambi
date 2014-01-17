@@ -15,14 +15,6 @@ memory = Memory(cachedir=cachedir, verbose=0)
 
 
 @memory.cache
-def read_filebytes(binary_file):
-    lg.info('Reading file: ' + binary_file)
-    with open(binary_file, 'rb') as f:
-        filebytes = f.read()
-    return filebytes
-
-
-@memory.cache
 def read_seg(seg_file):
     seg_mri = load(seg_file)
     seg_aff = seg_mri.get_affine()

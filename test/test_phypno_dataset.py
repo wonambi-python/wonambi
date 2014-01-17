@@ -1,10 +1,12 @@
 from inspect import stack
-from logging import getLogger
+from logging import getLogger, INFO
 from nose.tools import raises
+from numpy.testing import assert_array_equal
 from subprocess import check_output
 
 
 lg = getLogger('phypno')
+lg.setLevel(INFO)
 git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
                        "awk '{print $2}'",
                        shell=True).decode('utf-8').strip()
@@ -39,6 +41,16 @@ def test_Dataset_03():
     d = Dataset(ktlx_dir)
     assert d.header['s_freq'] == 512.0
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
+    dat0 = d.read_data(chan=['MFD1'], begtime=0, endtime=1)
+    dat1 = d.read_data(chan=['MFD1'], begtime=0, endtime=1)  # caching
+    assert_array_equal(dat0.data, dat1.data)
+
+
+def test_Dataset_04():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    d = Dataset(ktlx_dir)
+    assert d.header['s_freq'] == 512.0
+    d.read_data(chan=['MFD1'], begsam=0, endsam=1)
     d.read_data(chan=['MFD1'], begtime=0, endtime=1)
     d.read_data(chan=['MFD1'], begtime=datetime(2013, 4, 3, 6, 39, 33),
                 endtime=datetime(2013, 4, 3, 7, 9, 34))
@@ -46,13 +58,13 @@ def test_Dataset_03():
                 endtime=timedelta(seconds=2))
 
 
-def test_Dataset_04():
+def test_Dataset_05():
     d = Dataset(edf_file)
     d.read_data(begsam=0, endsam=1)
     d.read_data(chan=['LMF6'], begsam=0, endsam=1)
 
 
 @raises(TypeError)
-def test_Dataset_05():
+def test_Dataset_06():
     d = Dataset(edf_file)
     d.read_data(chan='aaa', begsam=0, endsam=1)

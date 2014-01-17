@@ -29,8 +29,9 @@ from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub
 from struct import unpack
-from numpy import zeros, ones, concatenate, expand_dims, where, cumsum, array
-from ..utils import read_filebytes
+from tempfile import mkdtemp
+from numpy import (zeros, ones, concatenate, expand_dims, where, cumsum, array,
+                   memmap, int32)
 
 lg = getLogger(__name__)
 
@@ -42,6 +43,8 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
+temp_dir = mkdtemp()
+lg.info('Temporary Directory with data: ' + temp_dir)
 
 
 def _calculate_conversion(hdr):
@@ -281,71 +284,81 @@ def _read_erd(erd_file, n_samples):
     """
     hdr = _read_hdr_file(erd_file)
     n_chan = hdr['num_channels']
-    l_deltamask = int(ceil(n_chan / BITS_IN_BYTE))  # deltamask length
 
-    filebytes = read_filebytes(erd_file)
+    memmap_file = join(temp_dir, basename(erd_file))
+    if exists(memmap_file):
+        lg.info('Reading existing file: ' + memmap_file)
+        output = memmap(memmap_file, mode='c',
+                        shape=(n_chan, n_samples), dtype=int32)
+    else:
+        lg.info('Writing new file: ' + memmap_file)
+        output = memmap(memmap_file, mode='w+',
+                        shape=(n_chan, n_samples), dtype=int32)
 
-    if hdr['file_schema'] in (7,):
-        i = 4560
-        abs_delta = b'\x80'  # one byte: 10000000
+        l_deltamask = int(ceil(n_chan / BITS_IN_BYTE))  # deltamask length
+        with open(erd_file, 'rb') as f:
+            filebytes = f.read()
 
-    if hdr['file_schema'] in (8, 9):
-        i = 8656
-        abs_delta = b'\xff\xff'
-
-    output = zeros((n_chan, n_samples))
-
-    for sam in range(n_samples):
-
-        # Event Byte
-        eventbite = filebytes[i:i + 1]
-        i += 1
-        if eventbite == b'':
-            break
-        try:
-            assert eventbite in (b'\x00', b'\x01')
-        except:
-            Exception('at pos ' + str(i) +
-                      ', eventbite (should be x00 or x01): ' + str(eventbite))
-
-        # Delta Information
         if hdr['file_schema'] in (7,):
-            deltamask = '0' * n_chan
+            i = 4560
+            abs_delta = b'\x80'  # one byte: 10000000
 
         if hdr['file_schema'] in (8, 9):
-            # read single bits as they appear, one by one
-            byte_deltamask = unpack('B' * l_deltamask,
-                                    filebytes[i:i + l_deltamask])
-            i += l_deltamask
-            deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
-            deltamask = ''.join(deltamask)
+            i = 8656
+            abs_delta = b'\xff\xff'
 
-        absvalue = [False] * n_chan
-        info_toread = ''
-        for i_c, m in enumerate(deltamask[:n_chan]):
-            if m == '1':
-                val = filebytes[i:i + 2]
-                i += 2
-            elif m == '0':
-                val = filebytes[i:i + 1]
-                i += 1
+        for sam in range(n_samples):
 
-            if val == abs_delta:
-                absvalue[i_c] = True  # read the full value below
-                info_toread += 'T'
-            else:
+            # Event Byte
+            eventbite = filebytes[i:i + 1]
+            i += 1
+            if eventbite == b'':
+                break
+            try:
+                assert eventbite in (b'\x00', b'\x01')
+            except:
+                Exception('at pos ' + str(i) +
+                          ', eventbite (should be x00 or x01): ' +
+                          str(eventbite))
+
+            # Delta Information
+            if hdr['file_schema'] in (7,):
+                deltamask = '0' * n_chan
+
+            if hdr['file_schema'] in (8, 9):
+                # read single bits as they appear, one by one
+                byte_deltamask = unpack('B' * l_deltamask,
+                                        filebytes[i:i + l_deltamask])
+                i += l_deltamask
+                deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
+                deltamask = ''.join(deltamask)
+
+            absvalue = [False] * n_chan
+            info_toread = ''
+            for i_c, m in enumerate(deltamask[:n_chan]):
                 if m == '1':
-                    output[i_c, sam] = output[i_c, sam - 1] + unpack('h',
-                                                                     val)[0]
+                    val = filebytes[i:i + 2]
+                    i += 2
                 elif m == '0':
-                    output[i_c, sam] = output[i_c, sam - 1] + unpack('b',
-                                                                     val)[0]
-                info_toread += 'F'
+                    val = filebytes[i:i + 1]
+                    i += 1
 
-        for i_c, to_read in enumerate(absvalue):
-            if to_read:
-                output[i_c, sam] = unpack('i', filebytes[i:i + 4])[0]
-                i += 4
+                if val == abs_delta:
+                    absvalue[i_c] = True  # read the full value below
+                    info_toread += 'T'
+                else:
+                    if m == '1':
+                        output[i_c, sam] = output[i_c, sam - 1] + unpack('h',
+                                                                  val)[0]
+                    elif m == '0':
+                        output[i_c, sam] = output[i_c, sam - 1] + unpack('b',
+                                                                  val)[0]
+                    info_toread += 'F'
+
+            for i_c, to_read in enumerate(absvalue):
+                if to_read:
+                    output[i_c, sam] = unpack('i', filebytes[i:i + 4])[0]
+                    i += 4
 
     factor = _calculate_conversion(hdr)
     return expand_dims(factor, 1) * output
@@ -404,7 +417,8 @@ def _read_snc(snc_file):
     such as Video (which works in FILETIME).
 
     """
-    filebytes = read_filebytes(snc_file)
+    with open(snc_file, 'rb') as f:
+        filebytes = f.read()
     i = 352  # end of header
 
     sampleStamp = []
@@ -643,7 +657,7 @@ class Ktlx():
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
             lg.info(erd_file)
-            dat_rec = _read_erd(erd_file, endpos_rec)
+            dat_rec = _read_erd(erd_file, all_samples[rec])
             lg.debug('begpos_rec: {0}, endpos_rec: {1}'.format(begpos_rec,
                      endpos_rec))
             lg.debug('d1: {0}, d2: {1}'.format(d1, d2))

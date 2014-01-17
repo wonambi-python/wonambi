@@ -3,5 +3,4 @@
 
 """
 from .exceptions import UnrecognizedFormat
-from .caching import read_filebytes
 from .simulate import create_data
