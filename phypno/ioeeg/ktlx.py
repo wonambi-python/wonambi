@@ -715,6 +715,7 @@ class Ktlx():
             for ent_note in ent_notes:
                 try:
                     chan_name = _find_channels(ent_note['value'])
+                    chan_name = chan_name[:orig['num_channels']]
                 except:
                     continue
                 else:
