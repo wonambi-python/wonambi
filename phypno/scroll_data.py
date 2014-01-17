@@ -11,6 +11,8 @@ from PySide.QtGui import (QApplication,
                           QDockWidget,
                           QPushButton,
                           QLabel,
+                          QComboBox,
+                          QInputDialog,
                           QListWidget,
                           QListWidgetItem,
                           QFileDialog,
@@ -39,8 +41,8 @@ except RuntimeError:
 
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
-                   'MG71_eeg_sessA_d01_09_53_17')
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+                   'MG71_eeg_sessA_d01_21_17_40')
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
 config = {
     'win_beg': 0,
@@ -48,7 +50,7 @@ config = {
     'ylim': 100,
     }
 
-
+# %%
 class SelectChannels(QWidget):
     """Create a widget to choose channels.
 
@@ -56,8 +58,9 @@ class SelectChannels(QWidget):
     ----------
     chan_name : list of str
         list of all the possible channels
-    chan_to_plot : list of str
-        list of channels to plot
+    chan_grp : list of dict
+        group of channels, each containing information on the group such as
+        name, chan_to_plot, ref_chan, color, filter (as dict)
 
     Attributes
     ----------
@@ -65,56 +68,70 @@ class SelectChannels(QWidget):
         list of channels to plot
 
     """
-    def __init__(self, chan_name, chan_to_plot, ref_chan, main_wndw):
+    def __init__(self, chan_name, chan_grp, main_wndw):
         super().__init__()
 
+        self.all_chan = chan_name
+        self.chan_grp = chan_grp
         self.main_wndw = main_wndw
 
-        okButton = QPushButton("OK")
+        addButton = QPushButton('New')
+        addButton.clicked.connect(lambda: self.ask_name('new'))
+        renameButton = QPushButton('Rename')
+        renameButton.clicked.connect(lambda: self.ask_name('rename'))
+        delButton = QPushButton('Delete')
+        delButton.clicked.connect(self.delete_group)
+
+        okButton = QPushButton('OK')
         okButton.clicked.connect(self.okButton)
-        cancelButton = QPushButton("Cancel")
+        cancelButton = QPushButton('Cancel')
         cancelButton.clicked.connect(self.cancelButton)
 
-        ExtendedSelection = QAbstractItemView.SelectionMode(3)
+        self.list_grp = QComboBox()
+        for one_grp in chan_grp:
+            self.list_grp.addItem(one_grp['name'])
 
-        l0 = QListWidget()
-        l0.setSelectionMode(ExtendedSelection)
-        for chan in chan_name:
-            item = QListWidgetItem(chan)
-            l0.addItem(item)
-            if chan in chan_to_plot:
-                item.setSelected(True)
-            else:
-                item.setSelected(False)
+        self.list_grp.activated.connect(self.update_chan_grp)
+        self.current = self.list_grp.currentText()
 
-        l1 = QListWidget()
-        l1.setSelectionMode(ExtendedSelection)
-        for chan in chan_name:
-            item = QListWidgetItem(chan)
-            l1.addItem(item)
-            if chan in ref_chan:
-                item.setSelected(True)
-            else:
-                item.setSelected(False)
+        hdr = QHBoxLayout()
+        hdr.addWidget(self.list_grp, stretch=1)
+        hdr.addWidget(addButton)
+        hdr.addWidget(renameButton)
+        hdr.addWidget(delButton)
 
         hbox = QHBoxLayout()
         hbox.addWidget(cancelButton)
         hbox.addWidget(okButton)
 
         layout = QGridLayout()
-        layout.addWidget(QLabel('Channels to Visualize'), 0, 0)
-        layout.addWidget(QLabel('Reference Channels'), 0, 1)
-        layout.addWidget(l0, 1, 0)
-        layout.addWidget(l1, 1, 1)
-        layout.addLayout(hbox, 2, 1)
+        layout.addLayout(hdr, 0, 0, columnSpan=2)
+        layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
+        layout.addWidget(QLabel('Reference Channels'), 1, 1)
+        layout.addLayout(hbox, 3, 1)
 
-        self.l0 = l0
-        self.l1 = l1
+        self.layout = layout
+        self.update_list_grp()
+
         self.setLayout(layout)
+        self.setGeometry(100, 100, 480, 480)
         self.setWindowTitle('Select Channels')
         self.show()
 
-    def okButton(self):
+    def create_list(self, all_chan, selected_chan):
+        l = QListWidget()
+        ExtendedSelection = QAbstractItemView.SelectionMode(3)
+        l.setSelectionMode(ExtendedSelection)
+        for chan in all_chan:
+            item = QListWidgetItem(chan)
+            l.addItem(item)
+            if chan in selected_chan:
+                item.setSelected(True)
+            else:
+                item.setSelected(False)
+        return l
+
+    def update_chan_grp(self):
         selectedItems = self.l0.selectedItems()
         chan_to_plot = []
         for selected in selectedItems:
@@ -125,8 +142,28 @@ class SelectChannels(QWidget):
         for selected in selectedItems:
             ref_chan.append(selected.text())
 
-        self.main_wndw.viz['chan_to_plot'] = chan_to_plot
-        self.main_wndw.viz['ref_chan'] = ref_chan
+        idx = [x['name'] for x in self.chan_grp].index(self.current)
+        self.chan_grp[idx]['chan_to_plot'] = chan_to_plot
+        self.chan_grp[idx]['ref_chan'] = ref_chan
+
+        self.update_list_grp()
+
+    def update_list_grp(self):
+        current = self.list_grp.currentText()
+        idx = [x['name'] for x in self.chan_grp].index(current)
+        l0 = self.create_list(self.all_chan,
+                              self.chan_grp[idx]['chan_to_plot'])
+        l1 = self.create_list(self.all_chan,
+                              self.chan_grp[idx]['ref_chan'])
+        self.layout.addWidget(l0, 2, 0)
+        self.layout.addWidget(l1, 2, 1)
+        self.l0 = l0
+        self.l1 = l1
+        self.current = current  # update index
+
+    def okButton(self):
+        self.update_chan_grp()
+        self.main_wndw.chan = self.chan_grp
         self.main_wndw.create_scroll()
         self.main_wndw.read_data()
         self.main_wndw.plot_scroll()
@@ -136,6 +173,49 @@ class SelectChannels(QWidget):
     def cancelButton(self):
         self.close()
 
+    def ask_name(self, action):
+        self.inputdialog = QInputDialog()
+        self.inputdialog.show()
+        if action == 'new':
+            self.inputdialog.textValueSelected.connect(self.new_group)
+        if action == 'rename':
+            self.inputdialog.textValueSelected.connect(self.rename_group)
+
+    def new_group(self):
+        new_grp_name = self.inputdialog.textValue()
+        self.chan_grp.append({'name': new_grp_name,
+                              'chan_to_plot': [],
+                              'ref_chan': [],
+                              'color': None,
+                              'filter': None,
+                              })
+        idx = self.list_grp.currentIndex()
+        self.list_grp.insertItem(idx + 1, new_grp_name)
+        self.list_grp.setCurrentIndex(idx + 1)
+        self.update_list_grp()
+
+    def rename_group(self):
+        new_grp_name = self.inputdialog.textValue()
+        idx = [x['name'] for x in self.chan_grp].index(self.current)
+        self.chan_grp[idx]['name'] = new_grp_name
+        self.current = new_grp_name
+
+        idx = self.list_grp.currentIndex()
+        self.list_grp.setItemText(idx, new_grp_name)
+
+    def delete_group(self):
+        idx = self.list_grp.currentIndex()
+        self.list_grp.removeItem(idx)
+        self.chan_grp.pop(idx)
+        self.update_list_grp()
+
+
+
+# all_chan = ['c' + str(i) for i in range(10)]
+# chan_grp = [{'name': 'ant', 'chan_to_plot': ['c1', 'c2'], 'ref_chan': ['c3'], 'color': None}, {'name': 'pos', 'chan_to_plot': ['c4', 'c2'], 'ref_chan': ['c1'], 'color': None}]
+# q = SelectChannels(all_chan, chan_grp, None)
+
+# %%
 
 icon = {
     'open': QIcon.fromTheme('document-open'),
@@ -170,7 +250,9 @@ class Scroll_Data(QMainWindow):
         names of all the actions to perform
     viz : dict
         visualization options, such as window start time, window height and
-        width, channels to plot.
+        width.
+    chan : list of dict
+        the dict contains information about the group of channels.
     dataset : dict
         information about the dataset, such as name, instance of Dataset.
     data : dict
@@ -188,9 +270,13 @@ class Scroll_Data(QMainWindow):
             'win_beg': config['win_beg'],  # beginning of the window
             'win_len': config['win_len'],  # end of the window
             'ylim': config['ylim'],  # max of the y axis
-            'chan_to_plot': [],
-            'ref_chan': [],
             }
+        self.chan = [{'name': 'General',
+                      'chan_to_plot': [],
+                      'ref_chan': [],
+                      'color': None,
+                      'filter': {},
+                      }]
         self.dataset = {
             'filename': None,  # name of the file or directory
             'dataset': None,  # instance of Dataset
@@ -273,11 +359,7 @@ class Scroll_Data(QMainWindow):
         #            '/home/gio/recordings/MG71/eeg/raw')
         self.dataset['filename'] = DATASET_EXAMPLE
         self.dataset['dataset'] = Dataset(self.dataset['filename'])
-        self.viz['chan_to_plot'] = self.dataset['dataset'].header['chan_name'][:6]
-
-        self.create_scroll()
-        self.read_data()
-        self.plot_scroll()
+        self.action_select_chan()
 
     def action_prevpage(self):
         self.viz['win_beg'] -= self.viz['win_len']
@@ -317,8 +399,7 @@ class Scroll_Data(QMainWindow):
 
         """
         sel_chan = SelectChannels(self.dataset['dataset'].header['chan_name'],
-                                  self.viz['chan_to_plot'],
-                                  self.viz['ref_chan'],
+                                  self.chan,
                                   self)
         self.widgets['sel_chan'] = sel_chan
 
@@ -338,29 +419,35 @@ class Scroll_Data(QMainWindow):
     def read_data(self):
         win_beg = self.viz['win_beg']
         win_end = win_beg + self.viz['win_len']
-        chan_to_plot = self.viz['chan_to_plot']
-        ref_chan = self.viz['ref_chan']
-        data = self.dataset['dataset'].read_data(chan=chan_to_plot + ref_chan,
+
+        chan_to_read = []
+        for one_grp in self.chan:
+            chan_to_read.extend(one_grp['chan_to_plot'] +
+                                one_grp['ref_chan'])
+        data = self.dataset['dataset'].read_data(chan=chan_to_read,
                                                  begtime=win_beg,
                                                  endtime=win_end)
-        reref = Montage(ref_chan=ref_chan)
-        self.data['data'] = reref(data)
+        self.data['data'] = data
 
     def plot_scroll(self):
-        chan_to_plot = self.viz['chan_to_plot']
         data = self.data['data']
         layout = self.widgets['scroll_layout']
 
         chan_plot = []
-        for row, chan in enumerate(chan_to_plot):
-            dat, time = data(chan=[chan])
-            chan_plot.append(PlotWidget())
-            chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
-            chan_plot[row].plotItem.showAxis('bottom', False)
-            chan_plot[row].plotItem.setXRange(time[0], time[-1])
-            layout.addWidget(chan_plot[row], row, 0)
+        row = 0
+        for one_grp in self.chan:
+            mont = Montage(ref_chan=one_grp['ref_chan'])
+            reref = mont(data)
+            for chan in one_grp['chan_to_plot']:
+                dat, time = reref(chan=[chan])
+                chan_plot.append(PlotWidget())
+                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0))
+                chan_plot[row].plotItem.showAxis('bottom', False)
+                chan_plot[row].plotItem.setXRange(time[0], time[-1])
+                layout.addWidget(chan_plot[row], row, 0)
+                row += 1
 
-        chan_plot[row].plotItem.showAxis('bottom', True)
+        chan_plot[row - 1].plotItem.showAxis('bottom', True)
         self.widgets['scroll_chan'] = chan_plot
         self.set_ylimit()
 
