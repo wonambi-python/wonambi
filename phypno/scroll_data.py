@@ -1,4 +1,5 @@
 # %%
+from datetime import timedelta
 from logging import getLogger, INFO
 from numpy import squeeze
 from sys import argv
@@ -36,6 +37,9 @@ configuration parameters
 TODO: use ConfigParser
 
 """
+from pyqtgraph.graphicsItems.AxisItem import AxisItem
+
+
 
 try:
     app = QApplication(argv)
@@ -45,7 +49,7 @@ except RuntimeError:
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
 config = {
     'win_beg': 0,
@@ -373,6 +377,7 @@ class Scroll_Data(QMainWindow):
         #            '/home/gio/recordings/MG71/eeg/raw')
         self.dataset['filename'] = DATASET_EXAMPLE
         self.dataset['dataset'] = Dataset(self.dataset['filename'])
+        self.add_datetime_on_x()
         self.action_select_chan()
 
     def action_prevpage(self):
@@ -457,6 +462,7 @@ class Scroll_Data(QMainWindow):
                 chan_plot.append(PlotWidget())
                 chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
                                              pen=QPen(one_grp['color']))
+                chan_plot[row].plotItem.setLabels(left=chan)
                 chan_plot[row].plotItem.showAxis('bottom', False)
                 chan_plot[row].plotItem.setXRange(time[0], time[-1])
                 layout.addWidget(chan_plot[row], row, 0)
@@ -471,6 +477,21 @@ class Scroll_Data(QMainWindow):
         for single_chan_plot in chan_plot:
             single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
                                                 self.viz['ylim'])
+
+    def add_datetime_on_x(self):
+        start_time = self.dataset['dataset'].header['start_time']
+
+        def tickStrings(axis, values, c, d):
+            if axis.orientation == 'bottom':
+                strings = []
+                for v in values:
+                    strings.append((start_time +
+                                    timedelta(seconds=v)).strftime('%H:%M:%S'))
+            else:
+                strings = [str(x) for x in values]
+            return strings
+
+        AxisItem.tickStrings = tickStrings
 
 
 q = Scroll_Data()
