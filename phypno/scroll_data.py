@@ -335,7 +335,8 @@ class Overview(QScrollBar):
 
         self.update_length(self.window_length)
 
-    def read_duration(self, header):
+    def read_duration(self):
+        header = self.parent.info.dataset.header
         maximum = header['n_samples'] / header['s_freq']
         self.setMaximum(maximum - self.window_length)
 
@@ -346,6 +347,7 @@ class Overview(QScrollBar):
     def update_position(self, new_position=None):
         if new_position is not None:
             self.window_start = new_position
+            self.setValue(new_position)
         else:
             self.window_start = self.value()
         self.parent.scroll.read_data()
@@ -527,6 +529,7 @@ class MainWindow(QMainWindow):
         #                                                    'Open file',
         #            '/home/gio/recordings/MG71/eeg/raw')
         self.info.read_dataset(DATASET_EXAMPLE)
+        self.overview.read_duration()
         self.scroll.add_datetime_on_x()
         self.channels.read_channels(self.info.dataset.header['chan_name'])
 
@@ -591,3 +594,69 @@ class MainWindow(QMainWindow):
 
 
 q = MainWindow()
+q.action_open()
+
+
+
+
+
+
+
+
+# %%
+
+k = Ktlx(dataset)
+
+
+
+sampleStamp, sampleTime = _read_snc(join(k.filename, k._basename + '.snc'))
+vtc = _read_vtc(join(k.filename, k._basename + '.vtc'))
+
+
+begsam = 200000
+endsam = begsam + 500 * 5
+
+# TODO: find closest sampleStamp and use the one after
+s_freq = (sampleStamp[-1] - sampleStamp[0]) / (sampleTime[-1] - sampleTime[0]).total_seconds()
+
+
+t1 = sampleTime[0] + timedelta(seconds=(begsam - sampleStamp[0]) / s_freq)
+t2 = sampleTime[0] + timedelta(seconds=(endsam - sampleStamp[0]) / s_freq)
+
+
+for v in vtc:
+    if t1 > v['StartTime'] and t < v['EndTime']:
+        break
+
+video_name = join(k.filename, v['MpgFileName'])
+start_video = (t1 - v['StartTime']).total_seconds()
+end_video = (v['EndTime'] - t2).total_seconds()
+
+
+from PySide.phonon import Phonon
+
+
+
+media_src = Phonon.MediaSource(video_name)
+media_obj = Phonon.MediaObject()
+
+
+
+def close_video():
+    print('hi')
+    media_obj.stop()
+
+
+media_obj.setCurrentSource(media_src)
+
+video_widget = Phonon.VideoWidget()
+
+Phonon.createPath(media_obj, video_widget)
+
+media_obj.setPrefinishMark(end_video * 1e3)
+media_obj.prefinishMarkReached.connect(close_video)
+
+video_widget.show()
+
+media_obj.play()
+media_obj.seek(start_video * 1e3)
