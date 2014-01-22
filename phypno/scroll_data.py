@@ -2,12 +2,14 @@
 from datetime import timedelta
 from logging import getLogger, INFO
 from numpy import squeeze
+from os.path import basename
 from sys import argv
 from PySide.QtCore import Qt
 from PySide.QtGui import (QApplication,
                           QMainWindow,
                           QGridLayout,
                           QHBoxLayout,
+                          QVBoxLayout,
                           QWidget,
                           QDockWidget,
                           QPushButton,
@@ -18,6 +20,7 @@ from PySide.QtGui import (QApplication,
                           QScrollBar,
                           QListWidgetItem,
                           QFileDialog,
+                          QGroupBox,
                           QColorDialog,
                           QAction,
                           QKeySequence,
@@ -34,11 +37,18 @@ lg.setLevel(INFO)
 from phypno import Dataset
 from phypno.trans import Montage
 
-"""
-configuration parameters
-TODO: use ConfigParser
-
-"""
+icon = {
+    'open': QIcon.fromTheme('document-open'),
+    'prev': QIcon.fromTheme('go-previous'),
+    'next': QIcon.fromTheme('go-next'),
+    'up': QIcon.fromTheme('go-up'),
+    'down': QIcon.fromTheme('go-down'),
+    'zoomin': QIcon.fromTheme('zoom-in'),
+    'zoomout': QIcon.fromTheme('zoom-out'),
+    'zoomnext': QIcon.fromTheme('zoom-next'),
+    'zoomprev': QIcon.fromTheme('zoom-previous'),
+    'selchan': QIcon.fromTheme('mail-mark-task'),
+    }
 
 try:
     app = QApplication(argv)
@@ -59,24 +69,85 @@ config = {
 setConfigOption('background', 'w')
 
 # %%
-class SelectChannels(QWidget):
-    """Create a widget to choose channels.
-
-    Parameters
-    ----------
-    chan_name : list of str
-        list of all the possible channels
-    chan_grp : list of dict
-        group of channels, each containing information on the group such as
-        name, chan_to_plot, ref_chan, color, filter (as dict)
+class Info(QGroupBox):
+    """Display information about the dataset.
 
     Attributes
     ----------
-    chan_to_plot : list of str
-        list of channels to plot
+    parent : instance of QMainWindow
+        the main window.
+    filename : str
+        the full path of the file.
+    dataset : instance of phypno.Dataset
+        the dataset already read in.
+
+    Methods
+    -------
+    read_dataset : read dataset from filename
+    display_info : display information about the dataset
 
     """
-    def __init__(self, chan_name, chan_grp, parent):
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.filename = None
+        self.dataset = None
+        self.setTitle('Information')
+
+    def read_dataset(self, filename):
+        self.filename = filename
+        self.dataset = Dataset(filename)
+        self.display_info()
+
+    def display_info(self):
+        header = self.dataset.header
+
+        filename = QLabel('Filename: ' + basename(self.filename))
+        filename.setToolTip('TODO: click here to open a new file')
+        s_freq = QLabel('Sampl. Freq: ' + str(header['s_freq']))
+        n_chan = QLabel('N. Channels: ' + str(len(header['chan_name'])))
+        start_time = QLabel('Start Time: ' +
+                            header['start_time'].strftime('%H:%M:%S'))
+        start_time.setToolTip('Recording date is considered "Personally ' +
+                              'identifiable information"')
+        endtime = header['start_time'] + timedelta(seconds=header['n_samples']
+                                                   / header['s_freq'])
+
+        end_time = QLabel('End Time: ' + endtime.strftime('%H:%M:%S'))
+        end_time.setToolTip('Recording date is considered "Personally ' +
+                              'identifiable information"')
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(filename)
+        vbox.addWidget(s_freq)
+        vbox.addWidget(n_chan)
+        vbox.addWidget(start_time)
+        vbox.addWidget(end_time)
+        vbox.addStretch(1)
+        self.setLayout(vbox)
+
+i = Info(None)
+i.show()
+i.read_dataset(DATASET_EXAMPLE)
+
+
+# %%
+
+class Channels(QWidget):
+    """Create a widget to choose channels.
+
+    chan_plot : dict
+        pointers to each individual channel plot
+
+    self.chan = [{'name': 'General',
+                      'chan_to_plot': [],
+                      'ref_chan': [],
+                      'color': QColor('black'),
+                      'filter': {},
+                      }]
+
+    """
+    def __init__(self, parent, chan_name, chan_grp):
         super().__init__()
 
         self.all_chan = chan_name
@@ -227,15 +298,20 @@ class SelectChannels(QWidget):
         self.update_list_grp()
 
 
-
-# all_chan = ['c' + str(i) for i in range(10)]
-# chan_grp = [{'name': 'ant', 'chan_to_plot': ['c1', 'c2'], 'ref_chan': ['c3'], 'color': QColor('black')}, {'name': 'pos', 'chan_to_plot': ['c4', 'c2'], 'ref_chan': ['c1'], 'color': None}]
-# q = SelectChannels(all_chan, chan_grp, None)
-
-# %%
-
-
 class Overview(QScrollBar):
+    """
+        viz : dict
+        visualization options, such as window start time, window height and
+        width.
+
+                self.viz = {
+            'win_beg': config['win_beg'],  # beginning of the window
+            'win_len': config['win_len'],  # end of the window
+            'ylim': config['ylim'],  # max of the y axis
+            }
+
+    """
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -254,41 +330,86 @@ class Overview(QScrollBar):
         self.parent.plot_scroll()
 
 
+class Scroll(QWidget):
+    """
+        read_data : read data
+    plot_scroll : plot data to scroll
+    set_ylimit : set y limits for scroll data
+    """
+    def read_data(self):
+        win_beg = self.viz['win_beg']
+        win_end = win_beg + self.viz['win_len']
 
-icon = {
-    'open': QIcon.fromTheme('document-open'),
-    'prev': QIcon.fromTheme('go-previous'),
-    'next': QIcon.fromTheme('go-next'),
-    'up': QIcon.fromTheme('go-up'),
-    'down': QIcon.fromTheme('go-down'),
-    'zoomin': QIcon.fromTheme('zoom-in'),
-    'zoomout': QIcon.fromTheme('zoom-out'),
-    'zoomnext': QIcon.fromTheme('zoom-next'),
-    'zoomprev': QIcon.fromTheme('zoom-previous'),
-    'selchan': QIcon.fromTheme('mail-mark-task'),
-    }
+        chan_to_read = []
+        for one_grp in self.chan:
+            chan_to_read.extend(one_grp['chan_to_plot'] +
+                                one_grp['ref_chan'])
+        data = self.dataset['dataset'].read_data(chan=chan_to_read,
+                                                 begtime=win_beg,
+                                                 endtime=win_end)
+        self.data['data'] = data
+
+    def plot_scroll(self):
+        data = self.data['data']
+        layout = self.widgets['scroll_layout']
+
+        chan_plot = []
+        row = 0
+        for one_grp in self.chan:
+            mont = Montage(ref_chan=one_grp['ref_chan'])
+            reref = mont(data)
+            for chan in one_grp['chan_to_plot']:
+                dat, time = reref(chan=[chan])
+                chan_plot.append(PlotWidget())
+                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
+                                             pen=QPen(one_grp['color']))
+                chan_plot[row].plotItem.setLabels(left=chan)
+                chan_plot[row].plotItem.showAxis('bottom', False)
+                chan_plot[row].plotItem.setXRange(time[0], time[-1])
+                layout.addWidget(chan_plot[row], row, 0)
+                row += 1
+
+        chan_plot[row - 1].plotItem.showAxis('bottom', True)
+        self.widgets['scroll_chan'] = chan_plot
+        self.set_ylimit()
+
+    def set_ylimit(self):
+        chan_plot = self.widgets['scroll_chan']
+        for single_chan_plot in chan_plot:
+            single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
+                                                self.viz['ylim'])
+
+    def add_datetime_on_x(self):
+        start_time = self.dataset['dataset'].header['start_time']
+
+        def tickStrings(axis, values, c, d):
+            if axis.orientation == 'bottom':
+                strings = []
+                for v in values:
+                    strings.append((start_time +
+                                    timedelta(seconds=v)).strftime('%H:%M:%S'))
+            else:
+                strings = [str(x) for x in values]
+            return strings
+
+        AxisItem.tickStrings = tickStrings
 
 
-class Scroll_Data(QMainWindow):
-    """Scroll through data.
+
+class MainWindow(QMainWindow):
+    """
 
     Methods
     -------
     create_actions : add self.action
     create_toolbar : add toolbars
-    create_scroll : create main widget, scroll + scroll_layout
-    read_data : read data
-    plot_scroll : plot data to scroll
-    set_ylimit : set y limits for scroll data
+    create_widgets : create main widgets
     action_*** : various actions
 
     Attributes
     ----------
     action : dict
         names of all the actions to perform
-    viz : dict
-        visualization options, such as window start time, window height and
-        width.
     chan : list of dict
         the dict contains information about the group of channels.
     dataset : dict
@@ -297,31 +418,10 @@ class Scroll_Data(QMainWindow):
         current data, time stamps.
     widgets : dict
         pointers to active widgets, to avoid garbage collection
-    chan_plot : dict
-        pointers to each individual channel plot
 
     """
     def __init__(self):
         super().__init__()
-
-        self.viz = {
-            'win_beg': config['win_beg'],  # beginning of the window
-            'win_len': config['win_len'],  # end of the window
-            'ylim': config['ylim'],  # max of the y axis
-            }
-        self.chan = [{'name': 'General',
-                      'chan_to_plot': [],
-                      'ref_chan': [],
-                      'color': QColor('black'),
-                      'filter': {},
-                      }]
-        self.dataset = {
-            'filename': None,  # name of the file or directory
-            'dataset': None,  # instance of Dataset
-            }
-        self.data = {
-            'data': None,
-            }
         self.widgets = {
             'scroll': None,
             'scroll_layout': None,
@@ -441,12 +541,11 @@ class Scroll_Data(QMainWindow):
         """Create new widget to select channels.
 
         """
-        sel_chan = SelectChannels(self.dataset['dataset'].header['chan_name'],
-                                  self.chan,
-                                  self)
+        sel_chan = Channels(self, self.dataset['dataset'].header['chan_name'],
+                            self.chan)
         self.widgets['sel_chan'] = sel_chan
 
-    def create_scroll(self):
+    def create_widgets(self):
         """Probably delete previous scroll widget.
         """
         scroll = QWidget()
@@ -468,64 +567,6 @@ class Scroll_Data(QMainWindow):
         self.widgets['scroll_layout'] = layout
         self.widgets['overview'] = overview
 
-    def read_data(self):
-        win_beg = self.viz['win_beg']
-        win_end = win_beg + self.viz['win_len']
 
-        chan_to_read = []
-        for one_grp in self.chan:
-            chan_to_read.extend(one_grp['chan_to_plot'] +
-                                one_grp['ref_chan'])
-        data = self.dataset['dataset'].read_data(chan=chan_to_read,
-                                                 begtime=win_beg,
-                                                 endtime=win_end)
-        self.data['data'] = data
-
-    def plot_scroll(self):
-        data = self.data['data']
-        layout = self.widgets['scroll_layout']
-
-        chan_plot = []
-        row = 0
-        for one_grp in self.chan:
-            mont = Montage(ref_chan=one_grp['ref_chan'])
-            reref = mont(data)
-            for chan in one_grp['chan_to_plot']:
-                dat, time = reref(chan=[chan])
-                chan_plot.append(PlotWidget())
-                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
-                                             pen=QPen(one_grp['color']))
-                chan_plot[row].plotItem.setLabels(left=chan)
-                chan_plot[row].plotItem.showAxis('bottom', False)
-                chan_plot[row].plotItem.setXRange(time[0], time[-1])
-                layout.addWidget(chan_plot[row], row, 0)
-                row += 1
-
-        chan_plot[row - 1].plotItem.showAxis('bottom', True)
-        self.widgets['scroll_chan'] = chan_plot
-        self.set_ylimit()
-
-    def set_ylimit(self):
-        chan_plot = self.widgets['scroll_chan']
-        for single_chan_plot in chan_plot:
-            single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
-                                                self.viz['ylim'])
-
-    def add_datetime_on_x(self):
-        start_time = self.dataset['dataset'].header['start_time']
-
-        def tickStrings(axis, values, c, d):
-            if axis.orientation == 'bottom':
-                strings = []
-                for v in values:
-                    strings.append((start_time +
-                                    timedelta(seconds=v)).strftime('%H:%M:%S'))
-            else:
-                strings = [str(x) for x in values]
-            return strings
-
-        AxisItem.tickStrings = tickStrings
-
-
-q = Scroll_Data()
+q = MainWindow()
 
