@@ -502,6 +502,34 @@ def _read_stc(stc_file):
     return hdr, all_stamp
 
 
+def _read_vtc(vtc_file):
+    with open(vtc_file, 'rb') as f:
+        filebytes = f.read()
+
+    hdr = {}
+    hdr['file_guid'] = hexlify(filebytes[:16])
+    # not sure about the 4 Bytes inbetween
+
+    i = 20
+    vtc = []
+    while i < len(filebytes):
+        MpgFileName = _make_str(unpack('c' * 261, filebytes[i:i + 261]))
+        i += 261
+        Location = filebytes[i:i + 16]
+        i += 16
+        StartTime = _filetime_to_dt(unpack('l', filebytes[i:(i + 8)])[0])
+        i += 8
+        EndTime = _filetime_to_dt(unpack('l', filebytes[i:(i + 8)])[0])
+        i += 8
+
+        vtc.append({'MpgFileName': MpgFileName,
+                    'Location': Location,
+                    'StartTime': StartTime,
+                    'EndTime': EndTime})
+
+    return vtc
+
+
 def _read_hdr_file(ktlx_file):
     """Reads header of one KTLX file.
 
