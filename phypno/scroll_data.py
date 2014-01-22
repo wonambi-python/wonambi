@@ -66,7 +66,7 @@ setConfigOption('background', 'w')
 config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
 config.setValue('window_length', 30)
-config.setValue('y_limit', 100)
+config.setValue('ylimit', 100)
 
 
 # %%
@@ -257,10 +257,7 @@ class Channels(QGroupBox):  # maybe as QWidget
 
     def okButton(self):
         self.update_chan_grp()
-        self.parent.chan = self.chan_grp
-        self.parent.create_scroll()
-        self.parent.read_data()
-        self.parent.plot_scroll()
+        self.parent.overview.update_position()
 
     def ask_name(self, action):
         self.inputdialog = QInputDialog()
@@ -308,7 +305,7 @@ class Channels(QGroupBox):  # maybe as QWidget
 # c.show()
 # c.read_channels(d.header['chan_name'])
 
-# %%
+# %
 
 class Overview(QScrollBar):
     """Shows an overview of data, such as hypnogram and data in memory.
@@ -364,7 +361,9 @@ class Scroll(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.y_limit = config.value('y_limit')
+        self.ylimit = config.value('ylimit')
+        self.data = None
+        self.chan_plot = None
 
         layout = QGridLayout()
         layout.setVerticalSpacing(0)
@@ -373,17 +372,18 @@ class Scroll(QWidget):
         self.layout = layout
 
     def read_data(self):
-        win_beg = self.viz['win_beg']
-        win_end = win_beg + self.viz['win_len']
+        window_start = self.parent.overview.window_start
+        window_end = window_start + self.parent.overview.window_length
+        dataset = self.parent.info.dataset
 
         chan_to_read = []
-        for one_grp in self.chan:
+        for one_grp in self.parent.channels.groups:
             chan_to_read.extend(one_grp['chan_to_plot'] +
                                 one_grp['ref_chan'])
-        data = self.dataset['dataset'].read_data(chan=chan_to_read,
-                                                 begtime=win_beg,
-                                                 endtime=win_end)
-        self.data['data'] = data
+        data = dataset.read_data(chan=chan_to_read,
+                                 begtime=window_start,
+                                 endtime=window_end)
+        self.data = data
 
     def plot_scroll(self):
         data = self.data
@@ -391,7 +391,7 @@ class Scroll(QWidget):
 
         chan_plot = []
         row = 0
-        for one_grp in self.chan:
+        for one_grp in self.parent.channels.groups:
             mont = Montage(ref_chan=one_grp['ref_chan'])
             reref = mont(data)
             for chan in one_grp['chan_to_plot']:
@@ -406,18 +406,18 @@ class Scroll(QWidget):
                 row += 1
 
         chan_plot[row - 1].plotItem.showAxis('bottom', True)
-        self.widgets['scroll_chan'] = chan_plot
+        self.chan_plot = chan_plot
         self.set_ylimit()
 
-    def set_ylimit(self):
-        # TODO: update value
-        chan_plot = self.widgets['scroll_chan']
+    def set_ylimit(self, new_ylimit):
+        self.ylimit = new_ylimit
+        chan_plot = self.chan_plot
         for single_chan_plot in chan_plot:
-            single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
-                                                self.viz['ylim'])
+            single_chan_plot.plotItem.setYRange(-1 * new_ylimit,
+                                                new_ylimit)
 
     def add_datetime_on_x(self):
-        start_time = self.info.dataset.header['start_time']
+        start_time = self.parent.info.dataset.header['start_time']
 
         def tickStrings(axis, values, c, d):
             if axis.orientation == 'bottom':
@@ -528,18 +528,15 @@ class MainWindow(QMainWindow):
         #            '/home/gio/recordings/MG71/eeg/raw')
         self.info.read_dataset(DATASET_EXAMPLE)
         self.scroll.add_datetime_on_x()
+        self.channels.read_channels(self.info.dataset.header['chan_name'])
 
     def action_prevpage(self):
-        self.overview.window_start -= self.overview.window_length
-        self.overview.setValue(self.overview.window_start)
-        self.scroll.read_data()
-        self.scroll.plot_scroll()
+        window_start = self.overview.window_start - self.overview.window_length
+        self.overview.update_position(window_start)
 
     def action_nextpage(self):
-        self.overview.window_start += self.overview.window_length
-        self.overview.setValue(self.overview.window_start)
-        self.scroll.read_data()
-        self.scroll.plot_scroll()
+        window_start = self.overview.window_start + self.overview.window_length
+        self.overview.update_position(window_start)
 
     def action_X_more(self):
         """It would be nice to have predefined zoom levels.
@@ -594,4 +591,3 @@ class MainWindow(QMainWindow):
 
 
 q = MainWindow()
-
