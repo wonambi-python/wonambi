@@ -15,6 +15,7 @@ from PySide.QtGui import (QApplication,
                           QComboBox,
                           QInputDialog,
                           QListWidget,
+                          QScrollBar,
                           QListWidgetItem,
                           QFileDialog,
                           QColorDialog,
@@ -25,6 +26,7 @@ from PySide.QtGui import (QApplication,
                           QPen,
                           QColor,)
 from pyqtgraph import PlotWidget, setConfigOption
+from pyqtgraph.graphicsItems.AxisItem import AxisItem
 
 lg = getLogger('phypno')  # replace with lg = getLogger(__name__)
 lg.setLevel(INFO)
@@ -37,9 +39,6 @@ configuration parameters
 TODO: use ConfigParser
 
 """
-from pyqtgraph.graphicsItems.AxisItem import AxisItem
-
-
 
 try:
     app = QApplication(argv)
@@ -49,7 +48,7 @@ except RuntimeError:
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
 config = {
     'win_beg': 0,
@@ -77,12 +76,12 @@ class SelectChannels(QWidget):
         list of channels to plot
 
     """
-    def __init__(self, chan_name, chan_grp, main_wndw):
+    def __init__(self, chan_name, chan_grp, parent):
         super().__init__()
 
         self.all_chan = chan_name
         self.chan_grp = chan_grp
-        self.main_wndw = main_wndw
+        self.parent = parent
 
         addButton = QPushButton('New')
         addButton.clicked.connect(lambda: self.ask_name('new'))
@@ -176,10 +175,10 @@ class SelectChannels(QWidget):
 
     def okButton(self):
         self.update_chan_grp()
-        self.main_wndw.chan = self.chan_grp
-        self.main_wndw.create_scroll()
-        self.main_wndw.read_data()
-        self.main_wndw.plot_scroll()
+        self.parent.chan = self.chan_grp
+        self.parent.create_scroll()
+        self.parent.read_data()
+        self.parent.plot_scroll()
 
         self.close()
 
@@ -234,6 +233,27 @@ class SelectChannels(QWidget):
 # q = SelectChannels(all_chan, chan_grp, None)
 
 # %%
+
+
+class Overview(QScrollBar):
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.setPageStep(self.parent.viz['win_len'])
+        self.setMaximum(self.calculate_duration() - self.parent.viz['win_len'])
+        self.setOrientation(Qt.Orientation.Horizontal)
+        self.sliderReleased.connect(self.update_scroll)
+
+    def calculate_duration(self):
+        header = self.parent.dataset['dataset'].header
+        return header['n_samples'] / header['s_freq']
+
+    def update_scroll(self):
+        self.parent.viz['win_beg'] = self.value()
+        self.parent.read_data()
+        self.parent.plot_scroll()
+
+
 
 icon = {
     'open': QIcon.fromTheme('document-open'),
@@ -384,11 +404,13 @@ class Scroll_Data(QMainWindow):
         self.viz['win_beg'] -= self.viz['win_len']
         self.read_data()
         self.plot_scroll()
+        self.widgets['overview'].setValue(self.viz['win_beg'])
 
     def action_nextpage(self):
         self.viz['win_beg'] += self.viz['win_len']
         self.read_data()
         self.plot_scroll()
+        self.widgets['overview'].setValue(self.viz['win_beg'])
 
     def action_X_more(self):
         """It would be nice to have predefined zoom levels.
@@ -397,11 +419,13 @@ class Scroll_Data(QMainWindow):
         self.viz['win_len'] *= 2
         self.read_data()
         self.plot_scroll()
+        self.widgets['overview'].setPageStep(self.viz['win_len'])
 
     def action_X_less(self):
         self.viz['win_len'] /= 2
         self.read_data()
         self.plot_scroll()
+        self.widgets['overview'].setPageStep(self.viz['win_len'])
 
     def action_Y_less(self):
         """See comments to action_X_more.
@@ -432,8 +456,17 @@ class Scroll_Data(QMainWindow):
         scroll.setLayout(layout)
         self.setCentralWidget(scroll)
 
+        dockWidget = QDockWidget("Overview", self)
+        dockWidget.setAllowedAreas(Qt.BottomDockWidgetArea |
+                                   Qt.TopDockWidgetArea)
+
+        overview = Overview(self)
+        dockWidget.setWidget(overview)
+        self.addDockWidget(Qt.BottomDockWidgetArea, dockWidget)
+
         self.widgets['scroll'] = scroll
         self.widgets['scroll_layout'] = layout
+        self.widgets['overview'] = overview
 
     def read_data(self):
         win_beg = self.viz['win_beg']
@@ -496,12 +529,3 @@ class Scroll_Data(QMainWindow):
 
 q = Scroll_Data()
 
-
-"""
-dockWidget = QDockWidget("Select Channel", self)
-dockWidget.setAllowedAreas(Qt.LeftDockWidgetArea |
-
-dockWidget.setWidget(s)
-self.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
-                           Qt.RightDockWidgetArea)
-"""
