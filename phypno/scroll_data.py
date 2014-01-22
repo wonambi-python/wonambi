@@ -4,7 +4,7 @@ from logging import getLogger, INFO
 from numpy import squeeze
 from os.path import basename
 from sys import argv
-from PySide.QtCore import Qt
+from PySide.QtCore import Qt, QSettings
 from PySide.QtGui import (QApplication,
                           QMainWindow,
                           QGridLayout,
@@ -60,17 +60,18 @@ DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 
-config = {
-    'win_beg': 0,
-    'win_len': 30,
-    'ylim': 100,
-    }
 
 setConfigOption('background', 'w')
 
+config = QSettings("phypno", "scroll_data")
+config.setValue('window_start', 0)
+config.setValue('window_length', 30)
+config.setValue('y_limit', 100)
+
+
 # %%
-class Info(QGroupBox):
-    """Display information about the dataset.
+class Info(QGroupBox):    # maybe as QWidget
+    """Displays information about the dataset.
 
     Attributes
     ----------
@@ -83,16 +84,16 @@ class Info(QGroupBox):
 
     Methods
     -------
-    read_dataset : read dataset from filename
-    display_info : display information about the dataset
+    read_dataset : reads dataset from filename
+    display_info : displays information about the dataset
 
     """
     def __init__(self, parent):
         super().__init__()
+
         self.parent = parent
         self.filename = None
         self.dataset = None
-        self.setTitle('Information')
 
     def read_dataset(self, filename):
         self.filename = filename
@@ -126,33 +127,53 @@ class Info(QGroupBox):
         vbox.addStretch(1)
         self.setLayout(vbox)
 
-i = Info(None)
-i.show()
-i.read_dataset(DATASET_EXAMPLE)
 
+# q = Info(None)
+# q.show()
+# q.read_dataset(DATASET_EXAMPLE)
 
 # %%
 
-class Channels(QWidget):
-    """Create a widget to choose channels.
+class Channels(QGroupBox):  # maybe as QWidget
+    """Allows user to choose channels, and filters.
 
-    chan_plot : dict
-        pointers to each individual channel plot
+    Attributes
+    ----------
+    parent : instance of QMainWindow
+        the main window.
+    chan_name : list of str
+        list of all the channels
+    groups : list of dict
+        groups of channels, with keys: 'name', 'chan_to_plot', 'ref_chan',
+        'color', 'filter'
 
-    self.chan = [{'name': 'General',
+    Methods
+    -------
+    read_channels : reads the channels and updates the widget.
+    display_channels : displays the whole widget
+    create_list : creates list of channels (one for those to plot, one for ref)
+
+    """
+
+    def __init__(self, parent):
+        super().__init__()
+        # self.setTitle('Channels')
+
+        self.parent = parent
+        self.chan_name = None
+        self.groups = [{'name': 'general',
                       'chan_to_plot': [],
                       'ref_chan': [],
                       'color': QColor('black'),
                       'filter': {},
-                      }]
+                      },
+                      ]
 
-    """
-    def __init__(self, parent, chan_name, chan_grp):
-        super().__init__()
+    def read_channels(self, chan_name):
+        self.chan_name = chan_name
+        self.display_channels()
 
-        self.all_chan = chan_name
-        self.chan_grp = chan_grp
-        self.parent = parent
+    def display_channels(self):
 
         addButton = QPushButton('New')
         addButton.clicked.connect(lambda: self.ask_name('new'))
@@ -164,13 +185,11 @@ class Channels(QWidget):
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
-        okButton = QPushButton('OK')
+        okButton = QPushButton('apply')
         okButton.clicked.connect(self.okButton)
-        cancelButton = QPushButton('Cancel')
-        cancelButton.clicked.connect(self.cancelButton)
 
         self.list_grp = QComboBox()
-        for one_grp in chan_grp:
+        for one_grp in self.groups:
             self.list_grp.addItem(one_grp['name'])
 
         self.list_grp.activated.connect(self.update_chan_grp)
@@ -183,7 +202,6 @@ class Channels(QWidget):
         hdr.addWidget(delButton)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(cancelButton)
         hbox.addWidget(okButton)
 
         layout = QGridLayout()
@@ -192,20 +210,15 @@ class Channels(QWidget):
         layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
         layout.addWidget(QLabel('Reference Channels'), 1, 1)
         layout.addLayout(hbox, 3, 1)
-
+        self.setLayout(layout)
         self.layout = layout
         self.update_list_grp()
 
-        self.setLayout(layout)
-        self.setGeometry(100, 100, 480, 480)
-        self.setWindowTitle('Select Channels')
-        self.show()
-
-    def create_list(self, all_chan, selected_chan):
+    def create_list(self, selected_chan):
         l = QListWidget()
         ExtendedSelection = QAbstractItemView.SelectionMode(3)
         l.setSelectionMode(ExtendedSelection)
-        for chan in all_chan:
+        for chan in self.chan_name:
             item = QListWidgetItem(chan)
             l.addItem(item)
             if chan in selected_chan:
@@ -225,19 +238,17 @@ class Channels(QWidget):
         for selected in selectedItems:
             ref_chan.append(selected.text())
 
-        idx = [x['name'] for x in self.chan_grp].index(self.current)
-        self.chan_grp[idx]['chan_to_plot'] = chan_to_plot
-        self.chan_grp[idx]['ref_chan'] = ref_chan
+        idx = [x['name'] for x in self.groups].index(self.current)
+        self.groups[idx]['chan_to_plot'] = chan_to_plot
+        self.groups[idx]['ref_chan'] = ref_chan
 
         self.update_list_grp()
 
     def update_list_grp(self):
         current = self.list_grp.currentText()
-        idx = [x['name'] for x in self.chan_grp].index(current)
-        l0 = self.create_list(self.all_chan,
-                              self.chan_grp[idx]['chan_to_plot'])
-        l1 = self.create_list(self.all_chan,
-                              self.chan_grp[idx]['ref_chan'])
+        idx = [x['name'] for x in self.groups].index(current)
+        l0 = self.create_list(self.groups[idx]['chan_to_plot'])
+        l1 = self.create_list(self.groups[idx]['ref_chan'])
         self.layout.addWidget(l0, 2, 0)
         self.layout.addWidget(l1, 2, 1)
         self.l0 = l0
@@ -251,11 +262,6 @@ class Channels(QWidget):
         self.parent.read_data()
         self.parent.plot_scroll()
 
-        self.close()
-
-    def cancelButton(self):
-        self.close()
-
     def ask_name(self, action):
         self.inputdialog = QInputDialog()
         self.inputdialog.show()
@@ -266,7 +272,7 @@ class Channels(QWidget):
 
     def new_group(self):
         new_grp_name = self.inputdialog.textValue()
-        self.chan_grp.append({'name': new_grp_name,
+        self.groups.append({'name': new_grp_name,
                               'chan_to_plot': [],
                               'ref_chan': [],
                               'color': QColor('black'),
@@ -279,55 +285,74 @@ class Channels(QWidget):
 
     def rename_group(self):
         new_grp_name = self.inputdialog.textValue()
-        idx = [x['name'] for x in self.chan_grp].index(self.current)
-        self.chan_grp[idx]['name'] = new_grp_name
+        idx = [x['name'] for x in self.groups].index(self.current)
+        self.groups[idx]['name'] = new_grp_name
         self.current = new_grp_name
 
         idx = self.list_grp.currentIndex()
         self.list_grp.setItemText(idx, new_grp_name)
 
     def color_group(self):
-        idx = [x['name'] for x in self.chan_grp].index(self.current)
-        newcolor = QColorDialog.getColor(self.chan_grp[idx]['color'])
-        self.chan_grp[idx]['color'] = newcolor
+        idx = [x['name'] for x in self.groups].index(self.current)
+        newcolor = QColorDialog.getColor(self.groups[idx]['color'])
+        self.groups[idx]['color'] = newcolor
 
     def delete_group(self):
         idx = self.list_grp.currentIndex()
         self.list_grp.removeItem(idx)
-        self.chan_grp.pop(idx)
+        self.groups.pop(idx)
         self.update_list_grp()
 
 
+# c = Channels(None)
+# c.show()
+# c.read_channels(d.header['chan_name'])
+
+# %%
+
 class Overview(QScrollBar):
+    """Shows an overview of data, such as hypnogram and data in memory.
+
+    Attributes
+    ----------
+    window_start : float
+        start time of the window being plotted (in s).
+    window_length : float
+        length of the window being plotted (in s).
+
+    Methods
+    -------
+    read_duration : reads full duration and update maximum.
+    update_length : change length of the page step.
+    update_position : if value changes, call scroll functions.
+
     """
-        viz : dict
-        visualization options, such as window start time, window height and
-        width.
-
-                self.viz = {
-            'win_beg': config['win_beg'],  # beginning of the window
-            'win_len': config['win_len'],  # end of the window
-            'ylim': config['ylim'],  # max of the y axis
-            }
-
-    """
-
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.setPageStep(self.parent.viz['win_len'])
-        self.setMaximum(self.calculate_duration() - self.parent.viz['win_len'])
+        self.window_start = config.value('window_start')
+        self.window_length = config.value('window_length')
+
         self.setOrientation(Qt.Orientation.Horizontal)
-        self.sliderReleased.connect(self.update_scroll)
+        self.sliderReleased.connect(self.update_position)
 
-    def calculate_duration(self):
-        header = self.parent.dataset['dataset'].header
-        return header['n_samples'] / header['s_freq']
+        self.update_length(self.window_length)
 
-    def update_scroll(self):
-        self.parent.viz['win_beg'] = self.value()
-        self.parent.read_data()
-        self.parent.plot_scroll()
+    def read_duration(self, header):
+        maximum = header['n_samples'] / header['s_freq']
+        self.setMaximum(maximum - self.window_length)
+
+    def update_length(self, new_length):
+        self.window_length = new_length
+        self.setPageStep(new_length)
+
+    def update_position(self, new_position=None):
+        if new_position is not None:
+            self.window_start = new_position
+        else:
+            self.window_start = self.value()
+        self.parent.scroll.read_data()
+        self.parent.scroll.plot_scroll()
 
 
 class Scroll(QWidget):
@@ -336,6 +361,17 @@ class Scroll(QWidget):
     plot_scroll : plot data to scroll
     set_ylimit : set y limits for scroll data
     """
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.y_limit = config.value('y_limit')
+
+        layout = QGridLayout()
+        layout.setVerticalSpacing(0)
+
+        self.setLayout(layout)
+        self.layout = layout
+
     def read_data(self):
         win_beg = self.viz['win_beg']
         win_end = win_beg + self.viz['win_len']
@@ -350,8 +386,8 @@ class Scroll(QWidget):
         self.data['data'] = data
 
     def plot_scroll(self):
-        data = self.data['data']
-        layout = self.widgets['scroll_layout']
+        data = self.data
+        layout = self.layout
 
         chan_plot = []
         row = 0
@@ -374,13 +410,14 @@ class Scroll(QWidget):
         self.set_ylimit()
 
     def set_ylimit(self):
+        # TODO: update value
         chan_plot = self.widgets['scroll_chan']
         for single_chan_plot in chan_plot:
             single_chan_plot.plotItem.setYRange(-1 * self.viz['ylim'],
                                                 self.viz['ylim'])
 
     def add_datetime_on_x(self):
-        start_time = self.dataset['dataset'].header['start_time']
+        start_time = self.info.dataset.header['start_time']
 
         def tickStrings(axis, values, c, d):
             if axis.orientation == 'bottom':
@@ -393,7 +430,6 @@ class Scroll(QWidget):
             return strings
 
         AxisItem.tickStrings = tickStrings
-
 
 
 class MainWindow(QMainWindow):
@@ -422,17 +458,18 @@ class MainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__()
-        self.widgets = {
-            'scroll': None,
-            'scroll_layout': None,
-            'scroll_chan': None,
-            }
+
+        self.info = None
+        self.channels = None
+        self.overview = None
+        self.scroll = None
 
         self.create_actions()
         self.create_toolbar()
+        self.create_widgets()
 
         self.setGeometry(400, 300, 800, 600)
-        self.setWindowTitle('Sleep Scoring')
+        self.setWindowTitle('Scroll Data')
         self.show()
 
     def create_actions(self):
@@ -467,9 +504,6 @@ class MainWindow(QMainWindow):
         actions['Y_more'].setShortcut(QKeySequence.MoveToPreviousLine)
         actions['Y_more'].triggered.connect(self.action_Y_more)
 
-        actions['sel_chan'] = QAction(icon['selchan'], 'Select Channels', self)
-        actions['sel_chan'].triggered.connect(self.action_select_chan)
-
         self.action = actions  # actions was already taken
 
     def create_toolbar(self):
@@ -488,84 +522,75 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_less'])
         toolbar.addAction(actions['Y_more'])
 
-        toolbar = self.addToolBar('Selection')
-        toolbar.addAction(actions['sel_chan'])
-
     def action_open(self):
         #self.info['dataset'] = QFileDialog.getOpenFileName(self,
         #                                                    'Open file',
         #            '/home/gio/recordings/MG71/eeg/raw')
-        self.dataset['filename'] = DATASET_EXAMPLE
-        self.dataset['dataset'] = Dataset(self.dataset['filename'])
-        self.add_datetime_on_x()
-        self.action_select_chan()
+        self.info.read_dataset(DATASET_EXAMPLE)
+        self.scroll.add_datetime_on_x()
 
     def action_prevpage(self):
-        self.viz['win_beg'] -= self.viz['win_len']
-        self.read_data()
-        self.plot_scroll()
-        self.widgets['overview'].setValue(self.viz['win_beg'])
+        self.overview.window_start -= self.overview.window_length
+        self.overview.setValue(self.overview.window_start)
+        self.scroll.read_data()
+        self.scroll.plot_scroll()
 
     def action_nextpage(self):
-        self.viz['win_beg'] += self.viz['win_len']
-        self.read_data()
-        self.plot_scroll()
-        self.widgets['overview'].setValue(self.viz['win_beg'])
+        self.overview.window_start += self.overview.window_length
+        self.overview.setValue(self.overview.window_start)
+        self.scroll.read_data()
+        self.scroll.plot_scroll()
 
     def action_X_more(self):
         """It would be nice to have predefined zoom levels.
         Also, a value that can be shown and edited.
         """
-        self.viz['win_len'] *= 2
-        self.read_data()
-        self.plot_scroll()
-        self.widgets['overview'].setPageStep(self.viz['win_len'])
+        self.overview.update_length(self.overview.window_length * 2)
 
     def action_X_less(self):
-        self.viz['win_len'] /= 2
-        self.read_data()
-        self.plot_scroll()
-        self.widgets['overview'].setPageStep(self.viz['win_len'])
+        self.overview.update_length(self.overview.window_length / 2)
 
     def action_Y_less(self):
         """See comments to action_X_more.
         """
-        self.viz['ylim'] /= 2
-        self.set_ylimit()
+        self.scroll.set_ylimit(self.scroll.ylimit / 2)
 
     def action_Y_more(self):
-        self.viz['ylim'] *= 2
-        self.set_ylimit()
-
-    def action_select_chan(self):
-        """Create new widget to select channels.
-
-        """
-        sel_chan = Channels(self, self.dataset['dataset'].header['chan_name'],
-                            self.chan)
-        self.widgets['sel_chan'] = sel_chan
+        self.scroll.set_ylimit(self.scroll.ylimit * 2)
 
     def create_widgets(self):
         """Probably delete previous scroll widget.
         """
-        scroll = QWidget()
-        layout = QGridLayout()
-        layout.setVerticalSpacing(0)
 
-        scroll.setLayout(layout)
-        self.setCentralWidget(scroll)
-
-        dockWidget = QDockWidget("Overview", self)
-        dockWidget.setAllowedAreas(Qt.BottomDockWidgetArea |
-                                   Qt.TopDockWidgetArea)
-
+        info = Info(self)
+        channels = Channels(self)
         overview = Overview(self)
-        dockWidget.setWidget(overview)
-        self.addDockWidget(Qt.BottomDockWidgetArea, dockWidget)
+        scroll = Scroll(self)
 
-        self.widgets['scroll'] = scroll
-        self.widgets['scroll_layout'] = layout
-        self.widgets['overview'] = overview
+        dockOverview = QDockWidget("Overview", self)
+        dockOverview.setAllowedAreas(Qt.BottomDockWidgetArea |
+                                     Qt.TopDockWidgetArea)
+        dockOverview.setWidget(overview)
+
+        dockInfo = QDockWidget("Information", self)
+        dockInfo.setAllowedAreas(Qt.RightDockWidgetArea |
+                                 Qt.LeftDockWidgetArea)
+        dockInfo.setWidget(info)
+
+        dockChannels = QDockWidget("Channels", self)
+        dockChannels.setAllowedAreas(Qt.RightDockWidgetArea |
+                                     Qt.LeftDockWidgetArea)
+        dockChannels.setWidget(channels)
+
+        self.setCentralWidget(scroll)
+        self.addDockWidget(Qt.BottomDockWidgetArea, dockOverview)
+        self.addDockWidget(Qt.RightDockWidgetArea, dockInfo)
+        self.addDockWidget(Qt.RightDockWidgetArea, dockChannels)
+
+        self.info = info
+        self.channels = channels
+        self.overview = overview
+        self.scroll = scroll
 
 
 q = MainWindow()
