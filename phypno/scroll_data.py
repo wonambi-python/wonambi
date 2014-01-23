@@ -604,7 +604,10 @@ q.action_open()
 
 
 # %%
+from os.path import join
+from phypno.ioeeg.ktlx import Ktlx, _read_snc, _read_vtc
 
+dataset = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 k = Ktlx(dataset)
 
 
@@ -613,31 +616,56 @@ sampleStamp, sampleTime = _read_snc(join(k.filename, k._basename + '.snc'))
 vtc = _read_vtc(join(k.filename, k._basename + '.vtc'))
 
 
-begsam = 200000
-endsam = begsam + 500 * 5
+s_freq = ((sampleStamp[-1] - sampleStamp[0]) /
+          (sampleTime[-1] - sampleTime[0]).total_seconds())
 
-# TODO: find closest sampleStamp and use the one after
-s_freq = (sampleStamp[-1] - sampleStamp[0]) / (sampleTime[-1] - sampleTime[0]).total_seconds()
-
-
-t1 = sampleTime[0] + timedelta(seconds=(begsam - sampleStamp[0]) / s_freq)
-t2 = sampleTime[0] + timedelta(seconds=(endsam - sampleStamp[0]) / s_freq)
-
-
+movie = []
 for v in vtc:
-    if t1 > v['StartTime'] and t < v['EndTime']:
-        break
 
-video_name = join(k.filename, v['MpgFileName'])
-start_video = (t1 - v['StartTime']).total_seconds()
-end_video = (v['EndTime'] - t2).total_seconds()
+    start_sam = ((v['StartTime'] - sampleTime[0]).total_seconds() * s_freq -
+                 k._hdr['stamps'][0]['start_stamp'])  # adjust for stamp shift
+    end_sam = ((v['EndTime'] - sampleTime[0]).total_seconds() * s_freq -
+               k._hdr['stamps'][0]['start_stamp'])  # adjust for stamp shift
+    movie.append({'filename': join(k.filename, v['MpgFileName']),
+                  'start_sample': int(start_sam),
+                  'end_sample': int(end_sam)})
+
+
+
+
+begsam = 150000
+endsam = 250000
+
+
+all_movie = []
+for m in movie:
+    if begsam < m['start_sample'] and endsam > m['end_sample']:
+        all_movie.append({'filename': m['filename'],
+                          'rel_start': None,
+                          'rel_end': None})
+    elif begsam > m['start_sample'] and begsam < m['end_sample'] and endsam > m['end_sample']:
+        all_movie.append({'filename': m['filename'],
+                          'rel_start': (begsam - m['start_sample']) / s_freq,
+                          'rel_end': None})
+    elif begsam < m['start_sample'] and endsam > m['start_sample'] and endsam < m['end_sample']:
+        all_movie.append({'filename': m['filename'],
+                          'rel_start': None,
+                          'rel_end': (m['end_sample'] - endsam) / s_freq})
+    elif begsam > m['start_sample'] and endsam < m['end_sample']:
+        all_movie.append({'filename': m['filename'],
+                          'rel_start': (begsam - m['start_sample']) / s_freq,
+                          'rel_end': (m['end_sample'] - endsam) / s_freq})
+
 
 
 from PySide.phonon import Phonon
 
 
+media_src = []
+for m in all_movie:
+    media_src.append(Phonon.MediaSource(m['filename']))
 
-media_src = Phonon.MediaSource(video_name)
+
 media_obj = Phonon.MediaObject()
 
 
@@ -660,3 +688,8 @@ video_widget.show()
 
 media_obj.play()
 media_obj.seek(start_video * 1e3)
+
+
+
+
+

@@ -143,7 +143,7 @@ def _find_channels(note):
     id_ch = note.index('ChanNames')
     chan_beg = note.index('(', id_ch)
     chan_end = note.index(')', chan_beg)
-    note_with_chan = note[chan_beg+1:chan_end]
+    note_with_chan = note[chan_beg + 1:chan_end]
     return [x.strip('" ') for x in note_with_chan.split(',')]
 
 
@@ -516,6 +516,8 @@ def _read_vtc(vtc_file):
         MpgFileName = _make_str(unpack('c' * 261, filebytes[i:i + 261]))
         i += 261
         Location = filebytes[i:i + 16]
+        correct = b'\xff\xfe\xf8^\xfc\xdc\xe5D\x8f\xae\x19\xf5\xd6"\xb6\xd4'
+        assert Location == correct
         i += 16
         StartTime = _filetime_to_dt(unpack('l', filebytes[i:(i + 8)])[0])
         i += 8
@@ -523,7 +525,6 @@ def _read_vtc(vtc_file):
         i += 8
 
         vtc.append({'MpgFileName': MpgFileName,
-                    'Location': Location,
                     'StartTime': StartTime,
                     'EndTime': EndTime})
 
