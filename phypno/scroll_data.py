@@ -28,6 +28,7 @@ from PySide.QtGui import (QApplication,
                           QAbstractItemView,
                           QPen,
                           QColor,)
+from PySide.phonon import Phonon
 from pyqtgraph import PlotWidget, setConfigOption
 from pyqtgraph.graphicsItems.AxisItem import AxisItem
 
@@ -58,8 +59,8 @@ except RuntimeError:
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
-
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+# DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 
 setConfigOption('background', 'w')
 
@@ -67,6 +68,35 @@ config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
 config.setValue('window_length', 30)
 config.setValue('ylimit', 100)
+
+
+def _convert_movie_to_relative_time(begsam, endsam, movie, s_freq):
+    all_movie = []
+    for m in movie:
+        if begsam < m['start_sample']:
+            if endsam > m['end_sample']:
+                all_movie.append({'filename': m['filename'],
+                                  'rel_start': 0,
+                                  'rel_end': 0})
+            elif endsam > m['start_sample'] and endsam < m['end_sample']:
+                all_movie.append({'filename': m['filename'],
+                                  'rel_start': 0,
+                                  'rel_end': (m['end_sample'] -
+                                              endsam) / s_freq})
+
+        elif begsam > m['start_sample']:
+            if begsam < m['end_sample'] and endsam > m['end_sample']:
+                all_movie.append({'filename': m['filename'],
+                                  'rel_start': (begsam -
+                                                m['start_sample']) / s_freq,
+                                  'rel_end': 0})
+            elif endsam < m['end_sample']:
+                all_movie.append({'filename': m['filename'],
+                                  'rel_start': (begsam -
+                                                m['start_sample']) / s_freq,
+                                  'rel_end': (m['end_sample'] -
+                                              endsam) / s_freq})
+    return all_movie
 
 
 # %%
@@ -350,8 +380,73 @@ class Overview(QScrollBar):
             self.setValue(new_position)
         else:
             self.window_start = self.value()
+        lg.info('Overview.update_position: read_data')
         self.parent.scroll.read_data()
+        lg.info('Overview.update_position: plot_scroll')
         self.parent.scroll.plot_scroll()
+
+
+# %%
+
+class Video(QWidget):
+    def __init__(self, parent):
+        super().__init__()
+
+        self.parent = parent
+        self.movie_info = None
+
+        self.widget = Phonon.VideoWidget()
+        self.video = Phonon.MediaObject()
+
+        self.button = QPushButton('Start')
+        self.button.clicked.connect(self.start_stop)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.widget)
+        layout.addWidget(self.button)
+        self.setLayout(layout)
+
+    def load_video(self):
+        dataset = self.parent.info.dataset
+        movies = dataset.header['orig']['movies']
+        s_freq = dataset.header['orig']['movie_s_freq']
+        overview = self.parent.overview
+        begsam = overview.window_start * s_freq
+        endsam = (overview.window_start + overview.window_length) * s_freq
+        lg.info('Video.load_video: begsam: ' + str(begsam) + ' endsam: ' +
+                str(endsam))
+        movie_info = _convert_movie_to_relative_time(begsam, endsam, movies,
+                                                     s_freq)
+        self.movie_info = movie_info
+        self.add_sources()
+
+        # The signal is only emitted for the last source in the media queue
+        self.video.setPrefinishMark(movie_info[-1]['rel_end'] * 1e3)
+        self.video.prefinishMarkReached.connect(self.stop_movie)
+        Phonon.createPath(self.video, self.widget)
+
+    def add_sources(self):
+        self.video.clear()
+        sources = []
+        for m in self.movie_info:
+            sources.append(Phonon.MediaSource(m['filename']))
+        self.video.enqueue(sources)
+
+    def start_stop(self):
+        if self.button.text() == 'Start':
+            self.button.setText('Stop')
+            self.load_video()
+            self.video.play()
+            self.video.seek(self.movie_info[0]['rel_start'] * 1e3)
+
+        elif self.button.text() == 'Stop':
+            self.button.setText('Start')
+            self.video.stop()
+            self.add_sources()
+
+    def stop_movie(self):
+        pass
+        # self.video.stop()  this doesn't work, I don't know why
 
 
 class Scroll(QWidget):
@@ -433,6 +528,7 @@ class Scroll(QWidget):
 
         AxisItem.tickStrings = tickStrings
 
+# %%
 
 class MainWindow(QMainWindow):
     """
@@ -565,6 +661,7 @@ class MainWindow(QMainWindow):
         info = Info(self)
         channels = Channels(self)
         overview = Overview(self)
+        video = Video(self)
         scroll = Scroll(self)
 
         dockOverview = QDockWidget("Overview", self)
@@ -582,13 +679,20 @@ class MainWindow(QMainWindow):
                                      Qt.LeftDockWidgetArea)
         dockChannels.setWidget(channels)
 
+        dockVideo = QDockWidget("Video", self)
+        dockVideo.setAllowedAreas(Qt.RightDockWidgetArea |
+                                  Qt.LeftDockWidgetArea)
+        dockVideo.setWidget(video)
+
         self.setCentralWidget(scroll)
         self.addDockWidget(Qt.BottomDockWidgetArea, dockOverview)
         self.addDockWidget(Qt.RightDockWidgetArea, dockInfo)
         self.addDockWidget(Qt.RightDockWidgetArea, dockChannels)
+        self.addDockWidget(Qt.RightDockWidgetArea, dockVideo)
 
         self.info = info
         self.channels = channels
+        self.video = video
         self.overview = overview
         self.scroll = scroll
 
@@ -598,124 +702,9 @@ q.action_open()
 
 
 
-
-
-
-
-
-# %%
-from os.path import join
-from phypno.ioeeg.ktlx import Ktlx, _read_snc, _read_vtc
-
-dataset = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
-k = Ktlx(dataset)
-
-
-
-sampleStamp, sampleTime = _read_snc(join(k.filename, k._basename + '.snc'))
-vtc = _read_vtc(join(k.filename, k._basename + '.vtc'))
-
-
-s_freq = ((sampleStamp[-1] - sampleStamp[0]) /
-          (sampleTime[-1] - sampleTime[0]).total_seconds())
-
-movie = []
-for v in vtc:
-
-    start_sam = ((v['StartTime'] - sampleTime[0]).total_seconds() * s_freq -
-                 k._hdr['stamps'][0]['start_stamp'])  # adjust for stamp shift
-    end_sam = ((v['EndTime'] - sampleTime[0]).total_seconds() * s_freq -
-               k._hdr['stamps'][0]['start_stamp'])  # adjust for stamp shift
-    movie.append({'filename': join(k.filename, v['MpgFileName']),
-                  'start_sample': int(start_sam),
-                  'end_sample': int(end_sam)})
-
-
-
-
-begsam = 185000
-endsam = 190000
-
-
-all_movie = []
-for m in movie:
-    if begsam < m['start_sample'] and endsam > m['end_sample']:
-        all_movie.append({'filename': m['filename'],
-                          'rel_start': 0,
-                          'rel_end': 0})
-    elif begsam > m['start_sample'] and begsam < m['end_sample'] and endsam > m['end_sample']:
-        all_movie.append({'filename': m['filename'],
-                          'rel_start': (begsam - m['start_sample']) / s_freq,
-                          'rel_end': 0})
-    elif begsam < m['start_sample'] and endsam > m['start_sample'] and endsam < m['end_sample']:
-        all_movie.append({'filename': m['filename'],
-                          'rel_start': 0,
-                          'rel_end': (m['end_sample'] - endsam) / s_freq})
-    elif begsam > m['start_sample'] and endsam < m['end_sample']:
-        all_movie.append({'filename': m['filename'],
-                          'rel_start': (begsam - m['start_sample']) / s_freq,
-                          'rel_end': (m['end_sample'] - endsam) / s_freq})
-
-
-# %%
-from PySide.phonon import Phonon
-
-
-class Video(QWidget):
-    def __init__(self, movie_info):
-        super().__init__()
-
-        # self.parent = pare
-        self.movie_info = movie_info
-
-        self.widget = Phonon.VideoWidget()
-        self.video = Phonon.MediaObject()
-        self.add_sources()
-
-        # The signal is only emitted for the last source in the media queue
-        self.video.setPrefinishMark(movie_info[-1]['rel_end'] * 1e3)
-        self.video.prefinishMarkReached.connect(self.stop_movie)
-        Phonon.createPath(self.video, self.widget)
-
-        self.button = QPushButton('Start')
-        self.button.clicked.connect(self.start_stop)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.widget)
-        layout.addWidget(self.button)
-        self.setLayout(layout)
-
-    def add_sources(self):
-        self.video.clear()
-        sources = []
-        for m in self.movie_info:
-            sources.append(Phonon.MediaSource(m['filename']))
-        self.video.enqueue(sources)
-
-    def start_stop(self):
-        if self.button.text() == 'Start':
-            self.button.setText('Stop')
-            self.video.play()
-            self.video.seek(self.movie_info[0]['rel_start'] * 1e3)
-
-        elif self.button.text() == 'Stop':
-            self.button.setText('Start')
-            self.video.stop()
-            self.add_sources()
-
-    def stop_movie(self):
-        pass
-        # self.video.stop()  this doesn't work, I don't know why
-
-
-q = Video(all_movie)
-q.show()
-
-
-
 # %%
 
-from sys import argv
+
 from PySide.QtCore import Qt
 from PySide.QtGui import QGraphicsView, QGraphicsScene, QGraphicsLineItem
 
