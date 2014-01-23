@@ -1,10 +1,10 @@
 # %%
 from datetime import timedelta
 from logging import getLogger, INFO
-from numpy import squeeze
+from numpy import squeeze, floor
 from os.path import basename
 from sys import argv, exit
-from PySide.QtCore import Qt, QSettings
+from PySide.QtCore import Qt, QSettings, QThread, Signal, Slot
 from PySide.QtGui import (QApplication,
                           QMainWindow,
                           QGridLayout,
@@ -19,6 +19,7 @@ from PySide.QtGui import (QApplication,
                           QInputDialog,
                           QListWidget,
                           QScrollBar,
+                          QProgressBar,
                           QListWidgetItem,
                           QFileDialog,
                           QGroupBox,
@@ -50,6 +51,7 @@ icon = {
     'zoomnext': QIcon.fromTheme('zoom-next'),
     'zoomprev': QIcon.fromTheme('zoom-previous'),
     'selchan': QIcon.fromTheme('mail-mark-task'),
+    'download': QIcon.fromTheme('download'),
     }
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
@@ -63,6 +65,7 @@ config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
 config.setValue('window_length', 30)
 config.setValue('ylimit', 100)
+config.setValue('read_intervals', 60)  # pre-read file every X seconds
 
 
 def _convert_movie_to_relative_time(begsam, endsam, movie, s_freq):
@@ -356,7 +359,7 @@ class Channels(QGroupBox):  # maybe as QWidget
 
 # %
 
-class Overview(QScrollBar):
+class Overview(QWidget):
     """Shows an overview of data, such as hypnogram and data in memory.
 
     Attributes
@@ -379,26 +382,34 @@ class Overview(QScrollBar):
         self.window_start = config.value('window_start')
         self.window_length = config.value('window_length')
 
-        self.setOrientation(Qt.Orientation.Horizontal)
-        self.sliderReleased.connect(self.update_position)
+        self.scrollbar = QScrollBar()
+        self.scrollbar.setOrientation(Qt.Orientation.Horizontal)
+        self.scrollbar.sliderReleased.connect(self.update_position)
+
+        self.progressbar = QProgressBar()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.scrollbar)
+        layout.addWidget(self.progressbar)
+        self.setLayout(layout)
 
         self.update_length(self.window_length)
 
     def read_duration(self):
         header = self.parent.info.dataset.header
         maximum = header['n_samples'] / header['s_freq']
-        self.setMaximum(maximum - self.window_length)
+        self.scrollbar.setMaximum(maximum - self.window_length)
 
     def update_length(self, new_length):
         self.window_length = new_length
-        self.setPageStep(new_length)
+        self.scrollbar.setPageStep(new_length)
 
     def update_position(self, new_position=None):
         if new_position is not None:
             self.window_start = new_position
-            self.setValue(new_position)
+            self.scrollbar.setValue(new_position)
         else:
-            self.window_start = self.value()
+            self.window_start = self.scrollbar.value()
         lg.info('Overview.update_position: read_data')
         self.parent.scroll.read_data()
         lg.info('Overview.update_position: plot_scroll')
@@ -558,6 +569,32 @@ class Scroll(QWidget):
         AxisItem.tickStrings = tickStrings
 
 # %%
+class DownloadData(QThread):
+    one_more_interval = Signal(int)
+
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+
+        dataset = self.parent.info.dataset
+        progressbar = self.parent.overview.progressbar
+        total_dur = dataset.header['n_samples'] / dataset.header['s_freq']
+        maximum = int(floor(total_dur / config.value('read_intervals')))
+        progressbar.setMaximum(maximum - 1)
+
+        self.maximum = maximum
+
+    def run(self):
+        dataset = self.parent.info.dataset
+        one_chan = dataset.header['chan_name'][0]
+        for i in range(0, self.maximum):
+            dataset.read_data(chan=[one_chan],
+                              begtime=i * config.value('read_intervals'),
+                              endtime=i * config.value('read_intervals') + 1)
+            self.one_more_interval.emit(i)
+
+        self.exec_()
+
 
 class MainWindow(QMainWindow):
     """
@@ -590,6 +627,8 @@ class MainWindow(QMainWindow):
         self.channels = None
         self.overview = None
         self.scroll = None
+
+        self.thread_download = None
 
         self.create_actions()
         self.create_toolbar()
@@ -631,6 +670,10 @@ class MainWindow(QMainWindow):
         actions['Y_more'].setShortcut(QKeySequence.MoveToPreviousLine)
         actions['Y_more'].triggered.connect(self.action_Y_more)
 
+        actions['download'] = QAction(icon['download'], 'Download Whole File',
+                                      self)
+        actions['download'].triggered.connect(self.action_download)
+
         self.action = actions  # actions was already taken
 
     def create_toolbar(self):
@@ -638,6 +681,7 @@ class MainWindow(QMainWindow):
 
         toolbar = self.addToolBar('File Management')
         toolbar.addAction(actions['open'])
+        toolbar.addAction(actions['download'])
 
         toolbar = self.addToolBar('Scroll')
         toolbar.addAction(actions['prev'])
@@ -682,6 +726,16 @@ class MainWindow(QMainWindow):
 
     def action_Y_more(self):
         self.scroll.set_ylimit(self.scroll.ylimit * 2)
+
+    def action_download(self):
+        self.thread_download = DownloadData(self)
+        self.thread_download.one_more_interval.connect(self.update_progressbar)
+        self.thread_download.start()
+        self.thread_download.setPriority(QThread.Priority.LowestPriority)
+
+    @Slot(int)
+    def update_progressbar(self, new_value):
+        self.overview.progressbar.setValue(new_value)
 
     def create_widgets(self):
         """Probably delete previous scroll widget.
