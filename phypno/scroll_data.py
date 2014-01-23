@@ -634,7 +634,7 @@ for v in vtc:
 
 
 begsam = 185000
-endsam = 195000
+endsam = 190000
 
 
 all_movie = []
@@ -657,7 +657,7 @@ for m in movie:
                           'rel_end': (m['end_sample'] - endsam) / s_freq})
 
 
-
+# %%
 from PySide.phonon import Phonon
 
 
@@ -667,15 +667,14 @@ class Video(QWidget):
 
         # self.parent = pare
         self.movie_info = movie_info
-        self.movie_index = 0
-        self.movie_start = 0
-        self.movie_end = 0
-        self.movie_file = None
 
         self.widget = Phonon.VideoWidget()
         self.video = Phonon.MediaObject()
+        self.add_sources()
+
+        # The signal is only emitted for the last source in the media queue
+        self.video.setPrefinishMark(movie_info[-1]['rel_end'] * 1e3)
         self.video.prefinishMarkReached.connect(self.stop_movie)
-        self.set_current_movie()
         Phonon.createPath(self.video, self.widget)
 
         self.button = QPushButton('Start')
@@ -686,67 +685,32 @@ class Video(QWidget):
         layout.addWidget(self.button)
         self.setLayout(layout)
 
+    def add_sources(self):
+        self.video.clear()
+        sources = []
+        for m in self.movie_info:
+            sources.append(Phonon.MediaSource(m['filename']))
+        self.video.enqueue(sources)
+
     def start_stop(self):
         if self.button.text() == 'Start':
             self.button.setText('Stop')
             self.video.play()
-            self.video.seek(self.movie_start)
-            self.video.setPrefinishMark(self.movie_end)
+            self.video.seek(self.movie_info[0]['rel_start'] * 1e3)
+
         elif self.button.text() == 'Stop':
             self.button.setText('Start')
             self.video.stop()
+            self.add_sources()
 
     def stop_movie(self):
-        if self.movie_end == 0 and self.movie_index < len(self.movie_info):
-            self.set_current_movie()
-            self.video.play()
-        else:
-            self.video.stop()
-
-    def set_current_movie(self):
-        movie_info = self.movie_info[self.movie_index]
-        self.movie_file = movie_info['filename']
-        self.movie_start = movie_info['rel_start'] * 1e3
-        self.movie_end = movie_info['rel_end'] * 1e3
-        self.video.setCurrentSource(self.movie_file)
-        self.movie_index += 1
+        pass
+        # self.video.stop()  this doesn't work, I don't know why
 
 
 q = Video(all_movie)
 q.show()
 
-
-
-
-media_src = []
-for m in all_movie:
-    media_src.append(Phonon.MediaSource(m['filename']))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-media_obj.setCurrentSource(media_src)
-media_obj.enqueue(media_src)
-
-
-
-media_obj.setPrefinishMark(end_video * 1e3)
-media_obj.prefinishMarkReached.connect(close_video)
-
-video_widget.show()
-
-media_obj.play()
-media_obj.seek(start_video * 1e3)
 
 
 # %%
