@@ -633,23 +633,23 @@ for v in vtc:
 
 
 
-begsam = 150000
-endsam = 250000
+begsam = 185000
+endsam = 195000
 
 
 all_movie = []
 for m in movie:
     if begsam < m['start_sample'] and endsam > m['end_sample']:
         all_movie.append({'filename': m['filename'],
-                          'rel_start': None,
-                          'rel_end': None})
+                          'rel_start': 0,
+                          'rel_end': 0})
     elif begsam > m['start_sample'] and begsam < m['end_sample'] and endsam > m['end_sample']:
         all_movie.append({'filename': m['filename'],
                           'rel_start': (begsam - m['start_sample']) / s_freq,
-                          'rel_end': None})
+                          'rel_end': 0})
     elif begsam < m['start_sample'] and endsam > m['start_sample'] and endsam < m['end_sample']:
         all_movie.append({'filename': m['filename'],
-                          'rel_start': None,
+                          'rel_start': 0,
                           'rel_end': (m['end_sample'] - endsam) / s_freq})
     elif begsam > m['start_sample'] and endsam < m['end_sample']:
         all_movie.append({'filename': m['filename'],
@@ -661,25 +661,84 @@ for m in movie:
 from PySide.phonon import Phonon
 
 
+class Video(QWidget):
+    def __init__(self, movie_info):
+        super().__init__()
+
+        # self.parent = pare
+        self.movie_info = movie_info
+        self.movie_index = 0
+        self.movie_start = 0
+        self.movie_end = 0
+        self.movie_file = None
+
+        self.widget = Phonon.VideoWidget()
+        self.video = Phonon.MediaObject()
+        self.video.prefinishMarkReached.connect(self.stop_movie)
+        self.set_current_movie()
+        Phonon.createPath(self.video, self.widget)
+
+        self.button = QPushButton('Start')
+        self.button.clicked.connect(self.start_stop)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.widget)
+        layout.addWidget(self.button)
+        self.setLayout(layout)
+
+    def start_stop(self):
+        if self.button.text() == 'Start':
+            self.button.setText('Stop')
+            self.video.play()
+            self.video.seek(self.movie_start)
+            self.video.setPrefinishMark(self.movie_end)
+        elif self.button.text() == 'Stop':
+            self.button.setText('Start')
+            self.video.stop()
+
+    def stop_movie(self):
+        if self.movie_end == 0 and self.movie_index < len(self.movie_info):
+            self.set_current_movie()
+            self.video.play()
+        else:
+            self.video.stop()
+
+    def set_current_movie(self):
+        movie_info = self.movie_info[self.movie_index]
+        self.movie_file = movie_info['filename']
+        self.movie_start = movie_info['rel_start'] * 1e3
+        self.movie_end = movie_info['rel_end'] * 1e3
+        self.video.setCurrentSource(self.movie_file)
+        self.movie_index += 1
+
+
+q = Video(all_movie)
+q.show()
+
+
+
+
 media_src = []
 for m in all_movie:
     media_src.append(Phonon.MediaSource(m['filename']))
 
 
-media_obj = Phonon.MediaObject()
 
 
 
-def close_video():
-    print('hi')
-    media_obj.stop()
+
+
+
+
+
+
+
 
 
 media_obj.setCurrentSource(media_src)
+media_obj.enqueue(media_src)
 
-video_widget = Phonon.VideoWidget()
 
-Phonon.createPath(media_obj, video_widget)
 
 media_obj.setPrefinishMark(end_video * 1e3)
 media_obj.prefinishMarkReached.connect(close_video)
@@ -694,9 +753,7 @@ media_obj.seek(start_video * 1e3)
 
 from sys import argv
 from PySide.QtCore import Qt
-from PySide.QtGui import QGraphicsView, QGraphicsScene, QApplication, QGraphicsLineItem
-
-app = QApplication(argv)
+from PySide.QtGui import QGraphicsView, QGraphicsScene, QGraphicsLineItem
 
 
 l = QGraphicsLineItem(0, 0, 100, 100)
@@ -709,8 +766,6 @@ view = QGraphicsView(scene)
 view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 view.show()
 
-
-app.exec_()
 
 
 
