@@ -690,6 +690,34 @@ media_obj.play()
 media_obj.seek(start_video * 1e3)
 
 
+# %%
+
+from sys import argv
+from PySide.QtCore import Qt
+from PySide.QtGui import QGraphicsView, QGraphicsScene, QApplication, QGraphicsLineItem
+
+app = QApplication(argv)
 
 
+l = QGraphicsLineItem(0, 0, 100, 100)
+
+scene = QGraphicsScene(0, 0, 24 * 60, 100)
+scene.addItem(l)
+
+view = QGraphicsView(scene)
+# view.setSceneRect(0, 0, 200, 200)
+view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+view.show()
+
+
+app.exec_()
+
+
+
+# menu:
+# FILE: open recording, open notes, open sleep scoring, save sleep scoring
+# NOTES: new note, edit note, delete note
+# SCORES: new score, add rater
+# VIEW: amplitude (presets), window length (presets)
+# WINDOWS: list all the windows
 
