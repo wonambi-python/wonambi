@@ -755,6 +755,13 @@ class Ktlx():
         except IOError:
             orig['notes'] = 'could not find .ent file'
 
+        try:
+            movies, movie_s_freq = self._read_movies()
+            orig['movies'] = movies
+            orig['movie_s_freq'] = movie_s_freq
+        except IOError:
+            orig['notes'] = 'could not find .ent file'
+
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
     def _read_notes(self):
@@ -834,6 +841,18 @@ class Ktlx():
             dictionary which contains the name of the movie, the starting point
             and end point in samples (not in time).
 
+        s_freq : float
+            sampling frequency estimated from snc.
+
+        Notes
+        -----
+        TODO: check that the synchronization is accurate, even small
+        differences can accumulate very quickly over the 24 hours, so it's
+        important to be as accurate as possible.
+
+        TODO: take into account the multiple stamps over the data (there is one
+        every 15 mintues roughly).
+
         """
         snc_file = join(self.filename, self._basename + '.snc')
         vtc_file = join(self.filename, self._basename + '.vtc')
@@ -853,4 +872,4 @@ class Ktlx():
                           'start_sample': int(start_sam),
                           'end_sample': int(end_sam)})
 
-        return movies
+        return movies, s_freq
