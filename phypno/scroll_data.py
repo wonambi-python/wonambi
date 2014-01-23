@@ -57,7 +57,7 @@ icon = {
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
-# DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
+DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 
 setConfigOption('background', 'w')
 
@@ -430,6 +430,7 @@ class Video(QWidget):
 
         self.button = QPushButton('Start')
         self.button.clicked.connect(self.start_stop)
+        Phonon.createPath(self.video, self.widget)
 
         layout = QVBoxLayout()
         layout.addWidget(self.widget)
@@ -453,7 +454,6 @@ class Video(QWidget):
         # The signal is only emitted for the last source in the media queue
         self.video.setPrefinishMark(movie_info[-1]['rel_end'] * 1e3)
         self.video.prefinishMarkReached.connect(self.stop_movie)
-        Phonon.createPath(self.video, self.widget)
 
     def add_sources(self):
         self.video.clear()
@@ -472,7 +472,6 @@ class Video(QWidget):
         elif self.button.text() == 'Stop':
             self.button.setText('Start')
             self.video.stop()
-            self.add_sources()
 
     def stop_movie(self):
         pass
@@ -780,8 +779,8 @@ class MainWindow(QMainWindow):
         self.scroll = scroll
 
 
-# q = MainWindow()
-# q.action_open()
+q = MainWindow()
+q.action_open()
 
 
 
@@ -811,9 +810,10 @@ view.show()
 # SCORES: new score, add rater
 # VIEW: amplitude (presets), window length (presets)
 # WINDOWS: list all the windows
-
+"""
 if __name__ == '__main__':
     app = QApplication(argv)
     q = MainWindow()
     q.action_open()
     exit(app.exec_())
+"""
