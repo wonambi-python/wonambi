@@ -3,7 +3,7 @@ from datetime import timedelta
 from logging import getLogger, INFO
 from numpy import squeeze
 from os.path import basename
-from sys import argv
+from sys import argv, exit
 from PySide.QtCore import Qt, QSettings
 from PySide.QtGui import (QApplication,
                           QMainWindow,
@@ -14,6 +14,7 @@ from PySide.QtGui import (QApplication,
                           QDockWidget,
                           QPushButton,
                           QLabel,
+                          QLineEdit,
                           QComboBox,
                           QInputDialog,
                           QListWidget,
@@ -36,7 +37,7 @@ lg = getLogger('phypno')  # replace with lg = getLogger(__name__)
 lg.setLevel(INFO)
 
 from phypno import Dataset
-from phypno.trans import Montage
+from phypno.trans import Montage, Filter
 
 icon = {
     'open': QIcon.fromTheme('document-open'),
@@ -50,12 +51,6 @@ icon = {
     'zoomprev': QIcon.fromTheme('zoom-previous'),
     'selchan': QIcon.fromTheme('mail-mark-task'),
     }
-
-try:
-    app = QApplication(argv)
-except RuntimeError:
-    pass
-
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
@@ -195,7 +190,7 @@ class Channels(QGroupBox):  # maybe as QWidget
                       'chan_to_plot': [],
                       'ref_chan': [],
                       'color': QColor('black'),
-                      'filter': {},
+                      'filter': {'low_cut': None, 'high_cut': None},
                       },
                       ]
 
@@ -215,6 +210,11 @@ class Channels(QGroupBox):  # maybe as QWidget
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
+        hpLabel = QLabel('High-Pass:')
+        self.hpEdit = QLineEdit('')
+        lpLabel = QLabel('Low-Pass:')
+        self.lpEdit = QLineEdit('')
+
         okButton = QPushButton('apply')
         okButton.clicked.connect(self.okButton)
 
@@ -225,21 +225,26 @@ class Channels(QGroupBox):  # maybe as QWidget
         self.list_grp.activated.connect(self.update_chan_grp)
         self.current = self.list_grp.currentText()
 
-        hdr = QHBoxLayout()
-        hdr.addWidget(addButton)
-        hdr.addWidget(renameButton)
-        hdr.addWidget(colorButton)
-        hdr.addWidget(delButton)
+        hdr = QGridLayout()
+        hdr.addWidget(addButton, 0, 0)
+        hdr.addWidget(renameButton, 0, 1)
+        hdr.addWidget(colorButton, 1, 0)
+        hdr.addWidget(delButton, 1, 1)
 
-        hbox = QHBoxLayout()
-        hbox.addWidget(okButton)
+        filt = QGridLayout()
+        filt.addWidget(hpLabel, 0, 0)
+        filt.addWidget(self.hpEdit, 0, 1)
+        filt.addWidget(lpLabel, 1, 0)
+        filt.addWidget(self.lpEdit, 1, 1)
 
         layout = QGridLayout()
         layout.addWidget(self.list_grp, 0, 0)
         layout.addLayout(hdr, 0, 1)
         layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
         layout.addWidget(QLabel('Reference Channels'), 1, 1)
-        layout.addLayout(hbox, 3, 1)
+        layout.addLayout(filt, 3, 0)
+        layout.addWidget(okButton, 3, 1)
+
         self.setLayout(layout)
         self.layout = layout
         self.update_list_grp()
@@ -268,9 +273,23 @@ class Channels(QGroupBox):  # maybe as QWidget
         for selected in selectedItems:
             ref_chan.append(selected.text())
 
+        hp = self.hpEdit.text()
+        if hp == '':
+            low_cut = None
+        else:
+            low_cut = float(hp)
+
+        lp = self.lpEdit.text()
+        if lp == '':
+            high_cut = None
+        else:
+            high_cut = float(lp)
+
         idx = [x['name'] for x in self.groups].index(self.current)
         self.groups[idx]['chan_to_plot'] = chan_to_plot
         self.groups[idx]['ref_chan'] = ref_chan
+        self.groups[idx]['filter']['low_cut'] = low_cut
+        self.groups[idx]['filter']['high_cut'] = high_cut
 
         self.update_list_grp()
 
@@ -303,7 +322,7 @@ class Channels(QGroupBox):  # maybe as QWidget
                               'chan_to_plot': [],
                               'ref_chan': [],
                               'color': QColor('black'),
-                              'filter': None,
+                              'filter': {'low_cut': None, 'high_cut': None},
                               })
         idx = self.list_grp.currentIndex()
         self.list_grp.insertItem(idx + 1, new_grp_name)
@@ -490,9 +509,18 @@ class Scroll(QWidget):
         row = 0
         for one_grp in self.parent.channels.groups:
             mont = Montage(ref_chan=one_grp['ref_chan'])
-            reref = mont(data)
+            data1 = mont(data)
+            if one_grp['filter']['low_cut'] is not None:
+                hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
+                                s_freq=data.s_freq)
+                data1 = hpfilt(data1)
+            if one_grp['filter']['high_cut'] is not None:
+                lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
+                                s_freq=data.s_freq)
+                data1 = lpfilt(data1)
+
             for chan in one_grp['chan_to_plot']:
-                dat, time = reref(chan=[chan])
+                dat, time = data1(chan=[chan])
                 chan_plot.append(PlotWidget())
                 chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
                                              pen=QPen(one_grp['color']))
@@ -506,12 +534,13 @@ class Scroll(QWidget):
         self.chan_plot = chan_plot
         self.set_ylimit()
 
-    def set_ylimit(self, new_ylimit):
-        self.ylimit = new_ylimit
+    def set_ylimit(self, new_ylimit=None):
+        if new_ylimit is not None:
+            self.ylimit = new_ylimit
         chan_plot = self.chan_plot
         for single_chan_plot in chan_plot:
-            single_chan_plot.plotItem.setYRange(-1 * new_ylimit,
-                                                new_ylimit)
+            single_chan_plot.plotItem.setYRange(-1 * self.ylimit,
+                                                self.ylimit)
 
     def add_datetime_on_x(self):
         start_time = self.parent.info.dataset.header['start_time']
@@ -697,13 +726,13 @@ class MainWindow(QMainWindow):
         self.scroll = scroll
 
 
-q = MainWindow()
-q.action_open()
+# q = MainWindow()
+# q.action_open()
 
 
 
 # %%
-
+"""
 
 from PySide.QtCore import Qt
 from PySide.QtGui import QGraphicsView, QGraphicsScene, QGraphicsLineItem
@@ -719,7 +748,7 @@ view = QGraphicsView(scene)
 view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 view.show()
 
-
+"""
 
 
 # menu:
@@ -729,3 +758,8 @@ view.show()
 # VIEW: amplitude (presets), window length (presets)
 # WINDOWS: list all the windows
 
+if __name__ == '__main__':
+    app = QApplication(argv)
+    q = MainWindow()
+    q.action_open()
+    exit(app.exec_())
