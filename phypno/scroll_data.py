@@ -2,7 +2,7 @@
 from datetime import timedelta
 from logging import getLogger, INFO
 from numpy import squeeze, floor
-from os.path import basename
+from os.path import basename, dirname
 from sys import argv, exit
 from PySide.QtCore import Qt, QSettings, QThread, Signal, Slot
 from PySide.QtGui import (QApplication,
@@ -10,6 +10,7 @@ from PySide.QtGui import (QApplication,
                           QGridLayout,
                           QHBoxLayout,
                           QVBoxLayout,
+                          QFormLayout,
                           QWidget,
                           QDockWidget,
                           QPushButton,
@@ -57,7 +58,7 @@ icon = {
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
-DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
+# DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 
 setConfigOption('background', 'w')
 
@@ -213,9 +214,7 @@ class Channels(QGroupBox):  # maybe as QWidget
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
-        hpLabel = QLabel('High-Pass:')
         self.hpEdit = QLineEdit('')
-        lpLabel = QLabel('Low-Pass:')
         self.lpEdit = QLineEdit('')
 
         okButton = QPushButton('apply')
@@ -234,11 +233,9 @@ class Channels(QGroupBox):  # maybe as QWidget
         hdr.addWidget(colorButton, 1, 0)
         hdr.addWidget(delButton, 1, 1)
 
-        filt = QGridLayout()
-        filt.addWidget(hpLabel, 0, 0)
-        filt.addWidget(self.hpEdit, 0, 1)
-        filt.addWidget(lpLabel, 1, 0)
-        filt.addWidget(self.lpEdit, 1, 1)
+        filt = QFormLayout()
+        filt.addRow('High-Pass', self.hpEdit)
+        filt.addRow('Low-Pass', self.lpEdit)
 
         layout = QGridLayout()
         layout.addWidget(self.list_grp, 0, 0)
@@ -693,10 +690,9 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_more'])
 
     def action_open(self):
-        #self.info['dataset'] = QFileDialog.getOpenFileName(self,
-        #                                                    'Open file',
-        #            '/home/gio/recordings/MG71/eeg/raw')
-        self.info.read_dataset(DATASET_EXAMPLE)
+        filename = QFileDialog.getExistingDirectory(self, 'Open file',
+                                                    dirname(DATASET_EXAMPLE))
+        self.info.read_dataset(filename)
         self.overview.read_duration()
         self.scroll.add_datetime_on_x()
         self.channels.read_channels(self.info.dataset.header['chan_name'])
@@ -779,8 +775,8 @@ class MainWindow(QMainWindow):
         self.scroll = scroll
 
 
-q = MainWindow()
-q.action_open()
+# q = MainWindow()
+# q.action_open()
 
 
 
@@ -810,10 +806,8 @@ view.show()
 # SCORES: new score, add rater
 # VIEW: amplitude (presets), window length (presets)
 # WINDOWS: list all the windows
-"""
+
 if __name__ == '__main__':
     app = QApplication(argv)
     q = MainWindow()
-    q.action_open()
     exit(app.exec_())
-"""
