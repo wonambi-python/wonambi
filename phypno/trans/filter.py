@@ -39,7 +39,7 @@ class Filter:
     specify s_freq, then the ratio will be computed automatically.
 
     """
-    def __init__(self, low_cut=None, high_cut=None, order=8, s_freq=None):
+    def __init__(self, low_cut=None, high_cut=None, order=4, s_freq=None):
 
         if s_freq is not None:
             nyquist = s_freq / 2.
