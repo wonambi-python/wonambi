@@ -63,3 +63,9 @@ def test_read_vtc():
     lg.info('---\nfunction: ' + stack()[0][3])
     k = Ktlx(ktlx_dir)
     _read_vtc(join(k.filename, k._basename + '.vtc'))
+
+
+def test_read_movies():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    k = Ktlx(ktlx_dir)
+    k._read_movies()

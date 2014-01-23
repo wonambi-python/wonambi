@@ -812,3 +812,45 @@ class Ktlx():
                      note + ' (' + name + ')')
 
         return '\n'.join(s)
+
+    def _read_movies(self):
+        """Reads the time-stamps for the movies.
+
+        The function is not extremely clean, because the timestamps are given
+        in time, while the recordings are in samples.
+        The function reads the synchronization file (.snc) and the list of
+        movies (in .vtc). It recomputes the sampling frequency, because there
+        might be small discrepancies with the sampling frequency in the header.
+        It's probably best to use all the stamps, but this should be pretty
+        accurate.
+
+        The output is converted into samples. I would expect some discrepancies
+        and for sure accurancy is no higher than a few seconds, but it should
+        be good enough for our analysis.
+
+        Returns
+        -------
+        movies : list of dict
+            dictionary which contains the name of the movie, the starting point
+            and end point in samples (not in time).
+
+        """
+        snc_file = join(self.filename, self._basename + '.snc')
+        vtc_file = join(self.filename, self._basename + '.vtc')
+        sampleStamp, sampleTime = _read_snc(snc_file)
+        vtc = _read_vtc(vtc_file)
+
+        s_freq = ((sampleStamp[-1] - sampleStamp[0]) /
+                  (sampleTime[-1] - sampleTime[0]).total_seconds())
+
+        movies = []
+        for v in vtc:
+            start_sam = ((v['StartTime'] - sampleTime[0]).total_seconds() *
+                         s_freq - self._hdr['stamps'][0]['start_stamp'])
+            end_sam = ((v['EndTime'] - sampleTime[0]).total_seconds() *
+                        s_freq - self._hdr['stamps'][0]['start_stamp'])
+            movies.append({'filename': join(self.filename, v['MpgFileName']),
+                          'start_sample': int(start_sam),
+                          'end_sample': int(end_sam)})
+
+        return movies
