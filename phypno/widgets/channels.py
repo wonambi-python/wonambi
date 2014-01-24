@@ -1,10 +1,12 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from PySide.QtCore import Signal
 from PySide.QtGui import (QAbstractItemView,
                           QColor,
                           QColorDialog,
                           QComboBox,
+                          QDockWidget,
                           QFormLayout,
                           QGridLayout,
                           QGroupBox,
@@ -37,7 +39,6 @@ class Channels(QGroupBox):
     create_list : creates list of channels (one for those to plot, one for ref)
 
     """
-
     def __init__(self, parent):
         super().__init__()
         # self.setTitle('Channels')
@@ -202,3 +203,4 @@ class Channels(QGroupBox):
         self.list_grp.removeItem(idx)
         self.groups.pop(idx)
         self.update_list_grp()
+

@@ -18,11 +18,15 @@ from pyqtgraph import setConfigOption
 # change phypno.widgets into .widgets
 from phypno.widgets import Info, Channels, Overview, Scroll, Video
 
+from functools import partial
 
 icon = {
-    'open': QIcon.fromTheme('document-open'),
-    'prev': QIcon.fromTheme('go-previous'),
-    'next': QIcon.fromTheme('go-next'),
+    'open_rec': QIcon.fromTheme('document-open'),
+    'page_prev': QIcon.fromTheme('go-previous-view'),
+    'page_next': QIcon.fromTheme('go-next-view'),
+    'step_prev': QIcon.fromTheme('go-previous'),
+    'step_next': QIcon.fromTheme('go-next'),
+    'cronometer': QIcon.fromTheme('cronometer'),
     'up': QIcon.fromTheme('go-up'),
     'down': QIcon.fromTheme('go-down'),
     'zoomin': QIcon.fromTheme('zoom-in'),
@@ -31,6 +35,7 @@ icon = {
     'zoomprev': QIcon.fromTheme('zoom-previous'),
     'selchan': QIcon.fromTheme('mail-mark-task'),
     'download': QIcon.fromTheme('download'),
+    'widget': QIcon.fromTheme('window-duplicate'),
     }
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
@@ -42,9 +47,12 @@ setConfigOption('background', 'w')
 
 config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
-config.setValue('window_length', 30)
+config.setValue('window_page_length', 30)
+# one step = window_page_length / window_step_ratio
+config.setValue('window_step_ratio', 5)
 config.setValue('ylimit', 100)
 config.setValue('read_intervals', 60)  # pre-read file every X seconds
+config.setValue('hidden_docks', {'Video'})
 
 
 class DownloadData(QThread):
@@ -76,6 +84,11 @@ class DownloadData(QThread):
 
 # %%
 
+def closeEvent(obj, event):
+    print('hi')
+    event.accept()
+
+
 class MainWindow(QMainWindow):
     """
 
@@ -103,10 +116,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.action = {}
+
         self.info = None
         self.channels = None
+        self.video = None
         self.overview = None
         self.scroll = None
+        self.docks = {}
+        self.menu_window = None
 
         self.thread_download = None
 
@@ -121,17 +139,30 @@ class MainWindow(QMainWindow):
 
     def create_actions(self):
         actions = {}
-        actions['open'] = QAction(icon['open'], 'Open', self)
-        actions['open'].setShortcut(QKeySequence.Open)
-        actions['open'].triggered.connect(self.action_open)
+        actions['open_rec'] = QAction(icon['open_rec'], 'Open Recording...',
+                                      self)
+        actions['open_rec'].setShortcut(QKeySequence.Open)
+        actions['open_rec'].triggered.connect(self.action_open)
 
-        actions['prev'] = QAction(icon['prev'], 'Previous Page', self)
-        actions['prev'].setShortcut(QKeySequence.MoveToPreviousChar)
-        actions['prev'].triggered.connect(self.action_prevpage)
+        actions['open_note'] = QAction('Open Notes...', self)
 
-        actions['next'] = QAction(icon['next'], 'Next Page', self)
-        actions['next'].setShortcut(QKeySequence.MoveToNextChar)
-        actions['next'].triggered.connect(self.action_nextpage)
+        actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
+                                       self)
+        actions['step_prev'].setShortcut(QKeySequence.MoveToPreviousChar)
+        actions['step_prev'].triggered.connect(self.action_step_prev)
+
+        actions['step_next'] = QAction(icon['step_next'], 'Next Step', self)
+        actions['step_next'].setShortcut(QKeySequence.MoveToNextChar)
+        actions['step_next'].triggered.connect(self.action_step_next)
+
+        actions['page_prev'] = QAction(icon['page_prev'], 'Previous Page',
+                                       self)
+        actions['page_prev'].setShortcut(QKeySequence.MoveToPreviousPage)
+        actions['page_prev'].triggered.connect(self.action_page_prev)
+
+        actions['page_next'] = QAction(icon['page_next'], 'Next Page', self)
+        actions['page_next'].setShortcut(QKeySequence.MoveToNextPage)
+        actions['page_next'].triggered.connect(self.action_page_next)
 
         actions['X_more'] = QAction(icon['zoomprev'], 'Wider Time Window',
                                     self)
@@ -148,7 +179,7 @@ class MainWindow(QMainWindow):
         actions['Y_less'].triggered.connect(self.action_Y_less)
 
         actions['Y_more'] = QAction(icon['zoomout'], 'Smaller Amplitude', self)
-        actions['Y_more'].setShortcut(QKeySequence.MoveToPreviousLine)
+        actions['Y_more'].setShortcut(QKeySequence.MoveToNextLine)
         actions['Y_more'].triggered.connect(self.action_Y_more)
 
         actions['download'] = QAction(icon['download'], 'Download Whole File',
@@ -162,24 +193,71 @@ class MainWindow(QMainWindow):
 
         menubar = self.menuBar()
         menu_file = menubar.addMenu('File')
-        menu_file.addAction(actions['open'])
-        # menu:
-        # FILE: open recording, open notes, open sleep scoring, save sleep scoring
-        # NOTES: new note, edit note, delete note
-        # SCORES: new score, add rater
-        # VIEW: amplitude (presets), window length (presets)
-        # WINDOWS: list all the windows
+        menu_file.addAction(actions['open_rec'])
+        menu_file.addAction(actions['open_note'])
+        menu_file.addSeparator()
+        menu_file.addAction('Open Sleep Scoring...')
+        menu_file.addAction('Save Sleep Scoring...')
+
+        menu_time = menubar.addMenu('Time Window')
+        menu_time.addAction(actions['step_prev'])
+        menu_time.addAction(actions['step_next'])
+        menu_time.addAction(actions['page_prev'])
+        menu_time.addAction(actions['page_next'])
+        menu_time.addSeparator()  # use icon cronometer
+        menu_time.addAction('6 hours earlier')
+        menu_time.addAction('1 hour earlier')
+        menu_time.addAction('30 min earlier')
+        menu_time.addAction('1 min earlier')
+        menu_time.addAction('1 min later')
+        menu_time.addAction('30 min later')
+        menu_time.addAction('1 hour later')
+        menu_time.addAction('6 hours later')
+
+        menu_time.addSeparator()
+        submenu_go = menu_time.addMenu('Go to ')
+        submenu_go.addAction('Note')
+
+        menu_view = menubar.addMenu('View')
+        submenu_ampl = menu_view.addMenu('Amplitude')
+        submenu_ampl.addAction(actions['Y_less'])
+        submenu_ampl.addAction(actions['Y_more'])
+        submenu_ampl.addSeparator()
+        submenu_ampl.addAction('(presets)')
+        submenu_length = menu_view.addMenu('Window Length')
+        submenu_length.addAction(actions['X_more'])
+        submenu_length.addAction(actions['X_less'])
+        submenu_length.addSeparator()
+        submenu_length.addAction('(presets)')
+
+        menu_note = menubar.addMenu('Note')
+        menu_note.addAction('New Note')
+        menu_note.addAction('Edit Note')
+        menu_note.addAction('Delete Note')
+
+        menu_score = menubar.addMenu('Sleep Scores')
+        menu_score.addAction('Add Rater')
+        menu_score.addAction('Rename Rater')
+        menu_score.addAction('Delete Rater')
+
+        menu_window = menubar.addMenu('Windows')
+        self.menu_window = menu_window
+
+        menu_about = menubar.addMenu('About')
+        menu_about.addAction('About Phypno')
 
     def create_toolbar(self):
         actions = self.action
 
         toolbar = self.addToolBar('File Management')
-        toolbar.addAction(actions['open'])
+        toolbar.addAction(actions['open_rec'])
         toolbar.addAction(actions['download'])
 
         toolbar = self.addToolBar('Scroll')
-        toolbar.addAction(actions['prev'])
-        toolbar.addAction(actions['next'])
+        toolbar.addAction(actions['step_prev'])
+        toolbar.addAction(actions['step_next'])
+        toolbar.addAction(actions['page_prev'])
+        toolbar.addAction(actions['page_next'])
         toolbar.addSeparator()
         toolbar.addAction(actions['X_more'])
         toolbar.addAction(actions['X_less'])
@@ -195,11 +273,25 @@ class MainWindow(QMainWindow):
         self.scroll.add_datetime_on_x()
         self.channels.read_channels(self.info.dataset.header['chan_name'])
 
-    def action_prevpage(self):
+    def action_step_prev(self):
+        #TODO: window_step_ratio should go to overview
+        window_start = (self.overview.window_start -
+                        self.overview.window_length /
+                        config.value('window_step_ratio'))
+        self.overview.update_position(window_start)
+
+    def action_step_next(self):
+        #TODO: window_step_ratio should go to overview
+        window_start = (self.overview.window_start +
+                        self.overview.window_length /
+                        config.value('window_step_ratio'))
+        self.overview.update_position(window_start)
+
+    def action_page_prev(self):
         window_start = self.overview.window_start - self.overview.window_length
         self.overview.update_position(window_start)
 
-    def action_nextpage(self):
+    def action_page_next(self):
         window_start = self.overview.window_start + self.overview.window_length
         self.overview.update_position(window_start)
 
@@ -254,6 +346,7 @@ class MainWindow(QMainWindow):
         dockChannels.setAllowedAreas(Qt.RightDockWidgetArea |
                                      Qt.LeftDockWidgetArea)
         dockChannels.setWidget(channels)
+        dockChannels.closeEvent = closeEvent
 
         dockVideo = QDockWidget("Video", self)
         dockVideo.setAllowedAreas(Qt.RightDockWidgetArea |
@@ -271,11 +364,36 @@ class MainWindow(QMainWindow):
         self.video = video
         self.overview = overview
         self.scroll = scroll
+        self.docks = {'Information': dockInfo,
+                      'Channels': dockChannels,
+                      'Video': dockVideo,
+                      'Overview': dockOverview,
+                      }
 
+        actions = self.action
+        for dockname, dockwidget in self.docks.items():
+            new_act = QAction(icon['widget'], dockname, self)
+            new_act.setCheckable(True)
+            new_act.setChecked(True)
+            new_act.triggered.connect(partial(self.toggle_menu_window,
+                                              dockwidget))
+            self.menu_window.addAction(new_act)
+            actions[dockname] = new_act
+
+        for hidden_dock in config.value('hidden_docks'):
+            self.docks[hidden_dock].hide()
+
+    def toggle_menu_window(self, dockwidget):
+        actions = self.action
+        if dockwidget.isVisible():
+            dockwidget.setVisible(False)
+            # actions[dockname].setChecked(False)
+        else:
+            dockwidget.setVisible(True)
+            # actions[dockname].setChecked(True)
 
 q = MainWindow()
 # q.action_open()
-
 
 
 # %%

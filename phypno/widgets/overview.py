@@ -32,7 +32,7 @@ class Overview(QWidget):
         super().__init__()
         self.parent = parent
         self.window_start = config.value('window_start')
-        self.window_length = config.value('window_length')
+        self.window_length = config.value('window_page_length')
 
         self.scrollbar = QScrollBar()
         self.scrollbar.setOrientation(Qt.Orientation.Horizontal)
