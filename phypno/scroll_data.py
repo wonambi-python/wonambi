@@ -55,27 +55,28 @@ config.setValue('hidden_docks', ['Video', ])
 
 
 class MainWindow(QMainWindow):
-    """
-
-    Methods
-    -------
-    create_actions : add self.action
-    create_toolbar : add toolbars
-    create_widgets : create main widgets
-    action_*** : various actions
+    """Create an instance of the main window.
 
     Attributes
     ----------
     action : dict
         names of all the actions to perform
-    chan : list of dict
-        the dict contains information about the group of channels.
-    dataset : dict
-        information about the dataset, such as name, instance of Dataset.
-    data : dict
-        current data, time stamps.
-    widgets : dict
-        pointers to active widgets, to avoid garbage collection
+    info : instance of phypno.widgets.Info
+
+    channels : instance of phypno.widgets.Channels
+
+    overview : instance of phypno.widgets.Overview
+
+    video : instance of phypno.widgets.Video
+
+    scroll : instance of phypno.widgets.Scroll
+
+    docks : dict
+        pointers to dockwidgets, to show or hide them.
+    menu_window : instance of menuBar.menu
+        menu about the windows (to know which ones are shown or hidden)
+    thread_download : instance of QThread
+        necessary to avoid garbage collection.
 
     """
     def __init__(self):
@@ -85,9 +86,9 @@ class MainWindow(QMainWindow):
 
         self.info = None
         self.channels = None
-        self.video = None
         self.overview = None
         self.scroll = None
+        self.video = None
         self.docks = {}
         self.menu_window = None
 
@@ -103,6 +104,9 @@ class MainWindow(QMainWindow):
         self.show()
 
     def create_actions(self):
+        """Create all the possible actions.
+
+        """
         actions = {}
         actions['open_rec'] = QAction(icon['open_rec'], 'Open Recording...',
                                       self)
@@ -154,6 +158,18 @@ class MainWindow(QMainWindow):
         self.action = actions  # actions was already taken
 
     def create_menubar(self):
+        """Create the whole menubar, based on actions.
+
+        Notes
+        -----
+        TODO: bookmarks are unique (might have the same text) and are not
+              mutually exclusive
+
+        TODO: events are not unique and are not mutually exclusive
+
+        TODO: states are not unique and are mutually exclusive
+
+        """
         actions = self.action
 
         menubar = self.menuBar()
@@ -195,9 +211,6 @@ class MainWindow(QMainWindow):
         submenu_length.addSeparator()
         submenu_length.addAction('(presets)')
 
-        #TODO: bookmarks are unique (might have the same text) and are not mutually exclusive
-        #TODO: events are not unique and are not mutually exclusive
-        #TODO: states are not unique and are mutually exclusive
         menu_bookmark = menubar.addMenu('Bookmark')
         menu_bookmark.addAction('New Bookmark')
         menu_bookmark.addAction('Edit Bookmark')
@@ -218,6 +231,13 @@ class MainWindow(QMainWindow):
         menu_about.addAction('About Phypno')
 
     def create_toolbar(self):
+        """Create the various toolbars, without keeping track of them.
+
+        Notes
+        -----
+        TODO: Keep track of the toolbars, to see if they disappear.
+
+        """
         actions = self.action
 
         toolbar = self.addToolBar('File Management')
@@ -237,6 +257,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_more'])
 
     def action_open(self):
+        """Action: open a new dataset."""
         # filename = QFileDialog.getExistingDirectory(self, 'Open file',
         #                                            dirname(DATASET_EXAMPLE))
         self.info.update_info(DATASET_EXAMPLE)
@@ -245,45 +266,53 @@ class MainWindow(QMainWindow):
         self.channels.update_channels(self.info.dataset.header['chan_name'])
 
     def action_step_prev(self):
-        #TODO: window_step_ratio should go to overview
+        """Go to the previous step.
+
+        Notes
+        -----
+        TODO: window_step_ratio should go to overview
+
+        """
         window_start = (self.overview.window_start -
                         self.overview.window_length /
                         config.value('window_step_ratio'))
         self.overview.update_position(window_start)
 
     def action_step_next(self):
-        #TODO: window_step_ratio should go to overview
+        """Go to the next step."""
         window_start = (self.overview.window_start +
                         self.overview.window_length /
                         config.value('window_step_ratio'))
         self.overview.update_position(window_start)
 
     def action_page_prev(self):
+        """Go to the previous page."""
         window_start = self.overview.window_start - self.overview.window_length
         self.overview.update_position(window_start)
 
     def action_page_next(self):
+        """Go to the next page."""
         window_start = self.overview.window_start + self.overview.window_length
         self.overview.update_position(window_start)
 
     def action_X_more(self):
-        """It would be nice to have predefined zoom levels.
-        Also, a value that can be shown and edited.
-        """
+        """Zoom in on the x-axis."""
         self.overview.update_length(self.overview.window_length * 2)
 
     def action_X_less(self):
+        """Zoom out on the x-axis."""
         self.overview.update_length(self.overview.window_length / 2)
 
     def action_Y_less(self):
-        """See comments to action_X_more.
-        """
+        """Decrease the amplitude."""
         self.scroll.set_ylimit(self.scroll.ylimit / 2)
 
     def action_Y_more(self):
+        """Increase the amplitude."""
         self.scroll.set_ylimit(self.scroll.ylimit * 2)
 
     def action_download(self):
+        """Start the download of the dataset."""
         self.thread_download = DownloadData(self)
         self.thread_download.one_more_interval.connect(self.update_progressbar)
         self.thread_download.start()
@@ -291,12 +320,17 @@ class MainWindow(QMainWindow):
 
     @Slot(int)
     def update_progressbar(self, new_value):
+        """Set the value of the progress bar."""
         self.overview.progressbar.setValue(new_value)
 
     def create_widgets(self):
-        """Probably delete previous scroll widget.
-        """
+        """Create all the widgets and dockwidgets.
 
+        Notes
+        -----
+        TODO: Probably delete previous scroll widget.
+
+        """
         self.info = Info(self)
         self.channels = Channels(self)
         self.overview = Overview(self)
@@ -350,6 +384,15 @@ class MainWindow(QMainWindow):
                 actions[dock['name']].setChecked(False)
 
     def toggle_menu_window(self, dockname, dockwidget):
+        """Show or hide dockwidgets, and keep track of them.
+
+        Parameters
+        ----------
+        dockname : str
+            name of the dockwidget
+        dockwidget : instance of DockWidget
+
+        """
         actions = self.action
         if dockwidget.isVisible():
             dockwidget.setVisible(False)
