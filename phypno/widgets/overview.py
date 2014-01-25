@@ -8,11 +8,11 @@ from PySide.QtGui import (QProgressBar,
                           QWidget,
                           )
 
-config = QSettings("phypno", "scroll_data")
+config = QSettings('phypno', 'scroll_data')
 
 
 class Overview(QWidget):
-    """Shows an overview of data, such as hypnogram and data in memory.
+    """Show an overview of data, such as hypnogram and data in memory.
 
     Attributes
     ----------
@@ -21,15 +21,10 @@ class Overview(QWidget):
     window_length : float
         length of the window being plotted (in s).
 
-    Methods
-    -------
-    read_duration : reads full duration and update maximum.
-    update_length : change length of the page step.
-    update_position : if value changes, call scroll functions.
-
     """
     def __init__(self, parent):
         super().__init__()
+
         self.parent = parent
         self.window_start = config.value('window_start')
         self.window_length = config.value('window_page_length')
@@ -48,21 +43,28 @@ class Overview(QWidget):
         self.update_length(self.window_length)
 
     def read_duration(self):
+        """Read full duration and update maximum.
+
+        """
         header = self.parent.info.dataset.header
         maximum = header['n_samples'] / header['s_freq']
         self.scrollbar.setMaximum(maximum - self.window_length)
 
     def update_length(self, new_length):
+        """Change length of the page step.
+
+        """
         self.window_length = new_length
         self.scrollbar.setPageStep(new_length)
 
     def update_position(self, new_position=None):
+        """If value changes, call scroll functions.
+
+        """
         if new_position is not None:
             self.window_start = new_position
             self.scrollbar.setValue(new_position)
         else:
             self.window_start = self.scrollbar.value()
-        lg.info('Overview.update_position: read_data')
-        self.parent.scroll.read_data()
-        lg.info('Overview.update_position: plot_scroll')
-        self.parent.scroll.plot_scroll()
+        self.parent.scroll.update_scroll()
+        self.parent.scroll.display_scroll()

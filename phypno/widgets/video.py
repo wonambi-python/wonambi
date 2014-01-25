@@ -9,6 +9,25 @@ from PySide.phonon import Phonon
 
 
 def _convert_movie_to_relative_time(begsam, endsam, movie, s_freq):
+    """Convert absolute time to the relative time of the single movie files.
+
+    Parameters
+    ----------
+    begsam : int
+        sample at the beginning.
+    endsam : int
+        sample at the end.
+    movie : list of dict
+        list of movies, with filename, start_sample, end_sample
+    s_freq : int or float
+        sampling frequency to convert samples into s.
+
+    Returns
+    -------
+    all_movie : list of dict
+        information in relative time about the movie files.
+
+    """
     all_movie = []
     for m in movie:
         if begsam < m['start_sample']:
@@ -38,32 +57,51 @@ def _convert_movie_to_relative_time(begsam, endsam, movie, s_freq):
 
 
 class Video(QWidget):
+    """Widget containing the movie, if available.
+
+    Attributes
+    ----------
+    parent : instance of QMainWindow
+        the main window.
+    movie_info : list of dict
+        information in relative time about the movie files.
+    video : instance of MediaObject
+        the video to show.
+    widget : instance of VideoWidget
+        the widget containing the video.
+    button : instance of QPushButton
+        button which starts and stops the video.
+
+    """
     def __init__(self, parent):
         super().__init__()
-
         self.parent = parent
         self.movie_info = None
 
         self.widget = Phonon.VideoWidget()
         self.video = Phonon.MediaObject()
-
+        Phonon.createPath(self.video, self.widget)
         self.button = QPushButton('Start')
         self.button.clicked.connect(self.start_stop)
-        Phonon.createPath(self.video, self.widget)
 
         layout = QVBoxLayout()
         layout.addWidget(self.widget)
         layout.addWidget(self.button)
         self.setLayout(layout)
 
-    def load_video(self):
+    def update_video(self):
+        """Update the widget containing the video.
+
+        TODO: it's probably best to use seconds instead of samples.
+
+        """
         dataset = self.parent.info.dataset
         movies = dataset.header['orig']['movies']
         s_freq = dataset.header['orig']['movie_s_freq']
         overview = self.parent.overview
         begsam = overview.window_start * s_freq
         endsam = (overview.window_start + overview.window_length) * s_freq
-        lg.info('Video.load_video: begsam: ' + str(begsam) + ' endsam: ' +
+        lg.info('Video.update_video: begsam: ' + str(begsam) + ' endsam: ' +
                 str(endsam))
         movie_info = _convert_movie_to_relative_time(begsam, endsam, movies,
                                                      s_freq)
@@ -75,6 +113,9 @@ class Video(QWidget):
         self.video.prefinishMarkReached.connect(self.stop_movie)
 
     def add_sources(self):
+        """Add sources to the queue.
+
+        """
         self.video.clear()
         sources = []
         for m in self.movie_info:
@@ -82,9 +123,12 @@ class Video(QWidget):
         self.video.enqueue(sources)
 
     def start_stop(self):
+        """Start and stop the video, and change the button.
+
+        """
         if self.button.text() == 'Start':
             self.button.setText('Stop')
-            self.load_video()
+            self.update_video()
             self.video.play()
             self.video.seek(self.movie_info[0]['rel_start'] * 1e3)
 
@@ -93,5 +137,11 @@ class Video(QWidget):
             self.video.stop()
 
     def stop_movie(self):
+        """Signal called by prefinishMarkReached.
+
+        TODO: this doesn't work, I don't know why. Check why, otherwise it
+        defeats the purpose of prefinishMarkReached.
+
+        """
         pass
-        # self.video.stop()  this doesn't work, I don't know why
+        # self.video.stop()

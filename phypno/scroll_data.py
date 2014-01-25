@@ -239,10 +239,10 @@ class MainWindow(QMainWindow):
     def action_open(self):
         # filename = QFileDialog.getExistingDirectory(self, 'Open file',
         #                                            dirname(DATASET_EXAMPLE))
-        self.info.read_dataset(DATASET_EXAMPLE)
+        self.info.update_info(DATASET_EXAMPLE)
         self.overview.read_duration()
         self.scroll.add_datetime_on_x()
-        self.channels.read_channels(self.info.dataset.header['chan_name'])
+        self.channels.update_channels(self.info.dataset.header['chan_name'])
 
     def action_step_prev(self):
         #TODO: window_step_ratio should go to overview
@@ -369,8 +369,10 @@ q.show()
 # q.action_open()
 app.exec_()
 
+
 # %%
 """
+
 
 from PySide.QtCore import Qt
 from PySide.QtGui import QGraphicsView, QGraphicsScene, QGraphicsLineItem
@@ -387,6 +389,5 @@ view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 view.show()
 
 """
-
-
-    q = MainWindow()
+app.quitOnLastWindowClosed()
+app.closeAllWindows()

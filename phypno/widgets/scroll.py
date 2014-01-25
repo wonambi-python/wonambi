@@ -16,10 +16,21 @@ config = QSettings("phypno", "scroll_data")
 
 
 class Scroll(QWidget):
-    """
-        read_data : read data
-    plot_scroll : plot data to scroll
-    set_ylimit : set y limits for scroll data
+    """Main widget that contains the recordings to be plotted.
+
+    Attributes
+    ----------
+    parent : instance of QMainWindow
+        the main window.
+    ylimit : int
+        positive height of the y-axis
+    data : instance of phypno.DataTime
+        instance containing the recordings.
+    layout : instance of QGridLayout
+        layout of the channels
+    chan_plot : list of instances of plotItem
+        references to the plots for each channel.
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -34,7 +45,10 @@ class Scroll(QWidget):
         self.setLayout(layout)
         self.layout = layout
 
-    def read_data(self):
+    def update_scroll(self):
+        """Read and update the data to plot.
+
+        """
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
@@ -48,7 +62,10 @@ class Scroll(QWidget):
                                  endtime=window_end)
         self.data = data
 
-    def plot_scroll(self):
+    def display_scroll(self):
+        """Display the recordings.
+
+        """
         data = self.data
         layout = self.layout
 
@@ -82,6 +99,14 @@ class Scroll(QWidget):
         self.set_ylimit()
 
     def set_ylimit(self, new_ylimit=None):
+        """Change the amplitude, you don't need to read in new data.
+
+        Parameters
+        ----------
+        new_ylimit : float or int, optional
+            the new amplitude of the plot
+
+        """
         if new_ylimit is not None:
             self.ylimit = new_ylimit
         chan_plot = self.chan_plot
@@ -90,6 +115,14 @@ class Scroll(QWidget):
                                                 self.ylimit)
 
     def add_datetime_on_x(self):
+        """Change the labels on the x-axis to include the current time.
+
+        Notes
+        -----
+        This function creates a new function (tickStrings) which overrides the
+        axis function in pyqtgraph.
+
+        """
         start_time = self.parent.info.dataset.header['start_time']
 
         def tickStrings(axis, values, c, d):

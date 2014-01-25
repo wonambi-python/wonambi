@@ -1,12 +1,10 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from PySide.QtCore import Signal
 from PySide.QtGui import (QAbstractItemView,
                           QColor,
                           QColorDialog,
                           QComboBox,
-                          QDockWidget,
                           QFormLayout,
                           QGridLayout,
                           QGroupBox,
@@ -20,7 +18,7 @@ from PySide.QtGui import (QAbstractItemView,
 
 
 class Channels(QGroupBox):
-    """Allows user to choose channels, and filters.
+    """Allow user to choose channels, and filters.
 
     Attributes
     ----------
@@ -32,16 +30,9 @@ class Channels(QGroupBox):
         groups of channels, with keys: 'name', 'chan_to_plot', 'ref_chan',
         'color', 'filter'
 
-    Methods
-    -------
-    read_channels : reads the channels and updates the widget.
-    display_channels : displays the whole widget
-    create_list : creates list of channels (one for those to plot, one for ref)
-
     """
     def __init__(self, parent):
         super().__init__()
-        # self.setTitle('Channels')
 
         self.parent = parent
         self.chan_name = None
@@ -53,12 +44,22 @@ class Channels(QGroupBox):
                       },
                       ]
 
-    def read_channels(self, chan_name):
+    def update_channels(self, chan_name):
+        """Read the channels and updates the widget.
+
+        Parameters
+        ----------
+        chan_name : list of str
+            list of channels, to choose from.
+
+        """
         self.chan_name = chan_name
         self.display_channels()
 
     def display_channels(self):
+        """Display the widget with the channels.
 
+        """
         addButton = QPushButton('New')
         addButton.clicked.connect(lambda: self.ask_name('new'))
         renameButton = QPushButton('Rename')
@@ -72,8 +73,8 @@ class Channels(QGroupBox):
         self.hpEdit = QLineEdit('')
         self.lpEdit = QLineEdit('')
 
-        okButton = QPushButton('apply')
-        okButton.clicked.connect(self.okButton)
+        applyButton = QPushButton('Apply')
+        applyButton.clicked.connect(self.apply_changes)
 
         self.list_grp = QComboBox()
         for one_grp in self.groups:
@@ -98,13 +99,37 @@ class Channels(QGroupBox):
         layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
         layout.addWidget(QLabel('Reference Channels'), 1, 1)
         layout.addLayout(filt, 3, 0)
-        layout.addWidget(okButton, 3, 1)
+        layout.addWidget(applyButton, 3, 1)
 
         self.setLayout(layout)
         self.layout = layout
         self.update_list_grp()
 
+    def update_list_grp(self):
+        """Update the list containing the channels.
+
+        TODO: this should probably update the filter settings.
+
+        """
+        current = self.list_grp.currentText()
+        idx = [x['name'] for x in self.groups].index(current)
+        l0 = self.create_list(self.groups[idx]['chan_to_plot'])
+        l1 = self.create_list(self.groups[idx]['ref_chan'])
+        self.layout.addWidget(l0, 2, 0)
+        self.layout.addWidget(l1, 2, 1)
+        self.l0 = l0
+        self.l1 = l1
+        self.current = current  # update index
+
     def create_list(self, selected_chan):
+        """Create list of channels (one for those to plot, one for ref).
+
+        Parameters
+        ----------
+        selected_chan : list of str
+            channels to indicate as selected.
+
+        """
         l = QListWidget()
         ExtendedSelection = QAbstractItemView.SelectionMode(3)
         l.setSelectionMode(ExtendedSelection)
@@ -118,6 +143,9 @@ class Channels(QGroupBox):
         return l
 
     def update_chan_grp(self):
+        """Read the GUI and update the channel groups.
+
+        """
         selectedItems = self.l0.selectedItems()
         chan_to_plot = []
         for selected in selectedItems:
@@ -148,22 +176,22 @@ class Channels(QGroupBox):
 
         self.update_list_grp()
 
-    def update_list_grp(self):
-        current = self.list_grp.currentText()
-        idx = [x['name'] for x in self.groups].index(current)
-        l0 = self.create_list(self.groups[idx]['chan_to_plot'])
-        l1 = self.create_list(self.groups[idx]['ref_chan'])
-        self.layout.addWidget(l0, 2, 0)
-        self.layout.addWidget(l1, 2, 1)
-        self.l0 = l0
-        self.l1 = l1
-        self.current = current  # update index
+    def apply_changes(self):
+        """Apply changes to the plots.
 
-    def okButton(self):
+        """
         self.update_chan_grp()
         self.parent.overview.update_position()
 
     def ask_name(self, action):
+        """Prompt the user for a new name.
+
+        Parameters
+        ----------
+        action : 'new' or 'rename'
+            which action should be called after getting the new name.
+
+        """
         self.inputdialog = QInputDialog()
         self.inputdialog.show()
         if action == 'new':
@@ -172,6 +200,9 @@ class Channels(QGroupBox):
             self.inputdialog.textValueSelected.connect(self.rename_group)
 
     def new_group(self):
+        """Create a new group of channels.
+
+        """
         new_grp_name = self.inputdialog.textValue()
         self.groups.append({'name': new_grp_name,
                               'chan_to_plot': [],
@@ -185,6 +216,9 @@ class Channels(QGroupBox):
         self.update_list_grp()
 
     def rename_group(self):
+        """Rename a group of channels.
+
+        """
         new_grp_name = self.inputdialog.textValue()
         idx = [x['name'] for x in self.groups].index(self.current)
         self.groups[idx]['name'] = new_grp_name
@@ -194,13 +228,20 @@ class Channels(QGroupBox):
         self.list_grp.setItemText(idx, new_grp_name)
 
     def color_group(self):
+        """Change color to a group of channels.
+
+        """
         idx = [x['name'] for x in self.groups].index(self.current)
         newcolor = QColorDialog.getColor(self.groups[idx]['color'])
         self.groups[idx]['color'] = newcolor
 
     def delete_group(self):
+        """Delete one group of channels.
+
+        TODO: how to deal when it's the last one?
+
+        """
         idx = self.list_grp.currentIndex()
         self.list_grp.removeItem(idx)
         self.groups.pop(idx)
         self.update_list_grp()
-

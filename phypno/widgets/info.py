@@ -10,8 +10,8 @@ from PySide.QtGui import (QGroupBox,
 from .. import Dataset
 
 
-class Info(QGroupBox):    # maybe as QWidget
-    """Displays information about the dataset.
+class Info(QGroupBox):
+    """Display information about the dataset.
 
     Attributes
     ----------
@@ -21,11 +21,12 @@ class Info(QGroupBox):    # maybe as QWidget
         the full path of the file.
     dataset : instance of phypno.Dataset
         the dataset already read in.
-
-    Methods
-    -------
-    read_dataset : reads dataset from filename
-    display_info : displays information about the dataset
+    bookmark : list of dict
+        list of all the bookmarks.
+    event : list of dict
+        list of all the events.
+    state : list of dict
+        list of all the states, such as sleep or other states.
 
     """
     def __init__(self, parent):
@@ -34,13 +35,29 @@ class Info(QGroupBox):    # maybe as QWidget
         self.parent = parent
         self.filename = None
         self.dataset = None
+        self.bookmark = []
+        self.event = []
+        self.state = []
 
-    def read_dataset(self, filename):
+    def update_info(self, filename):
+        """Read dataset from filename.
+
+        Parameters
+        ----------
+        filename : str
+            path to file to read.
+
+        """
         self.filename = filename
         self.dataset = Dataset(filename)
         self.display_info()
 
     def display_info(self):
+        """Update the widget with information about the dataset.
+
+        TODO: maybe as QFormLayout
+
+        """
         header = self.dataset.header
 
         filename = QLabel('Filename: ' + basename(self.filename))
