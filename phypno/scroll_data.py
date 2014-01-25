@@ -40,7 +40,7 @@ icon = {
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
+DATASET_EXAMPLE = '/home/gio/ieeg/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 
 setConfigOption('background', 'w')
@@ -52,7 +52,7 @@ config.setValue('window_page_length', 30)
 config.setValue('window_step_ratio', 5)
 config.setValue('ylimit', 100)
 config.setValue('read_intervals', 60)  # pre-read file every X seconds
-config.setValue('hidden_docks', {'Video'})
+config.setValue('hidden_docks', ['Video', ])
 
 
 class DownloadData(QThread):
@@ -84,10 +84,16 @@ class DownloadData(QThread):
 
 # %%
 
-def closeEvent(obj, event):
-    print('hi')
-    event.accept()
+class DockWidget(QDockWidget):
+    def __init__(self, parent, name, subwidget, area):
+        super().__init__(name, parent)
+        self.parent = parent
+        self.name = name
+        self.setAllowedAreas(area)
+        self.setWidget(subwidget)
 
+    def closeEvent(self, event):
+        self.parent.toggle_menu_window(self.name, self)
 
 class MainWindow(QMainWindow):
     """
@@ -326,75 +332,71 @@ class MainWindow(QMainWindow):
         """Probably delete previous scroll widget.
         """
 
-        info = Info(self)
-        channels = Channels(self)
-        overview = Overview(self)
-        video = Video(self)
-        scroll = Scroll(self)
+        self.info = Info(self)
+        self.channels = Channels(self)
+        self.overview = Overview(self)
+        self.video = Video(self)
+        self.scroll = Scroll(self)
 
-        dockOverview = QDockWidget("Overview", self)
-        dockOverview.setAllowedAreas(Qt.BottomDockWidgetArea |
-                                     Qt.TopDockWidgetArea)
-        dockOverview.setWidget(overview)
+        self.setCentralWidget(self.scroll)
 
-        dockInfo = QDockWidget("Information", self)
-        dockInfo.setAllowedAreas(Qt.RightDockWidgetArea |
-                                 Qt.LeftDockWidgetArea)
-        dockInfo.setWidget(info)
+        new_docks = [{'name': 'Information',
+                      'widget': self.info,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                     {'name': 'Channels',
+                      'widget': self.channels,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                     {'name': 'Video',
+                      'widget': self.video,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                      {'name': 'Overview',
+                      'widget': self.overview,
+                      'main_area': Qt.BottomDockWidgetArea,
+                      'extra_area': Qt.TopDockWidgetArea,
+                      },
+                      ]
 
-        dockChannels = QDockWidget("Channels", self)
-        dockChannels.setAllowedAreas(Qt.RightDockWidgetArea |
-                                     Qt.LeftDockWidgetArea)
-        dockChannels.setWidget(channels)
-        dockChannels.closeEvent = closeEvent
-
-        dockVideo = QDockWidget("Video", self)
-        dockVideo.setAllowedAreas(Qt.RightDockWidgetArea |
-                                  Qt.LeftDockWidgetArea)
-        dockVideo.setWidget(video)
-
-        self.setCentralWidget(scroll)
-        self.addDockWidget(Qt.BottomDockWidgetArea, dockOverview)
-        self.addDockWidget(Qt.RightDockWidgetArea, dockInfo)
-        self.addDockWidget(Qt.RightDockWidgetArea, dockChannels)
-        self.addDockWidget(Qt.RightDockWidgetArea, dockVideo)
-
-        self.info = info
-        self.channels = channels
-        self.video = video
-        self.overview = overview
-        self.scroll = scroll
-        self.docks = {'Information': dockInfo,
-                      'Channels': dockChannels,
-                      'Video': dockVideo,
-                      'Overview': dockOverview,
-                      }
-
+        self.docks = {}
         actions = self.action
-        for dockname, dockwidget in self.docks.items():
-            new_act = QAction(icon['widget'], dockname, self)
+        for dock in new_docks:
+            self.docks[dock['name']] = DockWidget(self,
+                                                  dock['name'],
+                                                  dock['widget'],
+                                                  dock['main_area'] |
+                                                  dock['extra_area'])
+            self.addDockWidget(dock['main_area'], self.docks[dock['name']])
+            new_act = QAction(icon['widget'], dock['name'], self)
             new_act.setCheckable(True)
             new_act.setChecked(True)
             new_act.triggered.connect(partial(self.toggle_menu_window,
-                                              dockwidget))
+                                              dock['name'],
+                                              self.docks[dock['name']]))
             self.menu_window.addAction(new_act)
-            actions[dockname] = new_act
+            actions[dock['name']] = new_act
 
-        for hidden_dock in config.value('hidden_docks'):
-            self.docks[hidden_dock].hide()
+            if dock['name'] in config.value('hidden_docks'):
+                self.docks[dock['name']].setVisible(False)
+                actions[dock['name']].setChecked(False)
 
-    def toggle_menu_window(self, dockwidget):
+    def toggle_menu_window(self, dockname, dockwidget):
         actions = self.action
         if dockwidget.isVisible():
             dockwidget.setVisible(False)
-            # actions[dockname].setChecked(False)
+            actions[dockname].setChecked(False)
         else:
             dockwidget.setVisible(True)
-            # actions[dockname].setChecked(True)
+            actions[dockname].setChecked(True)
 
 q = MainWindow()
+q.show()
 # q.action_open()
-
+app.exec_()
 
 # %%
 """
