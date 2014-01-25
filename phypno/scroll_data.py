@@ -82,7 +82,6 @@ class DownloadData(QThread):
 
         self.exec_()
 
-# %%
 
 class DockWidget(QDockWidget):
     def __init__(self, parent, name, subwidget, area):
@@ -94,6 +93,7 @@ class DockWidget(QDockWidget):
 
     def closeEvent(self, event):
         self.parent.toggle_menu_window(self.name, self)
+
 
 class MainWindow(QMainWindow):
     """
@@ -236,15 +236,21 @@ class MainWindow(QMainWindow):
         submenu_length.addSeparator()
         submenu_length.addAction('(presets)')
 
-        menu_note = menubar.addMenu('Note')
-        menu_note.addAction('New Note')
-        menu_note.addAction('Edit Note')
-        menu_note.addAction('Delete Note')
+        #TODO: bookmarks are unique (might have the same text) and are not mutually exclusive
+        #TODO: events are not unique and are not mutually exclusive
+        #TODO: states are not unique and are mutually exclusive
+        menu_bookmark = menubar.addMenu('Bookmark')
+        menu_bookmark.addAction('New Bookmark')
+        menu_bookmark.addAction('Edit Bookmark')
+        menu_bookmark.addAction('Delete Bookmark')
 
-        menu_score = menubar.addMenu('Sleep Scores')
-        menu_score.addAction('Add Rater')
-        menu_score.addAction('Rename Rater')
-        menu_score.addAction('Delete Rater')
+        menu_event = menubar.addMenu('Event')
+        menu_event.addAction('New Event')
+        menu_event.addAction('Edit Event')
+        menu_event.addAction('Delete Event')
+
+        menu_state = menubar.addMenu('State')
+        menu_state.addAction('Add State')
 
         menu_window = menubar.addMenu('Windows')
         self.menu_window = menu_window
@@ -392,6 +398,9 @@ class MainWindow(QMainWindow):
         else:
             dockwidget.setVisible(True)
             actions[dockname].setChecked(True)
+
+
+
 
 q = MainWindow()
 q.show()
