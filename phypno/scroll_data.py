@@ -4,7 +4,7 @@ lg.setLevel(INFO)
 
 from os.path import dirname
 from sys import argv, exit
-from PySide.QtCore import Qt, QSettings, QThread, Slot
+from PySide.QtCore import Qt, QSettings, QThread
 from PySide.QtGui import (QAction,
                           QApplication,
                           QFileDialog,
@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
         # filename = QFileDialog.getExistingDirectory(self, 'Open file',
         #                                            dirname(DATASET_EXAMPLE))
         self.info.update_info(DATASET_EXAMPLE)
-        self.overview.read_duration()
+        self.overview.update_overview()
         self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
 
@@ -314,14 +314,9 @@ class MainWindow(QMainWindow):
     def action_download(self):
         """Start the download of the dataset."""
         self.thread_download = DownloadData(self)
-        self.thread_download.one_more_interval.connect(self.update_progressbar)
+        self.thread_download.one_more_interval.connect(self.overview.more_download)
         self.thread_download.start()
         self.thread_download.setPriority(QThread.Priority.LowestPriority)
-
-    @Slot(int)
-    def update_progressbar(self, new_value):
-        """Set the value of the progress bar."""
-        self.overview.progressbar.setValue(new_value)
 
     def create_widgets(self):
         """Create all the widgets and dockwidgets.
@@ -411,26 +406,3 @@ q = MainWindow()
 q.show()
 # q.action_open()
 app.exec_()
-
-
-# %%
-"""
-
-
-from PySide.QtCore import Qt
-from PySide.QtGui import QGraphicsView, QGraphicsScene, QGraphicsLineItem
-
-
-l = QGraphicsLineItem(0, 0, 100, 100)
-
-scene = QGraphicsScene(0, 0, 24 * 60, 100)
-scene.addItem(l)
-
-view = QGraphicsView(scene)
-# view.setSceneRect(0, 0, 200, 200)
-view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-view.show()
-
-"""
-app.quitOnLastWindowClosed()
-app.closeAllWindows()

@@ -2,7 +2,7 @@ from logging import getLogger, INFO
 lg = getLogger(__name__)
 lg.setLevel(INFO)
 
-from numpy import floor
+from numpy import linspace
 from PySide.QtCore import QSettings, QThread, Signal
 from PySide.QtGui import QDockWidget
 
@@ -18,33 +18,29 @@ class DownloadData(QThread):
     TODO: restart from a new position, when you move the cursor.
 
     """
-    one_more_interval = Signal(int)
+    one_more_interval = Signal(float, float)
 
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
 
-        dataset = self.parent.info.dataset
-        progressbar = self.parent.overview.progressbar
-        total_dur = dataset.header['n_samples'] / dataset.header['s_freq']
-        maximum = int(floor(total_dur / config.value('read_intervals')))
-        progressbar.setMaximum(maximum - 1)
-
-        self.maximum = maximum
-
     def run(self):
         """Override the function to do the hard-lifting.
 
+        Notes
+        -----
+        TODO: be more careful about begtime and endtime.
+
         """
         dataset = self.parent.info.dataset
-        one_chan = dataset.header['chan_name'][0]
-        for i in range(0, self.maximum):
-            dataset.read_data(chan=[one_chan],
-                              begtime=i * config.value('read_intervals'),
-                              endtime=i * config.value('read_intervals') + 1)
-            self.one_more_interval.emit(i)
+        steps = linspace(0, self.parent.overview.maximum)  # config.value('read_intervals')
 
-        self.exec_()
+        one_chan = dataset.header['chan_name'][0]
+        for begtime, endtime in zip(steps[:-1], steps[1:]):
+            dataset.read_data(chan=[one_chan],
+                              begtime=begtime,
+                              endtime=endtime)
+            self.one_more_interval.emit(begtime, endtime)
 
 
 class DockWidget(QDockWidget):
