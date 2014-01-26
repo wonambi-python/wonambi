@@ -70,8 +70,8 @@ class Channels(QGroupBox):
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
-        self.hpEdit = QLineEdit('')
-        self.lpEdit = QLineEdit('')
+        self.hpEdit = QLineEdit('None')
+        self.lpEdit = QLineEdit('None')
 
         applyButton = QPushButton('Apply')
         applyButton.clicked.connect(self.apply_changes)
@@ -119,6 +119,8 @@ class Channels(QGroupBox):
         self.layout.addWidget(l1, 2, 1)
         self.l0 = l0
         self.l1 = l1
+        self.hpEdit.setText(str(self.groups[idx]['filter']['low_cut']))
+        self.lpEdit.setText(str(self.groups[idx]['filter']['high_cut']))
         self.current = current  # update index
 
     def create_list(self, selected_chan):
@@ -157,13 +159,13 @@ class Channels(QGroupBox):
             ref_chan.append(selected.text())
 
         hp = self.hpEdit.text()
-        if hp == '':
+        if hp == 'None':
             low_cut = None
         else:
             low_cut = float(hp)
 
         lp = self.lpEdit.text()
-        if lp == '':
+        if lp == 'None':
             high_cut = None
         else:
             high_cut = float(lp)

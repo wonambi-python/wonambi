@@ -41,6 +41,7 @@ DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 DATASET_EXAMPLE = '/home/gio/ieeg/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
+DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
 
 setConfigOption('background', 'w')
 
