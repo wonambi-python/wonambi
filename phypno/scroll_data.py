@@ -14,8 +14,8 @@ from PySide.QtGui import (QAction,
                           )
 from pyqtgraph import setConfigOption
 # change phypno.widgets into .widgets
-from phypno.widgets import (Info, Channels, Overview, Scroll, Stages, Video,
-                            DownloadData, DockWidget)
+from phypno.widgets import (Info, Channels, Overview, Scroll, Bookmarks,
+                            Events, Stages, Video, DownloadData, DockWidget)
 
 from functools import partial
 
@@ -116,9 +116,10 @@ class MainWindow(QMainWindow):
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open)
 
-        actions['open_bookmark'] = QAction('Open Bookmark File...', self)
-        actions['open_event'] = QAction('Open Events File...', self)
-        actions['open_state'] = QAction('Open Stages File...', self)
+        actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
+        actions['open_events'] = QAction('Open Events File...', self)
+        actions['open_stages'] = QAction('Open Stages File...', self)
+        actions['open_stages'].triggered.connect(self.action_open)
 
         actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
                                        self)
@@ -180,10 +181,10 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         menu_file = menubar.addMenu('File')
         menu_file.addAction(actions['open_rec'])
-        menu_file.addAction(actions['open_note'])
         menu_file.addSeparator()
-        menu_file.addAction('Open Sleep Scoring...')
-        menu_file.addAction('Save Sleep Scoring...')
+        menu_file.addAction(actions['open_bookmarks'])
+        menu_file.addAction(actions['open_events'])
+        menu_file.addAction(actions['open_stages'])
 
         menu_time = menubar.addMenu('Time Window')
         menu_time.addAction(actions['step_prev'])
@@ -336,6 +337,8 @@ class MainWindow(QMainWindow):
         self.info = Info(self)
         self.channels = Channels(self)
         self.overview = Overview(self)
+        self.bookmarks = Bookmarks(self)
+        self.events = Events(self)
         self.stages = Stages(self)
         self.video = Video(self)
         self.scroll = Scroll(self)
@@ -352,8 +355,18 @@ class MainWindow(QMainWindow):
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
-                      {'name': 'Stages',
-                      'widget': self.states,
+                     {'name': 'Bookmarks',
+                      'widget': self.bookmarks,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                     {'name': 'Events',
+                      'widget': self.events,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                     {'name': 'Stages',
+                      'widget': self.stages,
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
@@ -362,7 +375,7 @@ class MainWindow(QMainWindow):
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
-                      {'name': 'Overview',
+                     {'name': 'Overview',
                       'widget': self.overview,
                       'main_area': Qt.BottomDockWidgetArea,
                       'extra_area': Qt.TopDockWidgetArea,
@@ -390,6 +403,9 @@ class MainWindow(QMainWindow):
             if dock['name'] in config.value('hidden_docks'):
                 self.docks[dock['name']].setVisible(False)
                 actions[dock['name']].setChecked(False)
+
+        self.tabifyDockWidget(self.docks['Bookmarks'], self.docks['Events'])
+        self.tabifyDockWidget(self.docks['Events'], self.docks['Stages'])
 
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.
