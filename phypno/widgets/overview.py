@@ -19,12 +19,20 @@ config = QSettings('phypno', 'scroll_data')
 # available
 current_line_height = 10
 
+stages = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
+          'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
+          'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
+          'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
+          'NREM3': {'pos0': 25, 'pos1': 5, 'color': Qt.darkBlue},
+          'Unknown': {'pos0': 30, 'pos1': 0, 'color': Qt.NoBrush},
+         }
+
 bars = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
         'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},
-        'state': {'pos0': 45, 'pos1': 50, 'tip': 'Brain State'},
-        'available': {'pos0': 100, 'pos1': 10, 'tip': 'Available Recordings'},
+        'state': {'pos0': 45, 'pos1': 30, 'tip': 'Brain State'},
+        'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
-total_height = 115
+total_height = 95
 
 
 class Overview(QGraphicsView):
@@ -58,22 +66,18 @@ class Overview(QGraphicsView):
         self.maximum = None
         self.scene = None
         self.item = {}
+        self.setMinimumHeight(total_height + 5)
         self.scale(1 / config.value('ratio_second_overview'), 1)
 
     def update_overview(self):
-        """Read full duration and update maximum.
-
-        Notes
-        -----
-        TODO: change unit of maximum.
-
-        """
+        """Read full duration and update maximum."""
         header = self.parent.info.dataset.header
         maximum = header['n_samples'] / header['s_freq']  # in s
         self.maximum = maximum
         self.display_overview()
 
     def display_overview(self):
+        """Updates the widgets, especially based on length of recordings."""
         self.scene = QGraphicsScene(0, 0,
                                     self.maximum,
                                     total_height)
@@ -101,6 +105,23 @@ class Overview(QGraphicsView):
             # self.window_start = self.scrollbar.value()
         self.parent.scroll.update_scroll()
         self.parent.scroll.display_scroll()
+
+    def color_stages(self):
+        epochs = self.parent.stages.scores.get_epochs()
+        y_pos = bars['state']['pos0']
+
+        rect = []
+        for epoch in epochs.values():
+            rect.append(QGraphicsRectItem(epoch['start_time'],
+                                          y_pos +
+                                          stages[epoch['stage']]['pos0'],
+                                          epoch['end_time'] -
+                                          epoch['start_time'],
+                                          stages[epoch['stage']]['pos1']))
+            rect[-1].setPen(Qt.NoPen)
+            rect[-1].setBrush(stages[epoch['stage']]['color'])
+            self.scene.addItem(rect[-1])
+        self.stages = rect
 
     @Slot(float, float)
     def more_download(self, start_value, end_value):

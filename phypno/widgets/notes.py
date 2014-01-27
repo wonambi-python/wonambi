@@ -2,7 +2,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from math import floor
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 from PySide.QtCore import QSettings
 from PySide.QtGui import (QComboBox,
@@ -61,6 +61,109 @@ class Events(QWidget):
     def display_overview(self):
         pass
 
+# %%
+
+class Scores():
+    """Class to return nicely formatted information from xml.
+
+    Parameters
+    ----------
+    xml_file : str
+        path to xml file
+    root : instance of xml.etree.ElementTree.Element, optional
+        xml structure with information about sleep staging
+
+    Attributes
+    ----------
+    root : instance of xml.etree.ElementTree.Element
+        xml structure with information about sleep staging
+    xml_file : str
+        path to xml file
+
+    Notes
+    -----
+    If root is not given, xml will be read from file. If both are given, it
+    overwrites filename with root.
+
+    """
+    def __init__(self, xml_file, root=None):
+        self.xml_file = xml_file
+        self.root = root
+
+        if root is None:
+            self.load()
+        else:
+            self.save()
+
+    def get_rater(self):
+        """Returns the name of the rater.
+
+        Notes
+        -----
+        TODO: what if we have more raters?
+
+        """
+        return list(self.root)[0].get('name')
+
+    def get_epochs(self):
+        all_epochs = list(self.root)[0]
+        epochs = {}
+        for epoch in all_epochs:
+            id_epoch = epoch.get('id')
+            epochs[id_epoch] = {'start_time': int(list(epoch)[0].text),
+                                'end_time': int(list(epoch)[1].text),
+                                'stage': list(epoch)[2].text,
+                                }
+        return epochs
+
+    def get_stage_for_epoch(self, id_epoch):
+        """Return stage for one specific epoch.
+
+        Parameters
+        ----------
+        id_epoch : str
+            index of the epoch
+
+        Returns
+        -------
+        stage : str
+            description of the stage.
+
+        """
+        all_epochs = list(self.root)[0]
+        for epoch in all_epochs:
+            if epoch.get('id') == id_epoch:
+                break
+        return list(epoch)[2].text
+
+    def set_stage_for_epoch(self, id_epoch, stage):
+        """Change the stage for one specific epoch.
+
+        Parameters
+        ----------
+        id_epoch : str
+            index of the epoch
+        stage : str
+            description of the stage.
+
+        """
+        all_epochs = list(self.root)[0]
+        for epoch in all_epochs:
+            if epoch.get('id') == id_epoch:
+                list(epoch)[2].text = stage
+
+        self.save()
+
+    def load(self):
+        xml = parse(self.xml_file)
+        self.root = xml.getroot()
+
+    def save(self):
+        """Save xml to file."""
+        xml = parseString(tostring(self.root))
+        with open(self.xml_file, 'w+') as f:
+            f.write(xml.toprettyxml())
+
 
 class Stages(QWidget):
     """Widget that contains about sleep scoring.
@@ -69,8 +172,8 @@ class Stages(QWidget):
     ----------
     parent : instance of QMainWindow
         the main window.
-    scores : instance of xml.etree.ElementTree.Element
-        xml structure with information about sleep staging
+    scores : instance of Scores
+        information about sleep staging
     filename : str
         path to .xml file
     file_button : instance of QPushButton
@@ -86,7 +189,6 @@ class Stages(QWidget):
 
         self.parent = parent
         self.scores = None
-        self.filename = None
         self.file_button = QPushButton('Click to choose file')
         self.file_button.clicked.connect(parent.action_open_stages)
         self.rater = QLabel()
@@ -107,19 +209,18 @@ class Stages(QWidget):
             file of the new or existing .xml file
 
         """
-        self.filename = xml_file
-
         try:
-            # read existing file
-            raise FileNotFoundError
+            self.scores = Scores(xml_file)
         except FileNotFoundError:
-            self.scores = self.create_empty_xml()
-
+            root = self.create_empty_xml()
+            self.scores = Scores(xml_file, root)
         self.display_overview()
 
     def display_overview(self):
         """Update the widgets of the sleep scoring."""
-        self.file_button.setText(self.filename)
+        self.file_button.setText(self.scores.xml_file)
+        self.rater.setText(self.scores.get_rater())
+        self.parent.overview.color_stages()
 
     def create_empty_xml(self):
         """Create a new empty xml file, to keep the sleep scoring.
@@ -152,9 +253,3 @@ class Stages(QWidget):
             stage.text = 'Unknown'
 
         return main
-
-    def save_xml_to_file(self):
-        """Save xml to file."""
-        xml = parseString(tostring(self.scores))
-        with open(self.filename, 'w+') as f:
-            f.write(xml.toprettyxml())

@@ -25,7 +25,7 @@ icon = {
     'page_next': QIcon.fromTheme('go-next-view'),
     'step_prev': QIcon.fromTheme('go-previous'),
     'step_next': QIcon.fromTheme('go-next'),
-    'cronometer': QIcon.fromTheme('cronometer'),
+    'chronometer': QIcon.fromTheme('chronometer'),
     'up': QIcon.fromTheme('go-up'),
     'down': QIcon.fromTheme('go-down'),
     'zoomin': QIcon.fromTheme('zoom-in'),
@@ -43,7 +43,7 @@ DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
 DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 
@@ -53,9 +53,9 @@ config.setValue('window_page_length', 30)
 # one step = window_page_length / window_step_ratio
 config.setValue('window_step_ratio', 5)
 config.setValue('ylimit', 100)
-config.setValue('read_intervals', 60)  # pre-read file every X seconds
+config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
-config.setValue('ratio_second_overview', 60)  # one pixel per 60 s
+config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
 config.setValue('stage_scoring_window', 30)  # sleep scoring window
 
 
@@ -194,14 +194,24 @@ class MainWindow(QMainWindow):
         menu_time.addAction(actions['page_prev'])
         menu_time.addAction(actions['page_next'])
         menu_time.addSeparator()  # use icon cronometer
-        menu_time.addAction('6 hours earlier')
-        menu_time.addAction('1 hour earlier')
-        menu_time.addAction('30 min earlier')
-        menu_time.addAction('1 min earlier')
-        menu_time.addAction('1 min later')
-        menu_time.addAction('30 min later')
-        menu_time.addAction('1 hour later')
-        menu_time.addAction('6 hours later')
+        act = menu_time.addAction('6 Hours Earlier')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, -6 * 60 * 60))
+        act = menu_time.addAction('1 Hour Earlier')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, -60 * 60))
+        act = menu_time.addAction('10 Minutes Earlier')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, -10 * 60))
+        act = menu_time.addAction('10 Minutes Later')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, 10 * 60))
+        act = menu_time.addAction('1 Hour Later')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, 60 * 60))
+        act = menu_time.addAction('6 Hours Later')
+        act.setIcon(icon['chronometer'])
+        act.triggered.connect(partial(self.action_add_time, 6 * 60 * 60))
 
         menu_time.addSeparator()
         submenu_go = menu_time.addMenu('Go to ')
@@ -307,6 +317,11 @@ class MainWindow(QMainWindow):
     def action_page_next(self):
         """Go to the next page."""
         window_start = self.overview.window_start + self.overview.window_length
+        self.overview.update_position(window_start)
+
+    def action_add_time(self, extra_time):
+        """Go to the predefined time forward."""
+        window_start = self.overview.window_start + extra_time
         self.overview.update_position(window_start)
 
     def action_X_more(self):
@@ -441,5 +456,6 @@ except RuntimeError:
 
 q = MainWindow()
 q.show()
-# q.action_open_rec()
+q.action_open_rec()
+# %%
 app.exec_()
