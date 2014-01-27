@@ -1,11 +1,13 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from functools import partial
 from math import floor
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 from PySide.QtCore import QSettings
-from PySide.QtGui import (QComboBox,
+from PySide.QtGui import (QAction,
+                          QComboBox,
                           QFormLayout,
                           QPushButton,
                           QLabel,
@@ -15,6 +17,9 @@ from PySide.QtGui import (QComboBox,
                           )
 
 config = QSettings('phypno', 'scroll_data')
+
+stage_name = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
+stage_shortcut = ['6', '5', '1', '2', '3', '0']
 
 
 class Bookmarks(QListWidget):
@@ -61,7 +66,6 @@ class Events(QWidget):
     def display_overview(self):
         pass
 
-# %%
 
 class Scores():
     """Class to return nicely formatted information from xml.
@@ -155,8 +159,19 @@ class Scores():
         self.save()
 
     def load(self):
+        """Load xml from file."""
         xml = parse(self.xml_file)
-        self.root = xml.getroot()
+        root = xml.getroot()
+        root.text = root.text.strip()
+        for rater in root:
+            rater.text = rater.text.strip()
+            rater.tail = rater.tail.strip()
+            for epochs in rater:
+                epochs.text = epochs.text.strip()
+                epochs.tail = epochs.tail.strip()
+                for values in epochs:
+                    values.tail = values.tail.strip()
+        self.root = root
 
     def save(self):
         """Save xml to file."""
@@ -182,17 +197,22 @@ class Stages(QWidget):
         widget wit the name of the rater
     combobox : instance of QComboBox
         widget with the possible sleep stages
+    action : dict
+        names of all the actions related to sleep scoring
 
     """
     def __init__(self, parent):
         super().__init__()
 
         self.parent = parent
+        self.action = {}
         self.scores = None
         self.file_button = QPushButton('Click to choose file')
         self.file_button.clicked.connect(parent.action_open_stages)
         self.rater = QLabel()
         self.combobox = QComboBox()
+        self.combobox.activated.connect(self.get_sleepstage)
+        self.create_actions()
 
         layout = QFormLayout()
         layout.addRow('Filename: ', self.file_button)
@@ -220,7 +240,42 @@ class Stages(QWidget):
         """Update the widgets of the sleep scoring."""
         self.file_button.setText(self.scores.xml_file)
         self.rater.setText(self.scores.get_rater())
+        for one_stage in stage_name:
+            self.combobox.addItem(one_stage)
         self.parent.overview.color_stages()
+
+    def create_actions(self):
+        """Create actions and shortcut to score sleep."""
+        actions = {}
+        for one_stage, one_shortcut in zip(stage_name, stage_shortcut):
+            actions[one_stage] = QAction('Score as ' + one_stage, self.parent)
+            actions[one_stage].setShortcut(one_shortcut)
+            stage_idx = stage_name.index(one_stage)
+            actions[one_stage].triggered.connect(partial(self.get_sleepstage,
+                                                         stage_idx))
+            self.addAction(actions[one_stage])
+        self.action = actions
+
+    def set_combobox_index(self):
+        """Set the current stage in combobox."""
+        window_start = self.parent.overview.window_start
+        stage = self.scores.get_stage_for_epoch(str(window_start))
+        self.combobox.setCurrentIndex(stage_name.index(stage))
+        self.parent.overview.color_stages()
+
+    def get_sleepstage(self, stage_idx=None):
+        """Get the sleep stage, using shortcuts or combobox.
+
+        Parameters
+        ----------
+        stage : str
+            string with the name of the sleep stage.
+
+        """
+        id_window = str(self.parent.overview.window_start)
+        self.scores.set_stage_for_epoch(id_window, stage_name[stage_idx])
+        self.set_combobox_index()
+        self.parent.action_page_next()
 
     def create_empty_xml(self):
         """Create a new empty xml file, to keep the sleep scoring.

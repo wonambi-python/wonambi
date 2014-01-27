@@ -105,6 +105,7 @@ class Overview(QGraphicsView):
             # self.window_start = self.scrollbar.value()
         self.parent.scroll.update_scroll()
         self.parent.scroll.display_scroll()
+        self.parent.stages.set_combobox_index()
 
     def color_stages(self):
         epochs = self.parent.stages.scores.get_epochs()

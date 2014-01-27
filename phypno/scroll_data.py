@@ -2,6 +2,7 @@ from logging import getLogger, INFO
 lg = getLogger(__name__)
 lg.setLevel(INFO)
 
+from functools import partial
 from os.path import dirname
 from sys import argv, exit
 from PySide.QtCore import Qt, QSettings, QThread
@@ -17,7 +18,6 @@ from pyqtgraph import setConfigOption
 from phypno.widgets import (Info, Channels, Overview, Scroll, Bookmarks,
                             Events, Stages, Video, DownloadData, DockWidget)
 
-from functools import partial
 
 icon = {
     'open_rec': QIcon.fromTheme('document-open'),
