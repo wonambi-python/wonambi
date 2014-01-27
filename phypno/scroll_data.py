@@ -14,7 +14,7 @@ from PySide.QtGui import (QAction,
                           )
 from pyqtgraph import setConfigOption
 # change phypno.widgets into .widgets
-from phypno.widgets import (Info, Channels, Overview, Scroll, Video,
+from phypno.widgets import (Info, Channels, Overview, Scroll, Stages, Video,
                             DownloadData, DockWidget)
 
 from functools import partial
@@ -39,9 +39,10 @@ icon = {
 
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
-DATASET_EXAMPLE = '/home/gio/ieeg/tools/phypno/test/data/sample.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
-DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
+# DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 
@@ -53,6 +54,7 @@ config.setValue('window_step_ratio', 5)
 config.setValue('ylimit', 100)
 config.setValue('read_intervals', 60)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
+config.setValue('ratio_second_overview', 60)  # one pixel per 60 s
 
 
 class MainWindow(QMainWindow):
@@ -114,7 +116,9 @@ class MainWindow(QMainWindow):
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open)
 
-        actions['open_note'] = QAction('Open Notes...', self)
+        actions['open_bookmark'] = QAction('Open Bookmark File...', self)
+        actions['open_event'] = QAction('Open Events File...', self)
+        actions['open_state'] = QAction('Open Stages File...', self)
 
         actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
                                        self)
@@ -298,11 +302,13 @@ class MainWindow(QMainWindow):
 
     def action_X_more(self):
         """Zoom in on the x-axis."""
-        self.overview.update_length(self.overview.window_length * 2)
+        self.overview.window_length = self.overview.window_length * 2
+        self.overview.update_position()
 
     def action_X_less(self):
         """Zoom out on the x-axis."""
-        self.overview.update_length(self.overview.window_length / 2)
+        self.overview.window_length = self.overview.window_length / 2
+        self.overview.update_position()
 
     def action_Y_less(self):
         """Decrease the amplitude."""
@@ -330,6 +336,7 @@ class MainWindow(QMainWindow):
         self.info = Info(self)
         self.channels = Channels(self)
         self.overview = Overview(self)
+        self.stages = Stages(self)
         self.video = Video(self)
         self.scroll = Scroll(self)
 
@@ -342,6 +349,11 @@ class MainWindow(QMainWindow):
                       },
                      {'name': 'Channels',
                       'widget': self.channels,
+                      'main_area': Qt.RightDockWidgetArea,
+                      'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                      {'name': 'Stages',
+                      'widget': self.states,
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
