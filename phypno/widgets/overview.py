@@ -1,6 +1,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from math import floor
 from PySide.QtCore import Qt, QSettings, Slot
 from PySide.QtGui import (QBrush,
                           QPen,
@@ -53,6 +54,7 @@ class Overview(QGraphicsView):
         self.maximum = None
         self.scene = None
         self.item = {}
+        self.scale(1 / config.value('ratio_second_overview'), 1)
 
     def update_overview(self):
         """Read full duration and update maximum.
@@ -76,19 +78,14 @@ class Overview(QGraphicsView):
         self.item['current'] = QGraphicsLineItem(self.window_start, 0,
                                                  self.window_start,
                                                  current_line_height)
-        self.item['current'].setPen(QPen(Qt.red, 4))
+        self.item['current'].setPen(QPen(Qt.red))
         self.scene.addItem(self.item['current'])
 
         for name, pos in bars.items():
             self.item[name] = QGraphicsRectItem(0, pos['pos0'],
-                                           self.maximum, pos['pos1'])
+                                                self.maximum, pos['pos1'])
             self.item[name].setToolTip(pos['tip'])
             self.scene.addItem(self.item[name])
-
-    def update_length(self, new_length):
-        """Change length of the page step."""
-        self.window_length = new_length
-        self.scrollbar.setPageStep(new_length)
 
     def update_position(self, new_position=None):
         """If value changes, call scroll functions."""
@@ -103,7 +100,12 @@ class Overview(QGraphicsView):
 
     @Slot(float, float)
     def more_download(self, start_value, end_value):
-        """Set the value of the progress bar."""
+        """Set the value of the progress bar.
+
+        Parameters
+        ----------
+
+        """
         avail = self.scene.addRect(start_value,
                                    bars['available']['pos0'],
                                    end_value,
