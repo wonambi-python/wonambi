@@ -1,7 +1,6 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from math import floor
 from PySide.QtCore import Qt, QSettings, Slot
 from PySide.QtGui import (QBrush,
                           QPen,
@@ -44,6 +43,10 @@ class Overview(QGraphicsView):
     item : dict
         all the items, to keep track of
 
+    Notes
+    -----
+    TODO: maybe use minimum more often, don't assume it's zero
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -51,6 +54,7 @@ class Overview(QGraphicsView):
         self.parent = parent
         self.window_start = config.value('window_start')
         self.window_length = config.value('window_page_length')
+        self.minimum = 0
         self.maximum = None
         self.scene = None
         self.item = {}

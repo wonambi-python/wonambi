@@ -21,12 +21,6 @@ class Info(QGroupBox):
         the full path of the file.
     dataset : instance of phypno.Dataset
         the dataset already read in.
-    bookmark : list of dict
-        list of all the bookmarks.
-    event : list of dict
-        list of all the events.
-    state : list of dict
-        list of all the states, such as sleep or other states.
 
     """
     def __init__(self, parent):
@@ -35,9 +29,6 @@ class Info(QGroupBox):
         self.parent = parent
         self.filename = None
         self.dataset = None
-        self.bookmark = []
-        self.event = []
-        self.state = []
 
     def update_info(self, filename):
         """Read dataset from filename.

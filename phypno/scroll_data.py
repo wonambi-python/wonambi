@@ -37,6 +37,7 @@ icon = {
     'widget': QIcon.fromTheme('window-duplicate'),
     }
 
+XML_EXAMPLE = '/home/gio/test.xml'
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
@@ -55,6 +56,7 @@ config.setValue('ylimit', 100)
 config.setValue('read_intervals', 60)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 60)  # one pixel per 60 s
+config.setValue('stage_scoring_window', 30)  # sleep scoring window
 
 
 class MainWindow(QMainWindow):
@@ -114,12 +116,12 @@ class MainWindow(QMainWindow):
         actions['open_rec'] = QAction(icon['open_rec'], 'Open Recording...',
                                       self)
         actions['open_rec'].setShortcut(QKeySequence.Open)
-        actions['open_rec'].triggered.connect(self.action_open)
+        actions['open_rec'].triggered.connect(self.action_open_rec)
 
         actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
         actions['open_events'] = QAction('Open Events File...', self)
         actions['open_stages'] = QAction('Open Stages File...', self)
-        actions['open_stages'].triggered.connect(self.action_open)
+        actions['open_stages'].triggered.connect(self.action_open_stages)
 
         actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
                                        self)
@@ -262,7 +264,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_less'])
         toolbar.addAction(actions['Y_more'])
 
-    def action_open(self):
+    def action_open_rec(self):
         """Action: open a new dataset."""
         # filename = QFileDialog.getExistingDirectory(self, 'Open file',
         #                                            dirname(DATASET_EXAMPLE))
@@ -270,6 +272,12 @@ class MainWindow(QMainWindow):
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
+
+    def action_open_stages(self):
+        """Action: open a new dataset."""
+        # filename = QFileDialog.getExistingDirectory(self, 'Open file',
+        #                                            dirname(DATASET_EXAMPLE))
+        self.stages.update_overview(XML_EXAMPLE)
 
     def action_step_prev(self):
         """Go to the previous step.
@@ -433,5 +441,5 @@ except RuntimeError:
 
 q = MainWindow()
 q.show()
-# q.action_open()
+# q.action_open_rec()
 app.exec_()
