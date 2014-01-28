@@ -52,6 +52,7 @@ class Bookmarks(QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.cellDoubleClicked.connect(self.move_to_bookmark)
 
     def update_bookmarks(self, header):
         """Update the bookmarks info
@@ -80,14 +81,29 @@ class Bookmarks(QTableWidget):
         """Update the table with bookmarks."""
         start_time = self.parent.info.dataset.header['start_time']
 
-
         self.setRowCount(len(self.bookmarks))
         for i, bm in enumerate(self.bookmarks):
-            abs_time = (start_time + timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
+            abs_time = (start_time +
+                        timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
             self.setItem(i, 0, QTableWidgetItem(abs_time))
             self.setItem(i, 1, QTableWidgetItem(bm['name']))
 
         self.parent.overview.mark_bookmarks()
+
+    def move_to_bookmark(self, row, col):
+        """Move to point in time marked by the bookmark.
+
+        Parameters
+        ----------
+        row : QtCore.int
+
+        column : QtCore.int
+
+        """
+        window_length = self.parent.overview.window_length
+        bookmark_time = self.bookmarks[row]['time']
+        window_start = floor(bookmark_time / window_length) * window_length
+        self.parent.overview.update_position(window_start)
 
 
 class Events(QWidget):

@@ -8,7 +8,7 @@ from PySide.QtGui import (QGridLayout,
                           QPen,
                           QWidget,
                           )
-from pyqtgraph import PlotWidget
+from pyqtgraph import PlotWidget, TextItem
 from pyqtgraph.graphicsItems.AxisItem import AxisItem
 from ..trans import Montage, Filter
 
@@ -93,6 +93,7 @@ class Scroll(QWidget):
         chan_plot[row - 1].plotItem.showAxis('bottom', True)
         self.chan_plot = chan_plot
         self.set_ylimit()
+        self.add_bookmarks()
 
     def set_ylimit(self, new_ylimit=None):
         """Change the amplitude, you don't need to read in new data.
@@ -109,6 +110,18 @@ class Scroll(QWidget):
         for single_chan_plot in chan_plot:
             single_chan_plot.plotItem.setYRange(-1 * self.ylimit,
                                                 self.ylimit)
+
+    def add_bookmarks(self):
+        """Add bookmarks on top of first plot."""
+        bookmarks = self.parent.bookmarks.bookmarks
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+        window_end = window_start + window_length
+        for bm in bookmarks:
+            if window_start < bm['time'] < window_end:
+                self.text = TextItem(bm['name'],
+                                anchor=(0, 0))  # TODO: not correct
+                self.chan_plot[0].addItem(self.text)
 
     def add_datetime_on_x(self):
         """Change the labels on the x-axis to include the current time.
@@ -132,3 +145,4 @@ class Scroll(QWidget):
             return strings
 
         AxisItem.tickStrings = tickStrings
+
