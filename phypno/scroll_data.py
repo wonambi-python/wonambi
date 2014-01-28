@@ -103,6 +103,7 @@ class MainWindow(QMainWindow):
         self.create_menubar()
         self.create_toolbar()
         self.create_widgets()
+        self.statusBar()
 
         self.setGeometry(400, 300, 800, 600)
         self.setWindowTitle('Scroll Data')
@@ -278,6 +279,8 @@ class MainWindow(QMainWindow):
         """Action: open a new dataset."""
         filename = QFileDialog.getExistingDirectory(self, 'Open file',
                                                     dirname(DATASET_EXAMPLE))
+        if filename == '':
+            return
         self.info.update_info(filename)
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
@@ -460,6 +463,5 @@ except RuntimeError:
 
 q = MainWindow()
 q.show()
-q.action_open_rec()
 # %%
 app.exec_()

@@ -106,8 +106,8 @@ class Overview(QGraphicsView):
             pass
             # self.window_start = self.scrollbar.value()
         self.parent.scroll.update_scroll()
-        self.parent.scroll.display_scroll()
-        self.parent.stages.set_combobox_index()
+        if self.parent.stages.scores is not None:
+            self.parent.stages.set_combobox_index()
 
     def mark_bookmarks(self):
         bookmarks = self.parent.bookmarks.bookmarks

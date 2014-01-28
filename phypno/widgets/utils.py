@@ -5,12 +5,44 @@ lg.setLevel(INFO)
 from numpy import linspace
 from PySide.QtCore import QSettings, QThread, Signal
 from PySide.QtGui import QDockWidget
+from ..datatype import DataTime
 
 config = QSettings("phypno", "scroll_data")
 
 
+class ReadData(QThread):
+    """Create thread that reads data without blocking the main GUI.
+
+    Parameters
+    ----------
+    parent : instance of Scroll
+        widget containing the traces.
+
+    """
+    finished = Signal(DataTime)
+
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+
+    def run(self):
+        window_start = self.parent.parent.overview.window_start
+        window_end = window_start + self.parent.parent.overview.window_length
+        dataset = self.parent.parent.info.dataset
+
+        chan_to_read = []
+        for one_grp in self.parent.parent.channels.groups:
+            chan_to_read.extend(one_grp['chan_to_plot'] +
+                                one_grp['ref_chan'])
+        data = dataset.read_data(chan=chan_to_read,
+                                 begtime=window_start,
+                                 endtime=window_end)
+
+        self.finished.emit(data)
+
+
 class DownloadData(QThread):
-    """Creates a new thread, that reads all the data consecuntively.
+    """Creates a new thread, that reads all the data consecutively.
 
     Notes
     -----

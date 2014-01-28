@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from datetime import timedelta
 from numpy import squeeze
-from PySide.QtCore import QSettings
+from PySide.QtCore import QSettings, Slot, QThread
 from PySide.QtGui import (QGridLayout,
                           QPen,
                           QWidget,
@@ -11,6 +11,8 @@ from PySide.QtGui import (QGridLayout,
 from pyqtgraph import PlotWidget, TextItem
 from pyqtgraph.graphicsItems.AxisItem import AxisItem
 from ..trans import Montage, Filter
+from ..datatype import DataTime
+from .utils import ReadData
 
 config = QSettings("phypno", "scroll_data")
 
@@ -24,8 +26,6 @@ class Scroll(QWidget):
         the main window.
     ylimit : int
         positive height of the y-axis
-    data : instance of phypno.DataTime
-        instance containing the recordings.
     layout : instance of QGridLayout
         layout of the channels
     chan_plot : list of instances of plotItem
@@ -47,22 +47,17 @@ class Scroll(QWidget):
 
     def update_scroll(self):
         """Read and update the data to plot."""
-        window_start = self.parent.overview.window_start
-        window_end = window_start + self.parent.overview.window_length
-        dataset = self.parent.info.dataset
+        self.thread_read = ReadData(self)
+        self.thread_read.finished.connect(self.display_scroll)
+        self.parent.statusBar().showMessage('Reading data: in progress')
+        self.thread_read.start()
+        self.thread_read.setPriority(QThread.Priority.LowestPriority)
 
-        chan_to_read = []
-        for one_grp in self.parent.channels.groups:
-            chan_to_read.extend(one_grp['chan_to_plot'] +
-                                one_grp['ref_chan'])
-        data = dataset.read_data(chan=chan_to_read,
-                                 begtime=window_start,
-                                 endtime=window_end)
-        self.data = data
-
-    def display_scroll(self):
+    @Slot(DataTime)
+    def display_scroll(self, data):
         """Display the recordings."""
-        data = self.data
+        self.parent.statusBar().showMessage('Reading data: finished')
+
         layout = self.layout
 
         chan_plot = []
@@ -93,7 +88,8 @@ class Scroll(QWidget):
         chan_plot[row - 1].plotItem.showAxis('bottom', True)
         self.chan_plot = chan_plot
         self.set_ylimit()
-        self.add_bookmarks()
+        if self.parent.bookmarks.bookmarks is not None:
+            self.add_bookmarks()
 
     def set_ylimit(self, new_ylimit=None):
         """Change the amplitude, you don't need to read in new data.
