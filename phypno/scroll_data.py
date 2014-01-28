@@ -52,7 +52,8 @@ config.setValue('window_start', 0)
 config.setValue('window_page_length', 30)
 # one step = window_page_length / window_step_ratio
 config.setValue('window_step_ratio', 5)
-config.setValue('ylimit', 100)
+config.setValue('ylimit', 10)
+config.setValue('distance_traces', 200)
 config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
@@ -280,7 +281,6 @@ class MainWindow(QMainWindow):
         #                                            dirname(DATASET_EXAMPLE))
         self.info.update_info(DATASET_EXAMPLE)
         self.overview.update_overview()
-        self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
         self.bookmarks.update_bookmarks(self.info.dataset.header)
 

@@ -4,18 +4,27 @@ lg = getLogger(__name__)
 from datetime import timedelta
 from numpy import squeeze
 from PySide.QtCore import QSettings
-from PySide.QtGui import (QGridLayout,
+from PySide.QtGui import (QGraphicsScene,
+                          QGraphicsView,
+                          QPainterPath,
                           QPen,
-                          QWidget,
                           )
-from pyqtgraph import PlotWidget
-from pyqtgraph.graphicsItems.AxisItem import AxisItem
 from ..trans import Montage, Filter
 
 config = QSettings("phypno", "scroll_data")
 
 
-class Scroll(QWidget):
+class Trace(QPainterPath):
+
+    def __init__(self, x, y):
+        super().__init__()
+
+        self.moveTo(x[0], y[0])
+        for i_x, i_y in zip(x, y):
+            self.lineTo(i_x, i_y)
+
+
+class Scroll(QGraphicsView):
     """Main widget that contains the recordings to be plotted.
 
     Attributes
@@ -26,8 +35,8 @@ class Scroll(QWidget):
         positive height of the y-axis
     data : instance of phypno.DataTime
         instance containing the recordings.
-    layout : instance of QGridLayout
-        layout of the channels
+    scene :
+
     chan_plot : list of instances of plotItem
         references to the plots for each channel.
 
@@ -36,14 +45,9 @@ class Scroll(QWidget):
         super().__init__()
         self.parent = parent
         self.ylimit = config.value('ylimit')
+        self.scene = None
         self.data = None
         self.chan_plot = None
-
-        layout = QGridLayout()
-        layout.setVerticalSpacing(0)
-
-        self.setLayout(layout)
-        self.layout = layout
 
     def update_scroll(self):
         """Read and update the data to plot."""
@@ -62,8 +66,20 @@ class Scroll(QWidget):
 
     def display_scroll(self):
         """Display the recordings."""
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+
+        all_chan = [chan for x in self.parent.channels.groups
+                   for chan in x['chan_to_plot']]
+        distance_traces = config.value('distance_traces')
+
+        self.scene = QGraphicsScene(window_start,
+                                    0,
+                                    window_length,
+                                    len(all_chan) * distance_traces +
+                                    self.ylimit * 2)
+        self.setScene(self.scene)
         data = self.data
-        layout = self.layout
 
         chan_plot = []
         row = 0
@@ -78,19 +94,14 @@ class Scroll(QWidget):
                 lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
                                 s_freq=data.s_freq)
                 data1 = lpfilt(data1)
-
             for chan in one_grp['chan_to_plot']:
                 dat, time = data1(chan=[chan])
-                chan_plot.append(PlotWidget())
-                chan_plot[row].plotItem.plot(time, squeeze(dat, axis=0),
-                                             pen=QPen(one_grp['color']))
-                chan_plot[row].plotItem.setLabels(left=chan)
-                chan_plot[row].plotItem.showAxis('bottom', False)
-                chan_plot[row].plotItem.setXRange(time[0], time[-1])
-                layout.addWidget(chan_plot[row], row, 0)
+                path = self.scene.addPath(Trace(time, squeeze(dat, axis=0)))
+                path.setPen(QPen(one_grp['color']))
+                path.setPos(0, distance_traces * row)
                 row += 1
+                chan_plot.append(path)
 
-        chan_plot[row - 1].plotItem.showAxis('bottom', True)
         self.chan_plot = chan_plot
         self.set_ylimit()
 
@@ -105,20 +116,17 @@ class Scroll(QWidget):
         """
         if new_ylimit is not None:
             self.ylimit = new_ylimit
-        chan_plot = self.chan_plot
-        for single_chan_plot in chan_plot:
-            single_chan_plot.plotItem.setYRange(-1 * self.ylimit,
-                                                self.ylimit)
+        self.scale(1, 1/self.ylimit)
 
+"""
     def add_datetime_on_x(self):
-        """Change the labels on the x-axis to include the current time.
+        Change the labels on the x-axis to include the current time.
 
         Notes
         -----
         This function creates a new function (tickStrings) which overrides the
         axis function in pyqtgraph.
 
-        """
         start_time = self.parent.info.dataset.header['start_time']
 
         def tickStrings(axis, values, c, d):
@@ -132,3 +140,4 @@ class Scroll(QWidget):
             return strings
 
         AxisItem.tickStrings = tickStrings
+"""
