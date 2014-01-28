@@ -46,9 +46,7 @@ class Scroll(QWidget):
         self.layout = layout
 
     def update_scroll(self):
-        """Read and update the data to plot.
-
-        """
+        """Read and update the data to plot."""
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
@@ -63,9 +61,7 @@ class Scroll(QWidget):
         self.data = data
 
     def display_scroll(self):
-        """Display the recordings.
-
-        """
+        """Display the recordings."""
         data = self.data
         layout = self.layout
 
