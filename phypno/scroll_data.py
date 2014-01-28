@@ -41,9 +41,9 @@ XML_EXAMPLE = '/home/gio/test.xml'
 DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
                    'MG71_eeg_sessA_d01_21_17_40')
 DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
-# DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
+DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 
@@ -282,6 +282,7 @@ class MainWindow(QMainWindow):
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
+        self.bookmarks.update_bookmarks(self.info.dataset.header)
 
     def action_open_stages(self):
         """Action: open a new dataset."""

@@ -1,6 +1,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from datetime import datetime
 from functools import partial
 from math import floor
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
@@ -11,8 +12,9 @@ from PySide.QtGui import (QAction,
                           QFormLayout,
                           QPushButton,
                           QLabel,
-                          QListWidget,
                           QTableView,
+                          QTableWidget,
+                          QTableWidgetItem,
                           QWidget,
                           )
 
@@ -22,23 +24,58 @@ stage_name = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
 stage_shortcut = ['6', '5', '1', '2', '3', '0']
 
 
-class Bookmarks(QListWidget):
-    """
+class Bookmarks(QTableWidget):
+    """Keep track of all the bookmarks.
+
+    Attributes
+    ----------
+    parent : instance of QMainWindow
+        the main window.
+    bookmarks : list of dict
+        each dict contains time (in s from beginning of file) and name
+
+    Notes
+    -----
+    I haven't been really careful, I use the term "note" sometimes. To be
+    precise, bookmark, events, stages are all types of notes.
 
     """
     def __init__(self, parent):
         super().__init__()
 
         self.parent = parent
+        self.bookmarks = []
 
-    def update_overview(self):
+    def update_bookmarks(self, header):
+        """Update the bookmarks info
+
+        Parameters
+        ----------
+        header : dict
+            header of the dataset
+
         """
+        bookmarks = []
+        splitted = header['orig']['notes'].split('\n')
+        for bm in splitted:
+            values = bm.split(',')
+            bm_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S')
+            bm_sec = (bm_time - header['start_time']).total_seconds()
 
-        """
-        self.display_overview()
+            bookmarks.append({'time': bm_sec,
+                              'name': ','.join(values[2:])
+                              })
 
-    def display_overview(self):
-        pass
+        self.bookmarks = bookmarks
+        self.display_bookmarks()
+
+    def display_bookmarks(self):
+        self.setColumnCount(2)
+        self.setRowCount(len(self.bookmarks))
+
+        for i, bm in enumerate(self.bookmarks):
+            self.setItem(i, 0, QTableWidgetItem(str(bm['time'])))
+            self.setItem(i, 1, QTableWidgetItem(bm['name']))
 
 
 class Events(QWidget):
@@ -61,6 +98,7 @@ class Events(QWidget):
         """
 
         """
+
         self.display_overview()
 
     def display_overview(self):

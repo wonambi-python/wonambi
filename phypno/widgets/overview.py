@@ -40,6 +40,8 @@ class Overview(QGraphicsView):
 
     Attributes
     ----------
+    parent : instance of QMainWindow
+        the main window.
     window_start : int or float
         start time of the window being plotted (in s).
     window_length : int or float
