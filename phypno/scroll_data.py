@@ -430,6 +430,7 @@ class MainWindow(QMainWindow):
 
         self.tabifyDockWidget(self.docks['Bookmarks'], self.docks['Events'])
         self.tabifyDockWidget(self.docks['Events'], self.docks['Stages'])
+        self.docks['Bookmarks'].raise_()
 
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.

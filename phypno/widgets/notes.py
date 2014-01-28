@@ -1,13 +1,14 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 from math import floor
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 from PySide.QtCore import QSettings
-from PySide.QtGui import (QAction,
+from PySide.QtGui import (QAbstractItemView,
+                          QAction,
                           QComboBox,
                           QFormLayout,
                           QPushButton,
@@ -46,6 +47,12 @@ class Bookmarks(QTableWidget):
         self.parent = parent
         self.bookmarks = []
 
+        self.setColumnCount(2)
+        self.setHorizontalHeaderLabels(['Time', 'Text'])
+        self.horizontalHeader().setStretchLastSection(True)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
     def update_bookmarks(self, header):
         """Update the bookmarks info
 
@@ -70,12 +77,17 @@ class Bookmarks(QTableWidget):
         self.display_bookmarks()
 
     def display_bookmarks(self):
-        self.setColumnCount(2)
-        self.setRowCount(len(self.bookmarks))
+        """Update the table with bookmarks."""
+        start_time = self.parent.info.dataset.header['start_time']
 
+
+        self.setRowCount(len(self.bookmarks))
         for i, bm in enumerate(self.bookmarks):
-            self.setItem(i, 0, QTableWidgetItem(str(bm['time'])))
+            abs_time = (start_time + timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
+            self.setItem(i, 0, QTableWidgetItem(abs_time))
             self.setItem(i, 1, QTableWidgetItem(bm['name']))
+
+        self.parent.overview.mark_bookmarks()
 
 
 class Events(QWidget):

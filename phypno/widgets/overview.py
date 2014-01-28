@@ -109,6 +109,14 @@ class Overview(QGraphicsView):
         self.parent.scroll.display_scroll()
         self.parent.stages.set_combobox_index()
 
+    def mark_bookmarks(self):
+        bookmarks = self.parent.bookmarks.bookmarks
+        for bm in bookmarks:
+            self.scene.addLine(bm['time'], bars['bookmark']['pos0'],
+                               bm['time'],
+                               bars['bookmark']['pos0'] +
+                               bars['bookmark']['pos1'])
+
     def color_stages(self):
         epochs = self.parent.stages.scores.get_epochs()
         y_pos = bars['state']['pos0']
