@@ -123,14 +123,14 @@ class Events(QWidget):
         layout.addRow('List: ', self.table)
         self.setLayout(layout)
 
-    def update_overview(self):
+    def update_events(self):
         """
 
         """
 
-        self.display_overview()
+        self.display_events()
 
-    def display_overview(self):
+    def display_events(self):
         pass
 
 
