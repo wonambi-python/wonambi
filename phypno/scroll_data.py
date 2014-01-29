@@ -44,8 +44,7 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
-filename = DATASET_EXAMPLE
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 
@@ -60,6 +59,7 @@ config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
 config.setValue('stage_scoring_window', 30)  # sleep scoring window
 config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
+
 
 
 class MainWindow(QMainWindow):
@@ -122,10 +122,18 @@ class MainWindow(QMainWindow):
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open_rec)
 
+        recent_rec = config.value('recent_recording', '')
+        actions['open_recent_rec'] = QAction(recent_rec, self)
+        actions['open_recent_rec'].triggered.connect(partial(self.action_open_rec,
+                                                             recent_rec))
+
         actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
         actions['open_events'] = QAction('Open Events File...', self)
         actions['open_stages'] = QAction('Open Stages File...', self)
         actions['open_stages'].triggered.connect(self.action_open_stages)
+
+        actions['close_wndw'] = QAction('Quit', self)
+
 
         actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
                                        self)
@@ -187,6 +195,8 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         menu_file = menubar.addMenu('File')
         menu_file.addAction(actions['open_rec'])
+        submenu_recent = menu_file.addMenu('Recent Recordings')
+        submenu_recent.addAction(actions['open_recent_rec'])
         menu_file.addSeparator()
         menu_file.addAction(actions['open_bookmarks'])
         menu_file.addAction(actions['open_events'])
@@ -278,15 +288,18 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_less'])
         toolbar.addAction(actions['Y_more'])
 
-    def action_open_rec(self):
+    def action_open_rec(self, recent=None):
         """Action: open a new dataset."""
-        if DATASET_EXAMPLE is None:
-            filename = QFileDialog.getExistingDirectory(self, 'Open file',
-                                                        XML_EXAMPLE)
-            if filename == '':
-                return
+        if recent is not None:
+            filename = recent
         else:
-            filename = DATASET_EXAMPLE
+            if DATASET_EXAMPLE is None:
+                filename = QFileDialog.getExistingDirectory(self, 'Open file',
+                                                        XML_EXAMPLE)
+                if filename == '':
+                    return
+            else:
+                filename = DATASET_EXAMPLE
         self.info.update_info(filename)
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
@@ -464,6 +477,10 @@ class MainWindow(QMainWindow):
             dockwidget.setVisible(True)
             actions[dockname].setChecked(True)
 
+    def closeEvent(self, event):
+        """save the name of the last open dataset."""
+        config.setValue('recent_recording', self.info.filename)
+        event.accept()
 
 try:
     app = QApplication(argv)
