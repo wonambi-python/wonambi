@@ -37,13 +37,15 @@ icon = {
     'widget': QIcon.fromTheme('window-duplicate'),
     }
 
-XML_EXAMPLE = '/home/gio/recordings/MG71/eeg/conv'
-DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
-                   'MG71_eeg_sessA_d01_21_17_40')
+XML_EXAMPLE = '/home/gio/recordings/'
+DATASET_EXAMPLE = None
+# DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
+                   # 'MG71_eeg_sessA_d01_21_17_40')
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+filename = DATASET_EXAMPLE
 
 setConfigOption('background', 'w')
 
@@ -57,6 +59,7 @@ config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
 config.setValue('stage_scoring_window', 30)  # sleep scoring window
+config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
 
 
 class MainWindow(QMainWindow):
@@ -105,7 +108,7 @@ class MainWindow(QMainWindow):
         self.create_widgets()
         self.statusBar()
 
-        self.setGeometry(400, 300, 800, 600)
+        self.setGeometry(400, 300, 1024, 768)
         self.setWindowTitle('Scroll Data')
         self.show()
 
@@ -277,15 +280,21 @@ class MainWindow(QMainWindow):
 
     def action_open_rec(self):
         """Action: open a new dataset."""
-        filename = QFileDialog.getExistingDirectory(self, 'Open file',
-                                                    dirname(DATASET_EXAMPLE))
-        if filename == '':
-            return
+        if DATASET_EXAMPLE is None:
+            filename = QFileDialog.getExistingDirectory(self, 'Open file',
+                                                        XML_EXAMPLE)
+            if filename == '':
+                return
+        else:
+            filename = DATASET_EXAMPLE
         self.info.update_info(filename)
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
-        self.bookmarks.update_bookmarks(self.info.dataset.header)
+        try:
+            self.bookmarks.update_bookmarks(self.info.dataset.header)
+        except KeyError:
+            lg.info('No notes/bookmarks present in the header of the file')
 
     def action_open_stages(self):
         """Action: open a new file for sleep staging."""
@@ -293,7 +302,7 @@ class MainWindow(QMainWindow):
         dialog.setFileMode(QFileDialog.AnyFile)
         filename = dialog.getOpenFileName(self, 'Open sleep score file',
                                           XML_EXAMPLE)
-        self.stages.update_overview(filename[0])
+        self.stages.update_stages(filename[0])
 
     def action_step_prev(self):
         """Go to the previous step.

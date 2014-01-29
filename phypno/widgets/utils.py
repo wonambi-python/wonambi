@@ -46,7 +46,6 @@ class DownloadData(QThread):
 
     Notes
     -----
-    TODO: close the thread cleanly.
     TODO: restart from a new position, when you move the cursor.
 
     """

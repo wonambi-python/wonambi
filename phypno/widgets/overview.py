@@ -1,6 +1,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from datetime import datetime, timedelta
 from PySide.QtCore import Qt, QSettings, Slot
 from PySide.QtGui import (QBrush,
                           QPen,
@@ -32,7 +33,8 @@ bars = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
         'state': {'pos0': 45, 'pos1': 30, 'tip': 'Brain State'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
-total_height = 95
+time_height = 92
+total_height = 100
 
 
 class Overview(QGraphicsView):
@@ -68,8 +70,8 @@ class Overview(QGraphicsView):
         self.maximum = None
         self.scene = None
         self.item = {}
-        self.setMinimumHeight(total_height + 5)
-        self.scale(1 / config.value('ratio_second_overview'), 1)
+        self.setMinimumHeight(total_height + 15)
+        self.scale(1 / float(config.value('ratio_second_overview')), 1)
 
     def update_overview(self):
         """Read full duration and update maximum."""
@@ -80,7 +82,7 @@ class Overview(QGraphicsView):
 
     def display_overview(self):
         """Updates the widgets, especially based on length of recordings."""
-        self.scene = QGraphicsScene(0, 0,
+        self.scene = QGraphicsScene(self.minimum, 0,
                                     self.maximum,
                                     total_height)
         self.setScene(self.scene)
@@ -96,6 +98,36 @@ class Overview(QGraphicsView):
                                                 self.maximum, pos['pos1'])
             self.item[name].setToolTip(pos['tip'])
             self.scene.addItem(self.item[name])
+
+        self.add_timestamps()
+
+    def add_timestamps(self):
+        """Add timestamps at the bottom of the overview."""
+        start_time_dataset = self.parent.info.dataset.header['start_time']
+        start_time = start_time_dataset + timedelta(seconds=self.minimum)
+        first_hour = int(datetime(start_time.year, start_time.month,
+                                  start_time.day,
+                                  start_time.hour + 1).timestamp())
+
+        end_time = start_time_dataset + timedelta(seconds=self.maximum)
+        last_hour = int(datetime(end_time.year, end_time.month,
+                                 end_time.day,
+                                 end_time.hour + 1).timestamp())
+
+        ratio = float(config.value('ratio_second_overview'))
+        steps = int(config.value('overview_timestamp_steps'))
+
+        for t in range(first_hour, last_hour, steps):
+            t_as_datetime = datetime.fromtimestamp(t)
+            date_as_text = t_as_datetime.strftime('%H:%M')
+
+            text = self.scene.addSimpleText(date_as_text)
+            text.scale(ratio, 1)
+
+            # set xpos and adjust for text width
+            xpos = (t_as_datetime - start_time).total_seconds()
+            text_width = text.boundingRect().width() * ratio
+            text.setPos(xpos - text_width / 2, time_height)
 
     def update_position(self, new_position=None):
         """If value changes, call scroll functions."""
