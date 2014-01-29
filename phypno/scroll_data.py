@@ -297,8 +297,13 @@ class MainWindow(QMainWindow):
             filename = recent
         else:
             if DATASET_EXAMPLE is None:
+                try:
+                    dir_name = dirname(self.info.filename)
+                except AttributeError:
+                    dir_name = XML_EXAMPLE
+
                 filename = QFileDialog.getExistingDirectory(self, 'Open file',
-                                                        XML_EXAMPLE)
+                                                            dir_name)
                 if filename == '':
                     return
             else:
@@ -319,8 +324,12 @@ class MainWindow(QMainWindow):
         """Action: open a new file for sleep staging."""
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.AnyFile)
+        try:
+            dir_name = dirname(self.stages.scores.xml_file)
+        except AttributeError:
+            dir_name = XML_EXAMPLE
         filename = dialog.getOpenFileName(self, 'Open sleep score file',
-                                          XML_EXAMPLE)
+                                          dir_name)
         self.stages.update_stages(filename[0])
 
     def action_step_prev(self):
