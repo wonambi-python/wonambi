@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 lg.setLevel(INFO)
 
 from functools import partial
-from os.path import dirname
+from os.path import dirname, basename
 from sys import argv, exit
 from PySide.QtCore import Qt, QSettings, QThread
 from PySide.QtGui import (QAction,
@@ -35,6 +35,7 @@ icon = {
     'selchan': QIcon.fromTheme('mail-mark-task'),
     'download': QIcon.fromTheme('download'),
     'widget': QIcon.fromTheme('window-duplicate'),
+    'quit': QIcon.fromTheme('window-close'),
     }
 
 XML_EXAMPLE = '/home/gio/recordings/'
@@ -132,8 +133,8 @@ class MainWindow(QMainWindow):
         actions['open_stages'] = QAction('Open Stages File...', self)
         actions['open_stages'].triggered.connect(self.action_open_stages)
 
-        actions['close_wndw'] = QAction('Quit', self)
-
+        actions['close_wndw'] = QAction(icon['quit'], 'Quit', self)
+        actions['close_wndw'].triggered.connect(self.close)
 
         actions['step_prev'] = QAction(icon['step_prev'], 'Previous Step',
                                        self)
@@ -201,6 +202,8 @@ class MainWindow(QMainWindow):
         menu_file.addAction(actions['open_bookmarks'])
         menu_file.addAction(actions['open_events'])
         menu_file.addAction(actions['open_stages'])
+        menu_file.addSeparator()
+        menu_file.addAction(actions['close_wndw'])
 
         menu_time = menubar.addMenu('Time Window')
         menu_time.addAction(actions['step_prev'])
@@ -300,7 +303,10 @@ class MainWindow(QMainWindow):
                     return
             else:
                 filename = DATASET_EXAMPLE
+
+        self.statusBar().showMessage('Reading dataset: ' + basename(filename))
         self.info.update_info(filename)
+        self.statusBar().showMessage('')
         self.overview.update_overview()
         self.scroll.add_datetime_on_x()
         self.channels.update_channels(self.info.dataset.header['chan_name'])

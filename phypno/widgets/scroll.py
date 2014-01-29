@@ -38,6 +38,7 @@ class Scroll(QWidget):
         self.ylimit = config.value('ylimit')
         self.data = None
         self.chan_plot = None
+        self.thread_read = None
 
         layout = QGridLayout()
         layout.setVerticalSpacing(0)
@@ -47,6 +48,8 @@ class Scroll(QWidget):
 
     def update_scroll(self):
         """Read and update the data to plot."""
+        if self.thread_read is not None:
+            self.thread_read.quit()
         self.thread_read = ReadData(self)
         self.thread_read.finished.connect(self.display_scroll)
         self.parent.statusBar().showMessage('Reading data: in progress')
