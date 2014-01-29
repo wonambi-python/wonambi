@@ -176,7 +176,7 @@ class Overview(QGraphicsView):
         """
         avail = self.scene.addRect(start_value,
                                    bars['available']['pos0'],
-                                   end_value,
+                                   end_value - start_value,
                                    bars['available']['pos1'])
         avail.stackBefore(self.item['available'])
         avail.setPen(Qt.NoPen)
