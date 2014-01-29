@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from datetime import timedelta
 from numpy import squeeze
-from PySide.QtCore import QSettings, Slot, QThread
+from PySide.QtCore import QSettings, Slot, QThread, Qt
 from PySide.QtGui import (QGridLayout,
                           QPen,
                           QWidget,
@@ -50,13 +50,15 @@ class Scroll(QWidget):
         """Read and update the data to plot."""
         self.parent.statusBar().showMessage('Reading data: in progress')
         self.thread_read = QThread()
-        self.thread_read.start()
 
         read_data = ReadData(self)
+        self.read_data = read_data
         read_data.moveToThread(self.thread_read)
-        read_data.finished.connect(self.thread_read.quit)
         read_data.finished.connect(self.display_scroll)
-        read_data.process()
+        read_data.finished.connect(self.thread_read.quit)
+
+        self.thread_read.started.connect(read_data.process)
+        self.thread_read.start()
 
     @Slot(DataTime)
     def display_scroll(self, data):

@@ -38,7 +38,6 @@ class ReadData(QObject):
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
-
         self.finished.emit(data)
 
 
