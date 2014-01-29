@@ -48,13 +48,15 @@ class Scroll(QWidget):
 
     def update_scroll(self):
         """Read and update the data to plot."""
-        if self.thread_read is not None:
-            self.thread_read.quit()
-        self.thread_read = ReadData(self)
-        self.thread_read.finished.connect(self.display_scroll)
         self.parent.statusBar().showMessage('Reading data: in progress')
+        self.thread_read = QThread()
         self.thread_read.start()
-        self.thread_read.setPriority(QThread.Priority.LowestPriority)
+
+        read_data = ReadData(self)
+        read_data.moveToThread(self.thread_read)
+        read_data.finished.connect(self.thread_read.quit)
+        read_data.finished.connect(self.display_scroll)
+        read_data.process()
 
     @Slot(DataTime)
     def display_scroll(self, data):

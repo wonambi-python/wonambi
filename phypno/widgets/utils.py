@@ -3,14 +3,14 @@ lg = getLogger(__name__)
 lg.setLevel(INFO)
 
 from numpy import linspace
-from PySide.QtCore import QSettings, QThread, Signal
+from PySide.QtCore import QSettings, Signal, QObject, QThread
 from PySide.QtGui import QDockWidget
 from ..datatype import DataTime
 
 config = QSettings("phypno", "scroll_data")
 
 
-class ReadData(QThread):
+class ReadData(QObject):
     """Create thread that reads data without blocking the main GUI.
 
     Parameters
@@ -25,7 +25,8 @@ class ReadData(QThread):
         super().__init__()
         self.parent = parent
 
-    def run(self):
+    def process(self):
+        """Do the actual computation."""
         window_start = self.parent.parent.overview.window_start
         window_end = window_start + self.parent.parent.overview.window_length
         dataset = self.parent.parent.info.dataset
