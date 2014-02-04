@@ -147,9 +147,6 @@ class Surf:
             'lh' or 'rh'
     surf_type : str
         'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
-
-    Attributes
-    ----------
     vert : numpy.ndarray
         vertices of the mesh
     tri : numpy.ndarray
@@ -157,13 +154,12 @@ class Surf:
 
     """
 
-    def __init__(self, freesurfer_dir, hemi, surf_type='pial'):
-        fs = Freesurfer(freesurfer_dir)
-        try:
-            self.vert, self.tri = fs.read_surf(hemi, surf_type)
-        except ValueError:
-            raise NotImplementedError('Nibabel/read_geometry throws an error '
-                                      'about reshape in Python 3 only')
+    def __init__(self, freesurfer_dir, surf_type, hemi, vert, tri):
+        self.freesurfer_dir = freesurfer_dir
+        self.surf_type = surf_type
+        self.hemi = hemi
+        self.vert = vert
+        self.tri = tri
 
 
 class Freesurfer:
@@ -296,14 +292,11 @@ class Freesurfer:
 
         Returns
         -------
-        numpy.ndarray
-            vertices of the mesh
-        numpy.ndarray
-            triangulation of the mesh
+        instance of Surf
 
         """
         surf_file = join(self.dir, 'surf', hemi + '.' + surf_type)
         surf_vert, surf_tri = _read_geometry(surf_file)
-        return surf_vert, surf_tri
 
-
+        surf = Surf(self.dir, surf_type, hemi, surf_vert, surf_tri)
+        return surf
