@@ -6,9 +6,11 @@ from collections import Counter
 from logging import getLogger
 from os import environ
 from os.path import exists, join
+from struct import unpack
 
-from nibabel.freesurfer import read_geometry, read_annot
-from numpy import array, empty, vstack, around, dot, append, reshape, meshgrid
+from nibabel.freesurfer import read_annot
+from numpy import (array, empty, vstack, around, dot, append, reshape,
+                   meshgrid, asarray)
 
 from ..utils.caching import read_seg
 
@@ -18,6 +20,49 @@ FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
                    [0, 1, 0, 128],
                    [0, 0, 0, 1]])
+
+
+def _read_geometry(surf_file):
+    """Read a triangular format Freesurfer surface mesh.
+
+    Parameters
+    ----------
+    surf_file : str
+        path to surface file
+
+    Returns
+    -------
+    coords : numpy.ndarray
+        nvtx x 3 array of vertex (x, y, z) coordinates
+    faces : numpy.ndarray
+        nfaces x 3 array of defining mesh triangles
+
+    Notes
+    -----
+    This function comes from nibabel, but it doesn't use numpy because numpy
+    doesn't return the correct values in Python 3.
+
+    """
+    with open(surf_file, 'rb') as f:
+        filebytes = f.read()
+
+    assert filebytes[:3] == b'\xff\xff\xfe'
+    i0 = filebytes.index(b'\x0A\x0A') + 2
+    i1 = i0 + 4
+    vnum = unpack('>i', filebytes[i0:i1])[0]
+    i0 = i1
+    i1 += 4
+    fnum = unpack('>i', filebytes[i0:i1])[0]
+    i0 = i1
+    i1 += 4 * vnum * 3
+    verts = unpack('>' + 'f' * vnum * 3, filebytes[i0:i1])
+    i0 = i1
+    i1 += 4 * fnum * 3
+    faces = unpack('>' + 'i' * fnum * 3, filebytes[i0:i1])
+
+    verts = asarray(verts).reshape(vnum, 3)
+    faces = asarray(faces).reshape(fnum, 3)
+    return verts, faces
 
 
 def _find_neighboring_regions(pos, mri_dat, region, approx):
@@ -258,5 +303,7 @@ class Freesurfer:
 
         """
         surf_file = join(self.dir, 'surf', hemi + '.' + surf_type)
-        surf_vert, surf_tri = read_geometry(surf_file)
+        surf_vert, surf_tri = _read_geometry(surf_file)
         return surf_vert, surf_tri
+
+
