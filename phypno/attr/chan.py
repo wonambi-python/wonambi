@@ -12,7 +12,7 @@ In other words, the channel is where you want to plot the signal.
 """
 from logging import getLogger
 from os.path import splitext
-from numpy import zeros
+from numpy import zeros, empty, vstack
 from ..utils import UnrecognizedFormat
 
 lg = getLogger(__name__)
@@ -210,13 +210,18 @@ class Chan():
 
         Parameters
         ----------
-        chan_name : str
-            the name of one channel.
+        chan_name : list of str
+            the names of the channels.
 
         Returns
         -------
         chan_xyz : numpy.ndarray
-            a 3x0 vector with the position of a channel.
+            a 3xn vector with the position of a channel.
 
         """
-        return self.xyz[self.chan_name.index(chan_name), :]
+        xyz = empty((0, 3))
+        for chan in chan_name:
+            xyz = vstack((xyz,
+                          self.xyz[self.chan_name.index(chan), :]))
+
+        return xyz
