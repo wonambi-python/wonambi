@@ -4,13 +4,23 @@
 
 from logging import getLogger
 from tempfile import mkdtemp
-from joblib import Memory
 from nibabel import load
 
 lg = getLogger(__name__)
 
 cachedir = mkdtemp()
 lg.info(cachedir)
+
+try:
+    from joblib import Memory
+except ImportError:
+    class Memory:
+        def __init__(self, cachedir=None, verbose=None):
+            pass
+
+        def cache(self, func):
+            return func
+
 memory = Memory(cachedir=cachedir, verbose=0)
 
 
