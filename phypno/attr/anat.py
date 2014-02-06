@@ -5,7 +5,7 @@
 from collections import Counter
 from logging import getLogger
 from os import environ
-from os.path import exists, join
+from os.path import exists, join, basename, splitext
 from struct import unpack
 
 from nibabel.freesurfer import read_annot
@@ -141,8 +141,11 @@ class Surf:
 
     Parameters
     ----------
-    freesurfer_dir : str
-        subject-specific directory created by freesurfer
+    surf_file : path to file
+        file containing the surface
+
+    Attributes
+    ----------
     hemi : str
             'lh' or 'rh'
     surf_type : str
@@ -154,12 +157,13 @@ class Surf:
 
     """
 
-    def __init__(self, freesurfer_dir, surf_type, hemi, vert, tri):
-        self.freesurfer_dir = freesurfer_dir
-        self.surf_type = surf_type
-        self.hemi = hemi
-        self.vert = vert
-        self.tri = tri
+    def __init__(self, surf_file):
+        self.surf_file = surf_file
+        self.surf_type = splitext(surf_file)[1][1:]
+        self.hemi = splitext(basename(surf_file))[0]
+        surf_vert, surf_tri = _read_geometry(surf_file)
+        self.vert = surf_vert
+        self.tri = surf_tri
 
 
 class Freesurfer:
@@ -296,7 +300,5 @@ class Freesurfer:
 
         """
         surf_file = join(self.dir, 'surf', hemi + '.' + surf_type)
-        surf_vert, surf_tri = _read_geometry(surf_file)
-
-        surf = Surf(self.dir, surf_type, hemi, surf_vert, surf_tri)
+        surf = Surf(surf_file)
         return surf
