@@ -146,21 +146,27 @@ class Chan():
         ----------
         anat : instance of phypno.attr.anat.Freesurfer
             anatomical information taken from freesurfer.
-        chan_name : str, optional
-            the channel name
-        approx : int
+        chan_name : list of str, optional
+            the channel name (if not specified, it uses them all)
+        approx : int, optional
             approximation to define position of the electrode.
 
         Returns
         -------
-        region : str
-            the label of the region in which the electrode is located.
+        region : list of str
+            the label of the region in which each electrode is located.
 
         """
-        if chan_name is not None:
-            chan_pos = self.return_chan_xyz(chan_name)
-            region, _ = anat.find_brain_region(chan_pos, approx)
-            return region
+        if chan_name is None:
+            chan_name = self.chan_name
+
+        region = []
+        for chan in chan_name:
+            chan_pos = self.return_chan_xyz([chan])
+            one_region, _ = anat.find_brain_region(chan_pos, approx)
+            region.append(one_region)
+
+        return region
 
     def export(self, elec_file):
         """Export channel name and location to file.
@@ -192,12 +198,13 @@ class Chan():
 
         Notes
         -----
-        It can be made more fuzzy, for example, by using regex.
+        It could be made more fuzzy, for example, by using regex.
 
         """
+        regions = self.assign_region(anat, self.chan_name)
+
         chan_in_region = []
-        for chan in self.chan_name:
-            region = self.assign_region(anat, chan)
+        for chan, region in zip(self.chan_name, regions):
             if region_name in region:
                 lg.debug('{}: region {} matches search pattern {}'.format(chan,
                          region, region_name))

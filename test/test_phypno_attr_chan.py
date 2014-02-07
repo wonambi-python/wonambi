@@ -1,6 +1,7 @@
 from inspect import stack
 from logging import getLogger
 from nose.tools import raises
+from numpy.testing import assert_array_equal
 from subprocess import check_output
 
 
@@ -47,7 +48,8 @@ def test_Chan_02():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Chan(elec_file)
     assert ch.n_chan() == 103
-    assert all(ch.return_chan_xyz('FPS1') == array([-17. ,  68. ,  20.5]))
+    assert_array_equal(ch.return_chan_xyz(['FPS1']),
+                       array([[-17. ,  68. ,  20.5]]))
     ch.export(join(temp_dir, 'elec_file.csv'))
 
 
@@ -68,7 +70,8 @@ def test_assign_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Chan(elec_file)
     fs = Freesurfer(fs_dir)
-    assert ch.assign_region(fs, 'LAF1', 1) == 'ctx-rh-caudalanteriorcingulate'
+    assert ch.assign_region(fs, ['LAF1'],
+                            1) == ['ctx-rh-caudalanteriorcingulate']
 
 
 def test_find_chan_in_region_01():
