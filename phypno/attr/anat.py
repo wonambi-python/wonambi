@@ -142,10 +142,21 @@ class Surf:
     Parameters
     ----------
     surf_file : path to file
-        file containing the surface
+        freesurfer file containing the surface
+
+    Parameters
+    ----------
+    freesurfer_dir : str
+        subject-specific directory created by freesurfer
+    hemi : str
+        'lh' or 'rh'
+    surf_type : str
+        'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
 
     Attributes
     ----------
+    surf_file : path to file
+        freesurfer file containing the surface
     hemi : str
             'lh' or 'rh'
     surf_type : str
@@ -157,11 +168,20 @@ class Surf:
 
     """
 
-    def __init__(self, surf_file):
-        self.surf_file = surf_file
-        self.surf_type = splitext(surf_file)[1][1:]
-        self.hemi = splitext(basename(surf_file))[0]
-        surf_vert, surf_tri = _read_geometry(surf_file)
+    def __init__(self, *args):
+
+        if len(args) == 1:
+            self.surf_file = args[0]
+            self.surf_type = splitext(self.surf_file)[1][1:]
+            self.hemi = splitext(basename(self.surf_file))[0]
+
+        elif len(args) == 3:
+            self.hemi = args[1]
+            self.surf_type = args[2]
+            self.surf_file = join(args[0], 'surf',
+                                  self.hemi + '.' + self.surf_type)
+
+        surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert
         self.tri = surf_tri
 
