@@ -499,10 +499,12 @@ class MainWindow(QMainWindow):
 
 try:
     app = QApplication(argv)
+    standalone = True
 except RuntimeError:
-    pass
+    standalone = False
 
 q = MainWindow()
 q.show()
-# %%
-app.exec_()
+
+if standalone:
+    app.exec_()
