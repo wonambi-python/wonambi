@@ -79,10 +79,14 @@ class Channels(QGroupBox):
         self.current = self.list_grp.currentText()
 
         self.l0 = QListWidget()
+        self.create_list(self.l0)
         self.l1 = QListWidget()
+        self.create_list(self.l1)
 
         rerefButton = QPushButton('Average Ref')
         rerefButton.clicked.connect(self.average_reference)
+        rerefButton.setToolTip('Use the average of all the channels being ' +
+                               'plotted as reference.')
 
         self.hpEdit = QLineEdit('None')
         self.lpEdit = QLineEdit('None')
@@ -119,28 +123,22 @@ class Channels(QGroupBox):
         self.update_list_grp()
 
     def update_list_grp(self):
-        """Update the list containing the channels.
-
-        TODO: this should probably update the filter settings.
-
-        """
+        """Update the list containing the channels."""
         current = self.list_grp.currentText()
         idx = [x['name'] for x in self.groups].index(current)
-        self.create_list(self.l0, self.groups[idx]['chan_to_plot'])
-        self.create_list(self.l1, self.groups[idx]['ref_chan'])
+        self.highlight_list(self.l0, self.groups[idx]['chan_to_plot'])
+        self.highlight_list(self.l1, self.groups[idx]['ref_chan'])
         self.hpEdit.setText(str(self.groups[idx]['filter']['low_cut']))
         self.lpEdit.setText(str(self.groups[idx]['filter']['high_cut']))
         self.current = current  # update index
 
-    def create_list(self, l, selected_chan):
+    def create_list(self, l):
         """Create list of channels (one for those to plot, one for ref).
 
         Parameters
         ----------
         l : instance of QListWidget
             one of the two lists (chan_to_plot or ref_chan)
-        selected_chan : list of str
-            channels to indicate as selected.
 
         """
         ExtendedSelection = QAbstractItemView.SelectionMode(3)
@@ -148,10 +146,30 @@ class Channels(QGroupBox):
         for chan in self.chan_name:
             item = QListWidgetItem(chan)
             l.addItem(item)
-            if chan in selected_chan:
+
+    def highlight_list(self, l, selected_chan):
+        """Highlight channels in the list of channels.
+
+        Parameters
+        ----------
+        selected_chan : list of str
+            channels to indicate as selected.
+
+        """
+        for row in range(l.count()):
+            item = l.item(row)
+            if item.text() in selected_chan:
                 item.setSelected(True)
             else:
                 item.setSelected(False)
+
+    def average_reference(self):
+        """Select in the reference all the channels in the main selection."""
+        selectedItems = self.l0.selectedItems()
+        chan_to_plot = []
+        for selected in selectedItems:
+            chan_to_plot.append(selected.text())
+        self.highlight_list(self.l1, chan_to_plot)
 
     def update_chan_grp(self):
         """Read the GUI and update the channel groups."""
@@ -249,7 +267,3 @@ class Channels(QGroupBox):
         self.list_grp.removeItem(idx)
         self.groups.pop(idx)
         self.update_list_grp()
-
-    def average_reference(self):
-        """Select in the reference all the channels in the main selection."""
-        pass
