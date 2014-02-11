@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from datetime import timedelta
 from numpy import squeeze
-from PySide.QtCore import QSettings, Slot, QThread, Qt
+from PySide.QtCore import QSettings
 from PySide.QtGui import (QGridLayout,
                           QPen,
                           QWidget,
@@ -11,8 +11,6 @@ from PySide.QtGui import (QGridLayout,
 from pyqtgraph import PlotWidget, TextItem
 from pyqtgraph.graphicsItems.AxisItem import AxisItem
 from ..trans import Montage, Filter
-from ..datatype import DataTime
-from .utils import ReadData
 
 config = QSettings("phypno", "scroll_data")
 
@@ -48,19 +46,19 @@ class Scroll(QWidget):
 
     def update_scroll(self):
         """Read and update the data to plot."""
-        self.parent.statusBar().showMessage('Reading data: in progress')
-        self.thread_read = QThread()
+        window_start = self.parent.overview.window_start
+        window_end = window_start + self.parent.overview.window_length
+        dataset = self.parent.info.dataset
 
-        read_data = ReadData(self)
-        self.read_data = read_data
-        read_data.moveToThread(self.thread_read)
-        read_data.finished.connect(self.display_scroll)
-        read_data.finished.connect(self.thread_read.quit)
+        chan_to_read = []
+        for one_grp in self.parent.channels.groups:
+            chan_to_read.extend(one_grp['chan_to_plot'] +
+                                one_grp['ref_chan'])
+        data = dataset.read_data(chan=chan_to_read,
+                                 begtime=window_start,
+                                 endtime=window_end)
+        self.display_scroll(data)
 
-        self.thread_read.started.connect(read_data.process)
-        self.thread_read.start()
-
-    @Slot(DataTime)
     def display_scroll(self, data):
         """Display the recordings."""
         self.parent.statusBar().showMessage('Reading data: finished')
