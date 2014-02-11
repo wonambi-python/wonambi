@@ -208,8 +208,8 @@ class Edf:
         Returns
         -------
         numpy.ndarray
-            A 2d matrix, where the first dimension is the data and the second
-            dimension are the channels
+            A 2d matrix, where the first dimension is the channels and the
+            second dimension are the samples.
 
         """
         hdr = self.hdr
