@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 lg.setLevel(INFO)
 
 from functools import partial
-from os.path import dirname, basename
+from os.path import dirname, basename, splitext, join
 from sys import argv, exit
 from PySide.QtCore import Qt, QSettings, QThread
 from PySide.QtGui import (QAction,
@@ -325,11 +325,13 @@ class MainWindow(QMainWindow):
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.AnyFile)
         try:
-            dir_name = dirname(self.stages.scores.xml_file)
+            filename = self.stages.scores.xml_file
         except AttributeError:
-            dir_name = XML_EXAMPLE
+            filename = splitext(self.info.filename)[0] + '_scores.xml'
         filename = dialog.getOpenFileName(self, 'Open sleep score file',
-                                          dir_name)
+                                          filename)
+        if filename[0] == '':
+            return
         self.stages.update_stages(filename[0])
 
     def action_step_prev(self):
