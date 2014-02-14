@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module to work with channels.
 
 It provides a general class to work with channels. Channels is the general term
@@ -12,10 +13,76 @@ In other words, the channel is where you want to plot the signal.
 """
 from logging import getLogger
 from os.path import splitext
-from numpy import zeros, empty, vstack
+from numpy import zeros, empty, vstack, asarray
 from ..utils import UnrecognizedFormat
 
 lg = getLogger(__name__)
+
+mu = '\N{GREEK SMALL LETTER MU}'
+
+
+def _convert_unit(unit):
+    """Convert different names into SI units.
+
+    Parameters
+    ----------
+    unit : str
+        unit to convert to SI
+
+    Returns
+    -------
+    str
+        unit in SI format.
+
+    Notes
+    -----
+    SI unit such as mV (milliVolt, mVolt), μV (microVolt, muV).
+
+    """
+    if unit is None:
+        return ''
+
+    prefix = None
+    suffix = None
+    if unit[:5].lower() == 'milli':
+        prefix = 'm'
+        unit = unit[5:]
+    elif unit[:5].lower() == 'micro':
+        prefix = mu
+        unit = unit[5:]
+    elif unit[:2].lower() == 'mu':
+        prefix = mu
+        unit = unit[2:]
+
+    if unit[-4:].lower() == 'volt':
+        suffix = 'V'
+        unit = unit[:-4]
+
+    if prefix is None and suffix is None:
+        unit = unit
+    elif prefix is None and suffix is not None:
+        unit = unit + suffix
+    elif prefix is not None and suffix is None:
+        unit = prefix + unit
+    else:
+        unit = prefix + suffix
+
+    return unit
+
+
+def _read_csv(elec_file):
+    chan_label = []
+    num_lines = sum(1 for line in open(elec_file))
+    chan_pos = zeros((num_lines, 3))
+
+    with open(elec_file, 'r') as f:
+        for i, l in enumerate(f):
+            a, b, c, d = [t(s) for t, s in zip((str, float, float, float),
+                          l.split(','))]
+            chan_label.append(a)
+            chan_pos[i, :] = [b, c, d]
+
+    return chan_label, chan_pos
 
 
 def detect_format(filename):
@@ -40,21 +107,6 @@ def detect_format(filename):
     return recformat
 
 
-def _read_csv(elec_file):
-    chan_label = []
-    num_lines = sum(1 for line in open(elec_file))
-    chan_pos = zeros((num_lines, 3))
-
-    with open(elec_file, 'r') as f:
-        for i, l in enumerate(f):
-            a, b, c, d = [t(s) for t, s in zip((str, float, float, float),
-                          l.split(','))]
-            chan_label.append(a)
-            chan_pos[i, :] = [b, c, d]
-
-    return chan_label, chan_pos
-
-
 def export_csv(chan, elec_file):
     """Write the elec coordinates into a csv file.
 
@@ -67,18 +119,53 @@ def export_csv(chan, elec_file):
 
     """
     with open(elec_file, 'w') as f:
-        for i, l in enumerate(chan.chan_name):
-            line = "%s, %.1f, %.1f, %.1f\n" % (l, chan.xyz[i, 0],
-                                               chan.xyz[i, 1],
-                                               chan.xyz[i, 2])
+        for one_chan in chan.chan:
+            line = '{0}, {1:.4}, {2:.4}, {3:.4}\n'.format(one_chan.label,
+                                                        one_chan.xyz[0],
+                                                        one_chan.xyz[1],
+                                                        one_chan.xyz[2],
+                                                        )
             f.write(line)
 
 
 class Chan():
+    """Provide class Chan, for individual channels.
+
+    Parameters
+    ----------
+    label : str
+        name of the channel
+    xyz : numpy.ndarray or list or tuple
+        1d vector of 3 elements
+    chtype : str, optional
+        channel type (can be any string)
+    unit : str, optional
+        units, using SI
+    attr : dict
+        dictionary where you can store additional information per channel. Use
+        chan.attr.update({'new_key': new_value})
+
+    """
+    def __init__(self, label, xyz=None, unit=None, attr=None):
+        self.label = label
+        self.xyz = asarray(xyz)
+        self.unit = _convert_unit(unit)
+        if attr is None:
+            self.attr = {}
+        else:
+            self.attr = attr
+
+
+class Channels():
     """Provide class Chan, generic class for channel location.
 
     You can read from a file, and then you pass only one argument.
     Or you can directly assign the chan names and the coordinates.
+
+    Parameters
+    ----------
+    chan : list of instance of Chan
+        list of channels (which are instances of Chan)
 
     Parameters
     ----------
@@ -87,19 +174,15 @@ class Chan():
 
     Parameters
     ----------
-    chan_name : list of str
+    labels : list of str
         the name of the channel
     coords : numpy.ndarray
        location in 3D, with shape (3, n_chan)
 
     Attributes
     ----------
-    chan_name : list of str
-        the name of the channel
-    xy : numpy.ndarray
-        location in 2D, with shape (n_chan, 2)
-    xyz : numpy.ndarray
-        location in 3D, with shape (n_chan, 3)
+    chan : list of instance of phypno.attr.chan.Chan
+        list of channels
 
     Raises
     ------
@@ -112,61 +195,145 @@ class Chan():
     label, x-pos, y-pos, z-pos
 
     """
-
     def __init__(self, *args):
-        self.xy = None
 
-        if len(args) == 1:
-            format_ = detect_format(args[0])
-            if format_ == 'csv':
-                self.chan_name, self.xyz = _read_csv(args[0])
-            else:
-                raise UnrecognizedFormat('Unrecognized format ("' + format_ +
-                                         '")')
+        if len(args) == 1 and isinstance(args[0], list):
+            self.chan = args[0]
+        else:
+            self.chan = []
 
-        elif len(args) == 2:
-            self.chan_name = args[0]
-            if args[1].shape[1] == 3:
-                self.xyz = args[1]
-            else:
-                raise ArithmeticError('Incorrect shape: the second dimension '
-                                      'should be 3, not ' +
-                                      str(args[1].shape[1]))
+            labels = None
+            xyz = None
 
-    def n_chan(self):
-        """Returns the number of channels.
+            if len(args) == 1:
+                format_ = detect_format(args[0])
+                if format_ == 'csv':
+                    labels, xyz = _read_csv(args[0])
+                else:
+                    raise UnrecognizedFormat('Unrecognized format ("' +
+                                             format_ + '")')
 
-        """
-        return len(self.chan_name)
+            elif len(args) == 2:
+                labels = args[0]
+                if args[1].shape[1] == 3:
+                    xyz = args[1]
+                else:
+                    raise ValueError('Incorrect shape: the second dimension '
+                                     'should be 3, not ' +
+                                     str(args[1].shape[1]))
 
-    def assign_region(self, anat, chan_name=None, approx=3):
-        """Assign a brain region based on the channel location.
+            for idx, one_label in enumerate(labels):
+                self.chan.append(Chan(one_label, xyz[idx, :]))
+
+    def __call__(self, func=None):
+        """Return a new instance of Channels, with a subset of channels.
 
         Parameters
         ----------
-        anat : instance of phypno.attr.anat.Freesurfer
-            anatomical information taken from freesurfer.
-        chan_name : list of str, optional
-            the channel name (if not specified, it uses them all)
-        approx : int, optional
-            approximation to define position of the electrode.
+        func : function
+            function to execute on each instance of Chan, should return True or
+            False (include the channel or not).
 
         Returns
         -------
-        region : list of str
-            the label of the region in which each electrode is located.
+        new instance of Channels
+            new instance of Channels, but instances of Chan are not deep-copied
 
         """
-        if chan_name is None:
-            chan_name = self.chan_name
+        chans = []
+        for one_chan in self.chan:
+            if func(one_chan):
+                chans.append(one_chan)
 
-        region = []
-        for chan in chan_name:
-            chan_pos = self.return_chan_xyz([chan])
-            one_region, _ = anat.find_brain_region(chan_pos, approx)
-            region.append(one_region)
+        return Channels(chans)
 
-        return region
+    def return_label(self):
+        """Returns the labels for all the channels.
+
+        Returns
+        -------
+        list of str
+            list of the channel labels.
+
+        """
+        return [x.label for x in self.chan]
+
+    def return_xy(self, labels=None):
+        """Returns the location in xy for some channels.
+
+        Parameters
+        ----------
+        labels : list of str, optional
+            the names of the channels.
+
+        Returns
+        -------
+        numpy.ndarray
+            a 2xn vector with the position of a channel.
+
+        Notes
+        -----
+        TODO
+
+        """
+        return None
+
+    def return_xyz(self, labels=None):
+        """Returns the location in xy for some channels.
+
+        Parameters
+        ----------
+        labels : list of str, optional
+            the names of the channels.
+
+        Returns
+        -------
+        numpy.ndarray
+            a 3xn vector with the position of a channel.
+
+        """
+        all_labels = self.return_label()
+
+        if labels is None:
+            labels = all_labels
+
+        xyz = []
+        for one_label in labels:
+            idx = all_labels.index(one_label)
+            xyz.append(self.chan[idx].xyz)
+
+        return asarray(xyz)
+
+    def return_attr(self, attr, labels=None):
+        """return the attributes for each channels.
+
+        Parameters
+        ----------
+        attr : str
+            attribute specified in Chan.attr.keys()
+
+        """
+        all_labels = self.return_label()
+
+        if labels is None:
+            labels = all_labels
+
+        all_attr = []
+        for one_label in labels:
+            idx = all_labels.index(one_label)
+            try:
+                all_attr.append(self.chan[idx].attr[attr])
+            except KeyError:
+                possible_attr = ', '.join(self.chan[idx].attr.keys())
+                lg.debug('key "{}" not found, '.format(attr) +
+                         'possible keys are {}'.format(possible_attr))
+                all_attr.append(None)
+
+        return all_attr
+
+    def n_chan(self):
+        """Returns the number of channels."""
+        return len(self.chan)
 
     def export(self, elec_file):
         """Export channel name and location to file.
@@ -181,54 +348,58 @@ class Chan():
         if ext == '.csv':
             export_csv(self, elec_file)
 
-    def find_chan_in_region(self, anat, region_name):
-        """Find which channels are in a specific region.
 
-        Parameters
-        ----------
-        anat : instance of phypno.attr.anat.Freesurfer
-            anatomical information taken from freesurfer.
-        region_name : str
-            the name of the region, according to FreeSurferColorLUT.txt
+def assign_region_to_channels(channels, anat, approx=3):
+    """Assign a brain region based on the channel location.
 
-        Returns
-        -------
-        chan_in_region : list of str
-            list of the channels that are in one region.
+    Parameters
+    ----------
+    channels : instance of phypno.attr.chan.Channels
+        channels to assign regions to
+    anat : instance of phypno.attr.anat.Freesurfer
+        anatomical information taken from freesurfer.
+    chan_name : list of str, optional
+        the channel name (if not specified, it uses them all)
+    approx : int, optional
+        approximation to define position of the electrode.
 
-        Notes
-        -----
-        It could be made more fuzzy, for example, by using regex.
+    Returns
+    -------
+    instance of phypno.attr.chan.Channels
+        same instance as before, now Chan have attr 'region'
 
-        """
-        regions = self.assign_region(anat, self.chan_name)
+    """
+    for one_chan in channels.chan:
+        one_region, _ = anat.find_brain_region(one_chan.xyz, approx)
+        one_chan.attr.update({'region': one_region})
 
-        chan_in_region = []
-        for chan, region in zip(self.chan_name, regions):
-            if region_name in region:
-                lg.debug('{}: region {} matches search pattern {}'.format(chan,
-                         region, region_name))
-                chan_in_region.append(chan)
+    return channels
 
-        return chan_in_region
 
-    def return_chan_xyz(self, chan_name):
-        """Returns the location in xyz for a particular channel name.
+def find_chan_in_region(channels, anat, region_name):
+    """Find which channels are in a specific region.
 
-        Parameters
-        ----------
-        chan_name : list of str
-            the names of the channels.
+    Parameters
+    ----------
+    channels : instance of phypno.attr.chan.Channels
+        channels, that have locations
+    anat : instance of phypno.attr.anat.Freesurfer
+        anatomical information taken from freesurfer.
+    region_name : str
+        the name of the region, according to FreeSurferColorLUT.txt
 
-        Returns
-        -------
-        chan_xyz : numpy.ndarray
-            a 3xn vector with the position of a channel.
+    Returns
+    -------
+    chan_in_region : list of str
+        list of the channels that are in one region.
 
-        """
-        xyz = empty((0, 3))
-        for chan in chan_name:
-            xyz = vstack((xyz,
-                          self.xyz[self.chan_name.index(chan), :]))
+    """
+    if 'region' not in channels.chan[0].attr.keys():
+        channels = assign_region_to_channels(channels, anat)
 
-        return xyz
+    chan_in_region = []
+    for one_chan in channels.chan:
+        if region_name in one_chan.attr['region']:
+            chan_in_region.append(one_chan.label)
+
+    return chan_in_region
