@@ -9,7 +9,7 @@ from math import ceil
 from logging import getLogger
 from os.path import isdir, join
 from numpy import arange
-from .ioeeg import Edf, Ktlx
+from .ioeeg import Edf, Ktlx, BlackRock
 from .datatype import DataTime
 from .utils import UnrecognizedFormat
 
@@ -39,7 +39,8 @@ def detect_format(filename):
     else:
 
         with open(filename, 'rb') as f:
-            if f.read(8) == b'0       ':
+            file_header = f.read(8)
+            if file_header == b'0       ':
                 f.seek(192)
                 edf_type = f.read(5)
                 if edf_type == b'EDF+C':
@@ -48,6 +49,8 @@ def detect_format(filename):
                     recformat = 'EDF+D'
                 else:
                     recformat = Edf
+            elif file_header in (b'NEURALCD', b'NEURALEV'):
+                recformat = BlackRock
             else:
                 raise UnrecognizedFormat('Unrecognized format for file ' +
                                          filename)
