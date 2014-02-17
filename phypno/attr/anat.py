@@ -214,7 +214,7 @@ class Freesurfer:
             lg.warning('Could not find lookup table, some functions that rely '
                        'on it might complain or crash.')
 
-    def find_brain_region(self, abs_pos, max_approx=0):
+    def find_brain_region(self, abs_pos, max_approx=None):
         """Find the name of the brain region in which an electrode is located.
 
         Parameters
@@ -246,8 +246,11 @@ class Freesurfer:
 
         mri_dat, _ = self.read_seg()
 
+        if max_approx is None:
+            max_approx = 3
+
         for approx in range(max_approx + 1):
-            lg.debug('Trying approx {}'.format(approx))
+            lg.debug('Trying approx {} out of {}'.format(approx, max_approx))
             regions = _find_neighboring_regions(pos, mri_dat,
                                                      self.lookuptable, approx)
             if regions:

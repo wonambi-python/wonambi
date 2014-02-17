@@ -370,8 +370,8 @@ def assign_region_to_channels(channels, anat, approx=3):
 
     """
     for one_chan in channels.chan:
-        one_region, _ = anat.find_brain_region(one_chan.xyz, approx)
-        one_chan.attr.update({'region': one_region})
+        one_region, approx = anat.find_brain_region(one_chan.xyz)
+        one_chan.attr.update({'region': one_region, 'approx': approx})
 
     return channels
 
