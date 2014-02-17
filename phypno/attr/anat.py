@@ -5,10 +5,12 @@
 from collections import Counter
 from logging import getLogger
 from os import environ
-from os.path import exists, join
+from os.path import exists, join, basename, splitext
+from struct import unpack
 
-from nibabel.freesurfer import read_geometry, read_annot
-from numpy import array, empty, vstack, around, dot, append, reshape, meshgrid
+from nibabel.freesurfer import read_annot
+from numpy import (array, empty, vstack, around, dot, append, reshape,
+                   meshgrid, asarray)
 
 from ..utils.caching import read_seg
 
@@ -18,6 +20,49 @@ FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
                    [0, 1, 0, 128],
                    [0, 0, 0, 1]])
+
+
+def _read_geometry(surf_file):
+    """Read a triangular format Freesurfer surface mesh.
+
+    Parameters
+    ----------
+    surf_file : str
+        path to surface file
+
+    Returns
+    -------
+    coords : numpy.ndarray
+        nvtx x 3 array of vertex (x, y, z) coordinates
+    faces : numpy.ndarray
+        nfaces x 3 array of defining mesh triangles
+
+    Notes
+    -----
+    This function comes from nibabel, but it doesn't use numpy because numpy
+    doesn't return the correct values in Python 3.
+
+    """
+    with open(surf_file, 'rb') as f:
+        filebytes = f.read()
+
+    assert filebytes[:3] == b'\xff\xff\xfe'
+    i0 = filebytes.index(b'\x0A\x0A') + 2
+    i1 = i0 + 4
+    vnum = unpack('>i', filebytes[i0:i1])[0]
+    i0 = i1
+    i1 += 4
+    fnum = unpack('>i', filebytes[i0:i1])[0]
+    i0 = i1
+    i1 += 4 * vnum * 3
+    verts = unpack('>' + 'f' * vnum * 3, filebytes[i0:i1])
+    i0 = i1
+    i1 += 4 * fnum * 3
+    faces = unpack('>' + 'i' * fnum * 3, filebytes[i0:i1])
+
+    verts = asarray(verts).reshape(vnum, 3)
+    faces = asarray(faces).reshape(fnum, 3)
+    return verts, faces
 
 
 def _find_neighboring_regions(pos, mri_dat, region, approx):
@@ -96,15 +141,26 @@ class Surf:
 
     Parameters
     ----------
+    surf_file : path to file
+        freesurfer file containing the surface
+
+    Parameters
+    ----------
     freesurfer_dir : str
         subject-specific directory created by freesurfer
     hemi : str
-            'lh' or 'rh'
+        'lh' or 'rh'
     surf_type : str
         'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
 
     Attributes
     ----------
+    surf_file : path to file
+        freesurfer file containing the surface
+    hemi : str
+            'lh' or 'rh'
+    surf_type : str
+        'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
     vert : numpy.ndarray
         vertices of the mesh
     tri : numpy.ndarray
@@ -112,13 +168,22 @@ class Surf:
 
     """
 
-    def __init__(self, freesurfer_dir, hemi, surf_type='pial'):
-        fs = Freesurfer(freesurfer_dir)
-        try:
-            self.vert, self.tri = fs.read_surf(hemi, surf_type)
-        except ValueError:
-            raise NotImplementedError('Nibabel/read_geometry throws an error '
-                                      'about reshape in Python 3 only')
+    def __init__(self, *args):
+
+        if len(args) == 1:
+            self.surf_file = args[0]
+            self.surf_type = splitext(self.surf_file)[1][1:]
+            self.hemi = splitext(basename(self.surf_file))[0]
+
+        elif len(args) == 3:
+            self.hemi = args[1]
+            self.surf_type = args[2]
+            self.surf_file = join(args[0], 'surf',
+                                  self.hemi + '.' + self.surf_type)
+
+        surf_vert, surf_tri = _read_geometry(self.surf_file)
+        self.vert = surf_vert
+        self.tri = surf_tri
 
 
 class Freesurfer:
@@ -149,7 +214,7 @@ class Freesurfer:
             lg.warning('Could not find lookup table, some functions that rely '
                        'on it might complain or crash.')
 
-    def find_brain_region(self, abs_pos, max_approx=0):
+    def find_brain_region(self, abs_pos, max_approx=None):
         """Find the name of the brain region in which an electrode is located.
 
         Parameters
@@ -181,8 +246,11 @@ class Freesurfer:
 
         mri_dat, _ = self.read_seg()
 
+        if max_approx is None:
+            max_approx = 3
+
         for approx in range(max_approx + 1):
-            lg.debug('Trying approx {}'.format(approx))
+            lg.debug('Trying approx {} out of {}'.format(approx, max_approx))
             regions = _find_neighboring_regions(pos, mri_dat,
                                                      self.lookuptable, approx)
             if regions:
@@ -251,12 +319,9 @@ class Freesurfer:
 
         Returns
         -------
-        numpy.ndarray
-            vertices of the mesh
-        numpy.ndarray
-            triangulation of the mesh
+        instance of Surf
 
         """
         surf_file = join(self.dir, 'surf', hemi + '.' + surf_type)
-        surf_vert, surf_tri = read_geometry(surf_file)
-        return surf_vert, surf_tri
+        surf = Surf(surf_file)
+        return surf

@@ -9,6 +9,7 @@ from PySide.QtGui import (QGraphicsScene,
                           QPainterPath,
                           QPen,
                           )
+
 from ..trans import Montage, Filter
 
 config = QSettings("phypno", "scroll_data")
@@ -36,7 +37,6 @@ class Scroll(QGraphicsView):
     data : instance of phypno.DataTime
         instance containing the recordings.
     scene :
-
     chan_plot : list of instances of plotItem
         references to the plots for each channel.
 
@@ -48,6 +48,7 @@ class Scroll(QGraphicsView):
         self.scene = None
         self.data = None
         self.chan_plot = None
+        self.thread_read = None
 
     def update_scroll(self):
         """Read and update the data to plot."""
@@ -62,9 +63,9 @@ class Scroll(QGraphicsView):
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
-        self.data = data
+        self.display_scroll(data)
 
-    def display_scroll(self):
+    def display_scroll(self, data):
         """Display the recordings."""
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
@@ -104,6 +105,8 @@ class Scroll(QGraphicsView):
 
         self.chan_plot = chan_plot
         self.set_ylimit()
+        if self.parent.bookmarks.bookmarks is not None:
+            self.add_bookmarks()
 
     def set_ylimit(self, new_ylimit=None):
         """Change the amplitude, you don't need to read in new data.
@@ -119,6 +122,18 @@ class Scroll(QGraphicsView):
         self.scale(1, 1/self.ylimit)
 
 """
+    def add_bookmarks(self):
+        \"""Add bookmarks on top of first plot.\"""
+        bookmarks = self.parent.bookmarks.bookmarks
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+        window_end = window_start + window_length
+        for bm in bookmarks:
+            if window_start < bm['time'] < window_end:
+                self.text = TextItem(bm['name'],
+                                anchor=(0, 0))  # TODO: not correct
+                self.chan_plot[0].addItem(self.text)
+
     def add_datetime_on_x(self):
         Change the labels on the x-axis to include the current time.
 

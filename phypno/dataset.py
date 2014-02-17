@@ -9,7 +9,7 @@ from math import ceil
 from logging import getLogger
 from os.path import isdir, join
 from numpy import arange
-from .ioeeg import Edf, Ktlx
+from .ioeeg import Edf, Ktlx, BlackRock
 from .datatype import DataTime
 from .utils import UnrecognizedFormat
 
@@ -23,18 +23,24 @@ def detect_format(filename):
     Parameters
     ----------
     filename : str
-        name of the filename or directory
+        name of the filename or directory.
+
+    Returns
+    -------
+    class used to read the data.
 
     """
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
-            recformat = 'KTLX'
+            recformat = Ktlx
         else:
-            recformat = 'unknown'
+            raise UnrecognizedFormat('Unrecognized format for directory ' +
+                                     filename)
     else:
 
         with open(filename, 'rb') as f:
-            if f.read(8) == b'0       ':
+            file_header = f.read(8)
+            if file_header == b'0       ':
                 f.seek(192)
                 edf_type = f.read(5)
                 if edf_type == b'EDF+C':
@@ -42,9 +48,12 @@ def detect_format(filename):
                 elif edf_type == b'EDF+D':
                     recformat = 'EDF+D'
                 else:
-                    recformat = 'EDF'
+                    recformat = Edf
+            elif file_header in (b'NEURALCD', b'NEURALEV'):
+                recformat = BlackRock
             else:
-                recformat = 'unknown'
+                raise UnrecognizedFormat('Unrecognized format for file ' +
+                                         filename)
 
     return recformat
 
@@ -63,7 +72,7 @@ class Dataset:
     ----------
     filename : str
         name of the file
-    format : str
+    IOClass : class
         format of the file
     header : dict
         - subj_id : str
@@ -93,18 +102,15 @@ class Dataset:
     directory, or if the file is mapped to memory.
 
     """
-    def __init__(self, filename, memmap=False):
+    def __init__(self, filename, IOClass=None, memmap=False):
         self.filename = filename
-        self.format = detect_format(filename)
 
-        if self.format == 'EDF':
-            self.dataset = Edf(filename)
-        elif self.format == 'KTLX':
-            self.dataset = Ktlx(filename)
+        if IOClass is not None:
+            self.IOClass = IOClass
         else:
-            raise UnrecognizedFormat('Unrecognized format ("' + self.format +
-                                     '")')
+            self.IOClass = detect_format(filename)
 
+        self.dataset = self.IOClass(self.filename)
         output = self.dataset.return_hdr()
         hdr = {}
         hdr['subj_id'] = output[0]

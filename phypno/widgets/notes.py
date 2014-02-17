@@ -4,6 +4,7 @@ lg = getLogger(__name__)
 from datetime import datetime, timedelta
 from functools import partial
 from math import floor
+from os.path import basename
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 from PySide.QtCore import QSettings
@@ -52,6 +53,7 @@ class Bookmarks(QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.cellDoubleClicked.connect(self.move_to_bookmark)
 
     def update_bookmarks(self, header):
         """Update the bookmarks info
@@ -80,14 +82,29 @@ class Bookmarks(QTableWidget):
         """Update the table with bookmarks."""
         start_time = self.parent.info.dataset.header['start_time']
 
-
         self.setRowCount(len(self.bookmarks))
         for i, bm in enumerate(self.bookmarks):
-            abs_time = (start_time + timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
+            abs_time = (start_time +
+                        timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
             self.setItem(i, 0, QTableWidgetItem(abs_time))
             self.setItem(i, 1, QTableWidgetItem(bm['name']))
 
         self.parent.overview.mark_bookmarks()
+
+    def move_to_bookmark(self, row, col):
+        """Move to point in time marked by the bookmark.
+
+        Parameters
+        ----------
+        row : QtCore.int
+
+        column : QtCore.int
+
+        """
+        window_length = self.parent.overview.window_length
+        bookmark_time = self.bookmarks[row]['time']
+        window_start = floor(bookmark_time / window_length) * window_length
+        self.parent.overview.update_position(window_start)
 
 
 class Events(QWidget):
@@ -106,14 +123,14 @@ class Events(QWidget):
         layout.addRow('List: ', self.table)
         self.setLayout(layout)
 
-    def update_overview(self):
+    def update_events(self):
         """
 
         """
 
-        self.display_overview()
+        self.display_events()
 
-    def display_overview(self):
+    def display_events(self):
         pass
 
 
@@ -239,8 +256,6 @@ class Stages(QWidget):
         the main window.
     scores : instance of Scores
         information about sleep staging
-    filename : str
-        path to .xml file
     file_button : instance of QPushButton
         push button to open a new file
     rater : instance of QLabel
@@ -270,7 +285,7 @@ class Stages(QWidget):
         layout.addRow('Stage: ', self.combobox)
         self.setLayout(layout)
 
-    def update_overview(self, xml_file):
+    def update_stages(self, xml_file):
         """Update information about the sleep scoring.
 
         Parameters
@@ -284,11 +299,11 @@ class Stages(QWidget):
         except FileNotFoundError:
             root = self.create_empty_xml()
             self.scores = Scores(xml_file, root)
-        self.display_overview()
+        self.display_stages()
 
-    def display_overview(self):
+    def display_stages(self):
         """Update the widgets of the sleep scoring."""
-        self.file_button.setText(self.scores.xml_file)
+        self.file_button.setText(basename(self.scores.xml_file))
         self.rater.setText(self.scores.get_rater())
         for one_stage in stage_name:
             self.combobox.addItem(one_stage)

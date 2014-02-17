@@ -3,19 +3,19 @@ lg = getLogger(__name__)
 lg.setLevel(INFO)
 
 from numpy import linspace
-from PySide.QtCore import QSettings, QThread, Signal
+from PySide.QtCore import QSettings, Signal, QThread
 from PySide.QtGui import QDockWidget
 
 config = QSettings("phypno", "scroll_data")
 
 
 class DownloadData(QThread):
-    """Creates a new thread, that reads all the data consecuntively.
+    """Creates a new thread, that reads all the data consecutively.
 
     Notes
     -----
-    TODO: close the thread cleanly.
     TODO: restart from a new position, when you move the cursor.
+    TODO: implement this the clean way of QThread
 
     """
     one_more_interval = Signal(float, float)

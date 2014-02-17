@@ -14,6 +14,7 @@ from PySide.QtGui import (QAbstractItemView,
                           QListWidget,
                           QListWidgetItem,
                           QPushButton,
+                          QVBoxLayout,
                           )
 
 
@@ -70,18 +71,28 @@ class Channels(QGroupBox):
         delButton = QPushButton('Delete')
         delButton.clicked.connect(self.delete_group)
 
-        self.hpEdit = QLineEdit('None')
-        self.lpEdit = QLineEdit('None')
-
-        applyButton = QPushButton('Apply')
-        applyButton.clicked.connect(self.apply_changes)
-
         self.list_grp = QComboBox()
         for one_grp in self.groups:
             self.list_grp.addItem(one_grp['name'])
 
         self.list_grp.activated.connect(self.update_chan_grp)
         self.current = self.list_grp.currentText()
+
+        self.l0 = QListWidget()
+        self.create_list(self.l0)
+        self.l1 = QListWidget()
+        self.create_list(self.l1)
+
+        rerefButton = QPushButton('Average Ref')
+        rerefButton.clicked.connect(self.average_reference)
+        rerefButton.setToolTip('Use the average of all the channels being ' +
+                               'plotted as reference.')
+
+        self.hpEdit = QLineEdit('None')
+        self.lpEdit = QLineEdit('None')
+
+        applyButton = QPushButton('Apply')
+        applyButton.clicked.connect(self.apply_changes)
 
         hdr = QGridLayout()
         hdr.addWidget(addButton, 0, 0)
@@ -93,11 +104,17 @@ class Channels(QGroupBox):
         filt.addRow('High-Pass', self.hpEdit)
         filt.addRow('Low-Pass', self.lpEdit)
 
+        reflayout = QVBoxLayout()
+        reflayout.addWidget(self.l1)
+        reflayout.addWidget(rerefButton)
+
         layout = QGridLayout()
         layout.addWidget(self.list_grp, 0, 0)
         layout.addLayout(hdr, 0, 1)
         layout.addWidget(QLabel('Channels to Visualize'), 1, 0)
         layout.addWidget(QLabel('Reference Channels'), 1, 1)
+        layout.addWidget(self.l0, 2, 0)
+        layout.addLayout(reflayout, 2, 1)
         layout.addLayout(filt, 3, 0)
         layout.addWidget(applyButton, 3, 1)
 
@@ -106,25 +123,32 @@ class Channels(QGroupBox):
         self.update_list_grp()
 
     def update_list_grp(self):
-        """Update the list containing the channels.
-
-        TODO: this should probably update the filter settings.
-
-        """
+        """Update the list containing the channels."""
         current = self.list_grp.currentText()
         idx = [x['name'] for x in self.groups].index(current)
-        l0 = self.create_list(self.groups[idx]['chan_to_plot'])
-        l1 = self.create_list(self.groups[idx]['ref_chan'])
-        self.layout.addWidget(l0, 2, 0)
-        self.layout.addWidget(l1, 2, 1)
-        self.l0 = l0
-        self.l1 = l1
+        self.highlight_list(self.l0, self.groups[idx]['chan_to_plot'])
+        self.highlight_list(self.l1, self.groups[idx]['ref_chan'])
         self.hpEdit.setText(str(self.groups[idx]['filter']['low_cut']))
         self.lpEdit.setText(str(self.groups[idx]['filter']['high_cut']))
         self.current = current  # update index
 
-    def create_list(self, selected_chan):
+    def create_list(self, l):
         """Create list of channels (one for those to plot, one for ref).
+
+        Parameters
+        ----------
+        l : instance of QListWidget
+            one of the two lists (chan_to_plot or ref_chan)
+
+        """
+        ExtendedSelection = QAbstractItemView.SelectionMode(3)
+        l.setSelectionMode(ExtendedSelection)
+        for chan in self.chan_name:
+            item = QListWidgetItem(chan)
+            l.addItem(item)
+
+    def highlight_list(self, l, selected_chan):
+        """Highlight channels in the list of channels.
 
         Parameters
         ----------
@@ -132,22 +156,23 @@ class Channels(QGroupBox):
             channels to indicate as selected.
 
         """
-        l = QListWidget()
-        ExtendedSelection = QAbstractItemView.SelectionMode(3)
-        l.setSelectionMode(ExtendedSelection)
-        for chan in self.chan_name:
-            item = QListWidgetItem(chan)
-            l.addItem(item)
-            if chan in selected_chan:
+        for row in range(l.count()):
+            item = l.item(row)
+            if item.text() in selected_chan:
                 item.setSelected(True)
             else:
                 item.setSelected(False)
-        return l
+
+    def average_reference(self):
+        """Select in the reference all the channels in the main selection."""
+        selectedItems = self.l0.selectedItems()
+        chan_to_plot = []
+        for selected in selectedItems:
+            chan_to_plot.append(selected.text())
+        self.highlight_list(self.l1, chan_to_plot)
 
     def update_chan_grp(self):
-        """Read the GUI and update the channel groups.
-
-        """
+        """Read the GUI and update the channel groups."""
         selectedItems = self.l0.selectedItems()
         chan_to_plot = []
         for selected in selectedItems:
@@ -179,9 +204,7 @@ class Channels(QGroupBox):
         self.update_list_grp()
 
     def apply_changes(self):
-        """Apply changes to the plots.
-
-        """
+        """Apply changes to the plots."""
         self.update_chan_grp()
         self.parent.overview.update_position()
 
@@ -202,9 +225,7 @@ class Channels(QGroupBox):
             self.inputdialog.textValueSelected.connect(self.rename_group)
 
     def new_group(self):
-        """Create a new group of channels.
-
-        """
+        """Create a new group of channels."""
         new_grp_name = self.inputdialog.textValue()
         self.groups.append({'name': new_grp_name,
                               'chan_to_plot': [],
@@ -218,9 +239,8 @@ class Channels(QGroupBox):
         self.update_list_grp()
 
     def rename_group(self):
-        """Rename a group of channels.
+        """Rename a group of channels."""
 
-        """
         new_grp_name = self.inputdialog.textValue()
         idx = [x['name'] for x in self.groups].index(self.current)
         self.groups[idx]['name'] = new_grp_name
