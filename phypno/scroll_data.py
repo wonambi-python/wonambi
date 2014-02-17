@@ -45,7 +45,7 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 
@@ -61,7 +61,6 @@ config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
 config.setValue('stage_scoring_window', 30)  # sleep scoring window
 config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
-
 
 
 class MainWindow(QMainWindow):
