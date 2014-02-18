@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from logging import getLogger, INFO
 lg = getLogger(__name__)
 lg.setLevel(INFO)
@@ -47,7 +49,7 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 setConfigOption('background', 'w')
 

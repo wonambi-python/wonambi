@@ -55,6 +55,7 @@ class Scroll(QGraphicsView):
         self.all_chan = []
         self.all_label = []
         self.all_time = []
+        self.all_bookmark = []
 
     def update_scroll(self):
         """Read and update the data to plot."""
@@ -215,18 +216,14 @@ class Scroll(QGraphicsView):
 
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""
-
-        pass
-
-"""
         bookmarks = self.parent.bookmarks.bookmarks
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
         window_end = window_start + window_length
+
+        self.all_bookmark = []
         for bm in bookmarks:
             if window_start < bm['time'] < window_end:
-                self.text = TextItem(bm['name'],
-                                anchor=(0, 0))  # TODO: not correct
-                self.chan_plot[0].addItem(self.text)
-
-"""
+                item = QGraphicsSimpleTextItem(bm['name'])
+                item.setPos(bm['time'], 0)
+                self.all_bookmark.append(item)
