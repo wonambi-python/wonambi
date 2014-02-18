@@ -227,6 +227,7 @@ class Scores():
 
     def load(self):
         """Load xml from file."""
+        lg.info('Loading ' + self.xml_file)
         xml = parse(self.xml_file)
         root = xml.getroot()
         root.text = root.text.strip()
@@ -243,6 +244,8 @@ class Scores():
     def save(self):
         """Save xml to file."""
         xml = parseString(tostring(self.root))
+        lg.info('Saving ' + self.xml_file)
+        lg.debug(xml.toprettyxml())
         with open(self.xml_file, 'w+') as f:
             f.write(xml.toprettyxml())
 
@@ -338,6 +341,7 @@ class Stages(QWidget):
 
         """
         id_window = str(self.parent.overview.window_start)
+        lg.info('Current window is: ' + id_window)
         self.scores.set_stage_for_epoch(id_window, stage_name[stage_idx])
         self.set_combobox_index()
         self.parent.action_page_next()
@@ -357,7 +361,7 @@ class Stages(QWidget):
         main = Element('sleep_stages')
         main.set('filename', self.parent.info.filename)
         rated = SubElement(main, 'rater')
-        rated.set('name', 'TODO')
+        rated.set('name', 'gio')
 
         for t in range(minimum, maximum, window_length):
             epoch = SubElement(rated, 'epoch')

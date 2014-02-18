@@ -2,6 +2,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
+from numpy import floor
 from PySide.QtCore import Qt, QSettings, Slot
 from PySide.QtGui import (QBrush,
                           QPen,
@@ -184,4 +185,6 @@ class Overview(QGraphicsView):
 
     def mousePressEvent(self, event):
         x_in_scene = self.mapToScene(event.pos()).x()
-        self.update_position(x_in_scene)
+        window_length = self.parent.overview.window_length
+        window_start = int(floor(x_in_scene / window_length) * window_length)
+        self.update_position(window_start)
