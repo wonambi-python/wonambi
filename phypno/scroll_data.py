@@ -60,7 +60,7 @@ config.setValue('window_page_length', 30)
 config.setValue('window_step_ratio', 5)
 
 config.setValue('n_time_labels', 3)
-config.setValue('y_dist', 200)
+config.setValue('y_dist', 50)
 config.setValue('y_scale', 1)
 config.setValue('label_width', 2)
 
@@ -68,6 +68,9 @@ config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('stage_scoring_window', 30)  # sleep scoring window = one pixel per 30 s
 config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
+config.setValue('preset_y_amplitude', [.1, .2, .5, 1, 2, 5, 10])
+config.setValue('preset_y_distance', [20, 50, 100, 200])
+config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
 
 
 class MainWindow(QMainWindow):
@@ -255,17 +258,25 @@ class MainWindow(QMainWindow):
         submenu_ampl.addAction(actions['Y_less'])
         submenu_ampl.addAction(actions['Y_more'])
         submenu_ampl.addSeparator()
-        submenu_ampl.addAction('(presets)')
-        submenu_length = menu_view.addMenu('Distance Between Traces')
-        submenu_length.addAction(actions['Y_wider'])
-        submenu_length.addAction(actions['Y_tighter'])
-        submenu_length.addSeparator()
-        submenu_length.addAction('(presets)')
+        for x in sorted(config.value('preset_y_amplitude'), reverse=True):
+            act = submenu_ampl.addAction('Set to ' + str(x))
+            act.triggered.connect(partial(self.action_Y_ampl, x))
+
+        submenu_dist = menu_view.addMenu('Distance Between Traces')
+        submenu_dist.addAction(actions['Y_wider'])
+        submenu_dist.addAction(actions['Y_tighter'])
+        submenu_dist.addSeparator()
+        for x in sorted(config.value('preset_y_distance'), reverse=True):
+            act = submenu_dist.addAction('Set to ' + str(x))
+            act.triggered.connect(partial(self.action_Y_dist, x))
+
         submenu_length = menu_view.addMenu('Window Length')
         submenu_length.addAction(actions['X_more'])
         submenu_length.addAction(actions['X_less'])
         submenu_length.addSeparator()
-        submenu_length.addAction('(presets)')
+        for x in sorted(config.value('preset_x_length'), reverse=True):
+            act = submenu_length.addAction('Set to ' + str(x))
+            act.triggered.connect(partial(self.action_X_length, x))
 
         menu_bookmark = menubar.addMenu('Bookmark')
         menu_bookmark.addAction('New Bookmark')
@@ -402,6 +413,11 @@ class MainWindow(QMainWindow):
         self.overview.window_length = self.overview.window_length / 2
         self.overview.update_position()
 
+    def action_X_length(self, new_window_length):
+        """Use presets for length of the window."""
+        self.overview.window_length = new_window_length
+        self.overview.update_position()
+
     def action_Y_more(self):
         """Increase the amplitude."""
         self.scroll.set_y_scale(self.scroll.y_scale * 2)
@@ -409,6 +425,10 @@ class MainWindow(QMainWindow):
     def action_Y_less(self):
         """Decrease the amplitude."""
         self.scroll.set_y_scale(self.scroll.y_scale / 2)
+
+    def action_Y_ampl(self, new_y_scale):
+        """Make amplitude on Y axis using predefined values"""
+        self.scroll.set_y_scale(new_y_scale)
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
@@ -418,6 +438,11 @@ class MainWindow(QMainWindow):
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
         self.scroll.y_dist /= 1.4
+        self.scroll.display_scroll()
+
+    def action_Y_dist(self, new_y_dist):
+        """Use preset values for the distance between lines."""
+        self.scroll.y_dist = new_y_dist
         self.scroll.display_scroll()
 
     def action_download(self):
