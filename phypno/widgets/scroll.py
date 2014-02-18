@@ -73,6 +73,7 @@ class Scroll(QGraphicsView):
 
         self.data = data
         self.display_scroll(data)
+        self.parent.overview.more_download(window_start, window_end)
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""

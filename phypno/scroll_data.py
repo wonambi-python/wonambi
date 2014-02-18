@@ -7,7 +7,7 @@ lg.setLevel(INFO)
 from functools import partial
 from os.path import dirname, basename, splitext, join
 from sys import argv, exit
-from PySide.QtCore import Qt, QSettings, QThread
+from PySide.QtCore import Qt, QSettings
 from PySide.QtGui import (QAction,
                           QApplication,
                           QFileDialog,
@@ -15,10 +15,9 @@ from PySide.QtGui import (QAction,
                           QKeySequence,
                           QMainWindow,
                           )
-from pyqtgraph import setConfigOption
 # change phypno.widgets into .widgets
 from phypno.widgets import (Info, Channels, Overview, Scroll, Bookmarks,
-                            Events, Stages, Video, DownloadData, DockWidget)
+                            Events, Stages, Video, DockWidget)
 
 
 icon = {
@@ -51,8 +50,6 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
-setConfigOption('background', 'w')
-
 config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
 config.setValue('window_page_length', 30)
@@ -64,12 +61,12 @@ config.setValue('y_dist', 50)
 config.setValue('y_scale', 1)
 config.setValue('label_width', 2)
 
-config.setValue('read_intervals', 30)  # pre-read file every X seconds
+config.setValue('read_intervals', 10 * 60)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('stage_scoring_window', 30)  # sleep scoring window = one pixel per 30 s
 config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
 config.setValue('preset_y_amplitude', [.1, .2, .5, 1, 2, 5, 10])
-config.setValue('preset_y_distance', [20, 50, 100, 200])
+config.setValue('preset_y_distance', [20, 30, 40, 50, 100, 200])
 config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
 
 
@@ -190,11 +187,6 @@ class MainWindow(QMainWindow):
                                        'Smaller Y Distance', self)
         actions['Y_tighter'].triggered.connect(self.action_Y_tighter)
 
-
-        actions['download'] = QAction(icon['download'], 'Download Whole File',
-                                      self)
-        actions['download'].triggered.connect(self.action_download)
-
         self.action = actions  # actions was already taken
 
     def create_menubar(self):
@@ -217,6 +209,20 @@ class MainWindow(QMainWindow):
         menu_file.addAction(actions['open_rec'])
         submenu_recent = menu_file.addMenu('Recent Recordings')
         submenu_recent.addAction(actions['open_recent_rec'])
+
+        menu_download = menu_file.addMenu('Download File')
+        menu_download.setIcon(icon['download'])
+        act = menu_download.addAction('Whole File')
+        act.triggered.connect(self.action_download)
+        act = menu_download.addAction('30 Minutes')
+        act.triggered.connect(partial(self.action_download, 30 * 60))
+        act = menu_download.addAction('1 Hour')
+        act.triggered.connect(partial(self.action_download, 60 * 60))
+        act = menu_download.addAction('3 Hours')
+        act.triggered.connect(partial(self.action_download, 3 * 60 * 60))
+        act = menu_download.addAction('6 Hours')
+        act.triggered.connect(partial(self.action_download, 6 * 60 * 60))
+
         menu_file.addSeparator()
         menu_file.addAction(actions['open_bookmarks'])
         menu_file.addAction(actions['open_events'])
@@ -309,7 +315,6 @@ class MainWindow(QMainWindow):
 
         toolbar = self.addToolBar('File Management')
         toolbar.addAction(actions['open_rec'])
-        toolbar.addAction(actions['download'])
 
         toolbar = self.addToolBar('Scroll')
         toolbar.addAction(actions['step_prev'])
@@ -445,12 +450,21 @@ class MainWindow(QMainWindow):
         self.scroll.y_dist = new_y_dist
         self.scroll.display_scroll()
 
-    def action_download(self):
+    def action_download(self, length=None):
         """Start the download of the dataset."""
-        self.thread_download = DownloadData(self)
-        self.thread_download.one_more_interval.connect(self.overview.more_download)
-        self.thread_download.start()
-        self.thread_download.setPriority(QThread.Priority.LowestPriority)
+        dataset = self.info.dataset
+        if length is None or length > self.overview.maximum:
+            length = self.overview.maximum
+
+        steps = list(range(self.overview.window_start,
+                           self.overview.window_start + length,
+                           config.value('read_intervals')))
+        one_chan = dataset.header['chan_name'][0]
+        for begtime, endtime in zip(steps[:-1], steps[1:]):
+            dataset.read_data(chan=[one_chan],
+                              begtime=begtime,
+                              endtime=endtime)
+            self.overview.more_download(begtime, endtime)
 
     def create_widgets(self):
         """Create all the widgets and dockwidgets.

@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
 from numpy import floor
-from PySide.QtCore import Qt, QSettings, Slot
+from PySide.QtCore import Qt, QSettings
 from PySide.QtGui import (QBrush,
                           QPen,
                           QGraphicsLineItem,
@@ -167,7 +167,6 @@ class Overview(QGraphicsView):
             self.scene.addItem(rect[-1])
         self.stages = rect
 
-    @Slot(float, float)
     def more_download(self, start_value, end_value):
         """Set the value of the progress bar.
 
