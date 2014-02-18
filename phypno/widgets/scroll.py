@@ -174,7 +174,8 @@ class Scroll(QGraphicsView):
                 data1 = lpfilt(data1)
             for chan in one_grp['chan_to_plot']:
                 dat, time = data1(chan=[chan])
-                path = self.scene.addPath(Trace(time, squeeze(dat, axis=0)))
+                dat = squeeze(dat, axis=0) * one_grp['scale']
+                path = self.scene.addPath(Trace(time, dat))
                 path.setPen(QPen(one_grp['color']))
                 path.setPos(0, self.y_dist * row + self.y_dist / 2)
                 self.all_chan.append(path)

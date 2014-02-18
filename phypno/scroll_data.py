@@ -66,8 +66,7 @@ config.setValue('label_width', 2)
 
 config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
-config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
-config.setValue('stage_scoring_window', 30)  # sleep scoring window
+config.setValue('stage_scoring_window', 30)  # sleep scoring window = one pixel per 30 s
 config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
 
 

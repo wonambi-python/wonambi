@@ -42,8 +42,7 @@ class Channels(QGroupBox):
                       'ref_chan': [],
                       'color': QColor('black'),
                       'filter': {'low_cut': None, 'high_cut': None},
-                      },
-                      ]
+                      'scale': 1}, ]
 
     def update_channels(self, chan_name):
         """Read the channels and updates the widget.
@@ -91,6 +90,8 @@ class Channels(QGroupBox):
         self.hpEdit = QLineEdit('None')
         self.lpEdit = QLineEdit('None')
 
+        self.scaleEdit = QLineEdit(str(1))
+
         applyButton = QPushButton('Apply')
         applyButton.clicked.connect(self.apply_changes)
 
@@ -104,6 +105,10 @@ class Channels(QGroupBox):
         filt.addRow('High-Pass', self.hpEdit)
         filt.addRow('Low-Pass', self.lpEdit)
 
+        applyform = QFormLayout()
+        applyform.addRow('Scaling', self.scaleEdit)
+        applyform.addRow(applyButton)
+
         reflayout = QVBoxLayout()
         reflayout.addWidget(self.l1)
         reflayout.addWidget(rerefButton)
@@ -116,7 +121,7 @@ class Channels(QGroupBox):
         layout.addWidget(self.l0, 2, 0)
         layout.addLayout(reflayout, 2, 1)
         layout.addLayout(filt, 3, 0)
-        layout.addWidget(applyButton, 3, 1)
+        layout.addLayout(applyform, 3, 1)
 
         self.setLayout(layout)
         self.layout = layout
@@ -130,6 +135,7 @@ class Channels(QGroupBox):
         self.highlight_list(self.l1, self.groups[idx]['ref_chan'])
         self.hpEdit.setText(str(self.groups[idx]['filter']['low_cut']))
         self.lpEdit.setText(str(self.groups[idx]['filter']['high_cut']))
+        self.scaleEdit.setText(str(self.groups[idx]['scale']))
         self.current = current  # update index
 
     def create_list(self, l):
@@ -195,11 +201,14 @@ class Channels(QGroupBox):
         else:
             high_cut = float(lp)
 
+        scale = self.scaleEdit.text()
+
         idx = [x['name'] for x in self.groups].index(self.current)
         self.groups[idx]['chan_to_plot'] = chan_to_plot
         self.groups[idx]['ref_chan'] = ref_chan
         self.groups[idx]['filter']['low_cut'] = low_cut
         self.groups[idx]['filter']['high_cut'] = high_cut
+        self.groups[idx]['scale'] = float(scale)
 
         self.update_list_grp()
 
@@ -232,7 +241,7 @@ class Channels(QGroupBox):
                               'ref_chan': [],
                               'color': QColor('black'),
                               'filter': {'low_cut': None, 'high_cut': None},
-                              })
+                              'scale': 1})
         idx = self.list_grp.currentIndex()
         self.list_grp.insertItem(idx + 1, new_grp_name)
         self.list_grp.setCurrentIndex(idx + 1)

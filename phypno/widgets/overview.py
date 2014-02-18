@@ -72,7 +72,7 @@ class Overview(QGraphicsView):
         self.scene = None
         self.item = {}
         self.setMinimumHeight(total_height + 30)
-        self.scale(1 / float(config.value('ratio_second_overview')), 1)
+        self.scale(1 / float(config.value('stage_scoring_window')), 1)
 
     def update_overview(self):
         """Read full duration and update maximum."""
@@ -115,7 +115,7 @@ class Overview(QGraphicsView):
                                  end_time.day,
                                  end_time.hour + 1).timestamp())
 
-        ratio = float(config.value('ratio_second_overview'))
+        ratio = float(config.value('stage_scoring_window'))
         steps = int(config.value('overview_timestamp_steps'))
 
         for t in range(first_hour, last_hour, steps):
