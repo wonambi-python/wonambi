@@ -1,14 +1,14 @@
 from datetime import datetime
 from logging import getLogger
 from numpy import arange
-from numpy.random import rand
+from numpy.random import random
 from ..datatype import DataTime, DataFreq, DataTimeFreq
 
 lg = getLogger('phypno')
 
 
 def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
-                s_freq=None, time=None, freq=None):
+                s_freq=None, time=None, freq=None, values=None):
     """Create data of different datatype from scratch.
 
     Parameters
@@ -23,10 +23,12 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
         if chan_name is not specified, this defines the number of channels
     s_freq : int, optional
         sampling frequency
-    time : numpy.ndarray or tuple of two numbers
+    time : numpy.ndarray or tuple of two numbers, optional
         if tuple, the first and second numbers indicate beginning and end
-    freq : numpy.ndarray or tuple of two numbers
+    freq : numpy.ndarray or tuple of two numbers, optional
         if tuple, the first and second numbers indicate beginning and end
+    values : tuple of two numbers, optional
+        the min and max values of the random data values.
 
     Returns
     -------
@@ -34,7 +36,8 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
 
     Notes
     -----
-    Data is generated using numpy.random.rand.
+    Data is generated using numpy.random.random, meaning that the values will
+    be between values[0] (included) and values[1] (excluded).
 
     """
     possible_datatypes = ('DataTime', 'DataFreq', 'DataTimeFreq')
@@ -44,6 +47,11 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
 
     if s_freq is None:
         s_freq = 512
+
+    if values is None:
+        values = (0, 1)
+    mult = values[1] - values[0]
+    add = values[0]
 
     if time is not None:
         if isinstance(time, tuple) and len(time) == 2:
@@ -65,13 +73,13 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
 
     if datatype == 'DataTime':
         data = DataTime()
-        data.data = rand(len(chan_name), len(time))
+        data.data = random((len(chan_name), len(time))) * mult + add
     if datatype == 'DataFreq':
         data = DataFreq()
-        data.data = rand(len(chan_name), 1, len(freq))
+        data.data = random((len(chan_name), 1, len(freq))) * mult + add
     if datatype == 'DataTimeFreq':
         data = DataTimeFreq()
-        data.data = rand(len(chan_name), len(time), len(freq))
+        data.data = random((len(chan_name), len(time), len(freq))) * mult + add
 
     data.chan_name = chan_name
     data.start_time = start_time
