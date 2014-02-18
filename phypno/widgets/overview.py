@@ -70,7 +70,7 @@ class Overview(QGraphicsView):
         self.maximum = None
         self.scene = None
         self.item = {}
-        self.setMinimumHeight(total_height + 15)
+        self.setMinimumHeight(total_height + 30)
         self.scale(1 / float(config.value('ratio_second_overview')), 1)
 
     def update_overview(self):
@@ -181,3 +181,7 @@ class Overview(QGraphicsView):
         avail.stackBefore(self.item['available'])
         avail.setPen(Qt.NoPen)
         avail.setBrush(QBrush(Qt.green))
+
+    def mousePressEvent(self, event):
+        x_in_scene = self.mapToScene(event.pos()).x()
+        self.update_position(x_in_scene)
