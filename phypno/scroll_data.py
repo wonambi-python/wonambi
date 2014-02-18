@@ -32,6 +32,8 @@ icon = {
     'zoomout': QIcon.fromTheme('zoom-out'),
     'zoomnext': QIcon.fromTheme('zoom-next'),
     'zoomprev': QIcon.fromTheme('zoom-previous'),
+    'ydist_more': QIcon.fromTheme('format-line-spacing-triple'),
+    'ydist_less': QIcon.fromTheme('format-line-spacing-normal'),
     'selchan': QIcon.fromTheme('mail-mark-task'),
     'download': QIcon.fromTheme('download'),
     'widget': QIcon.fromTheme('window-duplicate'),
@@ -54,8 +56,12 @@ config.setValue('window_start', 0)
 config.setValue('window_page_length', 30)
 # one step = window_page_length / window_step_ratio
 config.setValue('window_step_ratio', 5)
-config.setValue('ylimit', 10)
-config.setValue('distance_traces', 200)
+
+config.setValue('n_time_labels', 3)
+config.setValue('y_dist', 200)
+config.setValue('y_scale', 1)
+config.setValue('label_width', 2)
+
 config.setValue('read_intervals', 30)  # pre-read file every X seconds
 config.setValue('hidden_docks', ['Video', ])
 config.setValue('ratio_second_overview', 30)  # one pixel per 30 s
@@ -166,11 +172,20 @@ class MainWindow(QMainWindow):
 
         actions['Y_less'] = QAction(icon['zoomin'], 'Larger Amplitude', self)
         actions['Y_less'].setShortcut(QKeySequence.MoveToPreviousLine)
-        actions['Y_less'].triggered.connect(self.action_Y_less)
+        actions['Y_less'].triggered.connect(self.action_Y_more)
 
         actions['Y_more'] = QAction(icon['zoomout'], 'Smaller Amplitude', self)
         actions['Y_more'].setShortcut(QKeySequence.MoveToNextLine)
-        actions['Y_more'].triggered.connect(self.action_Y_more)
+        actions['Y_more'].triggered.connect(self.action_Y_less)
+
+        actions['Y_wider'] = QAction(icon['ydist_more'],
+                                     'Larger Y Distance', self)
+        actions['Y_wider'].triggered.connect(self.action_Y_wider)
+
+        actions['Y_tighter'] = QAction(icon['ydist_less'],
+                                       'Smaller Y Distance', self)
+        actions['Y_tighter'].triggered.connect(self.action_Y_tighter)
+
 
         actions['download'] = QAction(icon['download'], 'Download Whole File',
                                       self)
@@ -240,6 +255,11 @@ class MainWindow(QMainWindow):
         submenu_ampl.addAction(actions['Y_more'])
         submenu_ampl.addSeparator()
         submenu_ampl.addAction('(presets)')
+        submenu_length = menu_view.addMenu('Distance Between Traces')
+        submenu_length.addAction(actions['Y_wider'])
+        submenu_length.addAction(actions['Y_tighter'])
+        submenu_length.addSeparator()
+        submenu_length.addAction('(presets)')
         submenu_length = menu_view.addMenu('Window Length')
         submenu_length.addAction(actions['X_more'])
         submenu_length.addAction(actions['X_less'])
@@ -290,6 +310,9 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(actions['Y_less'])
         toolbar.addAction(actions['Y_more'])
+        toolbar.addAction(actions['Y_wider'])
+        toolbar.addAction(actions['Y_tighter'])
+
 
     def action_open_rec(self, recent=None):
         """Action: open a new dataset."""
@@ -378,13 +401,23 @@ class MainWindow(QMainWindow):
         self.overview.window_length = self.overview.window_length / 2
         self.overview.update_position()
 
-    def action_Y_less(self):
-        """Decrease the amplitude."""
-        self.scroll.set_ylimit(self.scroll.ylimit / 2)
-
     def action_Y_more(self):
         """Increase the amplitude."""
-        self.scroll.set_ylimit(self.scroll.ylimit * 2)
+        self.scroll.set_y_scale(self.scroll.y_scale * 2)
+
+    def action_Y_less(self):
+        """Decrease the amplitude."""
+        self.scroll.set_y_scale(self.scroll.y_scale / 2)
+
+    def action_Y_wider(self):
+        """Increase the distance of the lines."""
+        self.scroll.y_dist *= 1.4
+        self.scroll.display_scroll()
+
+    def action_Y_tighter(self):
+        """Decrease the distance of the lines."""
+        self.scroll.y_dist /= 1.4
+        self.scroll.display_scroll()
 
     def action_download(self):
         """Start the download of the dataset."""

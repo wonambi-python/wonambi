@@ -2,9 +2,11 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import timedelta
-from numpy import squeeze
-from PySide.QtCore import QSettings
-from PySide.QtGui import (QGraphicsScene,
+from numpy import squeeze, floor, ceil
+from PySide.QtCore import QSettings, QPointF
+from PySide.QtGui import (QBrush,
+                          QGraphicsScene,
+                          QGraphicsSimpleTextItem,
                           QGraphicsView,
                           QPainterPath,
                           QPen,
@@ -43,12 +45,16 @@ class Scroll(QGraphicsView):
     """
     def __init__(self, parent):
         super().__init__()
+
         self.parent = parent
-        self.ylimit = config.value('ylimit')
+        self.y_scale = config.value('y_scale')
+        self.y_dist = config.value('y_dist')
+        self.y_scrollbar_value = 0
         self.scene = None
         self.data = None
-        self.chan_plot = None
-        self.thread_read = None
+        self.all_chan = []
+        self.all_label = []
+        self.all_time = []
 
     def update_scroll(self):
         """Read and update the data to plot."""
@@ -63,26 +69,96 @@ class Scroll(QGraphicsView):
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
+
+        self.data = data
         self.display_scroll(data)
 
-    def display_scroll(self, data):
+    def create_labels(self):
+        """Create the channel labels, but don't plot them yet."""
+
+        self.all_label = []
+        for one_grp in self.parent.channels.groups:
+            for one_label in one_grp['chan_to_plot']:
+                item = QGraphicsSimpleTextItem(one_label)
+                item.setBrush(QBrush(one_grp['color']))
+                self.all_label.append(item)
+
+    def create_time(self, times):
+        """Create the time labels, but don't plot them yet.
+
+        Notes
+        -----
+        Not very robust, because it uses seconds as integers.
+
+        """
+        start_time = self.parent.info.dataset.header['start_time']
+
+        min_time = int(floor(min(times)))
+        max_time = int(ceil(max(times)))
+        n_time_labels = config.value('n_time_labels')
+        step = int((max_time - min_time) / n_time_labels)
+
+        self.all_time = []
+        self.all_time_pos = []
+        for one_time in range(min_time, max_time, step):
+            x_label = (start_time +
+                       timedelta(seconds=one_time)).strftime('%H:%M:%S')
+            self.all_time.append(QGraphicsSimpleTextItem(x_label))
+            self.all_time_pos.append(QPointF(one_time,
+                                             len(self.all_label) *
+                                             self.y_dist))
+
+    def display_scroll(self, data=None):
         """Display the recordings."""
+        if data is None:
+            data = self.data
+
+        if self.scene is not None:
+            self.y_scrollbar_value = self.verticalScrollBar().value()
+            self.scene.clear()
+
+        self.create_labels()
+        self.create_time(data.time)
+
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
 
-        all_chan = [chan for x in self.parent.channels.groups
-                   for chan in x['chan_to_plot']]
-        distance_traces = config.value('distance_traces')
+        label_width = config.value('label_width')
+        time_height = max([x.boundingRect().height() for x in self.all_time])
 
-        self.scene = QGraphicsScene(window_start,
+        self.scene = QGraphicsScene(window_start - label_width,
                                     0,
-                                    window_length,
-                                    len(all_chan) * distance_traces +
-                                    self.ylimit * 2)
+                                    window_length + label_width,
+                                    len(self.all_label) * self.y_dist +
+                                    time_height)
         self.setScene(self.scene)
-        data = self.data
+        self.add_labels()
+        self.add_time()
+        self.add_data(data)
+        self.set_y_scale()
+        self.resizeEvent(None)
+        self.verticalScrollBar().setValue(self.y_scrollbar_value)
 
-        chan_plot = []
+    def add_labels(self):
+        """Add channel labels on the left."""
+        window_start = self.parent.overview.window_start
+
+        label_width = config.value('label_width')
+
+        for row, one_label_item in enumerate(self.all_label):
+            self.scene.addItem(one_label_item)
+            one_label_item.setPos(window_start - label_width,
+                                  self.y_dist * row + self.y_dist / 2)
+
+    def add_time(self):
+        for text, pos in zip(self.all_time, self.all_time_pos):
+            self.scene.addItem(text)
+            text.setPos(pos)
+
+    def add_data(self, data):
+        self.y_dist = self.y_dist
+
+        self.all_chan = []
         row = 0
         for one_grp in self.parent.channels.groups:
             mont = Montage(ref_chan=one_grp['ref_chan'])
@@ -99,31 +175,50 @@ class Scroll(QGraphicsView):
                 dat, time = data1(chan=[chan])
                 path = self.scene.addPath(Trace(time, squeeze(dat, axis=0)))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, distance_traces * row)
+                path.setPos(0, self.y_dist * row + self.y_dist / 2)
+                self.all_chan.append(path)
                 row += 1
-                chan_plot.append(path)
 
-        self.chan_plot = chan_plot
-        self.set_ylimit()
+        self.set_y_scale()
         if self.parent.bookmarks.bookmarks is not None:
             self.add_bookmarks()
 
-    def set_ylimit(self, new_ylimit=None):
+    def set_y_scale(self, new_y_scale=None):
         """Change the amplitude, you don't need to read in new data.
 
         Parameters
         ----------
-        new_ylimit : float or int, optional
-            the new amplitude of the plot
+        new_y_scale : float or int, optional
+            the new scale for the y-axis.
 
         """
-        if new_ylimit is not None:
-            self.ylimit = new_ylimit
-        self.scale(1, 1/self.ylimit)
+        if new_y_scale is not None:
+            self.y_scale = new_y_scale
+        for chan in self.all_chan:
+            chan.resetTransform()
+            chan.scale(1, self.y_scale)
+
+    def resizeEvent(self, event):
+        view_width = self.width()
+        if self.scene is not None:
+            scene_width = self.scene.sceneRect().width()
+            self.resetTransform()
+            scale_value = view_width / (scene_width + 1)
+            self.scale(scale_value, 1)
+
+            for text in self.all_time:
+                text.resetTransform()
+                text.scale(1 / scale_value, 1)
+            for text in self.all_label:
+                text.resetTransform()
+                text.scale(1 / scale_value, 1)
+
+    def add_bookmarks(self):
+        """Add bookmarks on top of first plot."""
+
+        pass
 
 """
-    def add_bookmarks(self):
-        \"""Add bookmarks on top of first plot.\"""
         bookmarks = self.parent.bookmarks.bookmarks
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
@@ -134,25 +229,4 @@ class Scroll(QGraphicsView):
                                 anchor=(0, 0))  # TODO: not correct
                 self.chan_plot[0].addItem(self.text)
 
-    def add_datetime_on_x(self):
-        Change the labels on the x-axis to include the current time.
-
-        Notes
-        -----
-        This function creates a new function (tickStrings) which overrides the
-        axis function in pyqtgraph.
-
-        start_time = self.parent.info.dataset.header['start_time']
-
-        def tickStrings(axis, values, c, d):
-            if axis.orientation == 'bottom':
-                strings = []
-                for v in values:
-                    strings.append((start_time +
-                                    timedelta(seconds=v)).strftime('%H:%M:%S'))
-            else:
-                strings = [str(x) for x in values]
-            return strings
-
-        AxisItem.tickStrings = tickStrings
 """
