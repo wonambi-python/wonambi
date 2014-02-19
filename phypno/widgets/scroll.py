@@ -153,7 +153,7 @@ class Scroll(QGraphicsView):
             data = self.data
         self.y_dist = self.y_dist
 
-        self.all_chan = []
+        self.all_chan = []  # does not delete previous channels
         row = 0
         for one_grp in self.parent.channels.groups:
             mont = Montage(ref_chan=one_grp['ref_chan'])

@@ -69,8 +69,8 @@ config.setValue('preset_y_amplitude', [.1, .2, .5, 1, 2, 5, 10])
 config.setValue('preset_y_distance', [20, 30, 40, 50, 100, 200])
 config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
 
-config.setValue('spectrum_x_lim', [0, 70])
-config.setValue('spectrum_y_lim', [5, -5])  # log unit
+config.setValue('spectrum_x_lim', [0, 30])
+config.setValue('spectrum_y_lim', [0, -10])  # log unit
 
 
 class MainWindow(QMainWindow):
@@ -332,7 +332,6 @@ class MainWindow(QMainWindow):
         toolbar.addAction(actions['Y_more'])
         toolbar.addAction(actions['Y_wider'])
         toolbar.addAction(actions['Y_tighter'])
-
 
     def action_open_rec(self, recent=None):
         """Action: open a new dataset."""
