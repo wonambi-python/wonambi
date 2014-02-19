@@ -48,7 +48,7 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
@@ -71,6 +71,7 @@ config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
 
 config.setValue('spectrum_x_lim', [0, 70])
 config.setValue('spectrum_y_lim', [5, -5])  # log unit
+
 
 class MainWindow(QMainWindow):
     """Create an instance of the main window.

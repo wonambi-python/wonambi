@@ -1,4 +1,5 @@
 
+from numpy import log
 from scipy.signal import welch
 
 from PySide.QtCore import QSettings
@@ -11,9 +12,11 @@ from PySide.QtGui import (QComboBox,
                           QWidget,
                           )
 
-from .utils import Trace
+from visvis import use, plot, cla, gca
 
 config = QSettings("phypno", "scroll_data")
+
+app = use('pyside')
 
 
 class Spectrum(QWidget):
@@ -31,11 +34,12 @@ class Spectrum(QWidget):
 
         self.combobox = QComboBox()
         self.combobox.currentIndexChanged.connect(self.load_channel)
-        self.view = QGraphicsView()
+        Figure = app.GetFigureClass()
+        self.figure = Figure(self)
 
         layout = QVBoxLayout()
         layout.addWidget(self.combobox)
-        layout.addWidget(self.view)
+        layout.addWidget(self.figure._widget)
         self.setLayout(layout)
 
     def update_spectrum(self):
@@ -56,18 +60,14 @@ class Spectrum(QWidget):
         self.parent.scroll.add_data()
 
     def display_spectrum(self):
-        # s_freq = self.parent.scroll.data.s_freq
-        # f, Pxx = welch(self.data, fs=s_freq, nperseg=s_freq)
+        cla()
+        axis = gca()
+        axis.position.x = 20
+        axis.position.w = self.figure._widget.width() - axis.position.x
+        axis.Draw()
 
-        scene = QGraphicsScene(self.x_lim[0], self.y_lim[1],
-                               self.x_lim[1] - self.x_lim[0],
-                               self.x_lim[0] - self.x_lim[1])
-
-        self.view.resetTransform()
-        self.view.scale(1, -1)
-        self.view.setScene(scene)
-        scene.addPath(Trace([0, 70], [0, 0]))
-        scene.addPath(Trace([0, 70], [-5, 5]))
-        scene.addPath(Trace([0, 70], [0, 5]))
-        scene.addPath(Trace([0, 70], [0, 15]))
-
+        s_freq = int(self.parent.scroll.data.s_freq)  # TODO
+        f, Pxx = welch(self.data, fs=s_freq, nperseg=s_freq)
+        plot(f, log(Pxx))
+        axis.SetLimits(rangeX=self.x_lim, rangeY=self.y_lim)
+        axis.showGrid = 1
