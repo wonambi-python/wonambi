@@ -11,6 +11,7 @@ A widget should contain:
 
 """
 from .channels import Channels
+from .spectrum import Spectrum
 from .info import Info
 from .overview import Overview
 from .notes import Bookmarks, Events, Stages

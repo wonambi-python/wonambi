@@ -13,18 +13,9 @@ from PySide.QtGui import (QBrush,
                           )
 
 from ..trans import Montage, Filter
+from .utils import Trace
 
 config = QSettings("phypno", "scroll_data")
-
-
-class Trace(QPainterPath):
-
-    def __init__(self, x, y):
-        super().__init__()
-
-        self.moveTo(x[0], y[0])
-        for i_x, i_y in zip(x, y):
-            self.lineTo(i_x, i_y)
 
 
 class Scroll(QGraphicsView):
@@ -157,7 +148,9 @@ class Scroll(QGraphicsView):
             self.scene.addItem(text)
             text.setPos(pos)
 
-    def add_data(self, data):
+    def add_data(self, data=None):
+        if data is None:
+            data = self.data
         self.y_dist = self.y_dist
 
         self.all_chan = []
@@ -175,12 +168,17 @@ class Scroll(QGraphicsView):
                 data1 = lpfilt(data1)
             for chan in one_grp['chan_to_plot']:
                 dat, time = data1(chan=[chan])
-                dat = squeeze(dat, axis=0) * one_grp['scale']
-                path = self.scene.addPath(Trace(time, dat))
+                dat = squeeze(dat, axis=0)
+                path = self.scene.addPath(Trace(time,
+                                                dat * one_grp['scale']))
                 path.setPen(QPen(one_grp['color']))
                 path.setPos(0, self.y_dist * row + self.y_dist / 2)
                 self.all_chan.append(path)
                 row += 1
+                if self.parent.spectrum.channel is not None:
+                    if chan == self.parent.spectrum.channel:
+                        self.parent.spectrum.data = dat
+                        self.parent.spectrum.display_spectrum()
 
         self.set_y_scale()
         if self.parent.bookmarks.bookmarks is not None:

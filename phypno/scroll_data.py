@@ -17,7 +17,7 @@ from PySide.QtGui import (QAction,
                           )
 # change phypno.widgets into .widgets
 from phypno.widgets import (Info, Channels, Overview, Scroll, Bookmarks,
-                            Events, Stages, Video, DockWidget)
+                            Events, Stages, Video, Spectrum, DockWidget)
 
 
 icon = {
@@ -48,7 +48,7 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
 # DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
+DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 config = QSettings("phypno", "scroll_data")
 config.setValue('window_start', 0)
@@ -69,6 +69,8 @@ config.setValue('preset_y_amplitude', [.1, .2, .5, 1, 2, 5, 10])
 config.setValue('preset_y_distance', [20, 30, 40, 50, 100, 200])
 config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
 
+config.setValue('spectrum_x_lim', [0, 70])
+config.setValue('spectrum_y_lim', [5, -5])  # log unit
 
 class MainWindow(QMainWindow):
     """Create an instance of the main window.
@@ -476,6 +478,7 @@ class MainWindow(QMainWindow):
         """
         self.info = Info(self)
         self.channels = Channels(self)
+        self.spectrum = Spectrum(self)
         self.overview = Overview(self)
         self.bookmarks = Bookmarks(self)
         self.events = Events(self)
@@ -494,6 +497,11 @@ class MainWindow(QMainWindow):
                       'widget': self.channels,
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
+                      },
+                     {'name': 'Spectrum',
+                      'widget': self.spectrum,
+                      'main_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
                       },
                      {'name': 'Bookmarks',
                       'widget': self.bookmarks,

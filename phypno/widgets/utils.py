@@ -2,7 +2,7 @@ from logging import getLogger, INFO
 lg = getLogger(__name__)
 lg.setLevel(INFO)
 
-from PySide.QtGui import QDockWidget
+from PySide.QtGui import QDockWidget, QPainterPath
 
 
 class DockWidget(QDockWidget):
@@ -27,3 +27,13 @@ class DockWidget(QDockWidget):
 
         """
         self.parent.toggle_menu_window(self.name, self)
+
+
+class Trace(QPainterPath):
+
+    def __init__(self, x, y):
+        super().__init__()
+
+        self.moveTo(x[0], y[0])
+        for i_x, i_y in zip(x, y):
+            self.lineTo(i_x, i_y)

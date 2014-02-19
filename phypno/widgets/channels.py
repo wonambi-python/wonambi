@@ -216,6 +216,7 @@ class Channels(QGroupBox):
         """Apply changes to the plots."""
         self.update_chan_grp()
         self.parent.overview.update_position()
+        self.parent.spectrum.update_spectrum()
 
     def ask_name(self, action):
         """Prompt the user for a new name.
