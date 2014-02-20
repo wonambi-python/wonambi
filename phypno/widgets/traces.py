@@ -2,23 +2,21 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import timedelta
+
 from numpy import squeeze, floor, ceil
-from PySide.QtCore import QSettings, QPointF
+from PySide.QtCore import QPointF
 from PySide.QtGui import (QBrush,
                           QGraphicsScene,
                           QGraphicsSimpleTextItem,
                           QGraphicsView,
-                          QPainterPath,
                           QPen,
                           )
 
 from ..trans import Montage, Filter
-from .utils import Trace
-
-config = QSettings("phypno", "scroll_data")
+from .utils import Path
 
 
-class Scroll(QGraphicsView):
+class Traces(QGraphicsView):
     """Main widget that contains the recordings to be plotted.
 
     Attributes
@@ -36,10 +34,11 @@ class Scroll(QGraphicsView):
     """
     def __init__(self, parent):
         super().__init__()
-
         self.parent = parent
-        self.y_scale = config.value('y_scale')
-        self.y_dist = config.value('y_dist')
+
+        preferences = self.parent.preferences.values
+        self.y_scale = preferences['traces/y_scale']
+        self.y_dist = preferences['traces/y_distance']
         self.y_scrollbar_value = 0
         self.scene = None
         self.data = None
@@ -48,7 +47,7 @@ class Scroll(QGraphicsView):
         self.all_time = []
         self.all_bookmark = []
 
-    def update_scroll(self):
+    def update_traces(self):
         """Read and update the data to plot."""
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
@@ -63,7 +62,7 @@ class Scroll(QGraphicsView):
                                  endtime=window_end)
 
         self.data = data
-        self.display_scroll(data)
+        self.display_traces(data)
         self.parent.overview.more_download(window_start, window_end)
 
     def create_labels(self):
@@ -88,7 +87,8 @@ class Scroll(QGraphicsView):
 
         min_time = int(floor(min(times)))
         max_time = int(ceil(max(times)))
-        n_time_labels = config.value('n_time_labels')
+
+        n_time_labels = int(self.parent.preferences.values['traces/n_time_labels'])
         step = int((max_time - min_time) / n_time_labels)
 
         self.all_time = []
@@ -101,7 +101,7 @@ class Scroll(QGraphicsView):
                                              len(self.all_label) *
                                              self.y_dist))
 
-    def display_scroll(self, data=None):
+    def display_traces(self, data=None):
         """Display the recordings."""
         if data is None:
             data = self.data
@@ -116,7 +116,7 @@ class Scroll(QGraphicsView):
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
 
-        label_width = config.value('label_width')
+        label_width = float(self.parent.preferences.values['traces/label_width'])
         time_height = max([x.boundingRect().height() for x in self.all_time])
 
         self.scene = QGraphicsScene(window_start - label_width,
@@ -136,7 +136,7 @@ class Scroll(QGraphicsView):
         """Add channel labels on the left."""
         window_start = self.parent.overview.window_start
 
-        label_width = config.value('label_width')
+        label_width = float(self.parent.preferences.values['traces/label_width'])
 
         for row, one_label_item in enumerate(self.all_label):
             self.scene.addItem(one_label_item)
@@ -169,7 +169,7 @@ class Scroll(QGraphicsView):
             for chan in one_grp['chan_to_plot']:
                 dat, time = data1(chan=[chan])
                 dat = squeeze(dat, axis=0)
-                path = self.scene.addPath(Trace(time,
+                path = self.scene.addPath(Path(time,
                                                 dat * one_grp['scale']))
                 path.setPen(QPen(one_grp['color']))
                 path.setPos(0, self.y_dist * row + self.y_dist / 2)

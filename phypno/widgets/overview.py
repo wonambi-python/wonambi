@@ -2,8 +2,9 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
+
 from numpy import floor
-from PySide.QtCore import Qt, QSettings
+from PySide.QtCore import Qt
 from PySide.QtGui import (QBrush,
                           QPen,
                           QGraphicsLineItem,
@@ -11,9 +12,6 @@ from PySide.QtGui import (QBrush,
                           QGraphicsScene,
                           QGraphicsView,
                           )
-
-config = QSettings('phypno', 'scroll_data')
-
 
 # bookmark
 # event
@@ -63,16 +61,18 @@ class Overview(QGraphicsView):
     """
     def __init__(self, parent):
         super().__init__()
-
         self.parent = parent
-        self.window_start = config.value('window_start')
-        self.window_length = config.value('window_page_length')
+
+        preferences = self.parent.preferences.values
+        self.window_start = int(preferences['overview/window_start'])
+        self.window_length = int(preferences['overview/window_length'])
         self.minimum = 0
         self.maximum = None
         self.scene = None
+
         self.item = {}
         self.setMinimumHeight(total_height + 30)
-        self.scale(1 / float(config.value('stage_scoring_window')), 1)
+        self.scale(1 / float(preferences['stages/scoring_window']), 1)
 
     def update_overview(self):
         """Read full duration and update maximum."""
@@ -115,8 +115,9 @@ class Overview(QGraphicsView):
                                  end_time.day,
                                  end_time.hour + 1).timestamp())
 
-        ratio = float(config.value('stage_scoring_window'))
-        steps = int(config.value('overview_timestamp_steps'))
+        preferences = self.parent.preferences.values
+        ratio = float(preferences['stages/scoring_window'])
+        steps = int(preferences['overview/window_step'])
 
         for t in range(first_hour, last_hour, steps):
             t_as_datetime = datetime.fromtimestamp(t)
@@ -138,7 +139,7 @@ class Overview(QGraphicsView):
         else:
             pass
             # self.window_start = self.scrollbar.value()
-        self.parent.scroll.update_scroll()
+        self.parent.traces.update_traces()
         if self.parent.stages.scores is not None:
             self.parent.stages.set_combobox_index()
 

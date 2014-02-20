@@ -1,20 +1,15 @@
+from logging import getLogger
+lg = getLogger(__name__)
 
 from numpy import log
 from scipy.signal import welch
 
-from PySide.QtCore import QSettings
 from PySide.QtGui import (QComboBox,
-                          QGraphicsScene,
                           QVBoxLayout,
-                          QGraphicsView,
-                          QPainterPath,
-                          QPen,
                           QWidget,
                           )
-
 from visvis import use, plot, cla, gca
 
-config = QSettings("phypno", "scroll_data")
 
 app = use('pyside')
 
@@ -25,10 +20,11 @@ class Spectrum(QWidget):
     """
     def __init__(self, parent):
         super().__init__()
-
         self.parent = parent
-        self.x_lim = config.value('spectrum_x_lim')
-        self.y_lim = config.value('spectrum_y_lim')
+
+        preferences = self.parent.preferences.values
+        self.x_limit = preferences['spectrum/x_limit']
+        self.y_limit = preferences['spectrum/y_limit']
         self.channel = None
         self.data = None
 
@@ -57,7 +53,7 @@ class Spectrum(QWidget):
 
     def load_channel(self):
         self.channel = self.combobox.currentText()
-        self.parent.scroll.add_data()
+        self.parent.traces.add_data()
 
     def display_spectrum(self):
         cla()
@@ -66,8 +62,8 @@ class Spectrum(QWidget):
         axis.position.w = self.figure._widget.width() - axis.position.x
         axis.Draw()
 
-        s_freq = int(self.parent.scroll.data.s_freq)  # TODO
+        s_freq = int(self.parent.traces.data.s_freq)  # TODO
         f, Pxx = welch(self.data, fs=s_freq, nperseg=s_freq)
         plot(f, log(Pxx))
-        axis.SetLimits(rangeX=self.x_lim, rangeY=self.y_lim)
+        axis.SetLimits(rangeX=self.x_limit, rangeY=self.y_limit)
         axis.showGrid = 1

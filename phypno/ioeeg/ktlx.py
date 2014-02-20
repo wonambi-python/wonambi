@@ -381,7 +381,7 @@ def _read_etc(etc_file):
         v4_b = unpack('h', f.read(2))[0]  # maybe this one is unsigned (H)
 
         f.seek(352)  # end of header
-        lg.debug(hexlify(f.read(16)))
+        # lg.debug(hexlify(f.read(16)))
     return v1, v2, v3, (v4_a, v4_b)
 
 
@@ -424,10 +424,8 @@ def _read_snc(snc_file):
     sampleStamp = []
     sampleTime = []
     while i < len(filebytes):
-        lg.debug(filebytes[i:(i + 4)])
         sampleStamp.append(unpack('i', filebytes[i:(i + 4)])[0])
         i += 4
-        lg.debug(filebytes[i:(i + 8)])
         sampleTime.append(_filetime_to_dt(unpack('l',
                                                  filebytes[i:(i + 8)])[0]))
         i += 8

@@ -1,45 +1,46 @@
 #!/usr/bin/env python3
 
-from logging import getLogger, INFO
-lg = getLogger(__name__)
-lg.setLevel(INFO)
+from logging import getLogger, DEBUG, StreamHandler, Formatter
+
+lg = getLogger('phypno')  # when called by itself, __name__ is __main__
+lg.setLevel(DEBUG)
+
+FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
+DATE_FORMAT = '%H:%M:%S'
+
+formatter = Formatter(fmt=FORMAT, datefmt=DATE_FORMAT)
+handler = StreamHandler()
+handler.setFormatter(formatter)
+
+lg.handlers = []
+lg.addHandler(handler)
+
+lg.info('b')
 
 from functools import partial
-from os.path import dirname, basename, splitext, join
-from sys import argv, exit
-from PySide.QtCore import Qt, QSettings
+from os.path import dirname, basename, splitext
+from sys import argv
+
+from PySide.QtCore import Qt
 from PySide.QtGui import (QAction,
                           QApplication,
                           QFileDialog,
-                          QIcon,
                           QKeySequence,
                           QMainWindow,
                           )
 # change phypno.widgets into .widgets
-from phypno.widgets import (Info, Channels, Overview, Scroll, Bookmarks,
-                            Events, Stages, Video, Spectrum, DockWidget)
+from phypno.widgets import (DockWidget,
+                            Bookmarks, Events, Stages,
+                            Channels,
+                            Info,
+                            Overview,
+                            Preferences,
+                            Spectrum,
+                            Traces,
+                            Video)
+from phypno.widgets.utils import (icon, create_menubar, create_toolbar,
+                                  keep_recent_recordings)
 
-
-icon = {
-    'open_rec': QIcon.fromTheme('document-open'),
-    'page_prev': QIcon.fromTheme('go-previous-view'),
-    'page_next': QIcon.fromTheme('go-next-view'),
-    'step_prev': QIcon.fromTheme('go-previous'),
-    'step_next': QIcon.fromTheme('go-next'),
-    'chronometer': QIcon.fromTheme('chronometer'),
-    'up': QIcon.fromTheme('go-up'),
-    'down': QIcon.fromTheme('go-down'),
-    'zoomin': QIcon.fromTheme('zoom-in'),
-    'zoomout': QIcon.fromTheme('zoom-out'),
-    'zoomnext': QIcon.fromTheme('zoom-next'),
-    'zoomprev': QIcon.fromTheme('zoom-previous'),
-    'ydist_more': QIcon.fromTheme('format-line-spacing-triple'),
-    'ydist_less': QIcon.fromTheme('format-line-spacing-normal'),
-    'selchan': QIcon.fromTheme('mail-mark-task'),
-    'download': QIcon.fromTheme('download'),
-    'widget': QIcon.fromTheme('window-duplicate'),
-    'quit': QIcon.fromTheme('window-close'),
-    }
 
 XML_EXAMPLE = '/home/gio/recordings/'
 DATASET_EXAMPLE = None
@@ -50,76 +51,67 @@ DATASET_EXAMPLE = None
 # DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
 # DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
-config = QSettings("phypno", "scroll_data")
-config.setValue('window_start', 0)
-config.setValue('window_page_length', 30)
-# one step = window_page_length / window_step_ratio
-config.setValue('window_step_ratio', 5)
-
-config.setValue('n_time_labels', 3)
-config.setValue('y_dist', 50)
-config.setValue('y_scale', 1)
-config.setValue('label_width', 2)
-
-config.setValue('read_intervals', 10 * 60)  # pre-read file every X seconds
-config.setValue('hidden_docks', ['Video', ])
-config.setValue('stage_scoring_window', 30)  # sleep scoring window = one pixel per 30 s
-config.setValue('overview_timestamp_steps', 60 * 60)  # timestamp in overview
-config.setValue('preset_y_amplitude', [.1, .2, .5, 1, 2, 5, 10])
-config.setValue('preset_y_distance', [20, 30, 40, 50, 100, 200])
-config.setValue('preset_x_length', [1, 5, 10, 20, 30, 60])
-
-config.setValue('spectrum_x_lim', [0, 30])
-config.setValue('spectrum_y_lim', [0, -10])  # log unit
-
 
 class MainWindow(QMainWindow):
     """Create an instance of the main window.
 
     Attributes
     ----------
-    action : dict
-        names of all the actions to perform
-    info : instance of phypno.widgets.Info
+    preferences : instance of phypno.widgets.Preferences
+
+    idx_docks : dict
+        pointers to dockwidgets, to show or hide them.
+
+    bookmarks : instance of phypno.widgets.Bookmarks
+
+    events : instance of phypno.widgets.Events
+
+    stages : instance of phypno.widgets.Stages
 
     channels : instance of phypno.widgets.Channels
 
+    info : instance of phypno.widgets.Info
+
     overview : instance of phypno.widgets.Overview
+
+    spectrum : instance of phypno.widgets.Spectrum
+
+    traces : instance of phypno.widgets.Traces
 
     video : instance of phypno.widgets.Video
 
-    scroll : instance of phypno.widgets.Scroll
+    action : dict
+        names of all the actions to perform
 
-    docks : dict
-        pointers to dockwidgets, to show or hide them.
     menu_window : instance of menuBar.menu
         menu about the windows (to know which ones are shown or hidden)
-    thread_download : instance of QThread
-        necessary to avoid garbage collection.
 
     """
     def __init__(self):
         super().__init__()
 
-        self.action = {}
+        self.preferences = Preferences(self)
 
-        self.info = None
+        self.idx_docks = {}
+        self.bookmarks = None
+        self.events = None
+        self.stages = None
         self.channels = None
+        self.info = None
         self.overview = None
-        self.scroll = None
+        self.spectrum = None
+        self.traces = None
         self.video = None
-        self.docks = {}
+        self.action = {}
         self.menu_window = None
 
-        self.thread_download = None
-
         self.create_actions()
-        self.create_menubar()
-        self.create_toolbar()
+        create_menubar(self)
+        create_toolbar(self)
         self.create_widgets()
         self.statusBar()
 
-        self.setGeometry(400, 300, 1024, 768)
+        self.setGeometry(*self.preferences.values['main/geometry'])
         self.setWindowTitle('Scroll Data')
         self.show()
 
@@ -133,16 +125,22 @@ class MainWindow(QMainWindow):
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open_rec)
 
-        recent_rec = config.value('recent_recording', '')
-        actions['open_recent_rec'] = QAction(recent_rec, self)
-        actions['open_recent_rec'].triggered.connect(partial(self.action_open_rec,
-                                                             recent_rec))
+        recent_recs = keep_recent_recordings()
+        actions['recent_rec'] = []
+        for one_recent_rec in recent_recs:
+            action_recent = QAction(one_recent_rec, self)
+            action_recent.triggered.connect(partial(self.action_open_rec,
+                                                    one_recent_rec))
+            actions['recent_rec'].append(action_recent)
 
         actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
         actions['open_events'] = QAction('Open Events File...', self)
         actions['open_stages'] = QAction('Open Stages File...', self)
         actions['open_stages'].triggered.connect(self.action_open_stages)
 
+        actions['open_preferences'] = QAction(icon['preferences'],
+                                              'Preferences', self)
+        actions['open_preferences'].triggered.connect(self.open_preferences)
         actions['close_wndw'] = QAction(icon['quit'], 'Quit', self)
         actions['close_wndw'].triggered.connect(self.close)
 
@@ -191,147 +189,6 @@ class MainWindow(QMainWindow):
         actions['Y_tighter'].triggered.connect(self.action_Y_tighter)
 
         self.action = actions  # actions was already taken
-
-    def create_menubar(self):
-        """Create the whole menubar, based on actions.
-
-        Notes
-        -----
-        TODO: bookmarks are unique (might have the same text) and are not
-              mutually exclusive
-
-        TODO: events are not unique and are not mutually exclusive
-
-        TODO: states are not unique and are mutually exclusive
-
-        """
-        actions = self.action
-
-        menubar = self.menuBar()
-        menu_file = menubar.addMenu('File')
-        menu_file.addAction(actions['open_rec'])
-        submenu_recent = menu_file.addMenu('Recent Recordings')
-        submenu_recent.addAction(actions['open_recent_rec'])
-
-        menu_download = menu_file.addMenu('Download File')
-        menu_download.setIcon(icon['download'])
-        act = menu_download.addAction('Whole File')
-        act.triggered.connect(self.action_download)
-        act = menu_download.addAction('30 Minutes')
-        act.triggered.connect(partial(self.action_download, 30 * 60))
-        act = menu_download.addAction('1 Hour')
-        act.triggered.connect(partial(self.action_download, 60 * 60))
-        act = menu_download.addAction('3 Hours')
-        act.triggered.connect(partial(self.action_download, 3 * 60 * 60))
-        act = menu_download.addAction('6 Hours')
-        act.triggered.connect(partial(self.action_download, 6 * 60 * 60))
-
-        menu_file.addSeparator()
-        menu_file.addAction(actions['open_bookmarks'])
-        menu_file.addAction(actions['open_events'])
-        menu_file.addAction(actions['open_stages'])
-        menu_file.addSeparator()
-        menu_file.addAction(actions['close_wndw'])
-
-        menu_time = menubar.addMenu('Time Window')
-        menu_time.addAction(actions['step_prev'])
-        menu_time.addAction(actions['step_next'])
-        menu_time.addAction(actions['page_prev'])
-        menu_time.addAction(actions['page_next'])
-        menu_time.addSeparator()  # use icon cronometer
-        act = menu_time.addAction('6 Hours Earlier')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, -6 * 60 * 60))
-        act = menu_time.addAction('1 Hour Earlier')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, -60 * 60))
-        act = menu_time.addAction('10 Minutes Earlier')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, -10 * 60))
-        act = menu_time.addAction('10 Minutes Later')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, 10 * 60))
-        act = menu_time.addAction('1 Hour Later')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, 60 * 60))
-        act = menu_time.addAction('6 Hours Later')
-        act.setIcon(icon['chronometer'])
-        act.triggered.connect(partial(self.action_add_time, 6 * 60 * 60))
-
-        menu_time.addSeparator()
-        submenu_go = menu_time.addMenu('Go to ')
-        submenu_go.addAction('Note')
-
-        menu_view = menubar.addMenu('View')
-        submenu_ampl = menu_view.addMenu('Amplitude')
-        submenu_ampl.addAction(actions['Y_less'])
-        submenu_ampl.addAction(actions['Y_more'])
-        submenu_ampl.addSeparator()
-        for x in sorted(config.value('preset_y_amplitude'), reverse=True):
-            act = submenu_ampl.addAction('Set to ' + str(x))
-            act.triggered.connect(partial(self.action_Y_ampl, x))
-
-        submenu_dist = menu_view.addMenu('Distance Between Traces')
-        submenu_dist.addAction(actions['Y_wider'])
-        submenu_dist.addAction(actions['Y_tighter'])
-        submenu_dist.addSeparator()
-        for x in sorted(config.value('preset_y_distance'), reverse=True):
-            act = submenu_dist.addAction('Set to ' + str(x))
-            act.triggered.connect(partial(self.action_Y_dist, x))
-
-        submenu_length = menu_view.addMenu('Window Length')
-        submenu_length.addAction(actions['X_more'])
-        submenu_length.addAction(actions['X_less'])
-        submenu_length.addSeparator()
-        for x in sorted(config.value('preset_x_length'), reverse=True):
-            act = submenu_length.addAction('Set to ' + str(x))
-            act.triggered.connect(partial(self.action_X_length, x))
-
-        menu_bookmark = menubar.addMenu('Bookmark')
-        menu_bookmark.addAction('New Bookmark')
-        menu_bookmark.addAction('Edit Bookmark')
-        menu_bookmark.addAction('Delete Bookmark')
-
-        menu_event = menubar.addMenu('Event')
-        menu_event.addAction('New Event')
-        menu_event.addAction('Edit Event')
-        menu_event.addAction('Delete Event')
-
-        menu_state = menubar.addMenu('State')
-        menu_state.addAction('Add State')
-
-        menu_window = menubar.addMenu('Windows')
-        self.menu_window = menu_window
-
-        menu_about = menubar.addMenu('About')
-        menu_about.addAction('About Phypno')
-
-    def create_toolbar(self):
-        """Create the various toolbars, without keeping track of them.
-
-        Notes
-        -----
-        TODO: Keep track of the toolbars, to see if they disappear.
-
-        """
-        actions = self.action
-
-        toolbar = self.addToolBar('File Management')
-        toolbar.addAction(actions['open_rec'])
-
-        toolbar = self.addToolBar('Scroll')
-        toolbar.addAction(actions['step_prev'])
-        toolbar.addAction(actions['step_next'])
-        toolbar.addAction(actions['page_prev'])
-        toolbar.addAction(actions['page_next'])
-        toolbar.addSeparator()
-        toolbar.addAction(actions['X_more'])
-        toolbar.addAction(actions['X_less'])
-        toolbar.addSeparator()
-        toolbar.addAction(actions['Y_less'])
-        toolbar.addAction(actions['Y_more'])
-        toolbar.addAction(actions['Y_wider'])
-        toolbar.addAction(actions['Y_tighter'])
 
     def action_open_rec(self, recent=None):
         """Action: open a new dataset."""
@@ -385,14 +242,14 @@ class MainWindow(QMainWindow):
         """
         window_start = (self.overview.window_start -
                         self.overview.window_length /
-                        config.value('window_step_ratio'))
+                        self.preferences.values['overview/window_step'])
         self.overview.update_position(window_start)
 
     def action_step_next(self):
         """Go to the next step."""
         window_start = (self.overview.window_start +
                         self.overview.window_length /
-                        config.value('window_step_ratio'))
+                        self.preferences.values['overview/window_step'])
         self.overview.update_position(window_start)
 
     def action_page_prev(self):
@@ -427,30 +284,30 @@ class MainWindow(QMainWindow):
 
     def action_Y_more(self):
         """Increase the amplitude."""
-        self.scroll.set_y_scale(self.scroll.y_scale * 2)
+        self.traces.set_y_scale(self.traces.y_scale * 2)
 
     def action_Y_less(self):
         """Decrease the amplitude."""
-        self.scroll.set_y_scale(self.scroll.y_scale / 2)
+        self.traces.set_y_scale(self.traces.y_scale / 2)
 
     def action_Y_ampl(self, new_y_scale):
         """Make amplitude on Y axis using predefined values"""
-        self.scroll.set_y_scale(new_y_scale)
+        self.traces.set_y_scale(new_y_scale)
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
-        self.scroll.y_dist *= 1.4
-        self.scroll.display_scroll()
+        self.traces.y_dist *= 1.4
+        self.traces.display_traces()
 
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
-        self.scroll.y_dist /= 1.4
-        self.scroll.display_scroll()
+        self.traces.y_dist /= 1.4
+        self.traces.display_traces()
 
     def action_Y_dist(self, new_y_dist):
         """Use preset values for the distance between lines."""
-        self.scroll.y_dist = new_y_dist
-        self.scroll.display_scroll()
+        self.traces.y_dist = new_y_dist
+        self.traces.display_traces()
 
     def action_download(self, length=None):
         """Start the download of the dataset."""
@@ -460,7 +317,7 @@ class MainWindow(QMainWindow):
 
         steps = list(range(self.overview.window_start,
                            self.overview.window_start + length,
-                           config.value('read_intervals')))
+                           self.preferences.values['utils/read_intervals']))
         one_chan = dataset.header['chan_name'][0]
         for begtime, endtime in zip(steps[:-1], steps[1:]):
             dataset.read_data(chan=[one_chan],
@@ -471,10 +328,6 @@ class MainWindow(QMainWindow):
     def create_widgets(self):
         """Create all the widgets and dockwidgets.
 
-        Notes
-        -----
-        TODO: Probably delete previous scroll widget.
-
         """
         self.info = Info(self)
         self.channels = Channels(self)
@@ -484,9 +337,9 @@ class MainWindow(QMainWindow):
         self.events = Events(self)
         self.stages = Stages(self)
         self.video = Video(self)
-        self.scroll = Scroll(self)
+        self.traces = Traces(self)
 
-        self.setCentralWidget(self.scroll)
+        self.setCentralWidget(self.traces)
 
         new_docks = [{'name': 'Information',
                       'widget': self.info,
@@ -530,31 +383,33 @@ class MainWindow(QMainWindow):
                       },
                       ]
 
-        self.docks = {}
+        self.idx_docks = {}
         actions = self.action
         for dock in new_docks:
-            self.docks[dock['name']] = DockWidget(self,
+            self.idx_docks[dock['name']] = DockWidget(self,
                                                   dock['name'],
                                                   dock['widget'],
                                                   dock['main_area'] |
                                                   dock['extra_area'])
-            self.addDockWidget(dock['main_area'], self.docks[dock['name']])
+            self.addDockWidget(dock['main_area'], self.idx_docks[dock['name']])
             new_act = QAction(icon['widget'], dock['name'], self)
             new_act.setCheckable(True)
             new_act.setChecked(True)
             new_act.triggered.connect(partial(self.toggle_menu_window,
                                               dock['name'],
-                                              self.docks[dock['name']]))
+                                              self.idx_docks[dock['name']]))
             self.menu_window.addAction(new_act)
             actions[dock['name']] = new_act
 
-            if dock['name'] in config.value('hidden_docks'):
-                self.docks[dock['name']].setVisible(False)
+            if dock['name'] in self.preferences.values['main/hidden_docks']:
+                self.idx_docks[dock['name']].setVisible(False)
                 actions[dock['name']].setChecked(False)
 
-        self.tabifyDockWidget(self.docks['Bookmarks'], self.docks['Events'])
-        self.tabifyDockWidget(self.docks['Events'], self.docks['Stages'])
-        self.docks['Bookmarks'].raise_()
+        self.tabifyDockWidget(self.idx_docks['Bookmarks'],
+                              self.idx_docks['Events'])
+        self.tabifyDockWidget(self.idx_docks['Events'],
+                              self.idx_docks['Stages'])
+        self.idx_docks['Bookmarks'].raise_()
 
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.
@@ -574,9 +429,13 @@ class MainWindow(QMainWindow):
             dockwidget.setVisible(True)
             actions[dockname].setChecked(True)
 
+    def open_preferences(self):
+        self.preferences.update_preferences()
+        self.preferences.show()
+
     def closeEvent(self, event):
         """save the name of the last open dataset."""
-        config.setValue('recent_recording', self.info.filename)
+        keep_recent_recordings(self.info.filename)
         event.accept()
 
 try:

@@ -7,7 +7,7 @@ from PySide.QtGui import (QAbstractItemView,
                           QComboBox,
                           QFormLayout,
                           QGridLayout,
-                          QGroupBox,
+                          QWidget,
                           QInputDialog,
                           QLabel,
                           QLineEdit,
@@ -18,7 +18,7 @@ from PySide.QtGui import (QAbstractItemView,
                           )
 
 
-class Channels(QGroupBox):
+class Channels(QWidget):
     """Allow user to choose channels, and filters.
 
     Attributes

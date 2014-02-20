@@ -7,7 +7,7 @@ from math import floor
 from os.path import basename
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
-from PySide.QtCore import QSettings
+
 from PySide.QtGui import (QAbstractItemView,
                           QAction,
                           QComboBox,
@@ -19,8 +19,6 @@ from PySide.QtGui import (QAbstractItemView,
                           QTableWidgetItem,
                           QWidget,
                           )
-
-config = QSettings('phypno', 'scroll_data')
 
 stage_name = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
 stage_shortcut = ['6', '5', '1', '2', '3', '0']
@@ -356,7 +354,7 @@ class Stages(QWidget):
         """
         minimum = floor(self.parent.overview.minimum)
         maximum = floor(self.parent.overview.maximum)
-        window_length = config.value('stage_scoring_window')
+        window_length = self.parent.preferences.values['stages/scoring_window']
 
         main = Element('sleep_stages')
         main.set('filename', self.parent.info.filename)
