@@ -237,8 +237,14 @@ def keep_recent_recordings(new_recording=None):
         history = [history]
 
     if new_recording is not None:
+        if new_recording in history:
+            lg.debug(new_recording + ' already present, will be replaced')
+            history.remove(new_recording)
         if len(history) > MAX_RECORDING_HISTORY:
+            lg.debug('Removing last recording ' + history[-1])
             history.pop()
+
+        lg.info('Adding ' + new_recording + ' to list of recent recordings')
         history.insert(0, new_recording)
         config.setValue('recent_recordings', history)
         return None
