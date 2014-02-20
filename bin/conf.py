@@ -28,7 +28,7 @@ import sys, os
 # extensions = [  'sphinx.ext.autosummary', 'numpydoc',  'sphinx.ext.autodoc', 'sphinx.ext.coverage', ]
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode','sphinxcontrib.napoleon']
 
-napoleon_include_private_with_doc = False
+# napoleon_include_private_with_doc = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -44,7 +44,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'phypno'
-copyright = u'2013, Gio Piantoni'
+copyright = u'2014, Gio Piantoni'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
