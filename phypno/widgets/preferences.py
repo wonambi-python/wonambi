@@ -68,7 +68,7 @@ class Preferences(QDialog):
         self.create_preferences()
 
     def create_preferences(self):
-
+        """Create the widgets containing the QLineEdit."""
         layout = QVBoxLayout()
         self.setLayout(layout)
 
