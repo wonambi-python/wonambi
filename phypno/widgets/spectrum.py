@@ -53,7 +53,7 @@ class Spectrum(QWidget):
 
     def load_channel(self):
         self.channel = self.combobox.currentText()
-        self.parent.traces.add_data()
+        self.parent.traces.add_traces()
 
     def display_spectrum(self):
         cla()

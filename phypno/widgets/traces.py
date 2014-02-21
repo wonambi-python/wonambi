@@ -48,7 +48,13 @@ class Traces(QGraphicsView):
         self.all_bookmark = []
 
     def update_traces(self):
-        """Read and update the data to plot."""
+        """Read and update the data to plot.
+
+        This function should also preprocess the data, so that it's available
+        for other widgets, such as spectrum and surface plotting.
+        TODO!
+
+        """
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
@@ -63,7 +69,7 @@ class Traces(QGraphicsView):
 
         self.data = data
         self.display_traces(data)
-        self.parent.overview.more_download(window_start, window_end)
+        self.parent.overview.mark_downloaded(window_start, window_end)
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""
@@ -127,7 +133,7 @@ class Traces(QGraphicsView):
         self.setScene(self.scene)
         self.add_labels()
         self.add_time()
-        self.add_data(data)
+        self.add_traces(data)
         self.set_y_scale()
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
@@ -148,7 +154,7 @@ class Traces(QGraphicsView):
             self.scene.addItem(text)
             text.setPos(pos)
 
-    def add_data(self, data=None):
+    def add_traces(self, data=None):
         if data is None:
             data = self.data
         self.y_dist = self.y_dist

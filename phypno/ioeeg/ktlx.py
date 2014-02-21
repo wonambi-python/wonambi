@@ -604,7 +604,7 @@ def _read_hdr_file(ktlx_file):
 class Ktlx():
     def __init__(self, ktlx_dir):
         if isinstance(ktlx_dir, str):
-            lg.info('Reading {}'.format(ktlx_dir))
+            lg.info('Reading ' + ktlx_dir)
             self.filename = ktlx_dir
             self._hdr = self._read_hdr_dir()
 
@@ -666,7 +666,9 @@ class Ktlx():
         begrec = where(n_sam_rec <= begsam)[0][-1]
         endrec = where(n_sam_rec < endsam)[0][-1]
 
-        lg.debug('begrec: {0}, endrec: {1}'.format(begrec, endrec))
+        lg.debug('Reading from recording #{} ({})'.format(begrec,
+                                                          all_erd[begrec]) +
+                 ' to recording #{} ({})'.format(endrec, all_erd[endrec]))
         dat = zeros((len(chan), endsam - begsam))
         d1 = 0
         for rec in range(begrec, endrec + 1):
@@ -683,11 +685,10 @@ class Ktlx():
             d2 = endpos_rec - begpos_rec + d1
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
-            lg.info(erd_file)
             dat_rec = _read_erd(erd_file, all_samples[rec])
-            lg.debug('begpos_rec: {0}, endpos_rec: {1}'.format(begpos_rec,
-                     endpos_rec))
-            lg.debug('d1: {0}, d2: {1}'.format(d1, d2))
+            lg.debug('From {}, selecting samples {}-{}'.format(all_erd[rec],
+                                                               begpos_rec,
+                                                               endpos_rec))
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
 
             d1 = d2

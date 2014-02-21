@@ -52,7 +52,7 @@ class Preferences(QDialog):
         The main window.
     values : dict
         Values of the preferences in key/value format.
-    idx_edits : list of instances of QLineEdit
+    idx_edits : dict of instances of QLineEdit
         Values as QLineEdit for each preference value.
 
     """
@@ -69,6 +69,8 @@ class Preferences(QDialog):
 
     def create_preferences(self):
         """Create the widgets containing the QLineEdit."""
+        lg.debug('Creating Preferences widget')
+
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -114,11 +116,14 @@ class Preferences(QDialog):
         widgets are created.
 
         """
-        lg.debug('Update Preferences widget')
+        lg.debug('Updating Preferences widget')
+
         self.display_preferences()
 
     def display_preferences(self):
         """Display the preferences."""
+        lg.debug('Displaying Preferences widget')
+
         for widget_key, value in defaults.items():
             lg.debug('Setting {} to {}'.format(widget_key, value))
             self.idx_edits[widget_key].setText(str(value))

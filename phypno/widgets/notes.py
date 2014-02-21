@@ -243,7 +243,6 @@ class Scores():
         """Save xml to file."""
         xml = parseString(tostring(self.root))
         lg.info('Saving ' + self.xml_file)
-        lg.debug(xml.toprettyxml())
         with open(self.xml_file, 'w+') as f:
             f.write(xml.toprettyxml())
 
@@ -308,7 +307,12 @@ class Stages(QWidget):
         self.rater.setText(self.scores.get_rater())
         for one_stage in stage_name:
             self.combobox.addItem(one_stage)
-        self.parent.overview.color_stages()
+
+        for epoch in self.scores.get_epochs().values():
+            self.parent.overview.mark_stages(epoch['start_time'],
+                                             epoch['end_time'] -
+                                             epoch['start_time'],
+                                             epoch['stage'])
 
     def create_actions(self):
         """Create actions and shortcut to score sleep."""
@@ -322,13 +326,6 @@ class Stages(QWidget):
             self.addAction(actions[one_stage])
         self.action = actions
 
-    def set_combobox_index(self):
-        """Set the current stage in combobox."""
-        window_start = self.parent.overview.window_start
-        stage = self.scores.get_stage_for_epoch(str(window_start))
-        self.combobox.setCurrentIndex(stage_name.index(stage))
-        self.parent.overview.color_stages()
-
     def get_sleepstage(self, stage_idx=None):
         """Get the sleep stage, using shortcuts or combobox.
 
@@ -338,11 +335,23 @@ class Stages(QWidget):
             string with the name of the sleep stage.
 
         """
-        id_window = str(self.parent.overview.window_start)
-        lg.info('Current window is: ' + id_window)
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+
+        id_window = str(window_start)
+        lg.info('User staged ' + id_window + ' as ' + stage_name[stage_idx])
         self.scores.set_stage_for_epoch(id_window, stage_name[stage_idx])
         self.set_combobox_index()
+        self.parent.overview.mark_stages(window_start, window_length,
+                                         stage_name[stage_idx])
         self.parent.action_page_next()
+
+    def set_combobox_index(self):
+        """Set the current stage in combobox."""
+        window_start = self.parent.overview.window_start
+        stage = self.scores.get_stage_for_epoch(str(window_start))
+        lg.debug('Set combobox at ' + stage)
+        self.combobox.setCurrentIndex(stage_name.index(stage))
 
     def create_empty_xml(self):
         """Create a new empty xml file, to keep the sleep scoring.

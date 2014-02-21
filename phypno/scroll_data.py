@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
             dataset.read_data(chan=[one_chan],
                               begtime=begtime,
                               endtime=endtime)
-            self.overview.more_download(begtime, endtime)
+            self.overview.mark_downloaded(begtime, endtime)
 
     def create_widgets(self):
         """Create all the widgets and dockwidgets.

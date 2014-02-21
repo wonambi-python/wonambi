@@ -171,7 +171,6 @@ class Dataset:
             if isinstance(begtime, int) or isinstance(begtime, float):
                 begtime = timedelta(seconds=begtime)
             if isinstance(begtime, timedelta):
-                lg.debug(begtime)
                 begsam = ceil(begtime.total_seconds() * self.header['s_freq'])
             begsam = int(begsam)
 
@@ -181,7 +180,6 @@ class Dataset:
             if isinstance(endtime, int) or isinstance(endtime, float):
                 endtime = timedelta(seconds=endtime)
             if isinstance(endtime, timedelta):
-                lg.debug(endtime)
                 endsam = ceil(endtime.total_seconds() * self.header['s_freq'])
             endsam = int(endsam)
 

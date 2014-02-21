@@ -22,7 +22,7 @@ class Info(QWidget):
         the full path of the file.
     dataset : instance of phypno.Dataset
         the dataset already read in.
-    idx_text : list of instances of QLabel/QPushButton
+    idx_text : dict of instances of QLabel/QPushButton
         Elements where you should setText once dataset is loaded.
 
     """
@@ -39,7 +39,8 @@ class Info(QWidget):
 
     def create_info(self):
         """Create the QFormLayout with all the information."""
-        lg.info('Creating empty widget Info')
+        lg.debug('Creating empty Info widget')
+
         layout = QFormLayout()
         self.setLayout(layout)
 
@@ -69,6 +70,7 @@ class Info(QWidget):
             path to file to read.
 
         """
+        lg.debug('Updating Info widget')
         lg.info('Loading ' + filename)
         self.filename = filename
         self.dataset = Dataset(filename)
@@ -77,6 +79,7 @@ class Info(QWidget):
 
     def display_info(self):
         """Update the widget with information about the dataset."""
+        lg.debug('Displaying Info widget')
         header = self.dataset.header
 
         self.idx_text['filename'].setText(basename(self.filename))
