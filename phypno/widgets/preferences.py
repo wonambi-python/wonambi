@@ -14,6 +14,7 @@ config = QSettings("phypno", "scroll_data")
 
 defaults = {'main/geometry': [400, 300, 1024, 768],
             'main/hidden_docks': ['Video'],
+            'main/recording_dir': '/home/gio/recordings',
             'overview/window_start': 0,
             'overview/window_length': 30,
             'overview/window_length_presets': [1, 5, 10, 20, 30, 60],
@@ -49,7 +50,10 @@ class Preferences(QDialog):
     ----------
     parent : instance of QMainWindow
         The main window.
-
+    values : dict
+        Values of the preferences in key/value format.
+    idx_edits : list of instances of QLineEdit
+        Values as QLineEdit for each preference value.
 
     """
     def __init__(self, parent):
@@ -59,47 +63,32 @@ class Preferences(QDialog):
 
         self.values = defaults
 
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-        self.idx_edits = []
+        self.idx_edits = {}
 
-    def update_preferences(self):
-        """Call directly display_preferences.
+        self.create_preferences()
 
-        Notes
-        -----
-        Usually, self.values should be None, and values are updated here but in
-        the case of preferences, they should be available as soon as the
-        widgets are created.
+    def create_preferences(self):
 
-        """
-        lg.debug('Update Preferences widget')
-        self.display_preferences()
-
-    def display_preferences(self):
-        """Display the preferences."""
-        lg.debug('Display Preferences widget')
-
-        widgets = set([x.split('/')[0] for x in defaults])
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
         group = {}
-        layout = {}
-        self.idx_edits = {}
+        group_layout = {}
+        widgets = set([x.split('/')[0] for x in defaults])
 
         # It creates a QGroupBox with QFormLayout for each widget
         for one_widget in sorted(widgets):
-            lg.debug('Adding preferences for {} widget'.format(one_widget))
+            lg.debug('Adding preferences for ' + one_widget + ' widget')
             group[one_widget] = QGroupBox(one_widget)
-            layout[one_widget] = QFormLayout()
-            group[one_widget].setLayout(layout[one_widget])
-            self.layout.addWidget(group[one_widget])
+            group_layout[one_widget] = QFormLayout()
+            group[one_widget].setLayout(group_layout[one_widget])
+            layout.addWidget(group[one_widget])
 
         # It adds row to a widget's QGroupBox
-        for widget_key, value in sorted(defaults.items()):
+        for widget_key in sorted(defaults):
             one_widget, key = widget_key.split('/')
-            lg.debug('Adding {} to {}'.format(key, one_widget))
-            edit = QLineEdit(str(value))
-            layout[one_widget].addRow(key, edit)
+            edit = QLineEdit('')
+            group_layout[one_widget].addRow(key, edit)
             self.idx_edits[widget_key] = edit
 
         ok_button = QPushButton('OK')
@@ -113,7 +102,26 @@ class Preferences(QDialog):
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
 
-        self.layout.addLayout(button_layout)
+        layout.addLayout(button_layout)
+
+    def update_preferences(self):
+        """Call directly display_preferences.
+
+        Notes
+        -----
+        Usually, self.values should be None and values are updated here but in
+        the case of preferences they should be available as soon as the
+        widgets are created.
+
+        """
+        lg.debug('Update Preferences widget')
+        self.display_preferences()
+
+    def display_preferences(self):
+        """Display the preferences."""
+        for widget_key, value in defaults.items():
+            lg.debug('Setting {} to {}'.format(widget_key, value))
+            self.idx_edits[widget_key].setText(str(value))
 
     def save_values(self):
         """Save edited values into QSettings file.

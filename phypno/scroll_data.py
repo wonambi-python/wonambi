@@ -15,8 +15,6 @@ handler.setFormatter(formatter)
 lg.handlers = []
 lg.addHandler(handler)
 
-lg.info('b')
-
 from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
@@ -40,16 +38,6 @@ from phypno.widgets import (DockWidget,
                             Video)
 from phypno.widgets.utils import (icon, create_menubar, create_toolbar,
                                   keep_recent_recordings)
-
-
-XML_EXAMPLE = '/home/gio/recordings/'
-DATASET_EXAMPLE = None
-# DATASET_EXAMPLE = ('/home/gio/recordings/MG71/eeg/raw/' +
-                   # 'MG71_eeg_sessA_d01_21_17_40')
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/sample.edf'
-# DATASET_EXAMPLE = '/home/gio/Copy/presentations_x/video/VideoFileFormat_1'
-# DATASET_EXAMPLE = '/home/gio/ieeg/data/MG63_d2_Thurs_d.edf'
-# DATASET_EXAMPLE = '/home/gio/tools/phypno/test/data/MG71_d1_Wed_c.edf'
 
 
 class MainWindow(QMainWindow):
@@ -195,18 +183,15 @@ class MainWindow(QMainWindow):
         if recent is not None:
             filename = recent
         else:
-            if DATASET_EXAMPLE is None:
-                try:
-                    dir_name = dirname(self.info.filename)
-                except AttributeError:
-                    dir_name = XML_EXAMPLE
+            try:
+                dir_name = dirname(self.info.filename)
+            except AttributeError:
+                dir_name = self.preferences.values['main/recording_dir']
 
-                filename = QFileDialog.getExistingDirectory(self, 'Open file',
-                                                            dir_name)
-                if filename == '':
-                    return
-            else:
-                filename = DATASET_EXAMPLE
+            filename = QFileDialog.getExistingDirectory(self, 'Open file',
+                                                        dir_name)
+            if filename == '':
+                return
 
         self.statusBar().showMessage('Reading dataset: ' + basename(filename))
         self.info.update_info(filename)

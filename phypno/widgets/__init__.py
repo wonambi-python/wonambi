@@ -47,6 +47,15 @@ def MyWidget(QClass):
 
         self.idx_XXX = []  # list of instances of the objects
 
+
+    def create_mywidget(self):
+        \"""Create the widget with the elements that won't change.\"""
+        layout = QBoxLayout()
+
+        layout.addWidget(QPushButton(''))
+        self.setLayout(layout)
+
+
     def update_mywidget(self, parameters):
         \"""Update the attributes once the dataset has been read in memory.
 

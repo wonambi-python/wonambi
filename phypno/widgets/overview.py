@@ -117,7 +117,7 @@ class Overview(QGraphicsView):
 
         preferences = self.parent.preferences.values
         ratio = float(preferences['stages/scoring_window'])
-        steps = int(preferences['overview/window_step'])
+        steps = int(preferences['overview/timestamp_steps'])
 
         for t in range(first_hour, last_hour, steps):
             t_as_datetime = datetime.fromtimestamp(t)
