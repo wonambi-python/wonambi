@@ -361,8 +361,8 @@ class Stages(QWidget):
         which have start_time, end_time, and stage.
 
         """
-        minimum = floor(self.parent.overview.minimum)
-        maximum = floor(self.parent.overview.maximum)
+        minimum = int(floor(self.parent.overview.minimum))
+        maximum = int(floor(self.parent.overview.maximum))
         window_length = self.parent.preferences.values['stages/scoring_window']
 
         main = Element('sleep_stages')

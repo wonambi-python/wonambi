@@ -27,7 +27,7 @@ defaults = {'main/geometry': [400, 300, 1024, 768],
             'traces/y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
             'traces/label_width': 2.,
             'utils/read_intervals': 10 * 60,
-            'stages/scoring_window': 30.,
+            'stages/scoring_window': 30,
             'spectrum/x_limit': [0, 30],
             'spectrum/y_limit': [0, -10],  # log unit
             }
