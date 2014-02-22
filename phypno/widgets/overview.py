@@ -169,6 +169,7 @@ class Overview(QGraphicsView):
 
         self.parent.traces.update_traces()
         # TODO: update_spectrum ?
+        # self.parent.spectrum.update_spectrum()
         if self.parent.stages.scores is not None:
             self.parent.stages.set_combobox_index()
 

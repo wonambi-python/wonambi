@@ -3,7 +3,6 @@ lg = getLogger(__name__)
 
 from numpy import log
 from scipy.signal import welch
-
 from PySide.QtGui import (QComboBox,
                           QVBoxLayout,
                           QWidget,

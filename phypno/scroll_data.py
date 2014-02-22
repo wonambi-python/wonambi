@@ -15,7 +15,6 @@ handler.setFormatter(formatter)
 lg.handlers = []
 lg.addHandler(handler)
 
-from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
 
@@ -117,8 +116,7 @@ class MainWindow(QMainWindow):
         actions['recent_rec'] = []
         for one_recent_rec in recent_recs:
             action_recent = QAction(one_recent_rec, self)
-            action_recent.triggered.connect(partial(self.action_open_rec,
-                                                    one_recent_rec))
+            action_recent.triggered.connect(lambda: self.action_open_rec(one_recent_rec))
             actions['recent_rec'].append(action_recent)
 
         actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
@@ -380,8 +378,7 @@ class MainWindow(QMainWindow):
             new_act = QAction(icon['widget'], dock['name'], self)
             new_act.setCheckable(True)
             new_act.setChecked(True)
-            new_act.triggered.connect(partial(self.toggle_menu_window,
-                                              dock['name'],
+            new_act.triggered.connect(lambda: self.toggle_menu_window(dock['name'],
                                               self.idx_docks[dock['name']]))
             self.menu_window.addAction(new_act)
             actions[dock['name']] = new_act
