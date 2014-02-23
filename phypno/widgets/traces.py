@@ -6,6 +6,7 @@ from datetime import timedelta
 from numpy import squeeze, floor, ceil
 from PySide.QtCore import QPointF
 from PySide.QtGui import (QBrush,
+                          QGraphicsItem,
                           QGraphicsScene,
                           QGraphicsSimpleTextItem,
                           QGraphicsView,
@@ -123,7 +124,19 @@ class Traces(QGraphicsView):
         self.create_labels()
         self.create_time()
 
-        self.scene = QGraphicsScene()
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+
+        time_height = max([x.boundingRect().height() for x in self.idx_time])
+        preferences = self.parent.preferences.values
+        label_width = window_length * float(preferences['traces/label_ratio'])
+
+        self.scene = QGraphicsScene(window_start - label_width,
+                                    0,
+                                    window_length + label_width,
+                                    len(self.idx_label) * self.y_distance +
+                                    time_height)
+
         self.setScene(self.scene)
         self.add_labels()
         self.add_time()
@@ -144,6 +157,7 @@ class Traces(QGraphicsView):
                 item = QGraphicsSimpleTextItem(one_label + '\n' +
                                                '(' + one_grp['name'] + ')')
                 item.setBrush(QBrush(one_grp['color']))
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 self.idx_label.append(item)
 
     def create_time(self):
@@ -168,7 +182,9 @@ class Traces(QGraphicsView):
         for one_time in range(min_time, max_time, step):
             x_label = (start_time +
                        timedelta(seconds=one_time)).strftime('%H:%M:%S')
-            self.idx_time.append(QGraphicsSimpleTextItem(x_label))
+            item = QGraphicsSimpleTextItem(x_label)
+            item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+            self.idx_time.append(item)
             self.time_pos.append(QPointF(one_time,
                                          len(self.idx_label) *
                                          self.y_distance))
@@ -176,10 +192,13 @@ class Traces(QGraphicsView):
     def add_labels(self):
         """Add channel labels on the left."""
         window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+        preferences = self.parent.preferences.values
+        label_width = window_length * float(preferences['traces/label_ratio'])
 
         for row, one_label_item in enumerate(self.idx_label):
             self.scene.addItem(one_label_item)
-            one_label_item.setPos(window_start,
+            one_label_item.setPos(window_start - label_width,
                                   self.y_distance * row + self.y_distance / 2)
 
     def add_time(self):
@@ -190,6 +209,7 @@ class Traces(QGraphicsView):
 
     def add_traces(self):
         """Add traces based on self.data."""
+        window_start = self.parent.overview.window_start
         self.y_distance = self.y_distance
 
         self.idx_trace = []
@@ -201,46 +221,35 @@ class Traces(QGraphicsView):
                 dat = self.data[chan_name] * self.y_scale * one_grp['scale']
                 path = self.scene.addPath(Path(self.time, dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, self.y_distance * row + self.y_distance / 2)
+                path.setPos(0,
+                            self.y_distance * row + self.y_distance / 2)
                 row += 1
                 self.idx_trace.append(path)
 
     def resizeEvent(self, event):
+        """Resize scene so that it fits the whole widget.
 
-        if self.scene is None:
-            return None
+        Parameters
+        ----------
+        event : instance of QtCore.QEvent
+            not important
 
-        view_width = self.width()
+        Notes
+        -----
+        This function overwrites Qt function, therefore the non-standard
+        name. Argument also depends on Qt.
 
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
-
-        time_height = max([x.boundingRect().height() for x in self.idx_time])
-        label_width = max([x.boundingRect().width() for x in self.idx_label])
-
+        The function is used to change the scale of view, so that the scene
+        fits the whole scene. There are two problems that I could not fix: 1)
+        how to give the width of the label in absolute width, 2) how to strech
+        scene just enough that it doesn't trigger a scrollbar. However, it's
+        pretty good as it is now.
 
         """
-        view_width = self.width()
         if self.scene is not None:
-            self.scene.setSceneRect(window_start - label_width,
-                                    0,
-                                    window_length + label_width,
-                                    len(self.idx_label) * self.y_distance +
-                                    time_height)
-
-            scene_width = self.scene.sceneRect().width()
+            ratio = self.width() / (self.scene.width() * 1.1)
             self.resetTransform()
-            scale_value = view_width / (scene_width + 1)
-            self.scale(scale_value, 1)
-
-            for text in self.idx_time:
-                text.resetTransform()
-                text.scale(1 / scale_value, 1)
-            for text in self.idx_label:
-                text.resetTransform()
-                text.scale(1 / scale_value, 1)
-        """
-        pass
+            self.scale(ratio, 1)
 
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""

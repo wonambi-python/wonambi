@@ -11,6 +11,7 @@ from PySide.QtGui import (QBrush,
                           QGraphicsRectItem,
                           QGraphicsScene,
                           QGraphicsView,
+                          QGraphicsItem,
                           )
 
 # bookmark
@@ -137,7 +138,7 @@ class Overview(QGraphicsView):
             date_as_text = t_as_datetime.strftime('%H:%M')
 
             text = self.scene.addSimpleText(date_as_text)
-            text.setTransform(transform)  # make it readable
+            text.setFlag(QGraphicsItem.ItemIgnoresTransformations)
 
             # set xpos and adjust for text width
             xpos = (t_as_datetime - start_time).total_seconds()
