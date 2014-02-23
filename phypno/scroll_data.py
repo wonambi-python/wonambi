@@ -267,15 +267,18 @@ class MainWindow(QMainWindow):
 
     def action_Y_more(self):
         """Increase the amplitude."""
-        self.traces.set_y_scale(self.traces.y_scale * 2)
+        self.traces.y_scale = self.traces.y_scale * 2
+        self.traces.display_traces()
 
     def action_Y_less(self):
         """Decrease the amplitude."""
-        self.traces.set_y_scale(self.traces.y_scale / 2)
+        self.traces.y_scale = self.traces.y_scale / 2 
+        self.traces.display_traces()
 
     def action_Y_ampl(self, new_y_scale):
         """Make amplitude on Y axis using predefined values"""
-        self.traces.set_y_scale(new_y_scale)
+        self.traces.y_scale = new_y_scale
+        self.traces.display_traces()
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""

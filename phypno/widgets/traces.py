@@ -12,7 +12,7 @@ from PySide.QtGui import (QBrush,
                           QPen,
                           )
 
-from ..trans import Montage, Filter
+from ..trans import Montage, Filter, Select
 from .utils import Path
 
 
@@ -23,13 +23,27 @@ class Traces(QGraphicsView):
     ----------
     parent : instance of QMainWindow
         the main window.
-    ylimit : int
-        positive height of the y-axis
+    y_scale: int or float
+        multiply value by this scaling factor.
+    y_distance : int or float
+        distance between traces.
+    y_scrollbar_value : int
+        position of the vertical scrollbar
+
+    scene : instance of QGraphicsScene
+        the main scene.
+    idx_trace : list of instance of ...
+
+    idx_label : list of instance of ...
+
+    idx_time : list of instance of ...
+
+    idx_bookmark : list of instance of ...
+
+
+
     data : instance of phypno.DataTime
         instance containing the recordings.
-    scene :
-    chan_plot : list of instances of plotItem
-        references to the plots for each channel.
 
     """
     def __init__(self, parent):
@@ -38,23 +52,28 @@ class Traces(QGraphicsView):
 
         preferences = self.parent.preferences.values
         self.y_scale = preferences['traces/y_scale']
-        self.y_dist = preferences['traces/y_distance']
+        self.y_distance = preferences['traces/y_distance']
         self.y_scrollbar_value = 0
+        self.data = {}
+        self.time = None
+
         self.scene = None
-        self.data = None
-        self.all_chan = []
-        self.all_label = []
-        self.all_time = []
-        self.all_bookmark = []
+        self.idx_trace = []
+        self.idx_label = []
+        self.idx_time = []
+        self.time_pos = []
+        self.idx_bookmark = []
+
+        self.create_traces()
+
+    def create_traces(self):
+        """Create empty scene."""
+        lg.debug('Creating Traces widget')
 
     def update_traces(self):
-        """Read and update the data to plot.
+        """Read and update the data to plot."""
+        lg.debug('Updating Traces widget')
 
-        This function should also preprocess the data, so that it's available
-        for other widgets, such as spectrum and surface plotting.
-        TODO!
-
-        """
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
@@ -67,21 +86,67 @@ class Traces(QGraphicsView):
                                  begtime=window_start,
                                  endtime=window_end)
 
-        self.data = data
-        self.display_traces(data)
+        self.time = data.time
+        self.data = {}
+        for one_grp in self.parent.channels.groups:
+            sel = Select(one_grp['chan_to_plot'])
+            mont = Montage(ref_chan=one_grp['ref_chan'])
+            data1 = mont(sel(data))
+
+            if one_grp['filter']['low_cut'] is not None:
+                hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
+                                s_freq=data.s_freq)
+                data1 = hpfilt(data1)
+
+            if one_grp['filter']['high_cut'] is not None:
+                lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
+                                s_freq=data.s_freq)
+                data1 = lpfilt(data1)
+
+            for chan in one_grp['chan_to_plot']:
+                dat, _ = data1(chan=[chan])
+                dat = squeeze(dat, axis=0)
+                chan_grp_name = chan + ' (' + one_grp['name'] + ')'
+                self.data[chan_grp_name] = dat
+
+        self.display_traces()
         self.parent.overview.mark_downloaded(window_start, window_end)
+
+    def display_traces(self):
+        """Display the recordings."""
+        lg.debug('Displaying Traces widget')
+
+        if self.scene is not None:
+            self.y_scrollbar_value = self.verticalScrollBar().value()
+            self.scene.clear()
+
+        self.create_labels()
+        self.create_time()
+
+        self.scene = QGraphicsScene()
+        self.setScene(self.scene)
+        self.add_labels()
+        self.add_time()
+        self.add_traces()
+
+        if self.parent.bookmarks.bookmarks is not None:
+            self.add_bookmarks()
+
+        self.resizeEvent(None)
+        self.verticalScrollBar().setValue(self.y_scrollbar_value)
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""
 
-        self.all_label = []
+        self.idx_label = []
         for one_grp in self.parent.channels.groups:
             for one_label in one_grp['chan_to_plot']:
-                item = QGraphicsSimpleTextItem(one_label)
+                item = QGraphicsSimpleTextItem(one_label + '\n' +
+                                               '(' + one_grp['name'] + ')')
                 item.setBrush(QBrush(one_grp['color']))
-                self.all_label.append(item)
+                self.idx_label.append(item)
 
-    def create_time(self, times):
+    def create_time(self):
         """Create the time labels, but don't plot them yet.
 
         Notes
@@ -91,134 +156,91 @@ class Traces(QGraphicsView):
         """
         start_time = self.parent.info.dataset.header['start_time']
 
-        min_time = int(floor(min(times)))
-        max_time = int(ceil(max(times)))
+        min_time = int(floor(min(self.time)))
+        max_time = int(ceil(max(self.time)))
 
-        n_time_labels = int(self.parent.preferences.values['traces/n_time_labels'])
+        preferences = self.parent.preferences.values
+        n_time_labels = int(preferences['traces/n_time_labels'])
         step = int((max_time - min_time) / n_time_labels)
 
-        self.all_time = []
-        self.all_time_pos = []
+        self.idx_time = []
+        self.time_pos = []
         for one_time in range(min_time, max_time, step):
             x_label = (start_time +
                        timedelta(seconds=one_time)).strftime('%H:%M:%S')
-            self.all_time.append(QGraphicsSimpleTextItem(x_label))
-            self.all_time_pos.append(QPointF(one_time,
-                                             len(self.all_label) *
-                                             self.y_dist))
-
-    def display_traces(self, data=None):
-        """Display the recordings."""
-        if data is None:
-            data = self.data
-
-        if self.scene is not None:
-            self.y_scrollbar_value = self.verticalScrollBar().value()
-            self.scene.clear()
-
-        self.create_labels()
-        self.create_time(data.time)
-
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
-
-        label_width = float(self.parent.preferences.values['traces/label_width'])
-        time_height = max([x.boundingRect().height() for x in self.all_time])
-
-        self.scene = QGraphicsScene(window_start - label_width,
-                                    0,
-                                    window_length + label_width,
-                                    len(self.all_label) * self.y_dist +
-                                    time_height)
-        self.setScene(self.scene)
-        self.add_labels()
-        self.add_time()
-        self.add_traces(data)
-        self.set_y_scale()
-        self.resizeEvent(None)
-        self.verticalScrollBar().setValue(self.y_scrollbar_value)
+            self.idx_time.append(QGraphicsSimpleTextItem(x_label))
+            self.time_pos.append(QPointF(one_time,
+                                         len(self.idx_label) *
+                                         self.y_distance))
 
     def add_labels(self):
         """Add channel labels on the left."""
         window_start = self.parent.overview.window_start
 
-        label_width = float(self.parent.preferences.values['traces/label_width'])
-
-        for row, one_label_item in enumerate(self.all_label):
+        for row, one_label_item in enumerate(self.idx_label):
             self.scene.addItem(one_label_item)
-            one_label_item.setPos(window_start - label_width,
-                                  self.y_dist * row + self.y_dist / 2)
+            one_label_item.setPos(window_start,
+                                  self.y_distance * row + self.y_distance / 2)
 
     def add_time(self):
-        for text, pos in zip(self.all_time, self.all_time_pos):
+        """Add time labels at the bottom."""
+        for text, pos in zip(self.idx_time, self.time_pos):
             self.scene.addItem(text)
             text.setPos(pos)
 
-    def add_traces(self, data=None):
-        if data is None:
-            data = self.data
-        self.y_dist = self.y_dist
+    def add_traces(self):
+        """Add traces based on self.data."""
+        self.y_distance = self.y_distance
 
-        self.all_chan = []  # does not delete previous channels
+        self.idx_trace = []
+
         row = 0
         for one_grp in self.parent.channels.groups:
-            mont = Montage(ref_chan=one_grp['ref_chan'])
-            data1 = mont(data)
-            if one_grp['filter']['low_cut'] is not None:
-                hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
-                                s_freq=data.s_freq)
-                data1 = hpfilt(data1)
-            if one_grp['filter']['high_cut'] is not None:
-                lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
-                                s_freq=data.s_freq)
-                data1 = lpfilt(data1)
-            for chan in one_grp['chan_to_plot']:
-                dat, time = data1(chan=[chan])
-                dat = squeeze(dat, axis=0)
-                path = self.scene.addPath(Path(time,
-                                                dat * one_grp['scale']))
+            for one_chan in one_grp['chan_to_plot']:
+                chan_name = one_chan + ' (' + one_grp['name'] + ')'
+                dat = self.data[chan_name] * self.y_scale * one_grp['scale']
+                path = self.scene.addPath(Path(self.time, dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, self.y_dist * row + self.y_dist / 2)
-                self.all_chan.append(path)
+                path.setPos(0, self.y_distance * row + self.y_distance / 2)
                 row += 1
-                if self.parent.spectrum.channel is not None:
-                    if chan == self.parent.spectrum.channel:
-                        self.parent.spectrum.data = dat
-                        self.parent.spectrum.display_spectrum()
-
-        self.set_y_scale()
-        if self.parent.bookmarks.bookmarks is not None:
-            self.add_bookmarks()
-
-    def set_y_scale(self, new_y_scale=None):
-        """Change the amplitude, you don't need to read in new data.
-
-        Parameters
-        ----------
-        new_y_scale : float or int, optional
-            the new scale for the y-axis.
-
-        """
-        if new_y_scale is not None:
-            self.y_scale = new_y_scale
-        for chan in self.all_chan:
-            chan.resetTransform()
-            chan.scale(1, self.y_scale)
+                self.idx_trace.append(path)
 
     def resizeEvent(self, event):
+
+        if self.scene is None:
+            return None
+
+        view_width = self.width()
+
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
+
+        time_height = max([x.boundingRect().height() for x in self.idx_time])
+        label_width = max([x.boundingRect().width() for x in self.idx_label])
+
+
+        """
         view_width = self.width()
         if self.scene is not None:
+            self.scene.setSceneRect(window_start - label_width,
+                                    0,
+                                    window_length + label_width,
+                                    len(self.idx_label) * self.y_distance +
+                                    time_height)
+
             scene_width = self.scene.sceneRect().width()
             self.resetTransform()
             scale_value = view_width / (scene_width + 1)
             self.scale(scale_value, 1)
 
-            for text in self.all_time:
+            for text in self.idx_time:
                 text.resetTransform()
                 text.scale(1 / scale_value, 1)
-            for text in self.all_label:
+            for text in self.idx_label:
                 text.resetTransform()
                 text.scale(1 / scale_value, 1)
+        """
+        pass
 
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""
@@ -227,9 +249,9 @@ class Traces(QGraphicsView):
         window_length = self.parent.overview.window_length
         window_end = window_start + window_length
 
-        self.all_bookmark = []
+        self.idx_bookmark = []
         for bm in bookmarks:
             if window_start < bm['time'] < window_end:
                 item = QGraphicsSimpleTextItem(bm['name'])
                 item.setPos(bm['time'], 0)
-                self.all_bookmark.append(item)
+                self.idx_bookmark.append(item)
