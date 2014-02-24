@@ -85,7 +85,7 @@ class Traces(QGraphicsView):
         self.time = data.time
         self.data = {}
         for one_grp in self.parent.channels.groups:
-            sel = Select(one_grp['chan_to_plot'])
+            sel = Select(one_grp['chan_to_plot'] + one_grp['ref_chan'])
             mont = Montage(ref_chan=one_grp['ref_chan'])
             data1 = mont(sel(data))
 
