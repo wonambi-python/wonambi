@@ -30,21 +30,22 @@ class Traces(QGraphicsView):
         distance between traces.
     y_scrollbar_value : int
         position of the vertical scrollbar
-
+    data : dict
+        where the data is stored as chan_name (group_name)
+    time : numpy.ndarray
+        vector containing the time points
     scene : instance of QGraphicsScene
         the main scene.
-    idx_trace : list of instance of ...
+    idx_trace : list of instance of QGraphicsPathItem
 
-    idx_label : list of instance of ...
+    idx_label : list of instance of QGraphicsSimpleTextItem
 
-    idx_time : list of instance of ...
+    idx_time : list of instance of QGraphicsSimpleTextItem
 
-    idx_bookmark : list of instance of ...
+    idx_bookmark : list of instance of QGraphicsSimpleTextItem
 
-
-
-    data : instance of phypno.DataTime
-        instance containing the recordings.
+    time_pos : list of position of time
+        we need to keep track of the position of y-label during creation
 
     """
     def __init__(self, parent):
@@ -253,6 +254,7 @@ class Traces(QGraphicsView):
 
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""
+        lg.info('Adding bookmarks')
         bookmarks = self.parent.bookmarks.bookmarks
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
@@ -261,6 +263,8 @@ class Traces(QGraphicsView):
         self.idx_bookmark = []
         for bm in bookmarks:
             if window_start < bm['time'] < window_end:
+                lg.debug('Adding bookmark {} at {}'.format(bm['name'],
+                                                           bm['time']))
                 item = QGraphicsSimpleTextItem(bm['name'])
                 item.setPos(bm['time'], 0)
                 self.idx_bookmark.append(item)

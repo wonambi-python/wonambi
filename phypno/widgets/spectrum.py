@@ -6,11 +6,11 @@ from scipy.signal import welch
 from PySide.QtGui import (QComboBox,
                           QVBoxLayout,
                           QWidget,
+                          QGraphicsView,
+                          QGraphicsScene,
                           )
-from visvis import use, plot, cla, gca
 
-
-app = use('pyside')
+from phypno.widgets.utils import Path
 
 
 class Spectrum(QWidget):
@@ -24,45 +24,56 @@ class Spectrum(QWidget):
         preferences = self.parent.preferences.values
         self.x_limit = preferences['spectrum/x_limit']
         self.y_limit = preferences['spectrum/y_limit']
-        self.channel = None
-        self.data = None
+        self.freq = None
+        self.power = None
 
-        self.combobox = QComboBox()
-        self.combobox.currentIndexChanged.connect(self.load_channel)
-        Figure = app.GetFigureClass()
-        self.figure = Figure(self)
+        self.idx_chan = None
+        self.idx_fig = None
+
+        self.create_spectrum()
+
+    def create_spectrum(self):
+
+        self.idx_chan = QComboBox()
+        self.idx_chan.currentIndexChanged.connect(self.display_spectrum)
+        self.idx_fig = QGraphicsView(self)
+        self.idx_fig.scale(1, -1)
+
+        self.scene = QGraphicsScene(self.x_limit[0], self.y_limit[1],
+                                    self.x_limit[1] - self.x_limit[0],
+                                    self.y_limit[1] - self.y_limit[0])
+        self.idx_fig.setScene(self.scene)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.combobox)
-        layout.addWidget(self.figure._widget)
+        layout.addWidget(self.idx_chan)
+        layout.addWidget(self.idx_fig)
         self.setLayout(layout)
 
     def update_spectrum(self):
         """Get value of the channel from scroll.
 
         """
-        self.combobox.clear()
+        self.idx_chan.clear()
         groups = self.parent.channels.groups
-        all_chan = [item for x in groups for item in x['chan_to_plot']]
-        for one_chan in all_chan:
-            self.combobox.addItem(one_chan)
+        for one_grp in self.parent.channels.groups:
+            for one_chan in one_grp['chan_to_plot']:
+                chan_name = one_chan + ' (' + one_grp['name'] + ')'
+                self.idx_chan.addItem(chan_name)
 
-        #TODO: track this function: when changing groups, it plots the traces twice
-        self.load_channel()
-
-    def load_channel(self):
-        self.channel = self.combobox.currentText()
-        self.parent.traces.add_traces()
+        self.display_spectrum()
 
     def display_spectrum(self):
-        cla()
-        axis = gca()
-        axis.position.x = 20
-        axis.position.w = self.figure._widget.width() - axis.position.x
-        axis.Draw()
+        chan_name = self.idx_chan.currentText()
+        data = self.parent.traces.data[chan_name]
+        s_freq = int(self.parent.info.dataset.header['s_freq'])
 
-        s_freq = int(self.parent.traces.data.s_freq)  # TODO
-        f, Pxx = welch(self.data, fs=s_freq, nperseg=s_freq)
-        plot(f, log(Pxx))
-        axis.SetLimits(rangeX=self.x_limit, rangeY=self.y_limit)
-        axis.showGrid = 1
+        f, Pxx = welch(data, fs=s_freq, nperseg=s_freq)
+
+        self.scene.addPath(Path(self.x_limit, [self.y_limit[0], self.y_limit[0]]))
+        self.scene.addPath(Path([self.x_limit[0], self.x_limit[0]],
+                                self.y_limit))
+        self.scene.addPath(Path(f, log(Pxx)))
+
+    def resizeEvent(self, event):
+
+
