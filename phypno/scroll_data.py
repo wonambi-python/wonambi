@@ -186,10 +186,11 @@ class MainWindow(QMainWindow):
             except AttributeError:
                 dir_name = self.preferences.values['main/recording_dir']
 
-            filename = QFileDialog.getExistingDirectory(self, 'Open file',
-                                                        dir_name)
+            filename = QFileDialog.getOpenFileName(self, 'Open file', dir_name)
             if filename == '':
                 return
+            if splitext(filename[0])[1] == '.stc':
+                filename = dirname(filename[0])
 
         self.statusBar().showMessage('Reading dataset: ' + basename(filename))
         self.info.update_info(filename)
@@ -216,13 +217,7 @@ class MainWindow(QMainWindow):
         self.stages.update_stages(filename[0])
 
     def action_step_prev(self):
-        """Go to the previous step.
-
-        Notes
-        -----
-        TODO: window_step_ratio should go to overview
-
-        """
+        """Go to the previous step."""
         window_start = (self.overview.window_start -
                         self.overview.window_length /
                         self.preferences.values['overview/window_step'])

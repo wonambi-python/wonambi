@@ -266,4 +266,5 @@ class Traces(QGraphicsView):
                                                            bm['time']))
                 item = QGraphicsSimpleTextItem(bm['name'])
                 item.setPos(bm['time'], 0)
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 self.idx_bookmark.append(item)
