@@ -76,6 +76,14 @@ def _calculate_conversion(hdr):
 
         factor = concatenate((ch1, ch2))
 
+    elif hdr['headbox_type'][0] == 9:
+        # 0 - 32
+        ch1 = ones((33)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        # 33 - 34
+        ch2 = ones((2)) * (1 / 26) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2))
+
     elif hdr['headbox_type'][0] == 21:
         # 0 -127
         ch1 = ones((128)) * (8711. / (221 - 0.5)) * 2 ** discardbits
@@ -648,12 +656,7 @@ class Ktlx():
         return hdr
 
     def return_dat(self, chan, begsam, endsam):
-        """TODO: prepare functions
-        1. read stc for the content of the folder
-        2. loop over erd and concatenate them
-
-        it should allow for random access to the files, otherwise it's too slow
-        to read the complete recording.
+        """
 
         """
         stc, all_stamp = _read_stc(join(self.filename, self._basename +

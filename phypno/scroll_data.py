@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         self.channels.update_channels(self.info.dataset.header['chan_name'])
         try:
             self.bookmarks.update_bookmarks(self.info.dataset.header)
-        except KeyError:
+        except (KeyError, ValueError):
             lg.info('No notes/bookmarks present in the header of the file')
 
     def action_open_stages(self):
