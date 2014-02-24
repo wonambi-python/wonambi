@@ -4,7 +4,7 @@ lg = getLogger(__name__)
 from datetime import timedelta
 
 from numpy import squeeze, floor, ceil
-from PySide.QtCore import QPointF
+from PySide.QtCore import QPointF, Qt
 from PySide.QtGui import (QBrush,
                           QGraphicsItem,
                           QGraphicsScene,
@@ -36,13 +36,9 @@ class Traces(QGraphicsView):
         vector containing the time points
     scene : instance of QGraphicsScene
         the main scene.
-    idx_trace : list of instance of QGraphicsPathItem
-
     idx_label : list of instance of QGraphicsSimpleTextItem
 
     idx_time : list of instance of QGraphicsSimpleTextItem
-
-    idx_bookmark : list of instance of QGraphicsSimpleTextItem
 
     time_pos : list of position of time
         we need to keep track of the position of y-label during creation
@@ -60,11 +56,9 @@ class Traces(QGraphicsView):
         self.time = None
 
         self.scene = None
-        self.idx_trace = []
         self.idx_label = []
         self.idx_time = []
         self.time_pos = []
-        self.idx_bookmark = []
 
         self.create_traces()
 
@@ -212,8 +206,6 @@ class Traces(QGraphicsView):
         """Add traces based on self.data."""
         self.y_distance = self.y_distance
 
-        self.idx_trace = []
-
         row = 0
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
@@ -224,7 +216,6 @@ class Traces(QGraphicsView):
                 path.setPos(0,
                             self.y_distance * row + self.y_distance / 2)
                 row += 1
-                self.idx_trace.append(path)
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
@@ -258,13 +249,16 @@ class Traces(QGraphicsView):
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
         window_end = window_start + window_length
+        time_height = max([x.boundingRect().height() for x in self.idx_time])
 
-        self.idx_bookmark = []
         for bm in bookmarks:
-            if window_start < bm['time'] < window_end:
+            if window_start <= bm['time'] <= window_end:
                 lg.debug('Adding bookmark {} at {}'.format(bm['name'],
                                                            bm['time']))
                 item = QGraphicsSimpleTextItem(bm['name'])
-                item.setPos(bm['time'], 0)
+                item.setPos(bm['time'],
+                            len(self.idx_label) * self.y_distance -
+                            time_height)
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                self.idx_bookmark.append(item)
+                item.setPen(QPen(Qt.red))
+                self.scene.addItem(item)
