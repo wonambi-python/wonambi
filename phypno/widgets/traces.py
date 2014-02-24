@@ -107,7 +107,7 @@ class Traces(QGraphicsView):
 
             for chan in one_grp['chan_to_plot']:
                 dat, _ = data1(chan=[chan])
-                dat = squeeze(dat, axis=0)
+                dat = squeeze(dat, axis=0) * one_grp['scale']
                 chan_grp_name = chan + ' (' + one_grp['name'] + ')'
                 self.data[chan_grp_name] = dat
 
@@ -210,7 +210,6 @@ class Traces(QGraphicsView):
 
     def add_traces(self):
         """Add traces based on self.data."""
-        window_start = self.parent.overview.window_start
         self.y_distance = self.y_distance
 
         self.idx_trace = []
@@ -219,7 +218,7 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                dat = self.data[chan_name] * self.y_scale * one_grp['scale']
+                dat = self.data[chan_name] * self.y_scale
                 path = self.scene.addPath(Path(self.time, dat))
                 path.setPen(QPen(one_grp['color']))
                 path.setPos(0,

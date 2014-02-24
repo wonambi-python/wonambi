@@ -29,7 +29,7 @@ defaults = {'main/geometry': [400, 300, 1024, 768],
             'utils/read_intervals': 10 * 60,
             'stages/scoring_window': 30,
             'spectrum/x_limit': [0, 30],
-            'spectrum/y_limit': [0, -10],  # log unit
+            'spectrum/y_limit': [-5, 5],
             }
 
 # Read/write default values using QSettings
@@ -46,7 +46,7 @@ for key, value in defaults.items():
 class Preferences(QDialog):
     """Dialog which contains the preferences/settings.
 
-    Parameters
+    Attributes
     ----------
     parent : instance of QMainWindow
         The main window.

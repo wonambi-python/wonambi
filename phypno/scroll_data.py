@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
 
     def action_Y_less(self):
         """Decrease the amplitude."""
-        self.traces.y_scale = self.traces.y_scale / 2 
+        self.traces.y_scale = self.traces.y_scale / 2
         self.traces.display_traces()
 
     def action_Y_ampl(self, new_y_scale):
@@ -282,17 +282,17 @@ class MainWindow(QMainWindow):
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
-        self.traces.y_dist *= 1.4
+        self.traces.y_distance *= 1.4
         self.traces.display_traces()
 
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
-        self.traces.y_dist /= 1.4
+        self.traces.y_distance /= 1.4
         self.traces.display_traces()
 
-    def action_Y_dist(self, new_y_dist):
+    def action_Y_dist(self, new_y_distance):
         """Use preset values for the distance between lines."""
-        self.traces.y_dist = new_y_dist
+        self.traces.y_distance = new_y_distance
         self.traces.display_traces()
 
     def action_download(self, length=None):
@@ -345,21 +345,21 @@ class MainWindow(QMainWindow):
                      {'name': 'Bookmarks',
                       'widget': self.bookmarks,
                       'main_area': Qt.RightDockWidgetArea,
-                      'extra_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
                       },
                      {'name': 'Events',
                       'widget': self.events,
-                      'main_area': Qt.RightDockWidgetArea,
-                      'extra_area': Qt.LeftDockWidgetArea,
+                      'main_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
                       },
                      {'name': 'Stages',
                       'widget': self.stages,
-                      'main_area': Qt.RightDockWidgetArea,
-                      'extra_area': Qt.LeftDockWidgetArea,
+                      'main_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
                       },
                      {'name': 'Video',
                       'widget': self.video,
-                      'main_area': Qt.RightDockWidgetArea,
+                      'main_area': Qt.LeftDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
                      {'name': 'Overview',
