@@ -43,6 +43,10 @@ class Traces(QGraphicsView):
     time_pos : list of position of time
         we need to keep track of the position of y-label during creation
 
+    Notes
+    -----
+    It doesn't handle NaN at the beginning, but actually well at the end.
+
     """
     def __init__(self, parent):
         super().__init__()

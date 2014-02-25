@@ -30,7 +30,7 @@ from os.path import basename, join, exists, splitext
 from re import sub
 from struct import unpack
 from tempfile import mkdtemp
-from numpy import (zeros, ones, concatenate, expand_dims, where, cumsum, array,
+from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
                    memmap, int32)
 
 lg = getLogger(__name__)
@@ -45,6 +45,88 @@ ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
 temp_dir = '/home/gio/projects/temp'  # temp_dir = mkdtemp()
 lg.info('Temporary Directory with data: ' + temp_dir)
+
+
+def get_erd(sample, all_beg, all_end):
+    """Get the ERD for one specific sample.
+
+    Parameters
+    ----------
+    sample : int
+        sample of interest
+    all_beg : ndarray
+        vector of the first sampling points
+    all_end : ndarray
+        vector of the last sampling points
+
+    Returns
+    -------
+    int or None
+        index of the ERD containing the sample (or None if not found)
+
+    """
+    try:
+        return where((all_beg <= sample) & (sample <= all_end))[0][0]
+    except IndexError:
+        return None
+
+
+def get_date_idx(time_of_interest, start_time, end_time):
+    idx = None
+    for i in range(len(start_time)):
+        if time_of_interest >= start_time[i] and time_of_interest <= end_time[i]:
+            idx = i
+            break
+
+    return idx
+
+
+def convert_sample_to_video_time(sample, orig_s_freq, sampleStamp,
+                                 sampleTime):
+    """Convert sample number to video time, using snc information.
+
+    Parameters
+    ----------
+    sample : int
+        sample that you want to convert in time
+    orig_s_freq : int
+        sampling frequency (used as backup)
+    sampleStamp : list of int
+        Sample number from start of study
+    sampleTime : list of datetime.datetime
+        File time representation of sampleStamp
+
+    Returns
+    -------
+    instance of datetime
+        absolute time of the sample.
+
+    Notes
+    -----
+    Note that there is a discrepancy of 4 or 5 hours between the time in
+    snc and the time in the header. I'm pretty sure that the time in the
+    header is accurate, so we use that. I think that the time in snc does
+    not take into account the time zone (that'd explain the 4 or 5
+    depending on summertime). This time is only used to get the right video
+    so we call this "video time".
+
+    """
+    if sample < sampleStamp[0]:
+        s_freq = orig_s_freq
+        id0 = 0
+    elif sample > sampleStamp[-1]:
+        s_freq = orig_s_freq
+        id0 = len(sampleStamp) - 1
+    else:
+        id0 = where(asarray(sampleStamp) <= sample)[0][-1]
+        id1 = where(asarray(sampleStamp) >= sample)[0][0]
+
+        if id0 == id1:
+            return sampleTime[id0]
+        s_freq = ((sampleStamp[id1] - sampleStamp[id0]) /
+                  (sampleTime[id1] - sampleTime[id0]).total_seconds())
+    time_diff = timedelta(seconds=(sample - sampleStamp[id0]) / s_freq)
+    return sampleTime[id0] + time_diff
 
 
 def _calculate_conversion(hdr):
@@ -509,6 +591,23 @@ def _read_stc(stc_file):
 
 
 def _read_vtc(vtc_file):
+    """Read the VTC file.
+
+    Parameters
+    ----------
+    vtc_file : str
+        path to vtc file
+
+    Returns
+    -------
+    mpg_file : list of str
+        list of avi files
+    start_time : list of datetime
+        list of start time of the avi files
+    end_time : list of datetime
+        list of end time of the avi files
+
+    """
     with open(vtc_file, 'rb') as f:
         filebytes = f.read()
 
@@ -517,24 +616,24 @@ def _read_vtc(vtc_file):
     # not sure about the 4 Bytes inbetween
 
     i = 20
-    vtc = []
+    mpg_file = []
+    start_time = []
+    end_time = []
     while i < len(filebytes):
-        MpgFileName = _make_str(unpack('c' * 261, filebytes[i:i + 261]))
+        mpg_file.append(_make_str(unpack('c' * 261, filebytes[i:i + 261])))
         i += 261
         Location = filebytes[i:i + 16]
         correct = b'\xff\xfe\xf8^\xfc\xdc\xe5D\x8f\xae\x19\xf5\xd6"\xb6\xd4'
         assert Location == correct
         i += 16
-        StartTime = _filetime_to_dt(unpack('l', filebytes[i:(i + 8)])[0])
+        start_time.append(_filetime_to_dt(unpack('l',
+                                                 filebytes[i:(i + 8)])[0]))
         i += 8
-        EndTime = _filetime_to_dt(unpack('l', filebytes[i:(i + 8)])[0])
+        end_time.append(_filetime_to_dt(unpack('l',
+                                               filebytes[i:(i + 8)])[0]))
         i += 8
 
-        vtc.append({'MpgFileName': MpgFileName,
-                    'StartTime': StartTime,
-                    'EndTime': EndTime})
-
-    return vtc
+    return mpg_file, start_time, end_time
 
 
 def _read_hdr_file(ktlx_file):
@@ -564,16 +663,12 @@ def _read_hdr_file(ktlx_file):
 
         hdr['file_guid'] = hexlify(f.read(16))
         hdr['file_schema'], = unpack('H', f.read(2))
-        try:
-            assert hdr['file_schema'] in (1, 7, 8, 9)
-        except:
+        if not hdr['file_schema'] in (1, 3, 7, 8, 9):
             raise NotImplementedError('Reading header not implemented for ' +
                                       'file_schema ' + str(hdr['file_schema']))
 
         hdr['base_schema'], = unpack('H', f.read(2))
-        try:  # p.3: base_schema 0 is rare, I think
-            assert hdr['base_schema'] == 1
-        except:
+        if not hdr['base_schema'] == 1:  # p.3: base_schema 0 is rare, I think
             raise NotImplementedError('Reading header not implemented for ' +
                                       'base_schema ' + str(hdr['base_schema']))
 
@@ -656,45 +751,67 @@ class Ktlx():
         return hdr
 
     def return_dat(self, chan, begsam, endsam):
-        """
+        """Read the data based on begsam and endsam.
+
+        Parameters
+        ----------
+        chan : list of int
+            list of channel indeces
+        begsam : int
+            index of the first sample
+        endsam :
+            index of the last sample
+
+        Returns
+        -------
+        ndarray
+            2-d matrix with data (might contain NaN)
 
         """
+        dat = empty((len(chan), endsam - begsam))
+        dat.fill(NaN)
+
         stc, all_stamp = _read_stc(join(self.filename, self._basename +
                                         '.stc'))
 
         all_erd = [x['segment_name'] for x in all_stamp]
-        all_samples = [x['sample_span'] for x in all_stamp]
-        n_sam_rec = concatenate((array([0]), cumsum(all_samples)))
+        all_beg = asarray([x['start_stamp'] for x in all_stamp])
+        all_end = asarray([x['end_stamp'] for x in all_stamp])
 
-        begrec = where(n_sam_rec <= begsam)[0][-1]
-        endrec = where(n_sam_rec < endsam)[0][-1]
+        begrec = get_erd(begsam, all_beg, all_end)
+        endrec = get_erd(endsam, all_beg, all_end)
+        if begrec is None and endrec is None:
+            return dat
+
+        if begrec is None:
+            begrec = 0
+        if endrec is None:
+            endrec = len(all_stamp) - 1
 
         lg.debug('Reading from recording #{} ({})'.format(begrec,
                                                           all_erd[begrec]) +
                  ' to recording #{} ({})'.format(endrec, all_erd[endrec]))
-        dat = zeros((len(chan), endsam - begsam))
-        d1 = 0
+
         for rec in range(begrec, endrec + 1):
-            if rec == begrec:
-                begpos_rec = begsam - n_sam_rec[rec]
-            else:
+            begpos_rec = begsam - all_stamp[rec]['start_stamp']
+            if begpos_rec < 0:
                 begpos_rec = 0
 
-            if rec == endrec:
-                endpos_rec = endsam - n_sam_rec[rec]
-            else:
-                endpos_rec = all_samples[rec]
+            endpos_rec = endsam - all_stamp[rec]['start_stamp']
+            if endpos_rec > all_stamp[rec]['sample_span']:
+                endpos_rec = all_stamp[rec]['sample_span']
 
-            d2 = endpos_rec - begpos_rec + d1
+            # this looks weird, but it takes into account whether the values
+            # are outside of the limits of the file
+            d1 = begpos_rec + all_stamp[rec]['start_stamp'] - begsam
+            d2 = endpos_rec + all_stamp[rec]['start_stamp'] - begsam
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
-            dat_rec = _read_erd(erd_file, all_samples[rec])
+            dat_rec = _read_erd(erd_file, all_stamp[rec]['sample_span'])
             lg.debug('From {}, selecting samples {}-{}'.format(all_erd[rec],
                                                                begpos_rec,
                                                                endpos_rec))
             dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
-
-            d1 = d2
 
         return dat
 
@@ -758,11 +875,16 @@ class Ktlx():
             orig['notes'] = 'could not find .ent file'
 
         try:
-            movies, movie_s_freq = self._read_movies()
-            orig['movies'] = movies
-            orig['movie_s_freq'] = movie_s_freq
+            vtc_file = join(self.filename, self._basename + '.vtc')
+            orig['vtc'] = _read_vtc(vtc_file)
         except IOError:
-            orig['notes'] = 'could not find .ent file'
+            orig['vtc'] = None
+
+        try:
+            snc_file = join(self.filename, self._basename + '.snc')
+            orig['snc'] = _read_snc(snc_file)
+        except IOError:
+            orig['snc'] = None
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -821,57 +943,3 @@ class Ktlx():
                      note + ' (' + name + ')')
 
         return '\n'.join(s)
-
-    def _read_movies(self):
-        """Reads the time-stamps for the movies.
-
-        The function is not extremely clean, because the timestamps are given
-        in time, while the recordings are in samples.
-        The function reads the synchronization file (.snc) and the list of
-        movies (in .vtc). It recomputes the sampling frequency, because there
-        might be small discrepancies with the sampling frequency in the header.
-        It's probably best to use all the stamps, but this should be pretty
-        accurate.
-
-        The output is converted into samples. I would expect some discrepancies
-        and for sure accurancy is no higher than a few seconds, but it should
-        be good enough for our analysis.
-
-        Returns
-        -------
-        movies : list of dict
-            dictionary which contains the name of the movie, the starting point
-            and end point in samples (not in time).
-
-        s_freq : float
-            sampling frequency estimated from snc.
-
-        Notes
-        -----
-        TODO: check that the synchronization is accurate, even small
-        differences can accumulate very quickly over the 24 hours, so it's
-        important to be as accurate as possible.
-
-        TODO: take into account the multiple stamps over the data (there is one
-        every 15 mintues roughly).
-
-        """
-        snc_file = join(self.filename, self._basename + '.snc')
-        vtc_file = join(self.filename, self._basename + '.vtc')
-        sampleStamp, sampleTime = _read_snc(snc_file)
-        vtc = _read_vtc(vtc_file)
-
-        s_freq = ((sampleStamp[-1] - sampleStamp[0]) /
-                  (sampleTime[-1] - sampleTime[0]).total_seconds())
-
-        movies = []
-        for v in vtc:
-            start_sam = ((v['StartTime'] - sampleTime[0]).total_seconds() *
-                         s_freq - self._hdr['stamps'][0]['start_stamp'])
-            end_sam = ((v['EndTime'] - sampleTime[0]).total_seconds() *
-                        s_freq - self._hdr['stamps'][0]['start_stamp'])
-            movies.append({'filename': join(self.filename, v['MpgFileName']),
-                          'start_sample': int(start_sam),
-                          'end_sample': int(end_sam)})
-
-        return movies, s_freq

@@ -76,6 +76,10 @@ class Spectrum(QWidget):
     scene : instance of QGraphicsScene
         the scene with GraphicsItems
 
+    Notes
+    -----
+    If data contains NaN, it doesn't create any spectrum (feature or bug?).
+
     """
     def __init__(self, parent):
         super().__init__()

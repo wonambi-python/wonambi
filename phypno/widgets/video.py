@@ -1,5 +1,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
+lg.setLevel(10)
+
+from os.path import join
 
 from PySide.QtGui import (QPushButton,
                           QVBoxLayout,
@@ -7,53 +10,17 @@ from PySide.QtGui import (QPushButton,
                           )
 from PySide.phonon import Phonon
 
+from phypno.ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
-def _convert_movie_to_relative_time(begsam, endsam, movie, s_freq):
-    """Convert absolute time to the relative time of the single movie files.
 
-    Parameters
-    ----------
-    begsam : int
-        sample at the beginning.
-    endsam : int
-        sample at the end.
-    movie : list of dict
-        list of movies, with filename, start_sample, end_sample
-    s_freq : int or float
-        sampling frequency to convert samples into s.
+# self = Ktlx('/home/gio/recordings/MG63/eeg/raw/xltek/MG63_eeg_xltek_sessA_d07_13_07_33')
+# k = Ktlx('/home/gio/recordings/MG71/eeg/raw/xltek/MG71_eeg_xltek_sessA_d03_08_20_17')
 
-    Returns
-    -------
-    all_movie : list of dict
-        information in relative time about the movie files.
+from phypno import Dataset
+d = Dataset('/home/gio/tools/read_xltek/XLTEK_stuff/Rel 5.0 Video File Format SDK/xltek~ bob_6dcf543f-e254-4693-83df-80e5c0205f52')
 
-    """
-    all_movie = []
-    for m in movie:
-        if begsam < m['start_sample']:
-            if endsam > m['end_sample']:
-                all_movie.append({'filename': m['filename'],
-                                  'rel_start': 0,
-                                  'rel_end': 0})
-            elif endsam > m['start_sample'] and endsam < m['end_sample']:
-                all_movie.append({'filename': m['filename'],
-                                  'rel_start': 0,
-                                  'rel_end': (m['end_sample'] -
-                                              endsam) / s_freq})
-
-        elif begsam > m['start_sample']:
-            if begsam < m['end_sample'] and endsam > m['end_sample']:
-                all_movie.append({'filename': m['filename'],
-                                  'rel_start': (begsam -
-                                                m['start_sample']) / s_freq,
-                                  'rel_end': 0})
-            elif endsam < m['end_sample']:
-                all_movie.append({'filename': m['filename'],
-                                  'rel_start': (begsam -
-                                                m['start_sample']) / s_freq,
-                                  'rel_end': (m['end_sample'] -
-                                              endsam) / s_freq})
-    return all_movie
+window_start = 140
+window_length = 10
 
 
 class Video(QWidget):
@@ -76,72 +43,118 @@ class Video(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.movie_info = None
 
-        self.widget = Phonon.VideoWidget()
+        self.beg_diff = 0
+        self.end_diff = 0
+        self.cnt_video = 0
+        self.n_video = 0
+
+        self.video = None
+        self.idx_button = None
+        self.create_video()
+
+    def create_video(self):
+
+        video_widget = Phonon.VideoWidget()
         self.video = Phonon.MediaObject()
-        Phonon.createPath(self.video, self.widget)
-        self.button = QPushButton('Start')
-        self.button.clicked.connect(self.start_stop)
+        Phonon.createPath(self.video, video_widget)
+
+        self.idx_button = QPushButton('Start')
+        self.idx_button.clicked.connect(self.start_stop_video)
+
+        self.video.currentSourceChanged.connect(self.next_video)
+        self.video.setTickInterval(100)
+        self.video.tick.connect(self.stop_video)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.widget)
-        layout.addWidget(self.button)
+        layout.addWidget(video_widget)
+        layout.addWidget(self.idx_button)
         self.setLayout(layout)
 
-    def update_video(self):
-        """Update the widget containing the video.
+    def stop_video(self, tick):
+        """Stop video if tick is more than the end, only for last file.
 
-        TODO: it's probably best to use seconds instead of samples.
+        Parameters
+        ----------
+        tick : int
+            time in ms from the beginning of the file
 
+        Notes
+        -----
+        I cannot get prefinishmark to work, this implementation might not be
+        as precise (according to the doc), but works fine. It checks that the
+        file we are showing is the last one and it's after the time of
+        interest.
+
+        lg.debug('{0}/{1} (time: {2:.3f}/{3:.3f})'.format(self.cnt_video,
+                                                            self.n_video,
+                                                            tick / 1e3,
+                                                            self.end_diff / 1e3))
         """
-        dataset = self.parent.info.dataset
-        movies = dataset.header['orig']['movies']
-        s_freq = dataset.header['orig']['movie_s_freq']
-        overview = self.parent.overview
-        begsam = overview.window_start * s_freq
-        endsam = (overview.window_start + overview.window_length) * s_freq
-        lg.info('Video.update_video: begsam: ' + str(begsam) + ' endsam: ' +
-                str(endsam))
-        movie_info = _convert_movie_to_relative_time(begsam, endsam, movies,
-                                                     s_freq)
-        self.movie_info = movie_info
-        self.add_sources()
+        if self.cnt_video == self.n_video:
+            if tick >= self.end_diff:
+                self.idx_button.setText('Start')
+                self.video.stop()
 
-        # The signal is only emitted for the last source in the media queue
-        self.video.setPrefinishMark(movie_info[-1]['rel_end'] * 1e3)
-        self.video.prefinishMarkReached.connect(self.stop_movie)
+    def next_video(self, _):
+        """Also runs when file is loaded, so index starts at 1."""
+        self.cnt_video += 1
+        lg.info('Update video to ' + str(self.cnt_video))
 
-    def add_sources(self):
-        """Add sources to the queue.
-
-        """
-        self.video.clear()
-        sources = []
-        for m in self.movie_info:
-            sources.append(Phonon.MediaSource(m['filename']))
-        self.video.enqueue(sources)
-
-    def start_stop(self):
-        """Start and stop the video, and change the button.
-
-        """
-        if self.button.text() == 'Start':
-            self.button.setText('Stop')
+    def start_stop_video(self):
+        """Start and stop the video, and change the button."""
+        if self.idx_button.text() == 'Start':
+            self.idx_button.setText('Stop')
             self.update_video()
             self.video.play()
-            self.video.seek(self.movie_info[0]['rel_start'] * 1e3)
+            self.video.seek(self.beg_diff)
 
-        elif self.button.text() == 'Stop':
-            self.button.setText('Start')
+        elif self.idx_button.text() == 'Stop':
+            self.idx_button.setText('Start')
             self.video.stop()
 
-    def stop_movie(self):
-        """Signal called by prefinishMarkReached.
+    def update_video(self):
 
-        TODO: this doesn't work, I don't know why. Check why, otherwise it
-        defeats the purpose of prefinishMarkReached.
+        s_freq = d.header['s_freq']
+        orig = d.header['orig']
 
-        """
-        pass
-        # self.video.stop()
+        beg_sam = window_start * s_freq
+        end_sam = beg_sam + window_length * s_freq
+        lg.info('Samples {}-{} (based on s_freq only)'.format(beg_sam,
+                                                              end_sam))
+
+        # time in
+        beg_snc = convert_sample_to_video_time(beg_sam, s_freq, *orig['snc'])
+        end_snc = convert_sample_to_video_time(end_sam, s_freq, *orig['snc'])
+        lg.info('Samples {}-{} (based on s_freq only)'.format(beg_sam,
+                                                              end_sam))
+
+        mpgfile, start_time, end_time = orig['vtc']
+
+        beg_avi = get_date_idx(beg_snc, start_time, end_time)
+        end_avi = get_date_idx(end_snc, start_time, end_time)
+        lg.debug('First Video (#{}) {}'.format(beg_avi, mpgfile[beg_avi]))
+        lg.debug('Last Video (#{}) {}'.format(end_avi, mpgfile[end_avi]))
+        selected_mpgfile = mpgfile[beg_avi:end_avi + 1]
+
+        beg_diff = (beg_snc - start_time[beg_avi]).total_seconds()
+        end_diff = (end_snc - start_time[end_avi]).total_seconds()
+        lg.debug('First Video (#{}) starts at {}'.format(beg_avi, beg_diff))
+        lg.debug('Last Video (#{}) ends at {}'.format(end_avi, end_diff))
+
+        self.beg_diff = beg_diff * 1e3
+        self.end_diff = end_diff * 1e3
+
+        self.video.clear()
+        source = []
+        for one_mpg in selected_mpgfile:
+            source.append(Phonon.MediaSource(join(d.filename, one_mpg)))
+
+        self.video.enqueue(source)
+
+        self.cnt_video = 0
+        self.n_video = len(selected_mpgfile) + 1
+
+
+v = Video(None)
+v.show()
