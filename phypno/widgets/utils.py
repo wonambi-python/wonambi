@@ -6,6 +6,7 @@ from functools import partial
 from PySide.QtCore import QSettings
 from PySide.QtGui import (QDockWidget,
                           QIcon,
+                          QMessageBox,
                           QPainterPath,
                           )
 
@@ -250,3 +251,28 @@ def keep_recent_recordings(new_recording=None):
         return None
     else:
         return history
+
+
+def choose_file_or_dir():
+    """Create a simple message box to see if the user wants to open dir or file
+
+    Returns
+    -------
+    str
+        'dir' or 'file' or 'abort'
+
+    """
+    question = QMessageBox(QMessageBox.Information, 'Open Dataset',
+                           'Do you want to open a file or a directory?')
+    dir_button = question.addButton('Directory', QMessageBox.YesRole)
+    file_button = question.addButton('File', QMessageBox.NoRole)
+    question.addButton(QMessageBox.Cancel)
+    question.exec_()
+    response = question.clickedButton()
+
+    if response == dir_button:
+        return 'dir'
+    elif response == file_button:
+        return 'file'
+    else:
+        return 'abort'

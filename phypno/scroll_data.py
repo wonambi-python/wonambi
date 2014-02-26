@@ -37,7 +37,7 @@ from phypno.widgets import (DockWidget,
                             Traces,
                             Video)
 from phypno.widgets.utils import (icon, create_menubar, create_toolbar,
-                                  keep_recent_recordings)
+                                  keep_recent_recordings, choose_file_or_dir)
 
 
 class MainWindow(QMainWindow):
@@ -188,11 +188,19 @@ class MainWindow(QMainWindow):
             except AttributeError:
                 dir_name = self.preferences.values['main/recording_dir']
 
-            filename = QFileDialog.getOpenFileName(self, 'Open file', dir_name)
+            file_or_dir = choose_file_or_dir()
+            if file_or_dir == 'dir':
+                filename = QFileDialog.getExistingDirectory(self,
+                                                            'Open directory',
+                                                            dir_name)
+            elif file_or_dir == 'file':
+                filename = QFileDialog.getOpenFileName(self, 'Open file',
+                                                       dir_name)
+            elif file_or_dir == 'abort':
+                return
+
             if filename == '':
                 return
-            if splitext(filename[0])[1] == '.stc':
-                filename = dirname(filename[0])
 
         self.statusBar().showMessage('Reading dataset: ' + basename(filename))
         self.info.update_info(filename)

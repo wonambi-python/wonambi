@@ -1,6 +1,5 @@
 from logging import getLogger
 lg = getLogger(__name__)
-lg.setLevel(10)
 
 from os.path import join
 
@@ -10,7 +9,7 @@ from PySide.QtGui import (QPushButton,
                           )
 from PySide.phonon import Phonon
 
-from .ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
+from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
 
 class Video(QWidget):
@@ -125,7 +124,6 @@ class Video(QWidget):
         this implementation is pretty complicated as it is.
 
         """
-
         d = self.parent.info.dataset
 
         window_start = self.parent.overview.window_start
