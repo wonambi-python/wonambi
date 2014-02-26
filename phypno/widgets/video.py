@@ -10,10 +10,7 @@ from PySide.QtGui import (QPushButton,
                           )
 from PySide.phonon import Phonon
 
-from phypno.ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
-
-# self = Ktlx('/home/gio/recordings/MG63/eeg/raw/xltek/MG63_eeg_xltek_sessA_d07_13_07_33')
-# k = Ktlx('/home/gio/recordings/MG71/eeg/raw/xltek/MG71_eeg_xltek_sessA_d03_08_20_17')
+from .ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
 
 class Video(QWidget):
@@ -23,13 +20,17 @@ class Video(QWidget):
     ----------
     parent : instance of QMainWindow
         the main window.
-    movie_info : list of dict
-        information in relative time about the movie files.
+    beg_diff : float
+        time in ms of the beginning of the first video
+    end_diff : float
+        time in ms of the end of the last video
+    cnt_video : int
+        index of the current mediasource
+    n_video : int
+        total number of videos to play
     video : instance of MediaObject
         the video to show.
-    widget : instance of VideoWidget
-        the widget containing the video.
-    button : instance of QPushButton
+    idx_button : instance of QPushButton
         button which starts and stops the video.
 
     """
@@ -47,7 +48,7 @@ class Video(QWidget):
         self.create_video()
 
     def create_video(self):
-
+        """Create video widget."""
         video_widget = Phonon.VideoWidget()
         self.video = Phonon.MediaObject()
         Phonon.createPath(self.video, video_widget)
@@ -79,10 +80,6 @@ class Video(QWidget):
         file we are showing is the last one and it's after the time of
         interest.
 
-        lg.debug('{0}/{1} (time: {2:.3f}/{3:.3f})'.format(self.cnt_video,
-                                                            self.n_video,
-                                                            tick / 1e3,
-                                                            self.end_diff / 1e3))
         """
         if self.cnt_video == self.n_video:
             if tick >= self.end_diff:
@@ -95,7 +92,13 @@ class Video(QWidget):
         lg.info('Update video to ' + str(self.cnt_video))
 
     def start_stop_video(self):
-        """Start and stop the video, and change the button."""
+        """Start and stop the video, and change the button.
+
+        Notes
+        -----
+        It catches expection when video is not in index.
+
+        """
         if self.idx_button.text() == 'Start':
             try:
                 self.update_video()
@@ -113,6 +116,15 @@ class Video(QWidget):
             self.video.stop()
 
     def update_video(self):
+        """Read list of files, convert to video time, and add video to queue.
+
+        Notes
+        -----
+        Implementation depends on a couple of functions in ioeeg.ktlx. I wish I
+        could make it more general, but I don't have other examples and already
+        this implementation is pretty complicated as it is.
+
+        """
 
         d = self.parent.info.dataset
 
