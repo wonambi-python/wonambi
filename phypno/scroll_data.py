@@ -401,6 +401,10 @@ class MainWindow(QMainWindow):
                 self.idx_docks[dock['name']].setVisible(False)
                 actions[dock['name']].setChecked(False)
 
+        self.tabifyDockWidget(self.idx_docks['Information'],
+                              self.idx_docks['Video'])
+        self.idx_docks['Information'].raise_()
+
         self.tabifyDockWidget(self.idx_docks['Bookmarks'],
                               self.idx_docks['Events'])
         self.tabifyDockWidget(self.idx_docks['Events'],
@@ -424,6 +428,7 @@ class MainWindow(QMainWindow):
             lg.debug('Setting ' + dockname + ' to invisible')
         else:
             dockwidget.setVisible(True)
+            dockwidget.raise_()
             actions[dockname].setChecked(True)
             lg.debug('Setting ' + dockname + ' to visible')
 
