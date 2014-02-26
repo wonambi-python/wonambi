@@ -97,8 +97,14 @@ class Video(QWidget):
     def start_stop_video(self):
         """Start and stop the video, and change the button."""
         if self.idx_button.text() == 'Start':
+            try:
+                self.update_video()
+            except IndexError as er:
+                lg.debug(er)
+                self.idx_button.setText('Not Available / Start')
+                return
+
             self.idx_button.setText('Stop')
-            self.update_video()
             self.video.play()
             self.video.seek(self.beg_diff)
 
@@ -124,13 +130,19 @@ class Video(QWidget):
         # time in
         beg_snc = convert_sample_to_video_time(beg_sam, s_freq, *orig['snc'])
         end_snc = convert_sample_to_video_time(end_sam, s_freq, *orig['snc'])
-        lg.info('Samples {}-{} (based on s_freq only)'.format(beg_sam,
-                                                              end_sam))
+        beg_snc_str = beg_snc.strftime('%H:%M:%S')
+        end_snc_str = end_snc.strftime('%H:%M:%S')
+        lg.info('Time ' + beg_snc_str + '-' + end_snc_str +
+                ' (based on s_freq only)')
 
         mpgfile, start_time, end_time = orig['vtc']
 
         beg_avi = get_date_idx(beg_snc, start_time, end_time)
         end_avi = get_date_idx(end_snc, start_time, end_time)
+        if beg_avi is None or end_avi is None:
+            raise IndexError('No video file for time range ' + beg_snc_str +
+                             ' - ' + end_snc_str)
+
         lg.debug('First Video (#{}) {}'.format(beg_avi, mpgfile[beg_avi]))
         lg.debug('Last Video (#{}) {}'.format(end_avi, mpgfile[end_avi]))
         selected_mpgfile = mpgfile[beg_avi:end_avi + 1]
