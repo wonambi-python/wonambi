@@ -15,6 +15,7 @@ handler.setFormatter(formatter)
 lg.handlers = []
 lg.addHandler(handler)
 
+from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
 
@@ -309,6 +310,11 @@ class MainWindow(QMainWindow):
     def create_widgets(self):
         """Create all the widgets and dockwidgets.
 
+        Notes
+        -----
+        I tried to be consistent and use lambda for connect, but somehow
+        partial works well while lambda passes always the same argument.
+
         """
         self.info = Info(self)
         self.channels = Channels(self)
@@ -376,7 +382,8 @@ class MainWindow(QMainWindow):
             new_act = QAction(icon['widget'], dock['name'], self)
             new_act.setCheckable(True)
             new_act.setChecked(True)
-            new_act.triggered.connect(lambda: self.toggle_menu_window(dock['name'],
+            new_act.triggered.connect(partial(self.toggle_menu_window,
+                                              dock['name'],
                                               self.idx_docks[dock['name']]))
             self.menu_window.addAction(new_act)
             actions[dock['name']] = new_act
@@ -405,9 +412,11 @@ class MainWindow(QMainWindow):
         if dockwidget.isVisible():
             dockwidget.setVisible(False)
             actions[dockname].setChecked(False)
+            lg.debug('Setting ' + dockname + ' to invisible')
         else:
             dockwidget.setVisible(True)
             actions[dockname].setChecked(True)
+            lg.debug('Setting ' + dockname + ' to visible')
 
     def open_preferences(self):
         self.preferences.update_preferences()

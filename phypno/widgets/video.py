@@ -12,15 +12,8 @@ from PySide.phonon import Phonon
 
 from phypno.ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
-
 # self = Ktlx('/home/gio/recordings/MG63/eeg/raw/xltek/MG63_eeg_xltek_sessA_d07_13_07_33')
 # k = Ktlx('/home/gio/recordings/MG71/eeg/raw/xltek/MG71_eeg_xltek_sessA_d03_08_20_17')
-
-from phypno import Dataset
-d = Dataset('/home/gio/tools/read_xltek/XLTEK_stuff/Rel 5.0 Video File Format SDK/xltek~ bob_6dcf543f-e254-4693-83df-80e5c0205f52')
-
-window_start = 140
-window_length = 10
 
 
 class Video(QWidget):
@@ -97,7 +90,7 @@ class Video(QWidget):
                 self.video.stop()
 
     def next_video(self, _):
-        """Also runs when file is loaded, so index starts at 1."""
+        """Also runs when file is loaded, so index starts at 2."""
         self.cnt_video += 1
         lg.info('Update video to ' + str(self.cnt_video))
 
@@ -114,6 +107,11 @@ class Video(QWidget):
             self.video.stop()
 
     def update_video(self):
+
+        d = self.parent.info.dataset
+
+        window_start = self.parent.overview.window_start
+        window_length = self.parent.overview.window_length
 
         s_freq = d.header['s_freq']
         orig = d.header['orig']
@@ -154,7 +152,3 @@ class Video(QWidget):
 
         self.cnt_video = 0
         self.n_video = len(selected_mpgfile) + 1
-
-
-v = Video(None)
-v.show()
