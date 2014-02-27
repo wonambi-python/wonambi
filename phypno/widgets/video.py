@@ -98,19 +98,23 @@ class Video(QWidget):
         It catches expection when video is not in index.
 
         """
-        if self.idx_button.text() == 'Start':
+        if 'Start' in self.idx_button.text():
             try:
                 self.update_video()
             except IndexError as er:
                 lg.debug(er)
                 self.idx_button.setText('Not Available / Start')
                 return
+            except OSError as er:
+                lg.debug(er)
+                self.idx_button.setText('NO VIDEO for this dataset')
+                return
 
             self.idx_button.setText('Stop')
             self.video.play()
             self.video.seek(self.beg_diff)
 
-        elif self.idx_button.text() == 'Stop':
+        elif 'Stop' in self.idx_button.text():
             self.idx_button.setText('Start')
             self.video.stop()
 
@@ -145,6 +149,8 @@ class Video(QWidget):
         lg.info('Time ' + beg_snc_str + '-' + end_snc_str +
                 ' (based on s_freq only)')
 
+        if orig['vtc'] is None:
+            raise OSError('No VTC file (and presumably no avi files)')
         mpgfile, start_time, end_time = orig['vtc']
 
         beg_avi = get_date_idx(beg_snc, start_time, end_time)
