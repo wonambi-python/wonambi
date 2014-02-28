@@ -82,6 +82,10 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             chan_to_read.extend(one_grp['chan_to_plot'] +
                                 one_grp['ref_chan'])
+
+        if not chan_to_read:
+            return
+
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)

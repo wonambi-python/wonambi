@@ -185,6 +185,9 @@ class Spectrum(QWidget):
         chan_name = self.idx_chan.currentText()
         lg.info('Power spectrum for channel ' + chan_name)
 
+        if not chan_name:
+            return
+
         self.scene.clear()
         self.add_grid()
 
