@@ -19,13 +19,13 @@ from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
 
-from PySide.QtCore import Qt
-from PySide.QtGui import (QAction,
-                          QApplication,
-                          QFileDialog,
-                          QKeySequence,
-                          QMainWindow,
-                          )
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QAction,
+                         QApplication,
+                         QFileDialog,
+                         QKeySequence,
+                         QMainWindow,
+                         )
 # change phypno.widgets into .widgets
 from phypno.widgets import (DockWidget,
                             Bookmarks, Events, Stages,

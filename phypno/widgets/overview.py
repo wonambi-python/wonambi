@@ -4,8 +4,8 @@ lg = getLogger(__name__)
 from datetime import datetime, timedelta
 
 from numpy import floor
-from PySide.QtCore import Qt
-from PySide.QtGui import (QBrush,
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QBrush,
                           QPen,
                           QGraphicsLineItem,
                           QGraphicsRectItem,

@@ -4,8 +4,8 @@ lg = getLogger(__name__)
 from datetime import timedelta
 
 from numpy import squeeze, floor, ceil
-from PySide.QtCore import QPointF, Qt
-from PySide.QtGui import (QBrush,
+from PyQt4.QtCore import QPointF, Qt
+from PyQt4.QtGui import (QBrush,
                           QGraphicsItem,
                           QGraphicsScene,
                           QGraphicsSimpleTextItem,

@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from copy import deepcopy
 
-from PySide.QtGui import (QAbstractItemView,
+from PyQt4.QtGui import (QAbstractItemView,
                           QColor,
                           QColorDialog,
                           QComboBox,

@@ -3,11 +3,11 @@ lg = getLogger(__name__)
 
 from os.path import join
 
-from PySide.QtGui import (QPushButton,
+from PyQt4.QtGui import (QPushButton,
                           QVBoxLayout,
                           QWidget,
                           )
-from PySide.phonon import Phonon
+from PyQt4.phonon import Phonon
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
