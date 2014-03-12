@@ -157,8 +157,7 @@ class Traces(QGraphicsView):
         self.idx_label = []
         for one_grp in self.parent.channels.groups:
             for one_label in one_grp['chan_to_plot']:
-                item = QGraphicsSimpleTextItem(one_label + '\n' +
-                                               '(' + one_grp['name'] + ')')
+                item = QGraphicsSimpleTextItem(one_label)
                 item.setBrush(QBrush(one_grp['color']))
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 self.idx_label.append(item)
