@@ -11,6 +11,18 @@ SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255.)
 
 
 def _make_fig(fig=None):
+    """Create a figure, if it doesn't exist already.
+
+    Parameters
+    ----------
+    fig : instance of visvis.Figure, optional
+        figure being plotted.
+
+    Returns
+    -------
+    instance of visvis.Figure
+
+    """
     fig = vv.figure(fig)
     ax = vv.gca()
     ax.axis.visible = False
@@ -18,6 +30,20 @@ def _make_fig(fig=None):
 
 
 def plot_surf(surf, fig=None):
+    """Plot channels in 3d space.
+
+    Parameters
+    ----------
+    surf : instance of phypno.attr.Surf
+        surface to plot (only one hemisphere).
+    fig : instance of visvis.Figure, optional
+        figure being plotted.
+
+    Returns
+    -------
+    instance of visvis.Figure
+
+    """
     fig = _make_fig(fig)
 
     ax = vv.gca()
@@ -27,6 +53,22 @@ def plot_surf(surf, fig=None):
 
 
 def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
+    """Plot channels in 3d space.
+
+    Parameters
+    ----------
+    chan : instance of phypno.attr.Channels
+        channels to plot.
+    fig : instance of visvis.Figure, optional
+        figure being plotted.
+    color : tuple
+        4-element tuple, representing RGB and alpha.
+
+    Returns
+    -------
+    instance of visvis.Figure
+
+    """
     fig = _make_fig(fig)
 
     for one_chan in chan.chan:
