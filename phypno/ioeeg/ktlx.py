@@ -43,7 +43,7 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
-temp_dir = '/home/gio/projects/temp'  # temp_dir = mkdtemp()
+temp_dir = mkdtemp() # temp_dir = '/home/gio/projects/temp'
 lg.info('Temporary Directory with data: ' + temp_dir)
 
 
@@ -734,7 +734,7 @@ class Ktlx():
             if len(eeg_file) == 1:
                 self._basename = splitext(basename(eeg_file[0]))[0]
             elif len(eeg_file) == 0:
-                raise OSError('Could not find any .stc file.')
+                raise FileNotFoundError('Could not find any .stc file.')
             else:
                 raise OSError('Found too many .stc files: ' +
                               '\n'.join(eeg_file))
@@ -854,7 +854,7 @@ class Ktlx():
             if not exists(ent_file):
                 ent_file = join(self.filename, self._basename + '.ent.old')
             ent_notes = _read_ent(ent_file)
-        except IOError:
+        except FileNotFoundError:
             lg.warning('could not find .ent file, channels have arbitrary '
                        'names')
             chan_name = ['chan{0:03}'.format(x) for x in
@@ -871,19 +871,19 @@ class Ktlx():
 
         try:
             orig['notes'] = self._read_notes()
-        except IOError:
+        except FileNotFoundError:
             orig['notes'] = 'could not find .ent file'
 
         try:
             vtc_file = join(self.filename, self._basename + '.vtc')
             orig['vtc'] = _read_vtc(vtc_file)
-        except IOError:
+        except FileNotFoundError:
             orig['vtc'] = None
 
         try:
             snc_file = join(self.filename, self._basename + '.snc')
             orig['snc'] = _read_snc(snc_file)
-        except IOError:
+        except FileNotFoundError:
             orig['snc'] = None
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig

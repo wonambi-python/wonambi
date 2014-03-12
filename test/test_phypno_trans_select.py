@@ -19,17 +19,16 @@ from os.path import join
 from phypno import Dataset
 from phypno.trans import Select
 
-ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
-                'MGXX_eeg_xltek_sessA_d03_06_38_05')
-d = Dataset(ktlx_dir)
-data = d.read_data(['GR9', 'GR10'], begtime=0, endtime=5)
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
+d = Dataset(edf_file)
+data = d.read_data(['LOF4', 'LOF5'], begtime=0, endtime=5)
 
 
 def test_select_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    s = Select(chan=['GR9'])
+    s = Select(chan=['LOF4'])
     data1 = s(data)
-    assert data1.chan_name == ['GR9']
+    assert data1.chan_name == ['LOF4']
     assert data1.data.shape[0] == 1
 
 

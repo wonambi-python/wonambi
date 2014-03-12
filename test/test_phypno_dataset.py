@@ -27,6 +27,10 @@ empty_dir = join(data_dir, 'MGXX/eeg/raw/xltek/empty_dir')
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
+blackrock_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport',
+                      'MGXX_eeg_neuroport_sessA_d00_14_14_30.ns5')
+nev_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport',
+                          'MGXX_eeg_neuroport_sessA_d00_14_14_30.nev')
 
 
 @raises(UnrecognizedFormat)
@@ -76,12 +80,13 @@ def test_Dataset_05():
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
     d.read_data(chan=['MFD1'], begtime=0, endtime=1)
     d.read_data(chan=['MFD1'], begtime=datetime(2013, 4, 5, 6, 39, 33),
-                endtime=datetime(2013, 4, 5, 7, 9, 34))
+                endtime=datetime(2013, 4, 5, 6, 49, 34))
     d.read_data(chan=['MFD1'], begtime=timedelta(seconds=1),
                 endtime=timedelta(seconds=2))
 
 
 def test_Dataset_06():
+    lg.info('---\nfunction: ' + stack()[0][3])
     d = Dataset(edf_file)
     d.read_data(begsam=0, endsam=1)
     d.read_data(chan=['LMF6'], begsam=0, endsam=1)
@@ -89,5 +94,17 @@ def test_Dataset_06():
 
 @raises(TypeError)
 def test_Dataset_07():
+    lg.info('---\nfunction: ' + stack()[0][3])
     d = Dataset(edf_file)
     d.read_data(chan='aaa', begsam=0, endsam=1)
+
+
+def test_Dataset_08():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    d = Dataset(blackrock_file)
+    d.read_data(chan=['chan1'], begsam=0, endsam=2)
+
+
+def test_Dataset_09():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    Dataset(nev_file)

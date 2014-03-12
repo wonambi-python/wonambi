@@ -9,15 +9,6 @@ HOUR_OFFSET = -4
 DAY_OFFSET = 0
 
 
-def _make_str(t_in):
-    t_out = []
-    for t in t_in:
-        if t == b'\x00':
-            break
-        t_out.append(t.decode('utf-8'))
-    return ''.join(t_out)
-
-
 class BlackRock:
     """Basic class to read the data.
 
