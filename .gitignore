@@ -1,6 +1,7 @@
 .spyderproject
+data/
 doc/
-test/log/
 temp/
 */_pycache_/
 *.pyc
+bin/.coverage
