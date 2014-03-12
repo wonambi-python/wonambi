@@ -1,8 +1,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import (QDialog,
+from PySide.QtCore import QSettings
+from PySide.QtGui import (QDialog,
                           QFormLayout,
                           QGroupBox,
                           QHBoxLayout,

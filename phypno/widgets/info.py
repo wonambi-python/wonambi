@@ -4,7 +4,7 @@ lg = getLogger(__name__)
 from datetime import timedelta
 from os.path import basename
 
-from PyQt4.QtGui import (QFormLayout,
+from PySide.QtGui import (QFormLayout,
                           QLabel,
                           QPushButton,
                           QWidget,

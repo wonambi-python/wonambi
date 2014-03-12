@@ -19,13 +19,13 @@ from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QAction,
-                         QApplication,
-                         QFileDialog,
-                         QKeySequence,
-                         QMainWindow,
-                         )
+from PySide.QtCore import Qt
+from PySide.QtGui import (QAction,
+                          QApplication,
+                          QFileDialog,
+                          QKeySequence,
+                          QMainWindow,
+                          )
 # change phypno.widgets into .widgets
 from phypno.widgets import (DockWidget,
                             Bookmarks, Events, Stages,
@@ -179,20 +179,8 @@ class MainWindow(QMainWindow):
         self.action = actions  # actions was already taken
 
     def action_open_rec(self, recent=None):
-        """Action: open a new dataset.
-
-        Parameters
-        ----------
-        recent : str, optional
-            path to file of the recent file, if selected.
-
-        Notes
-        -----
-        action.triggered passes one bool argument in PyQt4, but no argument in
-        PySide.
-
-        """
-        if recent:
+        """Action: open a new dataset."""
+        if recent is not None:
             filename = recent
         else:
             try:

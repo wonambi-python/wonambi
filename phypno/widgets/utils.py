@@ -3,8 +3,8 @@ lg = getLogger(__name__)
 
 from functools import partial
 
-from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import (QDockWidget,
+from PySide.QtCore import QSettings
+from PySide.QtGui import (QDockWidget,
                           QIcon,
                           QMessageBox,
                           QPainterPath,

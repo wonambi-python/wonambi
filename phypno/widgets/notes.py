@@ -8,7 +8,7 @@ from os.path import basename
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
-from PyQt4.QtGui import (QAbstractItemView,
+from PySide.QtGui import (QAbstractItemView,
                           QAction,
                           QComboBox,
                           QFormLayout,
