@@ -19,6 +19,7 @@ def _make_fig(fig=None):
 
 def plot_surf(surf, fig=None):
     fig = _make_fig(fig)
+
     ax = vv.gca()
     m = vv.Mesh(ax, vertices=surf.vert, faces=surf.tri)
     m.faceColor = hstack((asarray(SKIN_COLOR), .5))
@@ -27,6 +28,7 @@ def plot_surf(surf, fig=None):
 
 def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
     fig = _make_fig(fig)
+
     for one_chan in chan.chan:
         s = vv.solidSphere(list(one_chan.xyz), scaling=1.5)
         s.faceColor = color

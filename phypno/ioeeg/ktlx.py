@@ -15,10 +15,6 @@ is not _000 but there is no extension, for backwards compatibility.
 This module contains functions to read each of the files, the files are called
 _read_EXT where EXT is one of the extensions.
 
-TODO: check all the times, if they are 1. internally consistent and 2.
-meaningful. Absolute time is stored in the header of all the files, and in
-.snc. In addition, check the 'start_stamp' in .erd does not start at zero.
-
 """
 from binascii import hexlify
 from datetime import timedelta, datetime
@@ -43,7 +39,7 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
-temp_dir = mkdtemp() # temp_dir = '/home/gio/projects/temp'
+temp_dir = '/home/gio/projects/temp'  # temp_dir = mkdtemp()
 lg.info('Temporary Directory with data: ' + temp_dir)
 
 
@@ -487,8 +483,6 @@ def _read_snc(snc_file):
 
     Notes
     -----
-    TODO: check if the timing is accurate
-
     The synchronization file is used to calculate a FILETIME given a sample
     stamp (and vise-versa). Theoretically, it is possible to calculate a sample
     stamp's FILETIME given the FILETIME of sample stamp zero (when sampling
