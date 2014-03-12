@@ -12,13 +12,16 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
 from numpy import arange
 from phypno import Dataset
 from phypno.trans import Freq, TimeFreq
 
 
-edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
 

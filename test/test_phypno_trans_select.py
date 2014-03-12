@@ -11,13 +11,16 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
 
 from phypno import Dataset
 from phypno.trans import Select
 
-
-ktlx_dir = '/home/gio/recordings/MG65/eeg/raw/MG65_eeg_sessA_d01_06_39_33'
+ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
+                'MGXX_eeg_xltek_sessA_d03_06_38_05')
 d = Dataset(ktlx_dir)
 data = d.read_data(['GR9', 'GR10'], begtime=0, endtime=5)
 

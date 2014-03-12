@@ -11,11 +11,15 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
+
 from phypno import Dataset
 from phypno.trans import Filter
 
-edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LMF6'], begtime=0, endtime=100)
 
@@ -23,7 +27,7 @@ data = d.read_data(chan=['LMF6'], begtime=0, endtime=100)
 @raises(TypeError)
 def test_filter_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Filter()
+    Filter()
 
 
 def test_filter_02():
@@ -34,17 +38,17 @@ def test_filter_02():
 
 def test_filter_03():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Filter(high_cut=.4)
+    Filter(high_cut=.4)
 
 
 def test_filter_04():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Filter(low_cut=.1, high_cut=.4)
+    Filter(low_cut=.1, high_cut=.4)
 
 
 def test_filter_05():
     lg.info('---\nfunction: ' + stack()[0][3])
-    f = Filter(low_cut=.1, order=5)
+    Filter(low_cut=.1, order=5)
 
 
 def test_filter_06():

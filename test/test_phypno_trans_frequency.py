@@ -11,12 +11,15 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
 from phypno import Dataset
 from phypno.trans import Freq, TimeFreq
 
 
-edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LMF6'], begtime=0, endtime=10)
 
@@ -24,7 +27,7 @@ data = d.read_data(chan=['LMF6'], begtime=0, endtime=10)
 def test_freq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     calc_freq = Freq()
-    fr = calc_freq(data)
+    calc_freq(data)
 
 
 @raises(TypeError)

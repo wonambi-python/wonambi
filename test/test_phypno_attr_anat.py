@@ -11,16 +11,20 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
 lg.info('Missing KeyError because I cannot del environ["FREESURFER_HOME"] in '
         'import_freesurfer_LUT')
 
+from os import environ
 from os.path import join
 from numpy import array
 from phypno.attr import Freesurfer, Surf
 from phypno.attr.anat import import_freesurfer_LUT
 
-fs_dir = '/home/gio/recordings/MG65/mri/proc/freesurfer'
+fs_dir = join(data_dir, 'MGXX/mri/proc/freesurfer')
+FREESURFER_HOME = environ['FREESURFER_HOME']
 
 
 def test_import_freesurfer_LUT_01():
@@ -30,13 +34,13 @@ def test_import_freesurfer_LUT_01():
 
 def test_import_freesurfer_LUT_02():
     lg.info('---\nfunction: ' + stack()[0][3])
-    import_freesurfer_LUT('/opt/freesurfer/FreeSurferColorLUT.txt')
+    import_freesurfer_LUT(join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
 
 
-@raises(IOError, OSError)
+@raises(FileNotFoundError)
 def test_import_freesurfer_LUT_03():
     lg.info('---\nfunction: ' + stack()[0][3])
-    import_freesurfer_LUT('/aaa')
+    import_freesurfer_LUT(join(data_dir, 'does_not_exist'))
 
 
 def test_Surf_01():
@@ -52,12 +56,12 @@ def test_Surf_02():
 @raises(OSError)
 def test_Freesurfer_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    fs = Freesurfer('')
+    Freesurfer('')
 
 
 def test_Freesurfer_02():
     lg.info('---\nfunction: ' + stack()[0][3])
-    fs = Freesurfer(fs_dir, '/aaa')
+    Freesurfer(fs_dir, join(data_dir, 'does_not_exist'))
 
 
 fs = Freesurfer(fs_dir)

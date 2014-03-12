@@ -12,6 +12,8 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
 from os.path import join
 from numpy import array
@@ -24,9 +26,9 @@ from phypno.attr.chan import (detect_format, _convert_unit, Chan,
 from phypno.utils.exceptions import UnrecognizedFormat
 
 temp_dir = mkdtemp()
-fs_dir = '/home/gio/recordings/MG65/mri/proc/freesurfer'
-elec_file = '/home/gio/tools/phypno/test/data/elec_pos.csv'
-random_file = '/home/gio/recordings/MG65/doc/xltek_datasets'
+fs_dir = join(data_dir, 'MGXX/mri/proc/freesurfer')
+elec_file = join(data_dir, 'MGXX/doc/elec/elec_pos_adjusted.csv')
+random_file = join(data_dir, 'MGXX/doc/wiki/xltek_datasets')
 
 mu = '\N{GREEK SMALL LETTER MU}'
 
@@ -92,7 +94,7 @@ def test_Channels_02():
     ch = Channels(elec_file)
     assert ch.n_chan() == 103
     assert_array_equal(ch.return_xyz(['FPS1']),
-                       array([[-17.,  68.,  20.5]]))
+                       array([[-19.29,  67.92,  20.56]]))
     ch.export(join(temp_dir, 'elec_file.csv'))
 
 

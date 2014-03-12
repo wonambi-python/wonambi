@@ -13,16 +13,20 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
 from datetime import timedelta, datetime
 from numpy.random import rand
 from phypno import Dataset
 from phypno.utils.exceptions import UnrecognizedFormat
 
-empty_file = '/home/gio/tools/phypno/test/data/empty'
-empty_dir = '/home/gio/tools/phypno/test/data/emptydir'
-ktlx_dir = '/home/gio/recordings/MG65/eeg/raw/MG65_eeg_sessA_d01_06_39_33'
-edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+empty_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport/empty_file')
+empty_dir = join(data_dir, 'MGXX/eeg/raw/xltek/empty_dir')
+ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
+                'MGXX_eeg_xltek_sessA_d03_06_38_05')
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 
 
 @raises(UnrecognizedFormat)
@@ -71,8 +75,8 @@ def test_Dataset_05():
     assert d.header['s_freq'] == 512.0
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
     d.read_data(chan=['MFD1'], begtime=0, endtime=1)
-    d.read_data(chan=['MFD1'], begtime=datetime(2013, 4, 3, 6, 39, 33),
-                endtime=datetime(2013, 4, 3, 7, 9, 34))
+    d.read_data(chan=['MFD1'], begtime=datetime(2013, 4, 5, 6, 39, 33),
+                endtime=datetime(2013, 4, 5, 7, 9, 34))
     d.read_data(chan=['MFD1'], begtime=timedelta(seconds=1),
                 endtime=timedelta(seconds=2))
 

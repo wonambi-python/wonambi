@@ -11,14 +11,19 @@ git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
+data_dir = '/home/gio/tools/phypno/data'
+
 #-----------------------------------------------------------------------------#
+from os.path import join
+
 from numpy import sum, zeros
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from phypno import Dataset
 from phypno.trans import Montage
 
-edf_file = '/home/gio/tools/phypno/test/data/sample.edf'
+
+edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LMF5', 'LMF6'], begtime=0, endtime=100)
 
