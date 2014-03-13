@@ -171,14 +171,18 @@ class Spectrum(QWidget):
         self.display_spectrum()
 
     def update_spectrum(self):
-        """Add channel names to the combobox."""
+        """Add channel names to the combobox.
+
+        This function is called when the channels are chosen. But it doesn't
+        display the power spectrum yet, because that can only happen after
+        the recordings have been read.
+
+        """
         self.idx_chan.clear()
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
                 self.idx_chan.addItem(chan_name)
-
-        self.display_spectrum()
 
     def display_spectrum(self):
         """Make graphicsitem for spectrum figure."""

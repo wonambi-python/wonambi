@@ -322,6 +322,7 @@ class Channels(QWidget):
     def apply_changes(self):
         """Apply changes to the plots."""
         self.read_group_info()
+        self.parent.spectrum.update_spectrum()
         self.parent.overview.update_position()
 
     def get_group_idx(self):
