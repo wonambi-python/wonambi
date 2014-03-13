@@ -9,3 +9,4 @@ Possibly include forward and inverse models.
 """
 from .chan import Channels
 from .anat import Surf, Freesurfer
+from .scores import Scores
