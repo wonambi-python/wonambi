@@ -55,7 +55,7 @@ def test_convert_unit():
     assert unit == mu + 'V'
     unit = _convert_unit('mVolt')
     assert unit == 'mV'
-    unit = _convert_unit('mV')
+    unit = _convert_unit('milliV')
     assert unit == 'mV'
     unit = _convert_unit('mVolt')
     assert unit == 'mV'
