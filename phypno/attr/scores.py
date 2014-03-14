@@ -1,5 +1,10 @@
 """Module to keep track of the score.
 
+There is nothing in this module that can create a xml score file. That's
+because the only way to create a score is by scoring the data, visually. Once
+you have the score file, you can work with it programmatically with this
+module.
+
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -91,11 +96,23 @@ class Scores():
         stage : str
             description of the stage.
 
+        Raises
+        ------
+        KeyError
+            When the id_epoch is not in the list of epochs.
+
         """
+        found = False
+
         all_epochs = list(self.root)[0]
         for epoch in all_epochs:
             if epoch.get('id') == id_epoch:
                 list(epoch)[2].text = stage
+                found = True
+                break
+
+        if not found:
+            raise KeyError(id_epoch + ' not found')
 
         self.save()
 
@@ -119,5 +136,5 @@ class Scores():
         """Save xml to file."""
         xml = parseString(tostring(self.root))
         lg.info('Saving ' + self.xml_file)
-        with open(self.xml_file, 'w+') as f:
+        with open(self.xml_file, 'w') as f:
             f.write(xml.toprettyxml())

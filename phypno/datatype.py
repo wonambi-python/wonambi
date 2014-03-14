@@ -39,6 +39,7 @@ class Data:
         contains additional information about the dataset, with keys:
             - surf
             - chan
+            - scores
 
     """
     def __init__(self):
@@ -48,6 +49,7 @@ class Data:
         self.s_freq = None
         self.attr = {'surf': None,  # TODO: instance of class surf
                      'chan': None,  # TODO: instance of class chan
+                     'scores': None,
                      }
 
 
