@@ -8,7 +8,9 @@ from glob import glob
 from math import ceil
 from logging import getLogger
 from os.path import isdir, join
-from numpy import arange
+
+from numpy import arange, asarray, empty
+
 from .ioeeg import Edf, Ktlx, BlackRock
 from .datatype import DataTime
 from .utils import UnrecognizedFormat
@@ -129,16 +131,18 @@ class Dataset:
         ----------
         chan : list of strings
             names of the channels to read
-        begtime : int or datedelta or datetime
+        begtime : int or datedelta or datetime or list
             start of the data to read;
             if it's int, it's assumed it's s;
             if it's datedelta, it's assumed from the start of the recording;
-            if it's datetime, it's assumed it's absolute time
+            if it's datetime, it's assumed it's absolute time.
+            It can also be a list of any of the above type.
         endtime : int or datedelta or datetime
             end of the data to read;
             if it's int, it's assumed it's s;
             if it's datedelta, it's assumed from the start of the recording;
-            if it's datetime, it's assumed it's absolute time
+            if it's datetime, it's assumed it's absolute time.
+            It can also be a list of any of the above type.
         begsam : int
             first sample to read
         endsam : int
@@ -153,42 +157,52 @@ class Dataset:
         begsam and endsam follow Python convention, which starts at zero,
         includes begsam but DOES NOT include endsam.
 
+        If begtime and endtime are a list, they both need the exact same
+        length and the data will be stored in trials.
+
         """
         data = DataTime()
         data.start_time = self.header['start_time']
         data.s_freq = self.header['s_freq']
         if chan is None:
             chan = self.header['chan_name']
-        if not isinstance(chan, list) or not all(isinstance(x, str)
-                                                 for x in chan):
-            raise TypeError('chan should be a list of strings')
-        data.chan_name = chan
+        data.chan_name = asarray(chan, dtype='U')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
-        if begtime is not None:
-            if isinstance(begtime, datetime):
-                begtime = begtime - self.header['start_time']
-            if isinstance(begtime, int) or isinstance(begtime, float):
-                begtime = timedelta(seconds=begtime)
-            if isinstance(begtime, timedelta):
-                begsam = ceil(begtime.total_seconds() * self.header['s_freq'])
-            begsam = int(begsam)
+        if not isinstance(begtime, list):
+            begtime = [begtime]
+        if not isinstance(endtime, list):
+            endtime = [endtime]
+        assert len(begtime) == len(endtime)
+        n_trl = len(begtime)
 
-        if endtime is not None:
-            if isinstance(endtime, datetime):
-                endtime = endtime - self.header['start_time']
-            if isinstance(endtime, int) or isinstance(endtime, float):
-                endtime = timedelta(seconds=endtime)
-            if isinstance(endtime, timedelta):
-                endsam = ceil(endtime.total_seconds() * self.header['s_freq'])
-            endsam = int(endsam)
+        data.data = empty((n_trl), dtype='O')
+        for i, one_begtime, one_endtime in zip(range(n_trl), begtime, endtime):
+            if one_begtime is not None:
+                if isinstance(one_begtime, datetime):
+                    one_begtime = one_begtime - self.header['start_time']
+                if type(one_begtime) in (int, float):
+                    one_begtime = timedelta(seconds=one_begtime)
+                if isinstance(one_begtime, timedelta):
+                    begsam = ceil(one_begtime.total_seconds() *
+                                  self.header['s_freq'])
+                begsam = int(begsam)
 
-        data.time = arange(begsam, endsam) / self.header['s_freq']
+            if one_endtime is not None:
+                if isinstance(one_endtime, datetime):
+                    one_endtime = one_endtime - self.header['start_time']
+                if type(one_endtime) in (int, float):
+                    one_endtime = timedelta(seconds=one_endtime)
+                if isinstance(one_endtime, timedelta):
+                    endsam = ceil(one_endtime.total_seconds() *
+                                  self.header['s_freq'])
+                endsam = int(endsam)
 
-        dataset = self.dataset
+            data.time = arange(begsam, endsam) / self.header['s_freq']
 
-        lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
-        dat = dataset.return_dat(idx_chan, begsam, endsam)
+            dataset = self.dataset
+            lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
+            dat = dataset.return_dat(idx_chan, begsam, endsam)
 
-        data.data = dat
+            data.data[i] = dat
         return data

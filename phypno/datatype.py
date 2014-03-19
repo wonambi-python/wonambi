@@ -29,9 +29,9 @@ class Data:
 
     Attributes
     ----------
-    data : numpy.ndarray
-        the data, with different number of dimensions
-    chan_name : list of str
+    data : ndarray (dtype='O')
+        the data as trials. Each trial is a ndarray (dtype='d' or 'f')
+    chan_name : ndarray (dtype='U')
         labels of the channels
     start_time : instance of datetime.datetime
         the start time of the recording
@@ -41,10 +41,16 @@ class Data:
             - chan
             - scores
 
+    Notes
+    -----
+    Something which is not immediately clear for chan_name. dtype='U' (meaning
+    Unicode) actually creates string of type 'str_', while if you use dtype='S'
+    (meaning String) it creates strings of type 'bytes_'.
+
     """
     def __init__(self):
-        self.data = array([])
-        self.chan_name = []
+        self.data = array([], dtype='O')
+        self.chan_name = array([], dtype='U')
         self.start_time = None
         self.s_freq = None
         self.attr = {'surf': None,  # TODO: instance of class surf
@@ -58,19 +64,21 @@ class DataTime(Data):
 
     Attributes
     ----------
-    time : numpy.ndarray
-        1d matrix with the time stamp
+    time : ndarray, dtype='O'
+        the time in trials. Each trial is a 1d ndarray, dtype='d' (or 'f')
 
     """
     def __init__(self):
         super().__init__()
-        self.time = array([])
+        self.time = array([], dtype='O')
 
-    def __call__(self, chan=None, time=None):
+    def __call__(self, trial=None, chan=None, time=None):
         """Return the recordings and their time stamps.
 
         Parameters
         ----------
+        trial : list of int or ndarray (dtype='i')
+            which trials you want
         chan : list of str
             which channels you want
         time : tuple of 2 float
@@ -95,15 +103,22 @@ class DataFreq(Data):
 
     Attributes
     ----------
-    freq : numpy.ndarray
-        1d matrix with the frequency
+    freq : ndarray, dtype='O'
+        the freq in trials. Each trial is a 1d ndarray, dtype='d' (or 'f')
+
+    Notes
+    -----
+    Conceptually, it is reasonable that each trial has the same frequency band,
+    so it might be more convenient to use only one array, but it can happen
+    that different trials have different frequency bands, so we keep the format
+    more open.
 
     """
     def __init__(self):
         super().__init__()
-        self.freq = array([])
+        self.freq = array([], dtype='O')
 
-    def __call__(self, chan=None, freq=None):
+    def __call__(self, trial=None, chan=None, freq=None):
         """Return the power spectrum and their frequency indices.
 
         Parameters
@@ -122,9 +137,10 @@ class DataFreq(Data):
 
         Notes
         -----
-        Internally, .data is stored as a 3d matrix, with chan X time X freq,
-        but time is always one dimension. When you call the function directly,
-        it returns a 2d matrix, with chan X freq, where time doesn't exist.
+        Internally, each trial in .data is stored as a 3d matrix, with
+        chan X time X freq, but time is always one dimension. When you call the
+        function directly, it returns a 2d matrix, with chan X freq, where time
+        doesn't exist.
 
         """
         from .trans.select import Select
@@ -147,7 +163,7 @@ class DataTimeFreq(DataTime, DataFreq):
     def __init__(self):
         super().__init__()
 
-    def __call__(self, chan=None, time=None, freq=None):
+    def __call__(self, trial=None, chan=None, time=None, freq=None):
         """Return the power spectrum and their time and frequency indices.
 
         Parameters

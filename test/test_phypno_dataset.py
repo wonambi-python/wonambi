@@ -36,12 +36,14 @@ nev_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport',
 @raises(UnrecognizedFormat)
 def test_Dataset_01():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     Dataset(empty_file)
 
 
 @raises(UnrecognizedFormat)
 def test_Dataset_02():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     Dataset(empty_dir)
 
 
@@ -59,22 +61,25 @@ class IOEEG:
 
 def test_Dataset_03():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(empty_dir, IOClass=IOEEG)
     d.read_data(begsam=0, endsam=1)
 
 
 def test_Dataset_04():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(ktlx_dir)
     assert d.header['s_freq'] == 512.0
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
-    dat0 = d.read_data(chan=['MFD1'], begtime=0, endtime=1)
-    dat1 = d.read_data(chan=['MFD1'], begtime=0, endtime=1)  # caching
+    dat0 = d.read_data(chan=['MFD1'], begtime=10, endtime=11)
+    dat1 = d.read_data(chan=['MFD1'], begtime=10, endtime=11)  # caching
     assert_array_equal(dat0.data, dat1.data)
 
 
 def test_Dataset_05():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(ktlx_dir)
     assert d.header['s_freq'] == 512.0
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
@@ -87,24 +92,46 @@ def test_Dataset_05():
 
 def test_Dataset_06():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    d = Dataset(ktlx_dir)
+    d.read_data(chan=['MFD1'], begsam=[0, 10], endsam=[1, 11])
+    d.read_data(chan=['MFD1'],
+                begtime=[datetime(2013, 4, 5, 6, 39, 33),
+                         datetime(2013, 4, 5, 6, 40, 33)],
+                endtime=[datetime(2013, 4, 5, 6, 39, 43),
+                         datetime(2013, 4, 5, 6, 40, 53)])
+
+def test_Dataset_07():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    d = Dataset(ktlx_dir)
+    d.read_data(chan=['MFD1'], begsam=[0, 10], endsam=11)
+
+
+def test_Dataset_08():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(edf_file)
     d.read_data(begsam=0, endsam=1)
     d.read_data(chan=['LMF6'], begsam=0, endsam=1)
 
 
 @raises(TypeError)
-def test_Dataset_07():
+def test_Dataset_09():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(edf_file)
     d.read_data(chan='aaa', begsam=0, endsam=1)
 
 
-def test_Dataset_08():
+def test_Dataset_10():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     d = Dataset(blackrock_file)
     d.read_data(chan=['chan1'], begsam=0, endsam=2)
 
 
-def test_Dataset_09():
+def test_Dataset_11():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     Dataset(nev_file)
