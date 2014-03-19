@@ -36,14 +36,25 @@ def test_scores_01():
     sc.set_stage_for_epoch('30', 'NREM2')
     assert sc.get_stage_for_epoch('30') == 'NREM2'
 
+
+def test_get_epochs_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    sc.get_epochs(('NREM1', 'NREM2'))
+    assert len(sc.get_epochs(('xxx'))) == 0
+
+
 def test_get_epochs():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     sc.set_stage_for_epoch('30', 'NREM1')
     epochs = sc.get_epochs()
+
+    # implementation details
     assert len(epochs) == 159
-    assert isinstance(epochs, dict)
-    assert epochs['30']['stage'] == 'NREM1'
+    assert isinstance(epochs, list)
+    epochs = sorted(epochs, key=lambda x: x['start_time'])
+    assert epochs[1]['stage'] == 'NREM1'
 
 
 @raises(KeyError)
@@ -52,8 +63,15 @@ def test_scores_02():
 
     sc.set_stage_for_epoch('xxx', 'NREM2')
 
+
 def test_scores_03():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     makedirs(dirname(temp_scores_file))
     Scores(temp_scores_file, sc.root)
+
+
+
+
+
+

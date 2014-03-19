@@ -163,7 +163,6 @@ class Stages(QWidget):
         self.rater = QLabel()
         self.combobox = QComboBox()
         self.combobox.activated.connect(self.get_sleepstage)
-        self.create_actions()
 
         layout = QFormLayout()
         layout.addRow('Filename: ', self.file_button)
@@ -186,6 +185,7 @@ class Stages(QWidget):
             root = self.create_empty_xml()
             self.scores = Scores(xml_file, root)
         self.display_stages()
+        self.create_actions()
 
     def display_stages(self):
         """Update the widgets of the sleep scoring."""
@@ -194,7 +194,7 @@ class Stages(QWidget):
         for one_stage in stage_name:
             self.combobox.addItem(one_stage)
 
-        for epoch in self.scores.get_epochs().values():
+        for epoch in self.scores.get_epochs():
             self.parent.overview.mark_stages(epoch['start_time'],
                                              epoch['end_time'] -
                                              epoch['start_time'],

@@ -55,15 +55,34 @@ class Scores():
         """
         return list(self.root)[0].get('name')
 
-    def get_epochs(self):
+    def get_epochs(self, stages_of_interest=None):
+        """Get epochs (all or only those of interest).
+
+        Parameters
+        ----------
+        stages_of_interest : tuple of str
+            sleep stages that you want.
+
+        Returns
+        -------
+        list of dict
+            each epoch is defined by start_time and end_time (in s in reference
+            to the start of the recordings) and a string of the sleep stage.
+            If you specify stages_of_interest, only epochs belonging to those
+            stages will be included (can be an empty list).
+
+        """
         all_epochs = list(self.root)[0]
-        epochs = {}
+        epochs = []
         for epoch in all_epochs:
-            id_epoch = epoch.get('id')
-            epochs[id_epoch] = {'start_time': int(list(epoch)[0].text),
-                                'end_time': int(list(epoch)[1].text),
-                                'stage': list(epoch)[2].text,
-                                }
+            epochs.append({'start_time': int(list(epoch)[0].text),
+                           'end_time': int(list(epoch)[1].text),
+                           'stage': list(epoch)[2].text,
+                           })
+
+        if stages_of_interest is not None:
+            epochs = [x for x in epochs if x['stage'] in stages_of_interest]
+
         return epochs
 
     def get_stage_for_epoch(self, id_epoch):
