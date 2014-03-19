@@ -1,47 +1,105 @@
 from copy import deepcopy
 from logging import getLogger
-from numpy import where
+from numpy import in1d, array, where
 
 lg = getLogger('phypno')
 
 
+def _select_trial(output, trial):
+
+    trial_as_index = array(trial)
+    if hasattr(output, 'time'):
+        output.time = output.time[trial_as_index]
+    if hasattr(output, 'freq'):
+        output.freq = output.freq[trial_as_index]
+    output.data = output.data[trial_as_index]
+
+    return output
+
+
 def _select_chan(output, chan):
-    idx = []
-    for ch in chan:
-        idx.append(output.chan_name.index(ch))
+    chan = array(chan, dtype='U')
+
+    idx_chan = in1d(output.chan_name, chan)
 
     lg.info('Selecting {0: 3} channels out of {0: 3}'.format(
-            len(idx), len(output.chan_name)))
-    output.data = output.data[idx, :]
-    output.chan_name = chan
+            len(where(idx_chan)[0]), len(output.chan_name)))
+    for i in range(len(output.data)):
+        output.data[i] = output.data[i][idx_chan, ...]
+    output.chan_name = output.chan_name[idx_chan]
+
     return output
 
 
 def _select_time(output, time):
-    begsam = int(where(output.time >= time[0])[0][0])
-    endsam = int(where(output.time >= time[1])[0][0])
-    lg.info('Selecting {0: 3}-{1: 3} time, while data is between '
-            '{2: 3}-{3: 3}'.format(time[0], time[1],
-                                   output.time[0], output.time[-1]))
-    lg.debug('Selecting first sample {0: 5} and last sample '
-             '{1: 5}'.format(begsam, endsam))
+    """Select time window for each trial.
 
-    output.time = output.time[begsam:endsam]
-    output.data = output.data[:, begsam:endsam, ...]
+    Parameters
+    ----------
+    output : instance of phypno.DataTime
+
+    time : tuple of 2 float
+        which periods you want.
+
+    Returns
+    -------
+    instance of phypno.DataTime
+        where only the time window of interest is selected.
+
+    Notes
+    -----
+    Some trials might be empty.
+
+    """
+    for i in range(len(output.data)):
+        begsam = int(where(output.time[i] >= time[0])[0][0])
+        endsam = int(where(output.time[i] >= time[1])[0][0])
+        lg.info('Trial {0: 3}: selecting {1: 3}-{2: 3} time, while data '
+                ' is between {3: 3}-{4: 3}'.format(i,
+                                                   time[0], time[1],
+                                                   output.time[0][0],
+                                                   output.time[0][-1]))
+        lg.debug('Selecting first sample {0: 5} and last sample '
+                 '{1: 5}'.format(begsam, endsam))
+
+        output.time[i] = output.time[i][begsam:endsam]
+        output.data[i] = output.data[i][:, begsam:endsam, ...]
     return output
 
 
 def _select_freq(output, freq):
-    begfrq = int(where(output.freq >= freq[0])[0][0])
-    endfrq = int(where(output.freq >= freq[1])[0][0])
-    lg.info('Selecting {0: 3}-{1: 3} Hz, while data is between '
-            '{2: 3}-{3: 3} Hz'.format(freq[0], freq[1],
-                                      output.freq[0], output.freq[-1]))
-    lg.debug('Selecting first sample {0: 5} and last sample '
-             '{1: 5}'.format(begfrq, endfrq))
+    """Select time window for each trial.
 
-    output.freq = output.freq[begfrq:endfrq]
-    output.data = output.data[:, :, begfrq:endfrq]
+    Parameters
+    ----------
+    output : instance of phypno.DataTime
+
+    freq : tuple of 2 float
+        which frequency interval you want.
+
+    Returns
+    -------
+    instance of phypno.DataFreq
+        where only the frequency band of interest is selected.
+
+    Notes
+    -----
+    Some trials might be empty.
+
+    """
+    for i in range(len(output.data)):
+        begfrq = int(where(output.freq[i] >= freq[0])[0][0])
+        endfrq = int(where(output.freq[i] >= freq[1])[0][0])
+        lg.info('Trial {0: 3}: selecting {0: 3}-{1: 3} Hz, while data ' +
+                'is between {2: 3}-{3: 3} Hz'.format(i,
+                                                     freq[0], freq[1],
+                                                     output.freq[0][0],
+                                                     output.freq[0][-1]))
+        lg.debug('Selecting first sample {0: 5} and last sample '
+                 '{1: 5}'.format(begfrq, endfrq))
+
+        output.freq[i] = output.freq[i][begfrq:endfrq]
+        output.data[i] = output.data[i][:, :, begfrq:endfrq]
     return output
 
 
@@ -50,6 +108,8 @@ class Select:
 
     Parameters
     ----------
+    trial : list of int or ndarray (dtype='i')
+        index of trials of interest
     chan : list of str
         which channels you want
     time : tuple of 2 float
@@ -68,11 +128,12 @@ class Select:
     datatype directly.
 
     """
-    def __init__(self, chan=None, time=None, freq=None):
+    def __init__(self, trial=None, chan=None, time=None, freq=None):
         """Design the selection of channels.
 
 
         """
+        self.trial = trial
         self.chan = chan
         self.time = time
         self.freq = freq
@@ -80,6 +141,8 @@ class Select:
     def __call__(self, data):
         output = deepcopy(data)
 
+        if self.trial is not None:
+            output = _select_trial(output, self.trial)
         if self.chan is not None:
             output = _select_chan(output, self.chan)
         if self.time is not None:

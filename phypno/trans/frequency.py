@@ -28,18 +28,20 @@ class Freq:
             freq.s_freq = data.s_freq
             freq.chan_name = data.chan_name
             freq.start_time = data.start_time
-            freq.data = empty((len(freq.chan_name),
-                               1,
-                               int(data.s_freq / 2) + 1
-                               ))
 
-            for i_ch in range(data.data.shape[0]):
-                f, Pxx = periodogram(data.data[i_ch, :],
-                                     fs=data.s_freq,
-                                     nfft=int(data.s_freq))
-                freq.data[i_ch, 0, :] = Pxx
+            freq.data = empty(len(data.data), dtype='O')
+            freq.freq = empty(len(data.data), dtype='O')
+            for i in range(len(data.data)):
+                freq.data[i] = empty((len(freq.chan_name),
+                                      1,
+                                      int(data.s_freq / 2) + 1))
 
-            freq.freq = f
+                for i_ch in range(data.data[i].shape[0]):
+                    f, Pxx = periodogram(data.data[i][i_ch, :],
+                                         fs=data.s_freq,
+                                         nfft=int(data.s_freq))
+                    freq.data[i][i_ch, 0, :] = Pxx
+                freq.freq[i] = f
 
         return freq
 
@@ -75,24 +77,35 @@ class TimeFreq:
             timefreq.s_freq = data.s_freq
             timefreq.chan_name = data.chan_name
             timefreq.start_time = data.start_time
-            timefreq.time = self.toi
 
-            calc_freq = Freq()
+            timefreq.data = empty(len(data.data), dtype='O')
+            timefreq.time = empty(len(data.data), dtype='O')
+            timefreq.freq = empty(len(data.data), dtype='O')
 
-            timefreq.data = empty((len(timefreq.chan_name),
-                                   len(timefreq.time),
-                                   int(data.s_freq / 2) + 1
-                                   ))
+            for i in range(len(data.data)):
+                timefreq.time[i] = self.toi
+
+                timefreq.data[i] = empty((len(timefreq.chan_name),
+                                          len(self.toi),
+                                          int(data.s_freq / 2) + 1
+                                          ))
+
+        """This is too hard at the moment, and I don't need it probably.
 
             for i_t, t in enumerate(self.toi):
                 t1 = t - self.duration / 2
                 t2 = t + self.duration / 2
                 sel_time = Select(time=(t1, t2))
 
-                freq = calc_freq(sel_time(data))
-                # TODO: there must be a better way than squeeze
-                timefreq.data[:, i_t, :] = squeeze(freq.data, axis=1)
+                for i_ch in range(data.data[i].shape[0]):
+                    f, Pxx = periodogram(data.data[i][i_ch, :],
+                                         fs=data.s_freq,
+                                         nfft=int(data.s_freq))
+                    freq.data[i][i_ch, 0, :] = Pxx
 
-            timefreq.freq = freq.freq
+                timefreq.data[:, i_t, :] = squeeze(freq.data[0], axis=1)
+
+                timefreq.freq[i] = freq.freq[i]
+        """
 
         return timefreq

@@ -28,29 +28,32 @@ data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
 
 def test_DataTime_01():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     time_limits = (0, 1)
     sel_dat, sel_time = data(time=time_limits)
-    assert sel_time[0] == data.time[0]
-    assert sel_time[-1] <= time_limits[1]
-    assert sel_time.shape[0] == sel_dat.shape[1]
-    assert sel_dat.shape[0] == 3
+    assert sel_time[0][0] == data.time[0][0]
+    assert sel_time[0][-1] <= time_limits[1]
+    assert sel_time[0].shape[0] == sel_dat[0].shape[1]
+    assert sel_dat[0].shape[0] == 3
 
 
 def test_DataTime_02():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     chan_limits = ['LOF1', 'LOF2']
     sel_dat, sel_time = data(chan=chan_limits)
-    assert sel_time.shape[0] == sel_dat.shape[1]
-    assert sel_dat.shape[0] == 2
+    assert sel_time[0].shape[0] == sel_dat[0].shape[1]
+    assert sel_dat[0].shape[0] == 2
 
 
 def test_DataTime_03():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
     dat1, time1 = subdata()
     dat2, time2 = data(chan=['LOF1', 'LOF2'], time=(0, 1))
-    assert_array_equal(dat1, dat2)
-    assert_array_equal(time1, time2)
+    assert_array_equal(dat1[0], dat2[0])
+    assert_array_equal(time1[0], time2[0])
 
 
 calc_freq = Freq()
@@ -59,24 +62,27 @@ freq = calc_freq(data)
 
 def test_DataFreq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    assert len(freq.data.shape) == 3
-    assert freq.data.shape[1] == 1  # time is always one
-    assert freq.data.shape[2] > 1
+
+    assert len(freq.data[0].shape) == 3
+    assert freq.data[0].shape[1] == 1  # time is always one
+    assert freq.data[0].shape[2] > 1
 
 
 def test_DataFreq_02():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     dat1, freq1 = freq()
-    assert len(dat1.shape) == 2
-    assert len(freq1) == freq.data.shape[2]
+    assert len(dat1[0].shape) == 2
+    assert len(freq1[0]) == freq.data[0].shape[2]
 
 
 def test_DataFreq_03():
     lg.info('---\nfunction: ' + stack()[0][3])
+
     freq_limits = (10, 25)
     dat1, freq1 = freq(freq=freq_limits)
-    assert freq1[0] >= freq_limits[0]
-    assert freq1[-1] <= freq_limits[1]
+    assert freq1[0][0] >= freq_limits[0]
+    assert freq1[0][-1] <= freq_limits[1]
 
 
 TOI = arange(2, 8)
@@ -86,23 +92,30 @@ tf = calc_tf(data)
 
 def test_DataTimeFreq_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    assert len(tf.data.shape) == 3
-    assert tf.data.shape[1] == len(TOI)
-    assert tf.data.shape[2] > 1
+
+    assert len(tf.data[0].shape) == 3
+    assert tf.data[0].shape[1] == len(TOI)
+    assert tf.data[0].shape[2] > 1
 
 
 def test_DataTimeFreq_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
     chan_limits = ['LOF1', 'LOF2']
     time_limits = (4, 5)
     sel_dat, sel_time, sel_freq = tf(chan=chan_limits, time=time_limits)
-    assert sel_dat.shape[0] == 2
-    assert sel_time.shape[0] == 1
+    assert sel_dat[0].shape[0] == 2
+    assert sel_time[0].shape[0] == 1
 
 
 def test_DataTimeFreq_03():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    """This checks datatype DataTimeFreq
     time_limits = (4, 5)
     freq_limits = (10, 25)
     sel_dat, sel_time, sel_freq = tf(freq=freq_limits, time=time_limits)
-    assert sel_dat.shape[0] == 3
-    assert sel_time.shape[0] == 1
-    assert sel_dat.shape[2] == 15
+    assert sel_dat[0].shape[0] == 3
+    assert sel_time[0].shape[0] == 1
+    assert sel_dat[0].shape[2] == 15
+    """

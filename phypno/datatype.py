@@ -20,7 +20,7 @@ There is a circular import (we use Select, which depends on datatype)
 
 """
 from logging import getLogger
-from numpy import array, squeeze
+from numpy import array, squeeze, asarray, hstack
 lg = getLogger('phypno')
 
 
@@ -86,15 +86,16 @@ class DataTime(Data):
 
         Returns
         -------
-        data : numpy.ndarray
-            chan X time matrix of the recordings
-        time : numpy.ndarray
-            1d matrix with the time stamp
+        data : ndarray (dtype='O')
+            ndarray containing chan X time matrix of the recordings
+        time : ndarray (dtype='O')
+            ndarray containing 1d matrix with the time stamp
 
         """
         from .trans.select import Select
         selection = Select(chan=chan, time=time)
         output = selection(self)
+
         return output.data, output.time
 
 
@@ -103,8 +104,8 @@ class DataFreq(Data):
 
     Attributes
     ----------
-    freq : ndarray, dtype='O'
-        the freq in trials. Each trial is a 1d ndarray, dtype='d' (or 'f')
+    freq : ndarray (dtype='O')
+        the freq in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
 
     Notes
     -----
@@ -130,10 +131,10 @@ class DataFreq(Data):
 
         Returns
         -------
-        data : numpy.ndarray
-            chan X freq matrix of the power spectrum
-        freq : numpy.ndarray
-            1d matrix with the frequency
+        data : ndarray (dtype='O')
+            ndarray containing chan X freq matrix of the power spectrum
+        freq : ndarray (dtype='O')
+            ndarray containing 1d matrix with the frequency
 
         Notes
         -----
@@ -144,9 +145,13 @@ class DataFreq(Data):
 
         """
         from .trans.select import Select
-        selection = Select(chan, freq=freq)
+        selection = Select(chan=chan, freq=freq)
         output = selection(self)
-        return squeeze(output.data, axis=1), output.freq
+
+        for i in range(len(output.data)):
+            output.data[i] = squeeze(output.data[i], axis=1)
+
+        return output.data, output.freq
 
 
 class DataTimeFreq(DataTime, DataFreq):

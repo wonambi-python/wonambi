@@ -74,7 +74,7 @@ def test_Dataset_04():
     d.read_data(chan=['MFD1'], begsam=0, endsam=1)
     dat0 = d.read_data(chan=['MFD1'], begtime=10, endtime=11)
     dat1 = d.read_data(chan=['MFD1'], begtime=10, endtime=11)  # caching
-    assert_array_equal(dat0.data, dat1.data)
+    assert_array_equal(dat0.data[0], dat1.data[0])
 
 
 def test_Dataset_05():
@@ -101,6 +101,7 @@ def test_Dataset_06():
                 endtime=[datetime(2013, 4, 5, 6, 39, 43),
                          datetime(2013, 4, 5, 6, 40, 53)])
 
+@raises(ValueError)
 def test_Dataset_07():
     lg.info('---\nfunction: ' + stack()[0][3])
 

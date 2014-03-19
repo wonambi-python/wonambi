@@ -19,6 +19,34 @@ from .utils import UnrecognizedFormat
 lg = getLogger('phypno')
 
 
+def _convert_time_to_sample(abs_time, dataset):
+    """Convert absolute time into samples.
+
+    Parameters
+    ----------
+    abs_time : dat
+        if it's int, it's assumed it's s;
+        if it's datedelta, it's assumed from the start of the recording;
+        if it's datetime, it's assumed it's absolute time.
+    dataset : instance of phypno.Dataset
+        dataset to get sampling frequency and start time
+
+    Returns
+    -------
+    int
+        sample (from the starting of the recording).
+
+    """
+    if isinstance(abs_time, datetime):
+        abs_time = abs_time - dataset.header['start_time']
+    if type(abs_time) in (int, float):
+        abs_time = timedelta(seconds=abs_time)
+    if isinstance(abs_time, timedelta):
+        sample = ceil(abs_time.total_seconds() *
+                      dataset.header['s_freq'])
+    return int(sample)
+
+
 def detect_format(filename):
     """Detect file format.
 
@@ -167,42 +195,44 @@ class Dataset:
         if chan is None:
             chan = self.header['chan_name']
         data.chan_name = asarray(chan, dtype='U')
+        if not isinstance(chan, list):
+            raise TypeError('Parameter "chan" should be a list')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
-        if not isinstance(begtime, list):
-            begtime = [begtime]
-        if not isinstance(endtime, list):
-            endtime = [endtime]
-        assert len(begtime) == len(endtime)
-        n_trl = len(begtime)
+        if begtime is not None:
+            if not isinstance(begtime, list):
+                begtime = [begtime]
+            begsam = []
+            for one_begtime in begtime:
+                begsam.append(_convert_time_to_sample(one_begtime, self))
+        if endtime is not None:
+            if not isinstance(endtime, list):
+                endtime = [endtime]
+            endsam = []
+            for one_endtime in endtime:
+                endsam.append(_convert_time_to_sample(one_endtime, self))
 
+        if not isinstance(begsam, list):
+            begsam = [begsam]
+        if not isinstance(endsam, list):
+            endsam = [endsam]
+
+        if len(begsam) != len(endsam):
+            raise ValueError('There should be the same number of start and ' +
+                             'end point')
+        n_trl = len(begsam)
+
+        data.time = empty((n_trl), dtype='O')
         data.data = empty((n_trl), dtype='O')
-        for i, one_begtime, one_endtime in zip(range(n_trl), begtime, endtime):
-            if one_begtime is not None:
-                if isinstance(one_begtime, datetime):
-                    one_begtime = one_begtime - self.header['start_time']
-                if type(one_begtime) in (int, float):
-                    one_begtime = timedelta(seconds=one_begtime)
-                if isinstance(one_begtime, timedelta):
-                    begsam = ceil(one_begtime.total_seconds() *
-                                  self.header['s_freq'])
-                begsam = int(begsam)
+        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
 
-            if one_endtime is not None:
-                if isinstance(one_endtime, datetime):
-                    one_endtime = one_endtime - self.header['start_time']
-                if type(one_endtime) in (int, float):
-                    one_endtime = timedelta(seconds=one_endtime)
-                if isinstance(one_endtime, timedelta):
-                    endsam = ceil(one_endtime.total_seconds() *
-                                  self.header['s_freq'])
-                endsam = int(endsam)
-
-            data.time = arange(begsam, endsam) / self.header['s_freq']
+            data.time[i] = (arange(one_begsam, one_endsam) /
+                            self.header['s_freq'])
 
             dataset = self.dataset
-            lg.debug('begsam {0: 6}, endsam {1: 6}'.format(begsam, endsam))
-            dat = dataset.return_dat(idx_chan, begsam, endsam)
-
+            lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,
+                     one_endsam))
+            dat = dataset.return_dat(idx_chan, one_begsam, one_endsam)
             data.data[i] = dat
+
         return data
