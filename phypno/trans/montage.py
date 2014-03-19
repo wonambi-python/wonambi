@@ -52,5 +52,6 @@ class Montage:
 
         if len(self.ref_chan) > 0:
             ref_data, _ = data(chan=self.ref_chan)
-            mdata.data = mdata.data - mean(ref_data, axis=0)
+            for i in range(len(mdata.data)):
+                mdata.data[i] = mdata.data[i] - mean(ref_data[i], axis=0)
         return mdata

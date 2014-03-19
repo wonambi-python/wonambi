@@ -91,5 +91,6 @@ class Filter:
 
         """
         fdata = deepcopy(data)
-        fdata.data = filtfilt(self.b, self.a, data.data)
+        for i in range(len(data.data)):
+            fdata.data[i] = filtfilt(self.b, self.a, data.data[i])
         return fdata
