@@ -1,14 +1,15 @@
 from datetime import datetime
 from logging import getLogger
-from numpy import arange
+from numpy import arange, empty
 from numpy.random import random
 from ..datatype import DataTime, DataFreq, DataTimeFreq
 
 lg = getLogger('phypno')
 
 
-def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
-                s_freq=None, time=None, freq=None, values=None):
+def create_data(datatype='DataTime', start_time=None, n_trial=None,
+                chan_name=None, n_chan=8, s_freq=None, time=None, freq=None,
+                values=None):
     """Create data of different datatype from scratch.
 
     Parameters
@@ -17,6 +18,8 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
         one of 'DataTime', 'DataFreq', 'DataTimeFreq'
     start_time : datetime.datetime, optional
         starting time of the recordings
+    n_trial : int, optional
+        number of trials
     chan_name : list of str, optional
         names of the channels
     n_chan : int, optional
@@ -44,6 +47,9 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
     if datatype not in possible_datatypes:
         raise ValueError('Datatype should be one of ' +
                          ', '.join(possible_datatypes))
+
+    if n_trial is None:
+        n_trial = 1
 
     if s_freq is None:
         s_freq = 512
@@ -73,20 +79,31 @@ def create_data(datatype='DataTime', start_time=None, chan_name=None, n_chan=8,
 
     if datatype == 'DataTime':
         data = DataTime()
-        data.data = random((len(chan_name), len(time))) * mult + add
+        data.data = empty(n_trial, dtype='O')
+        for i in range(n_trial):
+            data.data[i] = random((len(chan_name), len(time))) * mult + add
     if datatype == 'DataFreq':
         data = DataFreq()
-        data.data = random((len(chan_name), 1, len(freq))) * mult + add
+        data.data = empty(n_trial, dtype='O')
+        for i in range(n_trial):
+            data.data[i] = random((len(chan_name), 1, len(freq))) * mult + add
     if datatype == 'DataTimeFreq':
         data = DataTimeFreq()
-        data.data = random((len(chan_name), len(time), len(freq))) * mult + add
+        data.data = empty(n_trial, dtype='O')
+        for i in range(n_trial):
+            data.data[i] = (random((len(chan_name), len(time), len(freq)))
+                            * mult + add)
 
     data.chan_name = chan_name
     data.start_time = start_time
     data.s_freq = s_freq
     if datatype in ('DataTime', 'DataTimeFreq'):
-        data.time = time
+        data.time = empty(n_trial, dtype='O')
+        for i in range(n_trial):
+            data.time[i] = time
     if datatype in ('DataFreq', 'DataTimeFreq'):
-        data.freq = freq
+        data.freq = empty(n_trial, dtype='O')
+        for i in range(n_trial):
+            data.freq[i] = freq
 
     return data
