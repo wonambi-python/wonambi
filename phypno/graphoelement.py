@@ -29,6 +29,6 @@ class Spindles:
         self.spindle = []
         one_spindle = {'start': None,
                        'end': None,
-                       'chan_name': [],
+                       'chan': [],
                        }
         self.spindle.append(one_spindle)

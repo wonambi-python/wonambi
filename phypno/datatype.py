@@ -22,6 +22,21 @@ TODO: I'm thinking it's possible to implement Data much more, so that it's a
 general class. Chan, Time, Freq, etc should be defined in an attribute such as
 .dim, then the matrix for each trial can be as open as possible.
 
+TODO: probably it's best to return the number of chan, freq, time. If None, it
+means that the dimension does not exist.
+
+use something like this to slice any dimension:
+
+A = np.random.rand(2, 3, 4, 5)
+axis = 2
+n = A.ndim
+# building n-dimensional slice
+s = [slice(None), ] * n
+s[axis] = slice(0, n - 1)
+B = A[s]
+s[axis] = slice(1, n)
+C = A[s]
+
 """
 from logging import getLogger
 from numpy import array, squeeze
