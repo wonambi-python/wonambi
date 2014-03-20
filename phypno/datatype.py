@@ -20,7 +20,7 @@ There is a circular import (we use Select, which depends on datatype)
 
 """
 from logging import getLogger
-from numpy import array, squeeze, asarray, hstack
+from numpy import array, squeeze
 lg = getLogger('phypno')
 
 
