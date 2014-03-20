@@ -17,7 +17,7 @@ data_dir = '/home/gio/tools/phypno/data'
 #-----------------------------------------------------------------------------#
 from numpy import power, exp, mean
 
-from phypno.trans import Math
+from phypno.trans import Math, MathOnDim
 from phypno.utils import create_data
 
 
@@ -69,3 +69,20 @@ def test_math_datafreq():
     apply_log = Math(operator_name='log')
     datafreq1 = apply_log(datafreq)
     assert_array_almost_equal(exp(datafreq1.data[0]), datafreq.data[0])
+
+
+def test_mathonaxis_mean():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    #TODO: axis should be part of the call to MathOnDim
+    apply_mean = MathOnDim(operator=lambda x: mean(x, axis=1))
+    apply_mean(data)
+
+def test_math_rootmeansqrt():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    apply_square = Math(operator_name='square')
+    apply_mean = MathOnDim(operator=lambda x: mean(x, axis=1))
+    apply_sqrt = Math(operator_name='sqrt')
+
+    apply_sqrt(apply_mean(apply_square(data)))
