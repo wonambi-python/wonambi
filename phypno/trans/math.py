@@ -3,8 +3,11 @@
 """
 from copy import deepcopy
 from logging import getLogger
-from numpy import abs, log, mean, sqrt, square
+# for Math
+from numpy import abs, log, sqrt, square
 from scipy.signal import hilbert
+# for MathOnAxis
+from numpy import mean, std
 
 lg = getLogger('phypno')
 
@@ -38,7 +41,7 @@ class Math:
         If you pass both operator and operator_name.
     ValueError
         If the function changes the dimension of the data (such as mean, std).
-        In that case, you should use MathOnAxis.
+        In that case, you should use MathOnDim.
 
     Examples
     --------
@@ -103,7 +106,28 @@ class Math:
                     raise ValueError('Operator ' + str(one_operator) +
                                      ' changed the shape of the data, from ' +
                                      'shape ' + old_shape + ' to shape ' +
-                                     new_shape + '.\n Use MathOnAxis')
+                                     new_shape + '.\n Use MathOnDim')
 
         return output
 
+
+class MathOnDim(Math):
+    """Similar to Math, but one dimension is removed.
+
+    Temporary implementtaion, we need arbitrary dimensions for this to work
+    correctly.
+    Very similar to Math, but no check for dimensions. It'll be incorrect, but
+    we can live with that.
+
+    """
+    def __init__(self, operator=None, operator_name=None):
+        super().__init__(operator=operator, operator_name=operator_name)
+
+    def __call__(self, data):
+        output = deepcopy(data)
+        for one_operator in self.operators:
+            lg.info('running operator: ' + str(one_operator))
+            for i in range(len(output.data)):
+                output.data[i] = one_operator(output.data[i])
+
+        return output

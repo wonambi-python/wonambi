@@ -10,5 +10,7 @@ class RejectBadChan:
     """Class to reject bad channels.
 
     """
+    def __init__(self):
+        pass
 
 
