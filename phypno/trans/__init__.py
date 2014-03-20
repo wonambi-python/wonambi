@@ -10,3 +10,5 @@ from .filter import Filter
 from .select import Select
 from .frequency import Freq, TimeFreq
 from .montage import Montage
+from .math import Math
+from .reject import RejectBadChan
