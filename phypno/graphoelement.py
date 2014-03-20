@@ -14,7 +14,21 @@ class SlowWave:
     def __init__(self):
         pass
 
+class Spindles:
+    """Class containing all the spindles in one dataset.
 
-class Spindle:
+    Attributes
+    ----------
+    chan_name : ndarray (dtype='U')
+        list of channels
+
+
+    """
     def __init__(self):
-        pass
+        self.chan_name = None
+        self.spindle = []
+        one_spindle = {'start': None,
+                       'end': None,
+                       'chan_name': [],
+                       }
+        self.spindle.append(one_spindle)

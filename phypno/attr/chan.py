@@ -13,7 +13,7 @@ In other words, the channel is where you want to plot the signal.
 """
 from logging import getLogger
 from os.path import splitext
-from numpy import zeros, empty, vstack, asarray
+from numpy import zeros, asarray
 from ..utils import UnrecognizedFormat
 
 lg = getLogger(__name__)

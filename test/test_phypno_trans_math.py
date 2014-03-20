@@ -15,7 +15,7 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
-from numpy import power, exp
+from numpy import power, exp, mean
 
 from phypno.trans import Math
 from phypno.utils import create_data
@@ -38,11 +38,19 @@ def test_math_operator_name():
     assert_array_equal(data1.data[0] ** .5, data.data[0])
 
 
+def test_math_incorrectly_on_axis():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    mean_on_axis = lambda x: mean(x, axis=0)
+    apply_sqrt = Math(operator=mean_on_axis)
+    data1 = apply_sqrt(data)
+
+
 def test_math_operator_name_tuple():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    apply_rms = Math(operator_name=('square', 'mean', 'sqrt'))
-    apply_rms(data)
+    apply_hilb = Math(operator_name=('hilbert', 'abs'))
+    data1 = apply_hilb(data)
 
 
 def test_math_lambda():

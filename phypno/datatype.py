@@ -18,6 +18,10 @@ trans.select module.
 
 There is a circular import (we use Select, which depends on datatype)
 
+TODO: I'm thinking it's possible to implement Data much more, so that it's a
+general class. Chan, Time, Freq, etc should be defined in an attribute such as
+.dim, then the matrix for each trial can be as open as possible.
+
 """
 from logging import getLogger
 from numpy import array, squeeze
@@ -64,8 +68,8 @@ class DataTime(Data):
 
     Attributes
     ----------
-    time : ndarray, dtype='O'
-        the time in trials. Each trial is a 1d ndarray, dtype='d' (or 'f')
+    time : ndarray (dtype='O')
+        the time in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
 
     """
     def __init__(self):

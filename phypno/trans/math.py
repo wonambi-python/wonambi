@@ -30,15 +30,22 @@ class Math:
     as shortcut for most common operations.
 
     The possible operator_name are:
-    'abs', 'hilbert', 'log', 'mean', 'sqrt', 'square'
+    'abs', 'hilbert', 'log', 'sqrt', 'square'
 
+    Raises
+    ------
+    TypeError
+        If you pass both operator and operator_name.
+    ValueError
+        If the function changes the dimension of the data (such as mean, std).
+        In that case, you should use MathOnAxis.
 
     Examples
     --------
     You can pass a single value or a tuple. The order starts from left to
-    right, so root-mean-square, should be:
+    right, so abs of the hilbert transform, should be:
 
-    >>> rms = Math(operator_name=('square', 'mean', 'sqrt'))
+    >>> rms = Math(operator_name=('hilbert', 'abs'))
 
     If you want to pass the power of three, use lambda (or partial):
 
@@ -64,6 +71,7 @@ class Math:
                 operators.append(eval(one_operator_name))
             operator = tuple(operators)
 
+        # make it an iterable
         if callable(operator):
             operator = (operator, )
 
@@ -74,12 +82,28 @@ class Math:
 
         Parameters
         ----------
-        data : instance of DataType
+        data : instance of DataTime, DataFreq, or DataTimeFreq
+
+        Returns
+        -------
+        instance of DataTime, DataFreq, or DataTimeFreq
+            data where the trials underwent operator.
 
         """
         output = deepcopy(data)
         for one_operator in self.operators:
+            lg.info('running operator: ' + str(one_operator))
             for i in range(len(output.data)):
+                shape = output.data[i].shape
                 output.data[i] = one_operator(output.data[i])
 
+                if shape != output.data[i].shape:
+                    old_shape = '{}'.format(shape)
+                    new_shape = '{}'.format(output.data[i].shape)
+                    raise ValueError('Operator ' + str(one_operator) +
+                                     ' changed the shape of the data, from ' +
+                                     'shape ' + old_shape + ' to shape ' +
+                                     new_shape + '.\n Use MathOnAxis')
+
         return output
+
