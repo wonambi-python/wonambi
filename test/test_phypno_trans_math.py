@@ -37,20 +37,20 @@ def test_math_operator_name():
     data1 = apply_sqrt(data)
     assert_array_equal(data1.data[0] ** .5, data.data[0])
 
-
+@raises(ValueError)
 def test_math_incorrectly_on_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     mean_on_axis = lambda x: mean(x, axis=0)
     apply_sqrt = Math(operator=mean_on_axis)
-    data1 = apply_sqrt(data)
+    apply_sqrt(data)
 
 
 def test_math_operator_name_tuple():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     apply_hilb = Math(operator_name=('hilbert', 'abs'))
-    data1 = apply_hilb(data)
+    apply_hilb(data)
 
 
 def test_math_lambda():

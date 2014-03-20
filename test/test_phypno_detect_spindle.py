@@ -20,7 +20,6 @@ from os.path import join
 from phypno import Dataset
 from phypno.attr import Scores
 from phypno.detect import DetectSpindle
-from phypno.graphoelement import Spindles
 from phypno.trans import Filter, Math
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',

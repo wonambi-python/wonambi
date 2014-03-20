@@ -37,6 +37,7 @@ class DetectSpindle:
     def __init__(self, threshold_type='absolute', detection_threshold=None,
                  selection_threshold=None,
                  minimal_duration=0.5, maximal_duration=2):
+
         self.threshold_type = threshold_type
         self.detection_threshold = detection_threshold
         self.selection_threshold = selection_threshold
