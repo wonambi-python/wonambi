@@ -18,11 +18,8 @@ trans.select module.
 
 There is a circular import (we use Select, which depends on datatype)
 
-TODO: I'm thinking it's possible to implement Data much more, so that it's a
-general class. Chan, Time, Freq, etc should be defined in an attribute such as
-.dim, then the matrix for each trial can be as open as possible.
-
 """
+from collections import OrderedDict
 from logging import getLogger
 from numpy import array, squeeze
 lg = getLogger('phypno')
@@ -35,8 +32,8 @@ class Data:
     ----------
     data : ndarray (dtype='O')
         the data as trials. Each trial is a ndarray (dtype='d' or 'f')
-    chan_name : ndarray (dtype='U')
-        labels of the channels
+    dim : OrderedDict
+        dictionary with dimensions (standard names are 'chan', 'time', 'freq')
     start_time : instance of datetime.datetime
         the start time of the recording
     attr : dict
@@ -47,36 +44,22 @@ class Data:
 
     Notes
     -----
-    Something which is not immediately clear for chan_name. dtype='U' (meaning
+    Something which is not immediately clear for chan. dtype='U' (meaning
     Unicode) actually creates string of type 'str_', while if you use dtype='S'
     (meaning String) it creates strings of type 'bytes_'.
 
     """
     def __init__(self):
         self.data = array([], dtype='O')
-        self.chan_name = array([], dtype='U')
+        self.dim = OrderedDict()
         self.start_time = None
         self.s_freq = None
-        self.attr = {'surf': None,  # TODO: instance of class surf
-                     'chan': None,  # TODO: instance of class chan
+        self.attr = {'surf': None,
+                     'chan': None,
                      'scores': None,
                      }
 
-
-class DataTime(Data):
-    """Specific class for time-voltage recordings.
-
-    Attributes
-    ----------
-    time : ndarray (dtype='O')
-        the time in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
-
-    """
-    def __init__(self):
-        super().__init__()
-        self.time = array([], dtype='O')
-
-    def __call__(self, trial=None, chan=None, time=None):
+    def __call__(self, trial=None, **dimensions):
         """Return the recordings and their time stamps.
 
         Parameters
@@ -92,21 +75,38 @@ class DataTime(Data):
         -------
         data : ndarray (dtype='O')
             ndarray containing chan X time matrix of the recordings
-        time : ndarray (dtype='O')
-            ndarray containing 1d matrix with the time stamp
 
         """
         from .trans.select import Select
-        selection = Select(chan=chan, time=time)
+        selection = Select(trial=trial, dimensions)
         output = selection(self)
 
-        return output.data, output.time
+        # TODO: Always data, and then the dimensions that were requested
+
+        return output.data
+
+
+class DataTime(Data):
+    """Specific class for chan-time recordings.
+
+    Dimensions
+    ----------
+    chan : list of str
+        which channels you want
+    time : ndarray (dtype='O')
+        the time in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
+
+    """
+    def __init__(self):
+        super().__init__()
+        self.dim['chan'] = array([], dtype='0')
+        self.dim['time'] = array([], dtype='O')
 
 
 class DataFreq(Data):
     """Specific class for frequency-power recordings.
 
-    Attributes
+    Dimensions
     ----------
     freq : ndarray (dtype='O')
         the freq in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
@@ -121,48 +121,17 @@ class DataFreq(Data):
     """
     def __init__(self):
         super().__init__()
-        self.freq = array([], dtype='O')
-
-    def __call__(self, trial=None, chan=None, freq=None):
-        """Return the power spectrum and their frequency indices.
-
-        Parameters
-        ----------
-        chan : list of str
-            which channels you want
-        freq : tuple of 2 float
-            which frequency you want. If one of the tuple is None, keep it.
-
-        Returns
-        -------
-        data : ndarray (dtype='O')
-            ndarray containing chan X freq matrix of the power spectrum
-        freq : ndarray (dtype='O')
-            ndarray containing 1d matrix with the frequency
-
-        Notes
-        -----
-        Internally, each trial in .data is stored as a 3d matrix, with
-        chan X time X freq, but time is always one dimension. When you call the
-        function directly, it returns a 2d matrix, with chan X freq, where time
-        doesn't exist.
-
-        """
-        from .trans.select import Select
-        selection = Select(chan=chan, freq=freq)
-        output = selection(self)
-
-        for i in range(len(output.data)):
-            output.data[i] = squeeze(output.data[i], axis=1)
-
-        return output.data, output.freq
+        self.dim['chan'] = array([], dtype='0')
+        self.dim['freq'] = array([], dtype='O')
 
 
-class DataTimeFreq(DataTime, DataFreq):
+class DataTimeFreq(Data):
     """Specific class for time-frequency representation.
 
-    Attributes
+    Dimensions
     ----------
+    chan
+
     time : numpy.ndarray
         1d matrix with the time stamp
     freq : numpy.ndarray
@@ -171,30 +140,6 @@ class DataTimeFreq(DataTime, DataFreq):
     """
     def __init__(self):
         super().__init__()
-
-    def __call__(self, trial=None, chan=None, time=None, freq=None):
-        """Return the power spectrum and their time and frequency indices.
-
-        Parameters
-        ----------
-        chan : list of str
-            which channels you want
-        time : tuple of 2 float
-            which periods you want. If one of the tuple is None, keep it.
-        freq : tuple of 2 float
-            which frequency you want. If one of the tuple is None, keep it.
-
-        Returns
-        -------
-        data : numpy.ndarray
-            chan X time X freq matrix of the power spectrum
-        time : numpy.ndarray
-            1d matrix with the time stamp
-        freq : numpy.ndarray
-            1d matrix with the frequency
-
-        """
-        from .trans.select import Select
-        selection = Select(chan=chan, time=time, freq=freq)
-        output = selection(self)
-        return output.data, output.time, output.freq
+        self.dim['chan'] = array([], dtype='0')
+        self.dim['time'] = array([], dtype='O')
+        self.dim['freq'] = array([], dtype='O')
