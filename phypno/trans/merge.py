@@ -1,4 +1,6 @@
-"""Module to merge Data together.
+"""Module to merge Data together, along different axis and time points.
+
+It does not merge two instances of Data together (TODO).
 
 """
 from logging import getLogger
@@ -63,6 +65,7 @@ class Merge:
             new_axis[0] = asarray(trial_name, dtype='U')
             output.axis['trial_axis'] = new_axis
 
+            # concatenate along the extra dimension
             all_trial = []
             for one_trial in data.data:
                 all_trial.append(expand_dims(one_trial, -1))
@@ -71,6 +74,5 @@ class Merge:
         else:
             output.data[0] = concatenate(data.data,
                                          axis=output.index_of(self.axis))
-
 
         return output
