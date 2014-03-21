@@ -15,6 +15,10 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
+from numpy import arange, array, empty
+from numpy.random import random
+
+from phypno import Data
 from phypno.utils import create_data
 data = create_data(n_trial=10, s_freq=500)
 
@@ -32,8 +36,8 @@ def test_data_select_trial_compress():
     output = data(trial=(1, ))
     assert len(output) == 1
 
-    output = data(trial=(1, ), squeeze=True)
-    assert output.shape == (8, 512)
+    output = data(trial=1)
+    assert output.shape == (8, 500)
 
     output = data(trial=(1, 2), squeeze=True)
     assert len(output) == 2
@@ -58,6 +62,31 @@ def test_data_select_two_dim():
     assert output[0].shape == (len(CHAN), len(TIME))
 
 
+def test_data_select_empty_selection():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TIME = (100, 200)
+    CHAN = ('chan02', 'chan05')
+    output = data(chan=CHAN, time=TIME)
+    assert output[0].shape == (len(CHAN), 0)
+
+
+def test_data_conserve_order():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    CHAN = ('chan02', )
+    output02 = data(chan=CHAN, trial=0)
+
+    CHAN = ('chan05', )
+    output05 = data(chan=CHAN, trial=0)
+
+    CHAN = ('chan02', 'chan02')
+    output02 = data(chan=CHAN, trial=0)
+
+    CHAN = ('chan05', 'chan02')
+    output0502 = data(chan=CHAN, trial=0)
+
+
 def test_data_select_tolerance():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -70,12 +99,38 @@ def test_data_select_tolerance():
     output = data(time=TIME, chan=CHAN, tolerance=1e-10)
     assert output[0].shape[1] == len(TIME)
 
-# also test an arbitrary type of data, in any dimension
+
+def test_data_arbitrary_dimensions():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = Data()
+    len_dim0 = 6
+    data.dim['dim0'] = empty(1, dtype='O')
+    data.dim['dim0'][0] = array(['x' + str(x) for x in range(len_dim0)],
+                                dtype='U')
+    len_dim1 = 10
+    data.dim['dim1'] = empty(1, dtype='O')
+    data.dim['dim1'][0] = arange(len_dim1)
+    len_dim2 = 10
+    data.dim['dim2'] = empty(1, dtype='O')
+    data.dim['dim2'][0] = arange(len_dim2)
+    len_dim3 = 5
+    data.dim['dim3'] = empty(1, dtype='O')
+    data.dim['dim3'][0] = arange(len_dim3)
+
+    data.data = empty(1, dtype='O')
+    data.data[0] = random((len_dim0, len_dim1, len_dim2, len_dim3))
+
+    output = data(dim0=('x0', 'x3', 'x2'), dim1=(4, 6), dim2=(8, 1),
+                  dim3=(0, 1, 2))
+    assert output[0].shape == (3, 2, 2, 3)
+
+
+# order!!!
 
 
 
 from os.path import join
-from numpy import arange
 from phypno import Dataset
 from phypno.trans import Freq, TimeFreq
 

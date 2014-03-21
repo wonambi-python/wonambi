@@ -129,16 +129,15 @@ class Data:
                      'scores': None,
                      }
 
-    def __call__(self, trial=None, squeeze=False, tolerance=None,
-                 **dimensions):
+    def __call__(self, trial=None, tolerance=None, **dimensions):
         """Return the recordings and their time stamps.
 
         Parameters
         ----------
-        trial : list of int or ndarray (dtype='i')
-            which trials you want
-        squeeze : bool, optional
-            if it's only one trial, return the actual matrix.
+        trial : list of int or ndarray (dtype='i') or int
+            which trials you want (if it's one int, it returns the actual
+            matrix)
+
         chan : list of str
             which channels you want
         time : tuple of 2 float
@@ -160,6 +159,13 @@ class Data:
         if trial is None:
             trial = range(self.number_of('trial'))
 
+        squeeze = False
+        try:
+            iter(trial)
+        except TypeError:  # 'int' object is not iterable
+            trial = (trial, )
+            squeeze = True
+
         output = empty(len(trial), dtype='O')
 
         for cnt, i in enumerate(trial):
@@ -169,16 +175,14 @@ class Data:
                 axis = self.index_of(dim)
                 idx = _get_indices(self.dim[dim][i], user_idx,
                                    tolerance=tolerance)
+                if not any(idx):
+                    lg.warning('No index was selected for ' + dim)
                 sel = _select_arbitrary_dimensions(len(self.dim),
                                                    axis, idx)
                 output[cnt] = output[cnt][sel]
 
         if squeeze:
-            if len(trial) == 1:
-                output = output[0]
-            else:
-                lg.warning('Cannot squeeze trials, there are ' +
-                           str(len(trial)) + ' trials')
+            output = output[0]
 
         return output
 
