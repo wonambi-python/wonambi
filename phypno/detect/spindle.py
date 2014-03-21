@@ -19,9 +19,9 @@ class DetectSpindle:
         the value used for the threhsold
     selection_threshold : float
         the value used to calculate the start and end of the spindle
-    minimal_duration : float, default: 0.5
+    minimal_duration : float
         minimal duration in s to be considered a spindle
-    maximal_duration : float, default: 2
+    maximal_duration : float
         maximal duration in s to be considered a spindle
 
     Returns

@@ -5,6 +5,8 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from copy import deepcopy
+from inspect import getfullargspec
+
 # for Math
 from numpy import abs, log, sqrt, square
 from scipy.signal import hilbert
@@ -17,31 +19,43 @@ class Math:
 
     Parameters
     ----------
-    operator : function or tuple of functions, optional.
-        function(s) to run on the data
-    operator_name : str or tuple of str, optional.
-        name of the function(s) to run on the data
+    operator : function or tuple of functions, optional
+        function(s) to run on the data.
+    operator_name : str or tuple of str, optional
+        name of the function(s) to run on the data.
+    axis : str, optional
+        for functions that accept it, which axis you should run it on.
 
     Attributes
     ----------
-    operators : tuple of functions
-        functions that will be run on the data
+    operations : list of dict
+        operations to apply. Stored as (ordered) list, where dict has 'name'
+        (the name of function), 'func' (the actual function), 'on_axis' (bool,
+        if it accepts an 'axis' argument), 'keepdims' (bool, if it accepts a
+        'keepdims' argument).
 
     Notes
     -----
     operator and operator_name are mutually exclusive. operator_name is given
     as shortcut for most common operations.
 
-    The possible operator_name are:
-    'abs', 'hilbert', 'log', 'sqrt', 'square'
+    If a function accepts a 'axis' argument, you need to pass 'axis' to the
+    constructor. In this way, it'll apply the function to the correct
+    dimension.
+
+    The possible point-wise operator_name are:
+    'abs', 'log', 'sqrt', 'square'
+
+    The operator_name's that need an axis, but do not delete one:
+    'hilbert'
+
+    The operator_name's that need an axis and remove it:
+    'mean', 'std'
 
     Raises
     ------
     TypeError
         If you pass both operator and operator_name.
-    ValueError
-        If the function changes the dimension of the data (such as mean, std).
-        In that case, you should use MathOnDim.
 
     Examples
     --------
@@ -56,9 +70,20 @@ class Math:
     >>> apply_p3 = Math(operator=p3)
     >>> data = apply_p3(data)
 
+    Note that lambdas are fine with point-wise operation, but if you want them
+    to operate on axis, you need to pass ''axis'' as well, so that:
+
+    >>> std_ddof = lambda x, axis: std(x, axis, ddof=1)
+    >>> apply_std = Math(operator=std_ddof)
+
+    If you don't pass 'axis' in lambda, it'll never know on which axis the
+    function should be applied and you'll get unpredictable results.
+
+    TODO: are we going to use keepdims?
+
     """
-    def __init__(self, operator=None, operator_name=None):
-        self.operators = None
+    def __init__(self, operator=None, operator_name=None,
+                 axis=None):
 
         if operator is not None and operator_name is not None:
             raise TypeError('Parameters "operator" and "operator_name" are '
@@ -78,7 +103,37 @@ class Math:
         if callable(operator):
             operator = (operator, )
 
-        self.operators = operator
+        self.axis = axis
+
+        operations = []
+        for one_operator in operator:
+            on_axis = False
+            keepdims = False
+
+            try:
+                args = getfullargspec(one_operator).args
+            except TypeError:
+                lg.debug('func ' + str(one_operator) + ' is not a Python '
+                         'function')
+            else:
+                if 'axis' in args:
+                    on_axis = True
+
+                    if axis is None:
+                        raise TypeError('You need to specify an axis if you '
+                                        'use ' + one_operator.__name__ +
+                                        '(which applies to an axis)')
+
+                if 'keepdims' in args:
+                    keepdims = True
+
+            operations.append({'name': one_operator.__name__,
+                               'func': one_operator,
+                               'on_axis': on_axis,
+                               'keepdims': keepdims,
+                               })
+
+        self.operations = operations
 
     def __call__(self, data, axis='time'):
         """Apply mathematical operators to the data.
@@ -92,42 +147,35 @@ class Math:
         instance of Data
             data where the trials underwent operator.
 
+        Raises
+        ------
+        ValueError
+            When you try to operate on an axis that has already been removed.
+
         """
         output = deepcopy(data)
-        for one_operator in self.operators:
-            lg.info('running operator: ' + str(one_operator))
+
+        if self.axis is not None:
+            idx_axis = data.index_of(self.axis)
+
+        for op in self.operations:
+            lg.info('running operator: ' + op['name'])
+            func = op['func']
+
             for i in range(len(output.data)):
-                shape = output.data[i].shape
-                output.data[i] = one_operator(output.data[i])
+                if op['on_axis']:
+                    try:
+                        output.data[i] = func(output(trial=i),
+                                              axis=idx_axis)
+                    except ValueError:
+                        raise ValueError('The axis ' + self.axis + ' does not '
+                                         'exist in [' +
+                                         ', '.join(list(output.axis.keys()))
+                                         + ']')
+                else:
+                    output.data[i] = func(output(trial=i))
 
-                if shape != output.data[i].shape:
-                    old_shape = '{}'.format(shape)
-                    new_shape = '{}'.format(output.data[i].shape)
-                    raise ValueError('Operator ' + str(one_operator) +
-                                     ' changed the shape of the data, from ' +
-                                     'shape ' + old_shape + ' to shape ' +
-                                     new_shape + '.\n Use MathOnDim')
-
-        return output
-
-
-class MathOnAxis(Math):
-    """THIS SHOULD GO, use only MATH, but specify if you want to remove one dimension.
-
-    Temporary implementtaion, we need arbitrary dimensions for this to work
-    correctly.
-    Very similar to Math, but no check for dimensions. It'll be incorrect, but
-    we can live with that.
-
-    """
-    def __init__(self, operator=None, operator_name=None):
-        super().__init__(operator=operator, operator_name=operator_name)
-
-    def __call__(self, data):
-        output = deepcopy(data)
-        for one_operator in self.operators:
-            lg.info('running operator: ' + str(one_operator))
-            for i in range(len(output.data)):
-                output.data[i] = one_operator(output.data[i])
+            if op['on_axis']:
+                del output.axis[self.axis]
 
         return output

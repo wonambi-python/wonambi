@@ -15,13 +15,14 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
-from numpy import power, exp, mean
+from numpy import power, exp, mean, std
 
-from phypno.trans import Math, MathOnDim
+from phypno.trans import Math
 from phypno.utils import create_data
 
 
 data = create_data(n_trial=10)
+
 
 @raises(TypeError)
 def test_math_incompatible_parameters():
@@ -34,23 +35,63 @@ def test_math_operator_name():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     apply_sqrt = Math(operator_name='square')
+
     data1 = apply_sqrt(data)
     assert_array_equal(data1.data[0] ** .5, data.data[0])
 
-@raises(ValueError)
+
+def test_math_operator_name_on_axis():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    apply_mean = Math(operator_name='mean', axis='time')
+    data1 = apply_mean(data)
+
+    assert len(data1.axis) == data1.data[0].ndim
+    assert len(data1.axis['chan'][0]) == data1.data[0].shape[0]
+
+    apply_mean = Math(operator_name='mean', axis='chan')
+    data1 = apply_mean(data)
+
+    assert len(data1.axis) == data1.data[0].ndim
+    assert len(data1.axis['time'][0]) == data1.data[0].shape[0]
+
+
+@raises(TypeError)
 def test_math_incorrectly_on_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    mean_on_axis = lambda x: mean(x, axis=0)
-    apply_sqrt = Math(operator=mean_on_axis)
-    apply_sqrt(data)
+    Math(operator=mean)
+
+
+@raises(TypeError)
+def test_math_incorrectly_on_axis_tuple():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    Math(operator_name=('square', 'mean', 'sqrt'))
 
 
 def test_math_operator_name_tuple():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    apply_hilb = Math(operator_name=('hilbert', 'abs'))
+    apply_hilb = Math(operator_name=('hilbert', 'abs'), axis='time')
     apply_hilb(data)
+
+
+def test_math_operator_name_tuple_axis():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    apply_rms = Math(operator_name=('square', 'mean', 'sqrt'),
+                     axis='time')
+    data1 = apply_rms(data)
+
+
+@raises(ValueError)
+def test_math_twice_on_same_axis():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    apply_meanstd = Math(operator_name=('mean', 'std'),
+                         axis='time')
+    apply_meanstd(data)
 
 
 def test_math_lambda():
@@ -61,28 +102,9 @@ def test_math_lambda():
     apply_p3(data)
 
 
-def test_math_datafreq():
+def test_math_lambda_with_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    datafreq = create_data(datatype='DataFreq')
-
-    apply_log = Math(operator_name='log')
-    datafreq1 = apply_log(datafreq)
-    assert_array_almost_equal(exp(datafreq1.data[0]), datafreq.data[0])
-
-
-def test_mathonaxis_mean():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    #TODO: axis should be part of the call to MathOnDim
-    apply_mean = MathOnDim(operator=lambda x: mean(x, axis=1))
-    apply_mean(data)
-
-def test_math_rootmeansqrt():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    apply_square = Math(operator_name='square')
-    apply_mean = MathOnDim(operator=lambda x: mean(x, axis=1))
-    apply_sqrt = Math(operator_name='sqrt')
-
-    apply_sqrt(apply_mean(apply_square(data)))
+    std_ddof = lambda x, axis: std(x, axis, ddof=1)
+    apply_std = Math(operator=std_ddof, axis='time')
+    apply_std(data)
