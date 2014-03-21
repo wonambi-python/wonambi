@@ -1,6 +1,6 @@
 from numpy import empty, squeeze
 from scipy.signal import periodogram
-from ..datatype import DataFreq, DataTimeFreq
+from ..datatype import ChanFreq, ChanTimeFreq
 from ..trans import Select
 
 

@@ -191,9 +191,9 @@ class Dataset:
         data = ChanTime()
         data.start_time = self.header['start_time']
         data.s_freq = self.header['s_freq']
+
         if chan is None:
             chan = self.header['chan_name']
-        data.chan_name = asarray(chan, dtype='U')
         if not isinstance(chan, list):
             raise TypeError('Parameter "chan" should be a list')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
@@ -221,12 +221,14 @@ class Dataset:
                              'end point')
         n_trl = len(begsam)
 
-        data.time = empty((n_trl), dtype='O')
-        data.data = empty((n_trl), dtype='O')
-        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
+        data.dim['chan'] = empty(n_trl, dtype='O')
+        data.dim['time'] = empty(n_trl, dtype='O')
+        data.data = empty(n_trl, dtype='O')
 
-            data.time[i] = (arange(one_begsam, one_endsam) /
-                            self.header['s_freq'])
+        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
+            data.dim['chan'][i] = asarray(chan, dtype='U')
+            data.dim['time'][i] = (arange(one_begsam, one_endsam) /
+                                   self.header['s_freq'])
 
             dataset = self.dataset
             lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,

@@ -15,13 +15,15 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
+from os.path import join
+
 from numpy import arange, array, empty, isnan, where
 from numpy.random import random
 
-from phypno import Data
+from phypno import Data, Dataset
+from phypno.trans import Freq, TimeFreq
 from phypno.utils import create_data
 data = create_data(n_trial=10, s_freq=500)
-
 
 def test_data_select_trial():
     lg.info('---\nfunction: ' + stack()[0][3])
@@ -131,49 +133,27 @@ def test_data_arbitrary_dimensions():
     assert output[0].shape == (3, 2, 2, 3)
 
 
-
-
-from os.path import join
-from phypno import Dataset
-from phypno.trans import Freq, TimeFreq
-
-
-
-
-
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
 
 
-def test_DataTime_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    time_limits = (0, 1)
-    sel_dat, sel_time = data(time=time_limits)
-    assert sel_time[0][0] == data.time[0][0]
-    assert sel_time[0][-1] <= time_limits[1]
-    assert sel_time[0].shape[0] == sel_dat[0].shape[1]
-    assert sel_dat[0].shape[0] == 3
-
-
-def test_DataTime_02():
+def test_chantime_realdata():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     chan_limits = ['LOF1', 'LOF2']
-    sel_dat, sel_time = data(chan=chan_limits)
-    assert sel_time[0].shape[0] == sel_dat[0].shape[1]
+    sel_dat = data(chan=chan_limits)
     assert sel_dat[0].shape[0] == 2
 
 
-def test_DataTime_03():
+def test_chantime_select_equal_to_read():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
-    dat1, time1 = subdata()
-    dat2, time2 = data(chan=['LOF1', 'LOF2'], time=(0, 1))
+    dat1 = subdata()
+    TIME = data.dim['time'][0][data.dim['time'][0] < 1]
+    dat2 = data(chan=['LOF1', 'LOF2'], time=TIME)
     assert_array_equal(dat1[0], dat2[0])
-    assert_array_equal(time1[0], time2[0])
 
 
 calc_freq = Freq()
