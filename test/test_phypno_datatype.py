@@ -20,8 +20,8 @@ from os.path import join
 from numpy import arange, array, empty, isnan, where
 from numpy.random import random
 
-from phypno import Data, Dataset
-from phypno.trans import Freq, TimeFreq
+from phypno import Data, Dataset, ChanTime, ChanTimeFreq
+# from phypno.trans import Freq, TimeFreq
 from phypno.utils import create_data
 data = create_data(n_trial=10, s_freq=500)
 
@@ -39,7 +39,8 @@ def test_data_select_trial_compress():
     assert len(output) == 1
 
     output = data(trial=1)
-    assert output.shape == (8, 500)
+    assert output.shape == (data.number_of('chan')[0],
+                            data.number_of('time')[0])
 
     output = data(trial=(1, 2), squeeze=True)
     assert len(output) == 2
@@ -133,6 +134,12 @@ def test_data_arbitrary_dimensions():
     assert output[0].shape == (3, 2, 2, 3)
 
 
+def test_datatype_with_freq():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    ChanTime()
+    ChanTimeFreq()
+
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 d = Dataset(edf_file)
 data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
@@ -151,8 +158,10 @@ def test_chantime_select_equal_to_read():
 
     subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
     dat1 = subdata()
+
     TIME = data.dim['time'][0][data.dim['time'][0] < 1]
     dat2 = data(chan=['LOF1', 'LOF2'], time=TIME)
+
     assert_array_equal(dat1[0], dat2[0])
 
 

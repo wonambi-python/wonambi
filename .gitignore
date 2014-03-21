@@ -5,3 +5,4 @@ temp/
 */_pycache_/
 *.pyc
 bin/.coverage
+test/report/
