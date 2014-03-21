@@ -15,38 +15,60 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
-from phypno import ChanTime
-
-
 from phypno.utils import create_data
-data = create_data(n_trial=10)
+data = create_data(n_trial=10, s_freq=500)
 
 
-def test_data_select_01():
+def test_data_select_trial():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     output = data(trial=(1, 2, 3))
     assert len(output) == 3
 
 
-def test_data_select_02():
+def test_data_select_trial_compress():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    TIME = (1, 3, 10)
+    output = data(trial=(1, ))
+    assert len(output) == 1
+
+    output = data(trial=(1, ), squeeze=True)
+    assert output.shape == (8, 512)
+
+    output = data(trial=(1, 2), squeeze=True)
+    assert len(output) == 2
+
+
+def test_data_select_one_dim():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TIME = data.dim['time'][0][:10]
     output = data(time=TIME)
     assert len(output) == 10
     assert output[0].shape[data.index_of('time')] == len(TIME)
 
 
-def test_data_select_03():
+def test_data_select_two_dim():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    TIME = (1, 3, 10)
-    CHAN = (1, 3)   # actually, this is deprecated
+    TIME = data.dim['time'][0][:10]
+    CHAN = ('chan02', 'chan05')
     output = data(chan=CHAN, time=TIME)
     assert len(output) == 10
-    assert output[0].shape == (CHAN, TIME)
+    assert output[0].shape == (len(CHAN), len(TIME))
 
+
+def test_data_select_tolerance():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TIME = arange(0, 1, 0.05)
+    output = data(time=TIME)
+    assert output[0].shape[1] == 16  # without tolerance
+
+    TIME = arange(0, 1, 0.05)
+    CHAN = ('chan02', 'chan05')
+    output = data(time=TIME, chan=CHAN, tolerance=1e-10)
+    assert output[0].shape[1] == len(TIME)
 
 # also test an arbitrary type of data, in any dimension
 

@@ -16,14 +16,16 @@ use something like this to slice any dimension:
 s[axis] = slice(1, n)
 C = A[s]
 
-
+XXX don't use intervals here, you can only use those in Select. Here you need
+to pass the actual values.
 
 XXX this should be views (can be modified), Select should deep-copy
 
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import array, empty
+from numpy import absolute, array, empty, in1d, min, zeros
+
 
 lg = getLogger('phypno')
 
@@ -55,6 +57,42 @@ def _select_arbitrary_dimensions(n_dim, axis, idx):
     selection[axis] = idx
 
     return selection
+
+
+def _get_indices(values, selected, tolerance):
+    """Get indices based on user-selected values.
+
+    Parameters
+    ----------
+    values : ndarray (any dtype)
+        values present in the dimension.
+    selected : ndarray (any dtype) or tuple or list
+        values selected by the user
+    tolerance : float
+        avoid rounding errors.
+
+    Returns
+    -------
+    ndarray (dtype='bool')
+        boolean values to select or not select values.
+
+    Notes
+    -----
+    If you use values in the dimension, you don't need to specify tolerance.
+    However, if you specify arbitrary points, floating point errors might
+    affect the actual values. Of course, using tolerance is much slower.
+
+    Maybe tolerance should be part of Select instead of here.
+
+    """
+    if tolerance is None or values.dtype.kind == 'U':
+        idx = in1d(values, selected)
+    else:
+        idx = zeros(len(values), dtype='bool')
+        for i, one_value in enumerate(values):
+            idx[i] = min(absolute(one_value - selected)) <= tolerance
+
+    return idx
 
 
 class Data:
@@ -91,13 +129,16 @@ class Data:
                      'scores': None,
                      }
 
-    def __call__(self, trial=None, **dimensions):
+    def __call__(self, trial=None, squeeze=False, tolerance=None,
+                 **dimensions):
         """Return the recordings and their time stamps.
 
         Parameters
         ----------
         trial : list of int or ndarray (dtype='i')
             which trials you want
+        squeeze : bool, optional
+            if it's only one trial, return the actual matrix.
         chan : list of str
             which channels you want
         time : tuple of 2 float
@@ -113,6 +154,8 @@ class Data:
         I wish it returned a view of the data, but actually it probably copies
         it anyway. It might not be that bad after all.
 
+        i is always the index over trials.
+
         """
         if trial is None:
             trial = range(self.number_of('trial'))
@@ -121,14 +164,21 @@ class Data:
 
         for cnt, i in enumerate(trial):
             output[cnt] = self.data[i]
-            for dim, idx in dimensions.items():
-                if self.dim[dim].dtype.char == 'U':
-                    pass # search for string
+            for dim, user_idx in dimensions.items():
 
                 axis = self.index_of(dim)
+                idx = _get_indices(self.dim[dim][i], user_idx,
+                                   tolerance=tolerance)
                 sel = _select_arbitrary_dimensions(len(self.dim),
                                                    axis, idx)
                 output[cnt] = output[cnt][sel]
+
+        if squeeze:
+            if len(trial) == 1:
+                output = output[0]
+            else:
+                lg.warning('Cannot squeeze trials, there are ' +
+                           str(len(trial)) + ' trials')
 
         return output
 
