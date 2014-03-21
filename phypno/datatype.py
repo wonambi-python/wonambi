@@ -132,6 +132,8 @@ class Data:
         -----
         You cannot specify intervals here, you can do it in Select.
 
+        XXX: squeeze any dimension, if the user specifies only one value
+
         """
         if trial is None:
             trial = range(self.number_of('trial'))

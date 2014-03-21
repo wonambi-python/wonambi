@@ -68,11 +68,11 @@ class DetectSpindle:
 
         all_spindles = []
 
-        for i_chan in range(detection_data.number_of('chan')):
-            lg.info('Reading chan #' + str(i_chan))
+        for chan in detection_data.axis('chan')[0]:
+            lg.info('Reading chan #' + chan)
 
             # 1. detect spindles, based on detection_data
-XXX            above_det = detection_data.data[0][i_chan, :] >= detection_value # XXX clean up the code of this things
+            above_det = detection_data(trial=0, chan=chan) >= detection_value
             detected = _detect_start_end(above_det)
 
             if detected is None:
@@ -80,7 +80,7 @@ XXX            above_det = detection_data.data[0][i_chan, :] >= detection_value 
                 continue
 
             # 2. select spindles, based on selection_data
-            above_sel = (selection_data.data[0][i_chan, :] >=
+            above_sel = (selection_data(trial=0, chan=chan) >=
                          self.selection_threshold)
             detected = _select_complete_period(detected, above_sel)
 
