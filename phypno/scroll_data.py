@@ -441,14 +441,16 @@ class MainWindow(QMainWindow):
         keep_recent_recordings(self.info.filename)
         event.accept()
 
-try:
-    app = QApplication(argv)
-    standalone = True
-except RuntimeError:
-    standalone = False
 
-q = MainWindow()
-q.show()
+if __name__ == '__main__':
+    try:
+        app = QApplication(argv)
+        standalone = True
+    except RuntimeError:
+        standalone = False
 
-if standalone:
-    app.exec_()
+    q = MainWindow()
+    q.show()
+
+    if standalone:
+        app.exec_()
