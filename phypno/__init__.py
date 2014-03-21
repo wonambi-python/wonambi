@@ -6,4 +6,4 @@
 """
 
 from .dataset import Dataset
-from .datatype import DataTime, DataFreq, DataTimeFreq
+from .datatype import Data, ChanTime, ChanFreq, ChanTimeFreq

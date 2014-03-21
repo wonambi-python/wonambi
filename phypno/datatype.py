@@ -1,26 +1,12 @@
 """Module contains the different types of data formats.
 
-The main class is Data, all the other classes should depend on it.
+The main class is Data, all the other classes should depend on it. The other
+classes are given only as convenience, but they should not overwride
+Data.__call__, which needs to be very general
 
 Notes
 -----
-Maybe we could use slice notation (using __getitem__()) instead of call.
-I quite like __call__ because it returns a tuple, which is pretty interesting.
-But I'm not sure if it's useful.
-In addition, the slice notation is not robust enough. The data is a
-representation which is only meaningful when including the other parameters,
-such as time, freq, chan.
-It's always possible to use slice notation on data.data.
-
-With the current implementation, when you call a class in datatype, you get
-tuple of matrices. To get a subset of the data, call the functions in the
-trans.select module.
-
 There is a circular import (we use Select, which depends on datatype)
-
-TODO: I'm thinking it's possible to implement Data much more, so that it's a
-general class. Chan, Time, Freq, etc should be defined in an attribute such as
-.dim, then the matrix for each trial can be as open as possible.
 
 TODO: probably it's best to return the number of chan, freq, time. If None, it
 means that the dimension does not exist.
@@ -37,10 +23,15 @@ B = A[s]
 s[axis] = slice(1, n)
 C = A[s]
 
+
+
+XXX this should be views (can be modified), Select should deep-copy
+
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import array, squeeze
+from numpy import array
+
 lg = getLogger('phypno')
 
 
@@ -96,21 +87,40 @@ class Data:
             ndarray containing chan X time matrix of the recordings
 
         """
-        from .trans.select import Select
-        selection = Select(trial=trial, dimensions)
-        output = selection(self)
 
-        # TODO: Always data, and then the dimensions that were requested
+        # TODO: Always data, and then the dimensions (in order)
 
-        return output.data
+        return self
+
+    def number_of(self, dim):
+        """Return the number of in one dimension, as generally as possible.
+
+        Parameters
+        ----------
+        dim : str
+            Name of the dimension (such as 'trial', 'time', etc)
+
+        Returns
+        -------
+        int
+            number of elements in one dimension.
+
+        """
+        if dim == 'trial':
+            return len(self.data)
+        else:
+            try:
+                return len(self.dim[dim])
+            except KeyError:
+                return None
 
 
-class DataTime(Data):
+class ChanTime(Data):
     """Specific class for chan-time recordings.
 
     Dimensions
     ----------
-    chan : list of str
+    chan : ndarray (dtype='O')
         which channels you want
     time : ndarray (dtype='O')
         the time in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
@@ -118,12 +128,12 @@ class DataTime(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='0')
+        self.dim['chan'] = array([], dtype='O')
         self.dim['time'] = array([], dtype='O')
 
 
-class DataFreq(Data):
-    """Specific class for frequency-power recordings.
+class ChanFreq(Data):
+    """Specific class for channel-frequency recordings.
 
     Dimensions
     ----------
@@ -140,12 +150,12 @@ class DataFreq(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='0')
+        self.dim['chan'] = array([], dtype='O')
         self.dim['freq'] = array([], dtype='O')
 
 
-class DataTimeFreq(Data):
-    """Specific class for time-frequency representation.
+class ChanTimeFreq(Data):
+    """Specific class for channel-time-frequency representation.
 
     Dimensions
     ----------
@@ -159,6 +169,6 @@ class DataTimeFreq(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='0')
+        self.dim['chan'] = array([], dtype='O')
         self.dim['time'] = array([], dtype='O')
         self.dim['freq'] = array([], dtype='O')

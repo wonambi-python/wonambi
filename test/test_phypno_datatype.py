@@ -15,10 +15,31 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
+from phypno import ChanTime
+
+
+from phypno.utils import create_data
+d = create_data()
+
+
+
+
+
+
+
+# also test an arbitrary type of data, in any dimension
+
+
+
+
+
 from os.path import join
 from numpy import arange
 from phypno import Dataset
 from phypno.trans import Freq, TimeFreq
+
+
+
 
 
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
