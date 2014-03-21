@@ -15,7 +15,7 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
-from numpy import power, exp, mean, std
+from numpy import power, mean, std
 
 from phypno.trans import Math
 from phypno.utils import create_data
@@ -82,7 +82,7 @@ def test_math_operator_name_tuple_axis():
 
     apply_rms = Math(operator_name=('square', 'mean', 'sqrt'),
                      axis='time')
-    data1 = apply_rms(data)
+    apply_rms(data)
 
 
 @raises(ValueError)

@@ -8,10 +8,8 @@ from copy import deepcopy
 from inspect import getfullargspec
 
 # for Math
-from numpy import abs, log, sqrt, square
+from numpy import absolute, exp, log, mean, sqrt, square, std
 from scipy.signal import hilbert
-# for MathOnAxis
-from numpy import mean, std
 
 
 class Math:
@@ -44,7 +42,7 @@ class Math:
     dimension.
 
     The possible point-wise operator_name are:
-    'abs', 'log', 'sqrt', 'square'
+    'absolute', 'exp', 'log', 'sqrt', 'square'
 
     The operator_name's that need an axis, but do not delete one:
     'hilbert'

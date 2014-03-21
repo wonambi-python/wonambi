@@ -68,11 +68,11 @@ class DetectSpindle:
 
         all_spindles = []
 
-        for i_chan in range(detection_data.data[0].shape[0]):  # TODO: don't assume channel is here
+        for i_chan in range(detection_data.number_of('chan')):
             lg.info('Reading chan #' + str(i_chan))
 
             # 1. detect spindles, based on detection_data
-            above_det = detection_data.data[0][i_chan, :] >= detection_value
+XXX            above_det = detection_data.data[0][i_chan, :] >= detection_value # XXX clean up the code of this things
             detected = _detect_start_end(above_det)
 
             if detected is None:
