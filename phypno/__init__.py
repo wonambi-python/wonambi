@@ -7,4 +7,3 @@
 
 from .dataset import Dataset
 from .datatype import Data, ChanTime, ChanFreq, ChanTimeFreq
-from .scroll_data import MainWindow
