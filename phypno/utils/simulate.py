@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import getLogger
-from numpy import arange, empty
+from numpy import arange, empty, asarray
 from numpy.random import random
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 
@@ -96,14 +96,14 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
 
     data.start_time = start_time
     data.s_freq = s_freq
-    data.dim['chan'] = chan_name
+    data.dim['chan'] = asarray(chan_name, dtype='U')
 
-    if datatype in ('DataTime', 'DataTimeFreq'):
+    if datatype in ('ChanTime', 'ChanTimeFreq'):
         data.dim['time'] = empty(n_trial, dtype='O')
         for i in range(n_trial):
             data.dim['time'][i] = time
 
-    if datatype in ('DataFreq', 'DataTimeFreq'):
+    if datatype in ('ChanFreq', 'ChanTimeFreq'):
         data.dim['freq'] = empty(n_trial, dtype='O')
         for i in range(n_trial):
             data.dim['freq'][i] = freq

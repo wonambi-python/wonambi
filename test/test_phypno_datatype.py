@@ -19,17 +19,36 @@ from phypno import ChanTime
 
 
 from phypno.utils import create_data
-d = create_data()
+data = create_data(n_trial=10)
 
 
+def test_data_select_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    output = data(trial=(1, 2, 3))
+    assert len(output) == 3
 
 
+def test_data_select_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
 
+    TIME = (1, 3, 10)
+    output = data(time=TIME)
+    assert len(output) == 10
+    assert output[0].shape[data.index_of('time')] == len(TIME)
+
+
+def test_data_select_03():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TIME = (1, 3, 10)
+    CHAN = (1, 3)   # actually, this is deprecated
+    output = data(chan=CHAN, time=TIME)
+    assert len(output) == 10
+    assert output[0].shape == (CHAN, TIME)
 
 
 # also test an arbitrary type of data, in any dimension
-
-
 
 
 

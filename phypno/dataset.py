@@ -1,7 +1,6 @@
 """Module has information about the datasets, not data.
 
 """
-
 from __future__ import division
 from datetime import timedelta, datetime
 from glob import glob
@@ -12,7 +11,7 @@ from os.path import isdir, join
 from numpy import arange, asarray, empty
 
 from .ioeeg import Edf, Ktlx, BlackRock
-from .datatype import DataTime
+from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
 
@@ -153,7 +152,7 @@ class Dataset:
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None):
-        """Read the data and creates a DataTime instance
+        """Read the data and creates a ChanTime instance
 
         Parameters
         ----------
@@ -178,7 +177,7 @@ class Dataset:
 
         Returns
         -------
-        An instance of DataTime
+        An instance of ChanTime
 
         Notes
         -----
@@ -189,7 +188,7 @@ class Dataset:
         length and the data will be stored in trials.
 
         """
-        data = DataTime()
+        data = ChanTime()
         data.start_time = self.header['start_time']
         data.s_freq = self.header['s_freq']
         if chan is None:

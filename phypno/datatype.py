@@ -13,13 +13,6 @@ means that the dimension does not exist.
 
 use something like this to slice any dimension:
 
-A = np.random.rand(2, 3, 4, 5)
-axis = 2
-n = A.ndim
-# building n-dimensional slice
-s = [slice(None), ] * n
-s[axis] = slice(0, n - 1)
-B = A[s]
 s[axis] = slice(1, n)
 C = A[s]
 
@@ -30,9 +23,38 @@ XXX this should be views (can be modified), Select should deep-copy
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import array
+from numpy import array, empty
 
 lg = getLogger('phypno')
+
+
+def _select_arbitrary_dimensions(n_dim, axis, idx):
+    """Select along a specified dimension.
+
+    Parameters
+    ----------
+    n_dim : int
+        number of dimensions in the original data
+    axis : int
+        index of the axis along which the selection occurs.
+    idx : list/tuple of int or ndarray(dtype='int')
+        indices of the elements to select.
+
+    Returns
+    -------
+    list of slice
+        slice along one dimension.
+
+    Notes
+    -----
+    It's a pretty neat code to select along an arbitrary axis. You can only
+    select one dimension at the time.
+
+    """
+    selection = [slice(None), ] * n_dim
+    selection[axis] = idx
+
+    return selection
 
 
 class Data:
@@ -86,11 +108,51 @@ class Data:
         data : ndarray (dtype='O')
             ndarray containing chan X time matrix of the recordings
 
+        Notes
+        -----
+        I wish it returned a view of the data, but actually it probably copies
+        it anyway. It might not be that bad after all.
+
         """
+        if trial is None:
+            trial = range(self.number_of('trial'))
 
-        # TODO: Always data, and then the dimensions (in order)
+        output = empty(len(trial), dtype='O')
 
-        return self
+        for cnt, i in enumerate(trial):
+            output[cnt] = self.data[i]
+            for dim, idx in dimensions.items():
+                if self.dim[dim].dtype.char == 'U':
+                    pass # search for string
+
+                axis = self.index_of(dim)
+                sel = _select_arbitrary_dimensions(len(self.dim),
+                                                   axis, idx)
+                output[cnt] = output[cnt][sel]
+
+        return output
+
+    def index_of(self, dim):
+        """Return the index of a dimension.
+
+        Parameters
+        ----------
+        dim : str
+            Name of the dimension (such as 'trial', 'time', etc)
+
+        Returns
+        -------
+        int or ndarray (dtype='int')
+            number of trial (as int) or number of element in the selected
+            dimension (if any of the other dimensions) as 1d array.
+
+        Raises
+        ------
+        ValueError
+            If the requested dimension is not in the data.
+
+        """
+        return list(self.dim.keys()).index(dim)
 
     def number_of(self, dim):
         """Return the number of in one dimension, as generally as possible.
@@ -102,17 +164,29 @@ class Data:
 
         Returns
         -------
-        int
-            number of elements in one dimension.
+        int or ndarray (dtype='int')
+            number of trial (as int) or number of element in the selected
+            dimension (if any of the other dimensions) as 1d array.
+
+        Raises
+        ------
+        KeyError
+            If the requested dimension is not in the data.
+
+        Notes
+        -----
+        or is it better to catch the exception?
 
         """
         if dim == 'trial':
             return len(self.data)
         else:
-            try:
-                return len(self.dim[dim])
-            except KeyError:
-                return None
+            n_trial = self.number_of('trial')
+            output = empty(n_trial, dtype='int')
+            for i in range(n_trial):
+                output[i] = len(self.dim[dim][i])
+
+            return output
 
 
 class ChanTime(Data):
