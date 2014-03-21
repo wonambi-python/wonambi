@@ -24,39 +24,10 @@ XXX this should be views (can be modified), Select should deep-copy
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import absolute, array, empty, in1d, min, zeros
+from numpy import arange, array, empty, ix_, NaN, where
 
 
 lg = getLogger('phypno')
-
-
-def _select_arbitrary_dimensions(n_dim, axis, idx):
-    """Select along a specified dimension.
-
-    Parameters
-    ----------
-    n_dim : int
-        number of dimensions in the original data
-    axis : int
-        index of the axis along which the selection occurs.
-    idx : list/tuple of int or ndarray(dtype='int')
-        indices of the elements to select.
-
-    Returns
-    -------
-    list of slice
-        slice along one dimension.
-
-    Notes
-    -----
-    It's a pretty neat code to select along an arbitrary axis. You can only
-    select one dimension at the time.
-
-    """
-    selection = [slice(None), ] * n_dim
-    selection[axis] = idx
-
-    return selection
 
 
 def _get_indices(values, selected, tolerance):
@@ -73,26 +44,37 @@ def _get_indices(values, selected, tolerance):
 
     Returns
     -------
-    ndarray (dtype='bool')
-        boolean values to select or not select values.
+    idx_data : list of int
+        indices of row/column to select the data
+    idx_output : list of int
+        indices of row/column to copy into output
 
     Notes
     -----
-    If you use values in the dimension, you don't need to specify tolerance.
+    This function is probably not very fast, but it's pretty robust. It keeps
+    the order, which is extremely important.
+
+    If you use values in the self.dim, you don't need to specify tolerance.
     However, if you specify arbitrary points, floating point errors might
     affect the actual values. Of course, using tolerance is much slower.
 
     Maybe tolerance should be part of Select instead of here.
 
     """
-    if tolerance is None or values.dtype.kind == 'U':
-        idx = in1d(values, selected)
-    else:
-        idx = zeros(len(values), dtype='bool')
-        for i, one_value in enumerate(values):
-            idx[i] = min(absolute(one_value - selected)) <= tolerance
+    idx_data = []
+    idx_output = []
+    for idx_of_selected, one_selected in enumerate(selected):
 
-    return idx
+        if tolerance is None or values.dtype.kind == 'U':
+            idx_of_data = where(values == one_selected)[0]
+        else:
+            idx_of_data = where(abs(values - one_selected) <= tolerance)[0] # actual use min
+
+        if len(idx_of_data) > 0:
+            idx_data.append(idx_of_data[0])
+            idx_output.append(idx_of_selected)
+
+    return idx_data, idx_output
 
 
 class Data:
@@ -136,24 +118,26 @@ class Data:
         ----------
         trial : list of int or ndarray (dtype='i') or int
             which trials you want (if it's one int, it returns the actual
-            matrix)
-
-        chan : list of str
-            which channels you want
-        time : tuple of 2 float
-            which periods you want. If one of the tuple is None, keep it.
+            matrix).
+        **dimensions
+            Arbitrary dimensions to select from. You specify the dimension and
+            the values as array or list or tuple of the values that you want.
+        tolerance : float
+            if one of the dimensions is a number, it specifies the tolerance to
+            consider one value as chosen (take into account floating-precision
+            errors).
 
         Returns
         -------
-        data : ndarray (dtype='O')
-            ndarray containing chan X time matrix of the recordings
+        ndarray
+            ndarray containing the data with the same number of dimensions as
+            the original data. The length of the dimensions is equal to the
+            length of the data, UNLESS you specify a dimension with values. In
+            that case, the length is equal to the values that you want.
 
-        Notes
-        -----
-        I wish it returned a view of the data, but actually it probably copies
-        it anyway. It might not be that bad after all.
-
-        i is always the index over trials.
+            If you specify only one trial (as int, not as tuple or list), then
+            it returns the actual matrix. Otherwise, it returns a ndarray
+            (dtype='O') of length equal to the trials.
 
         """
         if trial is None:
@@ -169,17 +153,36 @@ class Data:
         output = empty(len(trial), dtype='O')
 
         for cnt, i in enumerate(trial):
-            output[cnt] = self.data[i]
-            for dim, user_idx in dimensions.items():
 
-                axis = self.index_of(dim)
-                idx = _get_indices(self.dim[dim][i], user_idx,
-                                   tolerance=tolerance)
-                if not any(idx):
-                    lg.warning('No index was selected for ' + dim)
-                sel = _select_arbitrary_dimensions(len(self.dim),
-                                                   axis, idx)
-                output[cnt] = output[cnt][sel]
+            output_shape = []
+            idx_data = []
+            idx_output = []
+
+            for dim, values in self.dim.items():
+                if dim in dimensions.keys():
+                    n_values = len(dimensions[dim])
+                    idx = _get_indices(values[i],
+                                       dimensions[dim],
+                                       tolerance=tolerance)
+                    if len(idx[0]) == 0:
+                        lg.warning('No index was selected for ' + dim)
+
+                    idx_data.append(idx[0])
+                    idx_output.append(idx[1])
+                else:
+                    n_values = len(values[i])
+                    idx_data.append(arange(n_values))
+                    idx_output.append(arange(n_values))
+
+                output_shape.append(n_values)
+
+            output[cnt] = empty(output_shape, dtype=self.data[i].dtype)
+            output[cnt][:] = NaN
+
+            if all([len(x) > 0 for x in idx_data]):
+                ix_output = ix_(*idx_output)
+                ix_data = ix_(*idx_data)
+                output[cnt][ix_output] = self.data[i][ix_data]
 
         if squeeze:
             output = output[0]

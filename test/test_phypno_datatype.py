@@ -15,7 +15,7 @@ lg.info('Module: ' + __name__)
 data_dir = '/home/gio/tools/phypno/data'
 
 #-----------------------------------------------------------------------------#
-from numpy import arange, array, empty
+from numpy import arange, array, empty, isnan, where
 from numpy.random import random
 
 from phypno import Data
@@ -68,7 +68,8 @@ def test_data_select_empty_selection():
     TIME = (100, 200)
     CHAN = ('chan02', 'chan05')
     output = data(chan=CHAN, time=TIME)
-    assert output[0].shape == (len(CHAN), 0)
+    assert output[0].shape == (len(CHAN), len(TIME))
+    assert isnan(output[0][:]).all()
 
 
 def test_data_conserve_order():
@@ -81,10 +82,14 @@ def test_data_conserve_order():
     output05 = data(chan=CHAN, trial=0)
 
     CHAN = ('chan02', 'chan02')
-    output02 = data(chan=CHAN, trial=0)
+    output0202 = data(chan=CHAN, trial=0)
 
     CHAN = ('chan05', 'chan02')
     output0502 = data(chan=CHAN, trial=0)
+
+    assert_array_equal(output02[0, :10], output0202[0, :10])
+    assert_array_equal(output0502[0, :10], output05[0, :10])
+    assert_array_equal(output0502[1, :10], output02[0, :10])
 
 
 def test_data_select_tolerance():
@@ -92,12 +97,12 @@ def test_data_select_tolerance():
 
     TIME = arange(0, 1, 0.05)
     output = data(time=TIME)
-    assert output[0].shape[1] == 16  # without tolerance
+    assert len(where(isnan(output[0][0, :]))[0]) == 4  # without tolerance
 
     TIME = arange(0, 1, 0.05)
     CHAN = ('chan02', 'chan05')
     output = data(time=TIME, chan=CHAN, tolerance=1e-10)
-    assert output[0].shape[1] == len(TIME)
+    assert len(where(isnan(output[0][0, :]))[0]) == 0
 
 
 def test_data_arbitrary_dimensions():
@@ -125,8 +130,6 @@ def test_data_arbitrary_dimensions():
                   dim3=(0, 1, 2))
     assert output[0].shape == (3, 2, 2, 3)
 
-
-# order!!!
 
 
 
