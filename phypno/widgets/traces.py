@@ -90,7 +90,7 @@ class Traces(QGraphicsView):
                                  begtime=window_start,
                                  endtime=window_end)
 
-        self.time = data.time[0]
+        self.time = data.axis['time'][0]
         self.data = {}
         for one_grp in self.parent.channels.groups:
             sel = Select(chan=one_grp['chan_to_plot'] + one_grp['ref_chan'])

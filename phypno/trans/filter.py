@@ -1,3 +1,6 @@
+"""Module to filter the data.
+
+"""
 from logging import getLogger
 lg = getLogger('phypno')
 
