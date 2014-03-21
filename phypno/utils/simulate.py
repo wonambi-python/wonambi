@@ -1,10 +1,12 @@
-from datetime import datetime
 from logging import getLogger
+lg = getLogger('phypno')
+
+from datetime import datetime
+
 from numpy import arange, empty, asarray
 from numpy.random import random
-from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 
-lg = getLogger('phypno')
+from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 
 
 def create_data(datatype='ChanTime', start_time=None, n_trial=None,

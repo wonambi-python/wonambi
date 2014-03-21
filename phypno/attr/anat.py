@@ -2,8 +2,10 @@
     - surfaces, with class Surf
 
 """
-from collections import Counter
 from logging import getLogger
+lg = getLogger(__name__)
+
+from collections import Counter
 from os import environ
 from os.path import exists, join, basename, splitext
 from struct import unpack
@@ -14,7 +16,6 @@ from numpy import (array, empty, vstack, around, dot, append, reshape,
 
 from ..utils.caching import read_seg
 
-lg = getLogger(__name__)
 
 FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],

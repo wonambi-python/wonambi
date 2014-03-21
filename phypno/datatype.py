@@ -6,18 +6,7 @@ Data.__call__, which needs to be very general
 
 Notes
 -----
-There is a circular import (we use Select, which depends on datatype)
 
-TODO: probably it's best to return the number of chan, freq, time. If None, it
-means that the dimension does not exist.
-
-use something like this to slice any dimension:
-
-s[axis] = slice(1, n)
-C = A[s]
-
-XXX don't use intervals here, you can only use those in Select. Here you need
-to pass the actual values.
 
 XXX this should be views (can be modified), Select should deep-copy
 
@@ -138,6 +127,10 @@ class Data:
             If you specify only one trial (as int, not as tuple or list), then
             it returns the actual matrix. Otherwise, it returns a ndarray
             (dtype='O') of length equal to the trials.
+
+        Notes
+        -----
+        You cannot specify intervals here, you can do it in Select.
 
         """
         if trial is None:

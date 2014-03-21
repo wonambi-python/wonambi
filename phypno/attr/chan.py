@@ -12,11 +12,14 @@ In other words, the channel is where you want to plot the signal.
 
 """
 from logging import getLogger
+lg = getLogger(__name__)
+
 from os.path import splitext
+
 from numpy import zeros, asarray
+
 from ..utils import UnrecognizedFormat
 
-lg = getLogger(__name__)
 
 mu = '\N{GREEK SMALL LETTER MU}'
 
@@ -71,6 +74,9 @@ def _convert_unit(unit):
 
 
 def _read_csv(elec_file):
+    """TODO:documentation
+
+    """
     chan_label = []
     num_lines = sum(1 for line in open(elec_file))
     chan_pos = zeros((num_lines, 3))
