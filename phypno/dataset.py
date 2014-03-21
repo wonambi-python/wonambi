@@ -221,13 +221,13 @@ class Dataset:
                              'end point')
         n_trl = len(begsam)
 
-        data.dim['chan'] = empty(n_trl, dtype='O')
-        data.dim['time'] = empty(n_trl, dtype='O')
+        data.axis['chan'] = empty(n_trl, dtype='O')
+        data.axis['time'] = empty(n_trl, dtype='O')
         data.data = empty(n_trl, dtype='O')
 
         for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
-            data.dim['chan'][i] = asarray(chan, dtype='U')
-            data.dim['time'][i] = (arange(one_begsam, one_endsam) /
+            data.axis['chan'][i] = asarray(chan, dtype='U')
+            data.axis['time'][i] = (arange(one_begsam, one_endsam) /
                                    self.header['s_freq'])
 
             dataset = self.dataset

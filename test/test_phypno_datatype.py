@@ -25,6 +25,7 @@ from phypno import Data, Dataset, ChanTime, ChanTimeFreq
 from phypno.utils import create_data
 data = create_data(n_trial=10, s_freq=500)
 
+
 def test_data_select_trial():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -46,19 +47,19 @@ def test_data_select_trial_compress():
     assert len(output) == 2
 
 
-def test_data_select_one_dim():
+def test_data_select_one_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    TIME = data.dim['time'][0][:10]
+    TIME = data.axis['time'][0][:10]
     output = data(time=TIME)
     assert len(output) == 10
     assert output[0].shape[data.index_of('time')] == len(TIME)
 
 
-def test_data_select_two_dim():
+def test_data_select_two_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    TIME = data.dim['time'][0][:10]
+    TIME = data.axis['time'][0][:10]
     CHAN = ('chan02', 'chan05')
     output = data(chan=CHAN, time=TIME)
     assert len(output) == 10
@@ -108,29 +109,29 @@ def test_data_select_tolerance():
     assert len(where(isnan(output[0][0, :]))[0]) == 0
 
 
-def test_data_arbitrary_dimensions():
+def test_data_arbitrary_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     data = Data()
-    len_dim0 = 6
-    data.dim['dim0'] = empty(1, dtype='O')
-    data.dim['dim0'][0] = array(['x' + str(x) for x in range(len_dim0)],
+    len_axis0 = 6
+    data.axis['axis0'] = empty(1, dtype='O')
+    data.axis['axis0'][0] = array(['x' + str(x) for x in range(len_axis0)],
                                 dtype='U')
-    len_dim1 = 10
-    data.dim['dim1'] = empty(1, dtype='O')
-    data.dim['dim1'][0] = arange(len_dim1)
-    len_dim2 = 10
-    data.dim['dim2'] = empty(1, dtype='O')
-    data.dim['dim2'][0] = arange(len_dim2)
-    len_dim3 = 5
-    data.dim['dim3'] = empty(1, dtype='O')
-    data.dim['dim3'][0] = arange(len_dim3)
+    len_axis1 = 10
+    data.axis['axis1'] = empty(1, dtype='O')
+    data.axis['axis1'][0] = arange(len_axis1)
+    len_axis2 = 10
+    data.axis['axis2'] = empty(1, dtype='O')
+    data.axis['axis2'][0] = arange(len_axis2)
+    len_axis3 = 5
+    data.axis['axis3'] = empty(1, dtype='O')
+    data.axis['axis3'][0] = arange(len_axis3)
 
     data.data = empty(1, dtype='O')
-    data.data[0] = random((len_dim0, len_dim1, len_dim2, len_dim3))
+    data.data[0] = random((len_axis0, len_axis1, len_axis2, len_axis3))
 
-    output = data(dim0=('x0', 'x3', 'x2'), dim1=(4, 6), dim2=(8, 1),
-                  dim3=(0, 1, 2))
+    output = data(axis0=('x0', 'x3', 'x2'), axis1=(4, 6), axis2=(8, 1),
+                  axis3=(0, 1, 2))
     assert output[0].shape == (3, 2, 2, 3)
 
 
@@ -159,7 +160,7 @@ def test_chantime_select_equal_to_read():
     subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
     dat1 = subdata()
 
-    TIME = data.dim['time'][0][data.dim['time'][0] < 1]
+    TIME = data.axis['time'][0][data.axis['time'][0] < 1]
     dat2 = data(chan=['LOF1', 'LOF2'], time=TIME)
 
     assert_array_equal(dat1[0], dat2[0])

@@ -25,7 +25,7 @@ def _get_indices(values, selected, tolerance):
     Parameters
     ----------
     values : ndarray (any dtype)
-        values present in the dimension.
+        values present in the axis.
     selected : ndarray (any dtype) or tuple or list
         values selected by the user
     tolerance : float
@@ -43,7 +43,7 @@ def _get_indices(values, selected, tolerance):
     This function is probably not very fast, but it's pretty robust. It keeps
     the order, which is extremely important.
 
-    If you use values in the self.dim, you don't need to specify tolerance.
+    If you use values in the self.axis, you don't need to specify tolerance.
     However, if you specify arbitrary points, floating point errors might
     affect the actual values. Of course, using tolerance is much slower.
 
@@ -73,8 +73,8 @@ class Data:
     ----------
     data : ndarray (dtype='O')
         the data as trials. Each trial is a ndarray (dtype='d' or 'f')
-    dim : OrderedDict
-        dictionary with dimensions (standard names are 'chan', 'time', 'freq')
+    axis : OrderedDict
+        dictionary with axiss (standard names are 'chan', 'time', 'freq')
     start_time : instance of datetime.datetime
         the start time of the recording
     attr : dict
@@ -92,7 +92,7 @@ class Data:
     """
     def __init__(self):
         self.data = array([], dtype='O')
-        self.dim = OrderedDict()
+        self.axis = OrderedDict()
         self.start_time = None
         self.s_freq = None
         self.attr = {'surf': None,
@@ -100,7 +100,7 @@ class Data:
                      'scores': None,
                      }
 
-    def __call__(self, trial=None, tolerance=None, **dimensions):
+    def __call__(self, trial=None, tolerance=None, **axes):
         """Return the recordings and their time stamps.
 
         Parameters
@@ -108,20 +108,20 @@ class Data:
         trial : list of int or ndarray (dtype='i') or int
             which trials you want (if it's one int, it returns the actual
             matrix).
-        **dimensions
-            Arbitrary dimensions to select from. You specify the dimension and
+        **axes
+            Arbitrary axiss to select from. You specify the axis and
             the values as array or list or tuple of the values that you want.
         tolerance : float
-            if one of the dimensions is a number, it specifies the tolerance to
+            if one of the axiss is a number, it specifies the tolerance to
             consider one value as chosen (take into account floating-precision
             errors).
 
         Returns
         -------
         ndarray
-            ndarray containing the data with the same number of dimensions as
-            the original data. The length of the dimensions is equal to the
-            length of the data, UNLESS you specify a dimension with values. In
+            ndarray containing the data with the same number of axiss as
+            the original data. The length of the axiss is equal to the
+            length of the data, UNLESS you specify a axis with values. In
             that case, the length is equal to the values that you want.
 
             If you specify only one trial (as int, not as tuple or list), then
@@ -151,14 +151,14 @@ class Data:
             idx_data = []
             idx_output = []
 
-            for dim, values in self.dim.items():
-                if dim in dimensions.keys():
-                    n_values = len(dimensions[dim])
+            for axis, values in self.axis.items():
+                if axis in axes.keys():
+                    n_values = len(axes[axis])
                     idx = _get_indices(values[i],
-                                       dimensions[dim],
+                                       axes[axis],
                                        tolerance=tolerance)
                     if len(idx[0]) == 0:
-                        lg.warning('No index was selected for ' + dim)
+                        lg.warning('No index was selected for ' + axis)
 
                     idx_data.append(idx[0])
                     idx_output.append(idx[1])
@@ -182,59 +182,59 @@ class Data:
 
         return output
 
-    def index_of(self, dim):
-        """Return the index of a dimension.
+    def index_of(self, axis):
+        """Return the index of a axis.
 
         Parameters
         ----------
-        dim : str
-            Name of the dimension (such as 'trial', 'time', etc)
+        axis : str
+            Name of the axis (such as 'trial', 'time', etc)
 
         Returns
         -------
         int or ndarray (dtype='int')
             number of trial (as int) or number of element in the selected
-            dimension (if any of the other dimensions) as 1d array.
+            axis (if any of the other axiss) as 1d array.
 
         Raises
         ------
         ValueError
-            If the requested dimension is not in the data.
+            If the requested axis is not in the data.
 
         """
-        return list(self.dim.keys()).index(dim)
+        return list(self.axis.keys()).index(axis)
 
-    def number_of(self, dim):
-        """Return the number of in one dimension, as generally as possible.
+    def number_of(self, axis):
+        """Return the number of in one axis, as generally as possible.
 
         Parameters
         ----------
-        dim : str
-            Name of the dimension (such as 'trial', 'time', etc)
+        axis : str
+            Name of the axis (such as 'trial', 'time', etc)
 
         Returns
         -------
         int or ndarray (dtype='int')
             number of trial (as int) or number of element in the selected
-            dimension (if any of the other dimensions) as 1d array.
+            axis (if any of the other axiss) as 1d array.
 
         Raises
         ------
         KeyError
-            If the requested dimension is not in the data.
+            If the requested axis is not in the data.
 
         Notes
         -----
         or is it better to catch the exception?
 
         """
-        if dim == 'trial':
+        if axis == 'trial':
             return len(self.data)
         else:
             n_trial = self.number_of('trial')
             output = empty(n_trial, dtype='int')
             for i in range(n_trial):
-                output[i] = len(self.dim[dim][i])
+                output[i] = len(self.axis[axis][i])
 
             return output
 
@@ -242,7 +242,7 @@ class Data:
 class ChanTime(Data):
     """Specific class for chan-time recordings.
 
-    Dimensions
+    axiss
     ----------
     chan : ndarray (dtype='O')
         which channels you want
@@ -252,14 +252,14 @@ class ChanTime(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='O')
-        self.dim['time'] = array([], dtype='O')
+        self.axis['chan'] = array([], dtype='O')
+        self.axis['time'] = array([], dtype='O')
 
 
 class ChanFreq(Data):
     """Specific class for channel-frequency recordings.
 
-    Dimensions
+    axiss
     ----------
     freq : ndarray (dtype='O')
         the freq in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
@@ -274,14 +274,14 @@ class ChanFreq(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='O')
-        self.dim['freq'] = array([], dtype='O')
+        self.axis['chan'] = array([], dtype='O')
+        self.axis['freq'] = array([], dtype='O')
 
 
 class ChanTimeFreq(Data):
     """Specific class for channel-time-frequency representation.
 
-    Dimensions
+    axiss
     ----------
     chan
 
@@ -293,6 +293,6 @@ class ChanTimeFreq(Data):
     """
     def __init__(self):
         super().__init__()
-        self.dim['chan'] = array([], dtype='O')
-        self.dim['time'] = array([], dtype='O')
-        self.dim['freq'] = array([], dtype='O')
+        self.axis['chan'] = array([], dtype='O')
+        self.axis['time'] = array([], dtype='O')
+        self.axis['freq'] = array([], dtype='O')

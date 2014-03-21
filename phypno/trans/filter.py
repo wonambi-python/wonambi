@@ -1,9 +1,9 @@
-from __future__ import division
-from copy import deepcopy
 from logging import getLogger
-from scipy.signal import butter, filtfilt
-
 lg = getLogger('phypno')
+
+from copy import deepcopy
+
+from scipy.signal import butter, filtfilt
 
 
 class Filter:
@@ -76,13 +76,15 @@ class Filter:
         self.b = b
         self.a = a
 
-    def __call__(self, data):
+    def __call__(self, data, axis='time'):
         """Apply the filter to the data.
 
         Parameters
         ----------
-        data : instance of DataRaw
-            the data to filter
+        data : instance of Data
+            the data to filter.
+        axis : str, optional
+            axis to apply the filter on.
 
         Returns
         -------
@@ -91,6 +93,8 @@ class Filter:
 
         """
         fdata = deepcopy(data)
-        for i in range(len(data.data)):
-            fdata.data[i] = filtfilt(self.b, self.a, data.data[i])
+        for i in range(data.number_of('trial')):
+            fdata.data[i] = filtfilt(self.b, self.a,
+                                     data.data[i],
+                                     axis=data.index_of(axis))
         return fdata

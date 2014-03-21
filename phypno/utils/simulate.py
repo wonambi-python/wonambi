@@ -98,18 +98,18 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
 
     data.start_time = start_time
     data.s_freq = s_freq
-    data.dim['chan'] = empty(n_trial, dtype='O')
+    data.axis['chan'] = empty(n_trial, dtype='O')
     for i in range(n_trial):
-        data.dim['chan'][i] = asarray(chan_name, dtype='U')
+        data.axis['chan'][i] = asarray(chan_name, dtype='U')
 
     if datatype in ('ChanTime', 'ChanTimeFreq'):
-        data.dim['time'] = empty(n_trial, dtype='O')
+        data.axis['time'] = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.dim['time'][i] = time
+            data.axis['time'][i] = time
 
     if datatype in ('ChanFreq', 'ChanTimeFreq'):
-        data.dim['freq'] = empty(n_trial, dtype='O')
+        data.axis['freq'] = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.dim['freq'][i] = freq
+            data.axis['freq'][i] = freq
 
     return data

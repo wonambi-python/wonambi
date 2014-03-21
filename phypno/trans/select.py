@@ -1,34 +1,21 @@
-from copy import deepcopy
-from logging import getLogger
-from numpy import in1d, array, where
+"""Module to select periods of interest, based on number of trials or any of
+the axes.
 
+There is some overlap between Select and the Data.__call__(). The main
+difference is that Select takes an instance of Data as input and returns
+another instance of Data as output, whil Data.__call__() returns the actual
+content of the data.
+
+Select should be as flexible as possible. There are quite a few cases, which
+will be added as we need them.
+
+"""
+from logging import getLogger
 lg = getLogger('phypno')
 
+from copy import deepcopy
 
-def _select_trial(output, trial):
-
-    trial_as_index = array(trial)
-    if hasattr(output, 'time'):
-        output.time = output.time[trial_as_index]
-    if hasattr(output, 'freq'):
-        output.freq = output.freq[trial_as_index]
-    output.data = output.data[trial_as_index]
-
-    return output
-
-
-def _select_chan(output, chan):
-    chan = array(chan, dtype='U')
-
-    idx_chan = in1d(output.chan_name, chan)
-
-    lg.info('Selecting {0: 3} channels out of {0: 3}'.format(
-            len(where(idx_chan)[0]), len(output.chan_name)))
-    for i in range(len(output.data)):
-        output.data[i] = output.data[i][idx_chan, ...]
-    output.chan_name = output.chan_name[idx_chan]
-
-    return output
+from numpy import asarray, empty, where
 
 
 def _select_time(output, time):
@@ -67,86 +54,57 @@ def _select_time(output, time):
     return output
 
 
-def _select_freq(output, freq):
-    """Select time window for each trial.
-
-    Parameters
-    ----------
-    output : instance of phypno.DataTime
-
-    freq : tuple of 2 float
-        which frequency interval you want.
-
-    Returns
-    -------
-    instance of phypno.DataFreq
-        where only the frequency band of interest is selected.
-
-    Notes
-    -----
-    Some trials might be empty.
-
-    """
-    for i in range(len(output.data)):
-        begfrq = int(where(output.freq[i] >= freq[0])[0][0])
-        endfrq = int(where(output.freq[i] >= freq[1])[0][0])
-        lg.info('Trial {0: 3}: selecting {0: 3}-{1: 3} Hz, while data ' +
-                'is between {2: 3}-{3: 3} Hz'.format(i,
-                                                     freq[0], freq[1],
-                                                     output.freq[0][0],
-                                                     output.freq[0][-1]))
-        lg.debug('Selecting first sample {0: 5} and last sample '
-                 '{1: 5}'.format(begfrq, endfrq))
-
-        output.freq[i] = output.freq[i][begfrq:endfrq]
-        output.data[i] = output.data[i][:, :, begfrq:endfrq]
-    return output
-
-
 class Select:
-    """Define the selection of channel, time points, frequency.
+    """Define the selection of trials, using ranges or actual values.
 
     Parameters
     ----------
-    trial : list of int or ndarray (dtype='i')
+    trial : list of int or ndarray (dtype='i'), optional
         index of trials of interest
-    chan : list of str
-        which channels you want
-    time : tuple of 2 float
-        which periods you want. If one of the tuple is None, keep it.
-    freq : tuple of 2 float
-        which frequency you want. If one of the tuple is None, keep it.
-
-    Returns
-    -------
-    instance as the input.
+    **axis, optional
 
     Notes
     -----
-    Calling this class returns a class of the same type as the input class.
-    If you want to subselect some data parts, you can call the classes in
-    datatype directly.
+    It only handles axes that have str. The other types of axes do not work
+    yet.
 
     """
-    def __init__(self, trial=None, chan=None, time=None, freq=None):
-        """Design the selection of channels.
+    def __init__(self, trial=None, **axes):
 
-
-        """
         self.trial = trial
-        self.chan = chan
-        self.time = time
-        self.freq = freq
+        self.axis = axes
 
     def __call__(self, data):
+        """Apply selection to the data.
+
+        Parameters
+        ----------
+        data : instance of Data
+            data to select from.
+
+        Returns
+        -------
+        instance, same class as input
+            data where selection has been applied.
+
+        """
         output = deepcopy(data)
 
-        if self.trial is not None:
-            output = _select_trial(output, self.trial)
-        if self.chan is not None:
-            output = _select_chan(output, self.chan)
-        if self.time is not None:
-            output = _select_time(output, self.time)
-        if self.freq is not None:
-            output = _select_freq(output, self.freq)
+        if self.trial is None:
+            self.trial = range(len(output.data))
+
+        for axis in output.axis:
+
+            output.axis[axis] = empty(len(self.trial), dtype='O')
+
+            for cnt, i in enumerate(self.trial):
+                if axis in self.axis.keys():
+                    output.axis[axis][cnt] = asarray(self.axis[axis],
+                                                     dtype='U')
+                else:
+                    output.axis[axis][cnt] = data.axis[axis][i]
+
+        output.data = data(trial=self.trial, **self.axis)
+
         return output
+

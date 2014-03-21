@@ -11,5 +11,5 @@ from .select import Select
 from .frequency import Freq, TimeFreq
 from .merge import Merge
 from .montage import Montage
-from .math import Math, MathOnDim
+from .math import Math
 from .reject import RejectBadChan

@@ -1,15 +1,15 @@
 """Convenient module to convert data based on simple mathematical operations.
 
 """
-from copy import deepcopy
 from logging import getLogger
+lg = getLogger('phypno')
+
+from copy import deepcopy
 # for Math
 from numpy import abs, log, sqrt, square
 from scipy.signal import hilbert
 # for MathOnAxis
 from numpy import mean, std
-
-lg = getLogger('phypno')
 
 
 class Math:
@@ -80,7 +80,7 @@ class Math:
 
         self.operators = operator
 
-    def __call__(self, data):
+    def __call__(self, data, axis='time'):
         """Apply mathematical operators to the data.
 
         Parameters
@@ -89,7 +89,7 @@ class Math:
 
         Returns
         -------
-        instance of DataTime, DataFreq, or DataTimeFreq
+        instance of Data
             data where the trials underwent operator.
 
         """
@@ -111,8 +111,8 @@ class Math:
         return output
 
 
-class MathOnDim(Math):
-    """Similar to Math, but one dimension is removed.
+class MathOnAxis(Math):
+    """THIS SHOULD GO, use only MATH, but specify if you want to remove one dimension.
 
     Temporary implementtaion, we need arbitrary dimensions for this to work
     correctly.
