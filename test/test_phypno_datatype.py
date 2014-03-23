@@ -77,15 +77,18 @@ def test_data_select_one_value_twice():
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = data.axis['time'][0][0]
-    CHAN = 'chan02'
+    CHAN = ('chan02', )
     output = data(time=TIME, chan=CHAN)
     assert len(output) == 10
     assert output[0].ndim == 1
 
-    output = data(trial=1, time=TIME)
-    assert output.ndim == 1
+    data = create_data(n_trial=10, s_freq=500)
 
-
+    TIME = data.axis['time'][0][0]
+    CHAN = 'chan02'
+    output = data(time=TIME, chan=CHAN)
+    assert len(output) == 10
+    assert output[0].ndim == 0
 
 
 def test_data_select_empty_selection():

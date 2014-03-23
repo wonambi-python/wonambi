@@ -161,7 +161,6 @@ class Data:
                         selected_values = (selected_values, )
                         squeeze_axis.append(self.index_of(axis))
 
-                    print(selected_values)
                     idx = _get_indices(values[i],
                                        selected_values,
                                        tolerance=tolerance)
@@ -184,7 +183,10 @@ class Data:
                 ix_output = ix_(*idx_output)
                 ix_data = ix_(*idx_data)
                 output[cnt][ix_output] = self.data[i][ix_data]
-                output[cnt] = squeeze(output[cnt], axis=squeeze_axis)
+
+                if len(squeeze_axis) > 0:
+                    output[cnt] = squeeze(output[cnt],
+                                          axis=tuple(squeeze_axis))
 
         if squeeze_trial:
             output = output[0]
