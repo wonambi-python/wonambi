@@ -1,12 +1,11 @@
-from copy import deepcopy
 from logging import getLogger
+lg = getLogger('phypno')
+
+from copy import deepcopy
 
 from numpy import mean
 
-from . import Math
-
-
-lg = getLogger('phypno')
+from . import Math, Select
 
 
 class Montage:
@@ -28,9 +27,9 @@ class Montage:
                             'the channels to use as reference')
 
         if ref_chan is not None:
-            if not isinstance(ref_chan, list) or not all(isinstance(x, str)
-                                                         for x in ref_chan):
-                raise TypeError('chan should be a list of strings')
+            if not isinstance(ref_chan, (list, tuple)):
+                if not all(isinstance(x, str) for x in ref_chan):
+                    raise TypeError('chan should be a list of strings')
 
         self.ref_chan = ref_chan
         self.ref_to_avg = ref_to_avg
@@ -51,14 +50,15 @@ class Montage:
         """
         mdata = deepcopy(data)
 
-        if self.ref_to_avg:
-            self.ref_chan = data.axis['chan']
+        if self.ref_to_avg or len(self.ref_chan) > 0:
 
+            for i in range(mdata.number_of('trial')):
+                if self.ref_to_avg:
+                    self.ref_chan = data.axis['chan'][0]
 
+                ref_data = mdata(trial=i, chan=self.ref_chan)
+                mdata.data[i] = (mdata(trial=i) -
+                                 mean(ref_data,
+                                      axis=mdata.index_of('chan')))
 
-        if len(self.ref_chan) > 0:
-            ref_data = data(chan=self.ref_chan)
-
-            for i in range(len(mdata.data)):
-                mdata.data[i] = mdata.data[i] - 0
         return mdata

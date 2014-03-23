@@ -21,20 +21,21 @@ def test_montage_01():
 def test_montage_02():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    make_reref = Montage(ref_chan=['LMF5'])
+    make_reref = Montage(ref_chan=['chan00'])
     reref = make_reref(data)
-    dat1 = reref(chan=['LMF5'])
+    dat1 = reref(chan='chan00')
     assert_array_equal(dat1[0], zeros(dat1[0].shape))
 
 
 def test_montage_03():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    make_reref = Montage(ref_chan=['LMF5', 'LMF6'])
+    CHAN = ('chan01', 'chan02')
+    make_reref = Montage(ref_chan=CHAN)
     reref = make_reref(data)
-    dat1 = reref()
+    dat1 = reref(chan=CHAN)
     assert_array_almost_equal(sum(dat1[0], axis=0), zeros((dat1[0].shape[1])),
-                              decimal=4)
+                              decimal=6)
 
 
 def test_montage_04():
@@ -42,7 +43,6 @@ def test_montage_04():
 
     make_reref = Montage(ref_chan=[])
     reref = make_reref(data)
-    dat1, _ = reref()
     assert id(data) != id(reref)  # test deepcopy
     assert_array_equal(data.data[0], reref.data[0])
 
@@ -59,6 +59,6 @@ def test_montage_06():
 
     make_reref = Montage(ref_to_avg=True)
     reref = make_reref(data)
-    dat1, _ = reref()
+    dat1 = reref()
     assert_array_almost_equal(sum(dat1[0], axis=0), zeros((dat1[0].shape[1])),
                               decimal=4)
