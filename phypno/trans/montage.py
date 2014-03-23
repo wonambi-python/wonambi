@@ -1,7 +1,10 @@
-from __future__ import division
 from copy import deepcopy
 from logging import getLogger
+
 from numpy import mean
+
+from . import Math
+
 
 lg = getLogger('phypno')
 
@@ -47,11 +50,15 @@ class Montage:
 
         """
         mdata = deepcopy(data)
+
         if self.ref_to_avg:
-            self.ref_chan = data.chan_name
+            self.ref_chan = data.axis['chan']
+
+
 
         if len(self.ref_chan) > 0:
-            ref_data, _ = data(chan=self.ref_chan)
+            ref_data = data(chan=self.ref_chan)
+
             for i in range(len(mdata.data)):
-                mdata.data[i] = mdata.data[i] - mean(ref_data[i], axis=0)
+                mdata.data[i] = mdata.data[i] - 0
         return mdata

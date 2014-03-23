@@ -1,33 +1,18 @@
-from inspect import stack
-from logging import getLogger
-from numpy.testing import assert_array_equal
-from nose.tools import raises
-from subprocess import check_output
+from . import *
 
-
-lg = getLogger('phypno')
-git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
-                       "awk '{print $2}'",
-                       shell=True).decode('utf-8').strip()
-lg.info('phypno ver: ' + git_ver)
-lg.info('Module: ' + __name__)
-
-data_dir = '/home/gio/tools/phypno/data'
-
-#-----------------------------------------------------------------------------#
 from os.path import join
 
 from numpy import arange, array, empty, isnan, where
 from numpy.random import random
 
 from phypno import Data, Dataset, ChanTime, ChanTimeFreq
-# from phypno.trans import Freq, TimeFreq
 from phypno.utils import create_data
-data = create_data(n_trial=10, s_freq=500)
 
 
 def test_data_select_trial():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
 
     output = data(trial=(1, 2, 3))
     assert len(output) == 3
@@ -35,6 +20,8 @@ def test_data_select_trial():
 
 def test_data_select_trial_compress():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
 
     output = data(trial=(1, ))
     assert len(output) == 1
@@ -50,6 +37,8 @@ def test_data_select_trial_compress():
 def test_data_select_one_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
+    data = create_data(n_trial=10, s_freq=500)
+
     TIME = data.axis['time'][0][:10]
     output = data(time=TIME)
     assert len(output) == 10
@@ -59,6 +48,8 @@ def test_data_select_one_axis():
 def test_data_select_two_axis():
     lg.info('---\nfunction: ' + stack()[0][3])
 
+    data = create_data(n_trial=10, s_freq=500)
+
     TIME = data.axis['time'][0][:10]
     CHAN = ('chan02', 'chan05')
     output = data(chan=CHAN, time=TIME)
@@ -66,8 +57,41 @@ def test_data_select_two_axis():
     assert output[0].shape == (len(CHAN), len(TIME))
 
 
+def test_data_select_one_value():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
+
+    TIME = data.axis['time'][0][0]
+    output = data(time=TIME)
+    assert len(output) == 10
+    assert output[0].ndim == 1
+
+    output = data(trial=1, time=TIME)
+    assert output.ndim == 1
+
+
+def test_data_select_one_value_twice():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
+
+    TIME = data.axis['time'][0][0]
+    CHAN = 'chan02'
+    output = data(time=TIME, chan=CHAN)
+    assert len(output) == 10
+    assert output[0].ndim == 1
+
+    output = data(trial=1, time=TIME)
+    assert output.ndim == 1
+
+
+
+
 def test_data_select_empty_selection():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
 
     TIME = (100, 200)
     CHAN = ('chan02', 'chan05')
@@ -78,6 +102,8 @@ def test_data_select_empty_selection():
 
 def test_data_conserve_order():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
 
     CHAN = ('chan02', )
     output02 = data(chan=CHAN, trial=0)
@@ -98,6 +124,8 @@ def test_data_conserve_order():
 
 def test_data_select_tolerance():
     lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
 
     TIME = arange(0, 1, 0.05)
     output = data(time=TIME)
@@ -165,7 +193,8 @@ def test_chantime_select_equal_to_read():
 
     assert_array_equal(dat1[0], dat2[0])
 
-
+"""
+TODO
 calc_freq = Freq()
 freq = calc_freq(data)
 
@@ -221,11 +250,11 @@ def test_DataTimeFreq_02():
 def test_DataTimeFreq_03():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    """This checks datatype DataTimeFreq
     time_limits = (4, 5)
     freq_limits = (10, 25)
     sel_dat, sel_time, sel_freq = tf(freq=freq_limits, time=time_limits)
     assert sel_dat[0].shape[0] == 3
     assert sel_time[0].shape[0] == 1
     assert sel_dat[0].shape[2] == 15
-    """
+
+"""

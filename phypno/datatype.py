@@ -2,18 +2,12 @@
 
 The main class is Data, all the other classes should depend on it. The other
 classes are given only as convenience, but they should not overwride
-Data.__call__, which needs to be very general
-
-Notes
------
-
-
-XXX this should be views (can be modified), Select should deep-copy
+Data.__call__, which needs to be very general.
 
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import arange, array, empty, ix_, NaN, where
+from numpy import arange, array, empty, ix_, NaN, squeeze, where
 
 
 lg = getLogger('phypno')
@@ -120,8 +114,8 @@ class Data:
         -------
         ndarray
             ndarray containing the data with the same number of axiss as
-            the original data. The length of the axiss is equal to the
-            length of the data, UNLESS you specify a axis with values. In
+            the original data. The length of the axis is equal to the
+            length of the data, UNLESS you specify an axis with values. In
             that case, the length is equal to the values that you want.
 
             If you specify only one trial (as int, not as tuple or list), then
@@ -138,12 +132,12 @@ class Data:
         if trial is None:
             trial = range(self.number_of('trial'))
 
-        squeeze = False
+        squeeze_trial = False
         try:
             iter(trial)
         except TypeError:  # 'int' object is not iterable
             trial = (trial, )
-            squeeze = True
+            squeeze_trial = True
 
         output = empty(len(trial), dtype='O')
 
@@ -152,12 +146,24 @@ class Data:
             output_shape = []
             idx_data = []
             idx_output = []
+            squeeze_axis = []
 
             for axis, values in self.axis.items():
                 if axis in axes.keys():
-                    n_values = len(axes[axis])
+                    selected_values = axes[axis]
+                    try:
+                        if isinstance(selected_values, str):
+                            raise TypeError  # go below
+
+                        n_values = len(selected_values)
+                    except TypeError:  # 'int' object is not iterable
+                        n_values = 1
+                        selected_values = (selected_values, )
+                        squeeze_axis.append(self.index_of(axis))
+
+                    print(selected_values)
                     idx = _get_indices(values[i],
-                                       axes[axis],
+                                       selected_values,
                                        tolerance=tolerance)
                     if len(idx[0]) == 0:
                         lg.warning('No index was selected for ' + axis)
@@ -178,8 +184,9 @@ class Data:
                 ix_output = ix_(*idx_output)
                 ix_data = ix_(*idx_data)
                 output[cnt][ix_output] = self.data[i][ix_data]
+                output[cnt] = squeeze(output[cnt], axis=squeeze_axis)
 
-        if squeeze:
+        if squeeze_trial:
             output = output[0]
 
         return output

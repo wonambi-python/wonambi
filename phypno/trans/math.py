@@ -133,7 +133,7 @@ class Math:
 
         self.operations = operations
 
-    def __call__(self, data, axis='time'):
+    def __call__(self, data):
         """Apply mathematical operators to the data.
 
         Parameters

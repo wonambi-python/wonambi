@@ -1,20 +1,5 @@
-from inspect import stack
-from logging import getLogger
-from nose.tools import raises
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from subprocess import check_output
+from . import *
 
-
-lg = getLogger('phypno')
-git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
-                       "awk '{print $2}'",
-                       shell=True).decode('utf-8').strip()
-lg.info('phypno ver: ' + git_ver)
-lg.info('Module: ' + __name__)
-
-data_dir = '/home/gio/tools/phypno/data'
-
-#-----------------------------------------------------------------------------#
 from numpy import power, mean, std
 
 from phypno.trans import Math

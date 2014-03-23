@@ -10,6 +10,6 @@ from .filter import Filter
 from .select import Select
 from .frequency import Freq, TimeFreq
 from .merge import Merge
-from .montage import Montage
 from .math import Math
+from .montage import Montage
 from .reject import RejectBadChan

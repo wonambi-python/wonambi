@@ -1,31 +1,14 @@
-from inspect import stack
-from logging import getLogger
-from nose.tools import raises
-from subprocess import check_output
+from . import *
 
-
-lg = getLogger('phypno')
-git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
-                       "awk '{print $2}'",
-                       shell=True).decode('utf-8').strip()
-lg.info('phypno ver: ' + git_ver)
-lg.info('Module: ' + __name__)
-
-data_dir = '/home/gio/tools/phypno/data'
-
-#-----------------------------------------------------------------------------#
 from os.path import join
 
 from numpy import sum, zeros
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from phypno import Dataset
+from phypno.utils import create_data
 from phypno.trans import Montage
 
-
-edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
-d = Dataset(edf_file)
-data = d.read_data(chan=['LMF5', 'LMF6'], begtime=0, endtime=100)
+data = create_data(n_trial=10)
 
 
 @raises(TypeError)
@@ -40,7 +23,7 @@ def test_montage_02():
 
     make_reref = Montage(ref_chan=['LMF5'])
     reref = make_reref(data)
-    dat1, _ = reref(chan=['LMF5'])
+    dat1 = reref(chan=['LMF5'])
     assert_array_equal(dat1[0], zeros(dat1[0].shape))
 
 
@@ -49,7 +32,7 @@ def test_montage_03():
 
     make_reref = Montage(ref_chan=['LMF5', 'LMF6'])
     reref = make_reref(data)
-    dat1, _ = reref()
+    dat1 = reref()
     assert_array_almost_equal(sum(dat1[0], axis=0), zeros((dat1[0].shape[1])),
                               decimal=4)
 
