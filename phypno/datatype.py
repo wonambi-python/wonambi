@@ -7,7 +7,7 @@ Data.__call__, which needs to be very general.
 """
 from collections import OrderedDict
 from logging import getLogger
-from numpy import arange, array, empty, ix_, NaN, squeeze, where
+from numpy import arange, array, empty, ix_, NaN, ndarray, squeeze, where
 
 
 lg = getLogger('phypno')
@@ -104,7 +104,7 @@ class Data:
             matrix).
         **axes
             Arbitrary axiss to select from. You specify the axis and
-            the values as array or list or tuple of the values that you want.
+            the values as list or tuple of the values that you want.
         tolerance : float
             if one of the axiss is a number, it specifies the tolerance to
             consider one value as chosen (take into account floating-precision
@@ -151,12 +151,11 @@ class Data:
             for axis, values in self.axis.items():
                 if axis in axes.keys():
                     selected_values = axes[axis]
-                    try:
-                        if isinstance(selected_values, str):
-                            raise TypeError  # go below
-
+                    if not isinstance(selected_values, str):
                         n_values = len(selected_values)
-                    except TypeError:  # 'int' object is not iterable
+                    elif isinstance(selected_values, ndarray):
+                        n_values = selected_values.shape[0]
+                    else:
                         n_values = 1
                         selected_values = (selected_values, )
                         squeeze_axis.append(self.index_of(axis))
