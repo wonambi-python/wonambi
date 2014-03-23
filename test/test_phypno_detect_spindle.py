@@ -22,7 +22,7 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
                          endtime=N2_sleep[0]['end_time'])
 
 filter_sp = Filter(low_cut=11, high_cut=16, s_freq=data.s_freq)
-apply_abs_hilb = Math(operator_name=('hilbert', 'abs'))
+apply_abs_hilb = Math(operator_name=('hilbert', 'abs'), axis='time')
 
 spindle_envelope = apply_abs_hilb(filter_sp(data))
 

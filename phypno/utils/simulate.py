@@ -88,7 +88,7 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         data = ChanFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.data[i] = random((len(chan_name), 1, len(freq))) * mult + add
+            data.data[i] = random((len(chan_name), len(freq))) * mult + add
     if datatype == 'ChanTimeFreq':
         data = ChanTimeFreq()
         data.data = empty(n_trial, dtype='O')
