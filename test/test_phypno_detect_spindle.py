@@ -1,7 +1,5 @@
 from . import *
 
-from os.path import join
-
 from phypno import Dataset
 from phypno.attr import Scores
 from phypno.detect import DetectSpindle
@@ -31,8 +29,8 @@ def test_spindle_absolute_thres():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     det_sp = DetectSpindle(threshold_type='absolute',
-                           detection_threshold=0.01,
-                           selection_threshold=0.005)
+                           detection_threshold=0.5,
+                           selection_threshold=0.2)
     spindles = det_sp(spindle_envelope)
 
     assert len(spindles.spindle) == 116

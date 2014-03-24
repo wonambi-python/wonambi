@@ -1,34 +1,16 @@
 """Module to plot all the elements in 3d space.
 
 """
+from logging import getLogger
+lg = getLogger('phypno')
 
 from numpy import hstack, asarray, dot, zeros
 from numpy.linalg import norm
-import visvis as vv
+from visvis import Mesh, gca, figure, solidSphere, CM_JET
 
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255.)
 SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255.)
-
-
-def _make_fig(fig=None):
-    """Create a figure, if it doesn't exist already.
-
-    Parameters
-    ----------
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-
-    Returns
-    -------
-    instance of visvis.Figure
-
-    """
-    fig = vv.figure(fig)
-    ax = vv.gca()
-    ax.axis.visible = False
-
-    return fig
 
 
 def plot_surf(surf, fig=None):
@@ -48,8 +30,8 @@ def plot_surf(surf, fig=None):
     """
     fig = _make_fig(fig)
 
-    ax = vv.gca()
-    m = vv.Mesh(ax, vertices=surf.vert, faces=surf.tri)
+    ax = gca()
+    m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
     m.faceColor = hstack((asarray(SKIN_COLOR), 0.5))
 
     return fig
@@ -86,10 +68,10 @@ def plot_values_on_surf(surf, values, trans, fig=None):
     """
     fig = _make_fig(fig)
 
-    ax = vv.gca()
-    m = vv.Mesh(ax, vertices=surf.vert, faces=surf.tri)
+    ax = gca()
+    m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
     m.SetValues(dot(trans, values), setClim=True)
-    m.colormap = vv.CM_JET
+    m.colormap = CM_JET
 
     return fig, m
 
@@ -158,8 +140,27 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
     fig = _make_fig(fig)
 
     for one_chan in chan.chan:
-        s = vv.solidSphere(list(one_chan.xyz), scaling=1.5)
+        s = solidSphere(list(one_chan.xyz), scaling=1.5)
         s.faceColor = color
 
     return fig
 
+
+def _make_fig(fig=None):
+    """Create a figure, if it doesn't exist already.
+
+    Parameters
+    ----------
+    fig : instance of visvis.Figure, optional
+        figure being plotted.
+
+    Returns
+    -------
+    instance of visvis.Figure
+
+    """
+    fig = figure(fig)
+    ax = gca()
+    ax.axis.visible = False
+
+    return fig

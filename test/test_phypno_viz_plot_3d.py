@@ -1,6 +1,5 @@
 from . import *
 
-from os.path import join
 from numpy import ones
 
 from phypno.attr import Freesurfer, Channels
