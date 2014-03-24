@@ -4,13 +4,16 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
+from numpy import max, min
 from visvis import figure, subplot, gca, plot
+
 
 FIGURE_SIZE = (1280, 720)
 BOTTOM_ROW = 144
 
 
-def plot_xy(data, axis_x='time', axis_subplot='chan'):
+def plot_xy(data, axis_x='time', axis_subplot='chan',
+            y_limits=None):
     """Plot recordings, so that you can scroll through it.
 
     Parameters
@@ -21,7 +24,12 @@ def plot_xy(data, axis_x='time', axis_subplot='chan'):
         value to plot on x-axis, such as 'time' or 'freq'
     axis_subplot : str, optional
         axis to use for subplot
+    y_limits : tuple, optional
+        limits on the y-axis (if unspecified, it's the max across subplots)
 
+    Returns
+    -------
+    instance of visvis.Figure
 
     """
     fig = _make_fig()  # always make new figure
@@ -32,17 +40,30 @@ def plot_xy(data, axis_x='time', axis_subplot='chan'):
     x = data.axis[axis_x][trial]
     subplot_values = data.axis[axis_subplot][trial]
 
+    y_max = 0
+    y_min = 0
+
     for cnt, one_value in enumerate(subplot_values):
         selected_axis = {axis_subplot: one_value}
-        d = data(trial=trial, **selected_axis)
-        if d.shape != x.shape:
-            raise ValueError('The shape of the data (' + str(d.shape) + ') is '
-                             'different from the shape of x (' + str(x.shape)
-                             + ')')
+        dat = data(trial=trial, **selected_axis)
+        y_max = max((y_max, max(dat)))
+        y_min = min((y_min, min(dat)))
+
+        if dat.shape != x.shape:
+            raise ValueError('The shape of the data (' + str(dat.shape) + ') '
+                             'is different from the shape of x (' +
+                             str(x.shape) + ')')
         subplot(len(subplot_values), 1, cnt + 1)
-        plot(x, d)
+        plot(x, dat)
 
+    if y_limits is None:
+        y_minmax = (y_min, y_max)
+    else:
+        y_minmax = y_limits
 
+    for cnt in range(len(subplot_values)):
+        ax = subplot(len(subplot_values), 1, cnt + 1)
+        ax.SetLimits(rangeY=y_minmax)
 
     return fig
 
