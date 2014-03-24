@@ -179,7 +179,13 @@ class MainWindow(QMainWindow):
         self.action = actions  # actions was already taken
 
     def action_open_rec(self, recent=None):
-        """Action: open a new dataset."""
+        """Action: open a new dataset.
+
+        Notes
+        -----
+        I do not know how to run tests for QFileDialog.
+
+        """
         if recent is not None:
             filename = recent
         else:
@@ -213,7 +219,13 @@ class MainWindow(QMainWindow):
             lg.info('No notes/bookmarks present in the header of the file')
 
     def action_open_stages(self):
-        """Action: open a new file for sleep staging."""
+        """Action: open a new file for sleep staging.
+
+        Notes
+        -----
+        I do not know how to run tests for QFileDialog.
+
+        """
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.AnyFile)
         try:
