@@ -39,7 +39,7 @@ def test_select_trial():
     data1 = s(data)
     assert_array_equal(data1.data[0], data1.data[1])
     assert len(data1.axis['chan']) == 2
-    assert len(data1.axis['time']) == 2
+    assert data1.number_of('trial') == 2
 
 
 def test_select_string_selection():
@@ -86,4 +86,8 @@ def test_select_interval():
 
     data = create_data(n_trial=10)
     TIME = (0.2, 0.5)
-
+    s = Select(time=TIME)
+    data1 = s(data)
+    assert data1.axis['time'][0].shape[0] == 153
+    assert data1.data[0].shape[1] == 153
+    assert data1.data[8].shape[1] == 153

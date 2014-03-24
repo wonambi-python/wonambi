@@ -16,43 +16,7 @@ lg = getLogger('phypno')
 from collections import Iterable
 from copy import deepcopy
 
-from numpy import asarray, empty, where
-
-
-def _select_time(output, time):
-    """Select time window for each trial.
-
-    Parameters
-    ----------
-    output : instance of phypno.DataTime
-
-    time : tuple of 2 float
-        which periods you want.
-
-    Returns
-    -------
-    instance of phypno.DataTime
-        where only the time window of interest is selected.
-
-    Notes
-    -----
-    Some trials might be empty.
-
-    """
-    for i in range(len(output.data)):
-        begsam = int(where(output.time[i] >= time[0])[0][0])
-        endsam = int(where(output.time[i] >= time[1])[0][0])
-        lg.info('Trial {0: 3}: selecting {1: 3}-{2: 3} time, while data '
-                ' is between {3: 3}-{4: 3}'.format(i,
-                                                   time[0], time[1],
-                                                   output.time[0][0],
-                                                   output.time[0][-1]))
-        lg.debug('Selecting first sample {0: 5} and last sample '
-                 '{1: 5}'.format(begsam, endsam))
-
-        output.time[i] = output.time[i][begsam:endsam]
-        output.data[i] = output.data[i][:, begsam:endsam, ...]
-    return output
+from numpy import asarray, empty
 
 
 class Select:
@@ -62,7 +26,7 @@ class Select:
     ----------
     trial : list of int or ndarray (dtype='i'), optional
         index of trials of interest
-    **axis, optional
+    **axes_to_select, optional
         Values need to be tuple, list or ndarray. It does not accept single
         values.
 
@@ -71,17 +35,18 @@ class Select:
     It only handles axes that have str.
 
     """
-    def __init__(self, trial=None, **axes):
+    def __init__(self, trial=None, **axes_to_select):
 
         if trial is not None and not isinstance(trial, Iterable):
             raise TypeError('Trial needs to be iterable.')
 
-        for axis, value in axes.items():
-            if not isinstance(value, Iterable) or isinstance(value, str):
-                raise TypeError(axis + ' needs to be iterable.')
+        for axis_to_select, values_to_select in axes_to_select.items():
+            if (not isinstance(values_to_select, Iterable) or
+                isinstance(values_to_select, str)):
+                raise TypeError(axis_to_select + ' needs to be iterable.')
 
         self.trial = trial
-        self.axis = axes
+        self.axis_to_select = axes_to_select
 
     def __call__(self, data):
         """Apply selection to the data.
@@ -97,40 +62,54 @@ class Select:
             data where selection has been applied.
 
         """
-        output = deepcopy(data)
-
         if self.trial is None:
-            self.trial = range(output.number_of('trial'))
+            self.trial = range(data.number_of('trial'))
 
-        trials_to_keep = []  # TODO: how to do this?
+        # create empty axis
+        output = deepcopy(data)
+        for one_axis in output.axis:
+            output.axis[one_axis] = empty(len(self.trial), dtype='O')
+        output.data = empty(len(self.trial), dtype='O')
 
-        for axis, values in output.axis:
+        to_select = {}
+        for cnt, i in enumerate(self.trial):
+            lg.debug('Selection on trial {0: 6}'.format(i))
+            for one_axis in output.axis:
+                values = data.axis[one_axis][i]
 
-            output.axis[axis] = empty(len(self.trial), dtype='O')
+                if one_axis in self.axis_to_select.keys():
+                    values_to_select = self.axis_to_select[one_axis]
 
-            cnt = 0
-            for i in self.trial:
-                if axis in self.axis.items():
-                    selected_value = self.axis[axis]
+                    if len(values_to_select) == 0:
+                        selected_values = ()
 
-                    if isinstance(selected_value[0], str):
-                        output.axis[axis][cnt] = asarray(selected_value,
-                                                         dtype='U')
+                    elif isinstance(values_to_select[0], str):
+                        selected_values = asarray(values_to_select,
+                                                             dtype='U')
+
                     else:
-                        bool_values = ((selected_value[0] < values[i]) &
-                                         (values[i] < selected_value[1]))
-                        if not any(bool_values):
-                            continue
-                        chosen_values = values[bool_values]
+                        bool_values = ((values_to_select[0] <= values) &
+                                       (values < values_to_select[1]))
+                        selected_values = values[bool_values]
 
-                        output.axis[axis][cnt] = asarray(chosen_values,
-                                                         dtype=values.dtype)
+                    lg.debug('In axis {0}, selecting {1: 6} '
+                             'values'.format(one_axis,
+                                             len(selected_values)))
 
                 else:
-                    output.axis[axis][cnt] = data.axis[axis][i]
+                    lg.debug('In axis ' + one_axis + ', selecting all the '
+                             'values')
+                    selected_values = data.axis[one_axis][i]
 
-            cnt += 1 # best to loop over trials, and then axis
-        output.data = data(trial=self.trial, **self.axis)
+                output.axis[one_axis][cnt] = selected_values
+                to_select[one_axis] = selected_values
+
+            output.data[cnt] = data(trial=i, **to_select)
 
         return output
+
+
+
+
+
 
