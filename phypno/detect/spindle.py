@@ -1,11 +1,14 @@
+"""Module to detect spindles.
+
+"""
 from logging import getLogger
+lg = getLogger('phypno')
 
 from numpy import (asarray, diff, empty, hstack, invert, squeeze, vstack,
                    where, zeros)
 
 from ..graphoelement import Spindles
 
-lg = getLogger('phypno')
 
 
 class DetectSpindle:
@@ -68,7 +71,7 @@ class DetectSpindle:
 
         all_spindles = []
 
-        for chan in detection_data.axis('chan')[0]:
+        for chan in detection_data.axis['chan'][0]:
             lg.info('Reading chan #' + chan)
 
             # 1. detect spindles, based on detection_data
@@ -98,7 +101,7 @@ class DetectSpindle:
             for one_detected in detected_spindles:
                 one_spindle = {'start_time': one_detected[0],
                                'end_time': one_detected[1],
-                               'chan': detection_data.chan_name[i_chan],
+                               'chan': detection_data.chan_name[chan],
                                }
 
                 all_spindles.append(one_spindle)

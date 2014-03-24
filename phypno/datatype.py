@@ -5,12 +5,12 @@ classes are given only as convenience, but they should not overwride
 Data.__call__, which needs to be very general.
 
 """
-from collections import OrderedDict
 from logging import getLogger
-from numpy import arange, array, empty, ix_, NaN, ndarray, squeeze, where
-
-
 lg = getLogger('phypno')
+
+from collections import OrderedDict, Iterable
+
+from numpy import arange, array, empty, ix_, NaN, ndarray, squeeze, where
 
 
 def _get_indices(values, selected, tolerance):
@@ -151,10 +151,9 @@ class Data:
             for axis, values in self.axis.items():
                 if axis in axes.keys():
                     selected_values = axes[axis]
-                    if not isinstance(selected_values, str):
+                    if (isinstance(selected_values, Iterable) and
+                        not isinstance(selected_values, str)):
                         n_values = len(selected_values)
-                    elif isinstance(selected_values, ndarray):
-                        n_values = selected_values.shape[0]
                     else:
                         n_values = 1
                         selected_values = (selected_values, )
