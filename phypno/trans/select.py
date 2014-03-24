@@ -27,12 +27,10 @@ class Select:
     trial : list of int or ndarray (dtype='i'), optional
         index of trials of interest
     **axes_to_select, optional
-        Values need to be tuple, list or ndarray. It does not accept single
-        values.
-
-    Notes
-    -----
-    It only handles axes that have str.
+        Values need to be tuple or list. If the values in one axis are string,
+        then you need to specify all the strings that you want. If the values
+        are numeric, then you should specify the range (you cannot specify
+        single values, nor multiple values).
 
     """
     def __init__(self, trial=None, **axes_to_select):
@@ -107,9 +105,3 @@ class Select:
             output.data[cnt] = data(trial=i, **to_select)
 
         return output
-
-
-
-
-
-

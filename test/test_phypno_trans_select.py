@@ -91,3 +91,15 @@ def test_select_interval():
     assert data1.axis['time'][0].shape[0] == 153
     assert data1.data[0].shape[1] == 153
     assert data1.data[8].shape[1] == 153
+
+
+def test_select_interval_not_in_data():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (10.2, 10.5)
+    s = Select(time=TIME)
+    data1 = s(data)
+    assert len(data1.axis['time'][0]) == 0
+    assert data1.data[0].shape[1] == 0
+    assert data1.data[8].shape[1] == 0
