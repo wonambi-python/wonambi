@@ -108,8 +108,8 @@ class Traces(QGraphicsView):
                 data1 = lpfilt(data1)
 
             for chan in one_grp['chan_to_plot']:
-                dat, _ = data1(chan=[chan])
-                dat = squeeze(dat[0], axis=0) * one_grp['scale']
+                dat = data1(chan=chan, trial=0)
+                dat = dat * one_grp['scale']
                 chan_grp_name = chan + ' (' + one_grp['name'] + ')'
                 self.data[chan_grp_name] = dat
 

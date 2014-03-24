@@ -11,6 +11,27 @@ d = Dataset(edf_file)
 data = d.read_data(['LOF4', 'LOF5'], begtime=0, endtime=5)
 
 
+@raises(TypeError)
+def test_select_one_value_trial():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    Select(trial=0)
+
+
+@raises(TypeError)
+def test_select_one_value_str():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    Select(chan='chan01')
+
+
+@raises(TypeError)
+def test_select_one_value_float():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    Select(time=1, chan=('chan01', ))
+
+
 def test_select_trial():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -58,3 +79,11 @@ def test_select_trials_and_string():
     data1 = s(data)
     assert len(data1.axis['chan']) == 2
     assert len(data1.axis['chan'][0]) == 2
+
+
+def test_select_interval():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (0.2, 0.5)
+

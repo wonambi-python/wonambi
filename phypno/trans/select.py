@@ -13,6 +13,7 @@ will be added as we need them.
 from logging import getLogger
 lg = getLogger('phypno')
 
+from collections import Iterable
 from copy import deepcopy
 
 from numpy import asarray, empty, where
@@ -62,14 +63,22 @@ class Select:
     trial : list of int or ndarray (dtype='i'), optional
         index of trials of interest
     **axis, optional
+        Values need to be tuple, list or ndarray. It does not accept single
+        values.
 
     Notes
     -----
-    It only handles axes that have str. The other types of axes do not work
-    yet.
+    It only handles axes that have str.
 
     """
     def __init__(self, trial=None, **axes):
+
+        if trial is not None and not isinstance(trial, Iterable):
+            raise TypeError('Trial needs to be iterable.')
+
+        for axis, value in axes.items():
+            if not isinstance(value, Iterable) or isinstance(value, str):
+                raise TypeError(axis + ' needs to be iterable.')
 
         self.trial = trial
         self.axis = axes
@@ -91,19 +100,36 @@ class Select:
         output = deepcopy(data)
 
         if self.trial is None:
-            self.trial = range(len(output.data))
+            self.trial = range(output.number_of('trial'))
 
-        for axis in output.axis:
+        trials_to_keep = []  # TODO: how to do this?
+
+        for axis, values in output.axis:
 
             output.axis[axis] = empty(len(self.trial), dtype='O')
 
-            for cnt, i in enumerate(self.trial):
-                if axis in self.axis.keys():
-                    output.axis[axis][cnt] = asarray(self.axis[axis],
-                                                     dtype='U')
+            cnt = 0
+            for i in self.trial:
+                if axis in self.axis.items():
+                    selected_value = self.axis[axis]
+
+                    if isinstance(selected_value[0], str):
+                        output.axis[axis][cnt] = asarray(selected_value,
+                                                         dtype='U')
+                    else:
+                        bool_values = ((selected_value[0] < values[i]) &
+                                         (values[i] < selected_value[1]))
+                        if not any(bool_values):
+                            continue
+                        chosen_values = values[bool_values]
+
+                        output.axis[axis][cnt] = asarray(chosen_values,
+                                                         dtype=values.dtype)
+
                 else:
                     output.axis[axis][cnt] = data.axis[axis][i]
 
+            cnt += 1 # best to loop over trials, and then axis
         output.data = data(trial=self.trial, **self.axis)
 
         return output
