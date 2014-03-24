@@ -5,8 +5,6 @@ from copy import deepcopy
 
 from numpy import mean
 
-from . import Math, Select
-
 
 class Montage:
     """Apply linear transformation to the channels.
@@ -27,8 +25,8 @@ class Montage:
                             'the channels to use as reference')
 
         if ref_chan is not None:
-            if not isinstance(ref_chan, (list, tuple)):
-                if not all(isinstance(x, str) for x in ref_chan):
+            if (not isinstance(ref_chan, (list, tuple)) or
+                not all(isinstance(x, str) for x in ref_chan)):
                     raise TypeError('chan should be a list of strings')
 
         self.ref_chan = ref_chan
