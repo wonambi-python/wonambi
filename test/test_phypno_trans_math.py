@@ -59,7 +59,8 @@ def test_math_operator_name_tuple():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     apply_hilb = Math(operator_name=('hilbert', 'abs'), axis='time')
-    apply_hilb(data)
+    data1 = apply_hilb(data)
+    assert data1.data[0].shape == data.data[0].shape
 
 
 def test_math_operator_name_tuple_axis():

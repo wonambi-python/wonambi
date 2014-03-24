@@ -106,7 +106,7 @@ class Math:
         operations = []
         for one_operator in operator:
             on_axis = False
-            keepdims = False
+            keepdims = True
 
             try:
                 args = getfullargspec(one_operator).args
@@ -123,7 +123,7 @@ class Math:
                                         '(which applies to an axis)')
 
                 if 'keepdims' in args:
-                    keepdims = True
+                    keepdims = False
 
             operations.append({'name': one_operator.__name__,
                                'func': one_operator,
@@ -160,7 +160,7 @@ class Math:
             lg.info('running operator: ' + op['name'])
             func = op['func']
 
-            for i in range(len(output.data)):
+            for i in range(output.number_of('trial')):
                 if op['on_axis']:
                     try:
                         output.data[i] = func(output(trial=i),
@@ -173,7 +173,7 @@ class Math:
                 else:
                     output.data[i] = func(output(trial=i))
 
-            if op['on_axis']:
+            if op['on_axis'] and not op['keepdims']:
                 del output.axis[self.axis]
 
         return output

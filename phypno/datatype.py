@@ -10,7 +10,7 @@ lg = getLogger('phypno')
 
 from collections import OrderedDict, Iterable
 
-from numpy import arange, array, empty, ix_, NaN, ndarray, squeeze, where
+from numpy import arange, array, empty, ix_, NaN, squeeze, where
 
 
 def _get_indices(values, selected, tolerance):

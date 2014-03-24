@@ -1,11 +1,12 @@
 from inspect import stack
-from logging import getLogger
+from logging import getLogger, DEBUG
 from nose.tools import raises
 from os.path import abspath, join
 from numpy.testing import assert_array_equal, assert_almost_equal
 from subprocess import check_output
 
 lg = getLogger('phypno')
+lg.setLevel(DEBUG)
 git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
                        "awk '{print $2}'",
                        shell=True).decode('utf-8').strip()

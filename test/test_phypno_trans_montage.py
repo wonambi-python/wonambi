@@ -1,7 +1,5 @@
 from . import *
 
-from os.path import join
-
 from numpy import sum, zeros
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 

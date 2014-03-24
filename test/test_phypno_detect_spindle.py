@@ -31,10 +31,10 @@ def test_spindle_absolute_thres():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     det_sp = DetectSpindle(threshold_type='absolute',
-                           detection_threshold=0.05,
-                           selection_threshold=0.02)
-
+                           detection_threshold=0.01,
+                           selection_threshold=0.005)
     spindles = det_sp(spindle_envelope)
+
     assert len(spindles.spindle) == 116
 
 

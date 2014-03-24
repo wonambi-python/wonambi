@@ -82,13 +82,15 @@ class DetectSpindle:
                 lg.info('No spindles were detected')
                 continue
 
+            lg.debug('Potential spindles: ' + str(detected.shape))
+
             # 2. select spindles, based on selection_data
             above_sel = (selection_data(trial=0, chan=chan) >=
                          self.selection_threshold)
             detected = _select_complete_period(detected, above_sel)
 
             # convert to real time
-            detected_in_s = detection_data.time[0][detected]
+            detected_in_s = detection_data.axis['time'][0][detected]
 
             # 3. apply additional criteria
             duration = squeeze(diff(detected_in_s), axis=1)
@@ -98,10 +100,11 @@ class DetectSpindle:
 
             lg.info('Detected ' + str(detected_spindles.shape[0]) +
                     ' spindles')
+
             for one_detected in detected_spindles:
                 one_spindle = {'start_time': one_detected[0],
                                'end_time': one_detected[1],
-                               'chan': detection_data.chan_name[chan],
+                               'chan': chan,
                                }
 
                 all_spindles.append(one_spindle)
