@@ -191,6 +191,12 @@ class Data:
 
         return output
 
+    @property
+    def list_of_axes(self):
+        """Return the name of all the axes in the data."""
+        return list(self.axis.keys())
+
+
     def index_of(self, axis):
         """Return the index of a axis.
 

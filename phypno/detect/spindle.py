@@ -4,7 +4,9 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import (asarray, diff, empty, hstack, invert, squeeze, vstack,
+from collections import Iterable
+
+from numpy import (asarray, diff, empty, hstack, invert, ones, squeeze, vstack,
                    where, zeros)
 
 from ..graphoelement import Spindles
@@ -18,9 +20,9 @@ class DetectSpindle:
     ----------
     threshold_type : str
         typeof threshold ('absolute', 'relative')
-    detection_threshold : float
+    detection_threshold : float or ndarray (dtype='f')
         the value used for the threhsold
-    selection_threshold : float
+    selection_threshold : float or ndarray (dtype='f')
         the value used to calculate the start and end of the spindle
     minimal_duration : float
         minimal duration in s to be considered a spindle
@@ -34,6 +36,12 @@ class DetectSpindle:
 
     Notes
     -----
+    If you pass 'threshold_type' as 'absolute', you should pass only one value
+    for all the channels. If you use 'relative', you should pass one value
+    per channel. Note that the values are always in absolute units, if you want
+    to use median + standard deviation, you need to do it outside of this
+    function.
+
     Merging of the spindles will occur somewhere else.
 
     """
@@ -41,14 +49,33 @@ class DetectSpindle:
                  selection_threshold=None,
                  minimal_duration=0.5, maximal_duration=2):
 
+        if threshold_type == 'absolute':
+            if isinstance(detection_threshold, Iterable):
+                raise TypeError('If threshold is absolute, detection_threshold'
+                                ' should be a single value')
+            if (selection_threshold is not None and
+                isinstance(selection_threshold, Iterable)):
+                raise TypeError('If threshold is absolute, selection_threshold'
+                                ' should be a single value')
+
+        if threshold_type == 'relative':
+            if not isinstance(detection_threshold, Iterable):
+                raise TypeError('If threshold is relative, detection_threshold'
+                                ' should be a vector')
+            if (selection_threshold is not None and
+                not isinstance(selection_threshold, Iterable)):
+                raise TypeError('If threshold is relative, selection_threshold'
+                                ' should be a vector')
+
         self.threshold_type = threshold_type
         self.detection_threshold = detection_threshold
         self.selection_threshold = selection_threshold
         self.minimal_duration = minimal_duration
         self.maximal_duration = maximal_duration
 
+
     def __call__(self, detection_data, selection_data=None):
-        """
+        """Detect spindles on the data.
 
         Parameters
         ----------
@@ -67,14 +94,19 @@ class DetectSpindle:
             selection_data = detection_data
 
         if self.threshold_type == 'absolute':
-            detection_value = self.detection_threshold
+            n_chan = detection_data.number_of('chan')
+            self.detection_threshold = (ones(n_chan) *
+                                        self.detection_threshold)
+            self.selection_threshold = (ones(n_chan) *
+                                        self.selection_threshold)
 
         all_spindles = []
 
-        for chan in detection_data.axis['chan'][0]:
+        for i, chan in enumerate(detection_data.axis['chan'][0]):
             lg.info('Reading chan #' + chan)
 
             # 1. detect spindles, based on detection_data
+            detection_value = self.detection_threshold[i]
             above_det = detection_data(trial=0, chan=chan) >= detection_value
             detected = _detect_start_end(above_det)
 
@@ -85,8 +117,9 @@ class DetectSpindle:
             lg.debug('Potential spindles: ' + str(detected.shape))
 
             # 2. select spindles, based on selection_data
+            selection_value = self.selection_threshold[i]
             above_sel = (selection_data(trial=0, chan=chan) >=
-                         self.selection_threshold)
+                         selection_value)
             detected = _select_complete_period(detected, above_sel)
 
             # convert to real time
