@@ -47,6 +47,11 @@ class Traces(QGraphicsView):
     -----
     It doesn't handle NaN at the beginning, but actually well at the end.
 
+    TODO: values are UPSIDE-DOWN!!!!!!!!
+
+    TODO: maybe it's best to move around the whole data, it's cleaner for
+        spindle detection and spectrum.
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -211,8 +216,6 @@ class Traces(QGraphicsView):
 
     def add_traces(self):
         """Add traces based on self.data."""
-        self.y_distance = self.y_distance
-
         row = 0
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:

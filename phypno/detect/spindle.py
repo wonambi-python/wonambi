@@ -6,11 +6,10 @@ lg = getLogger('phypno')
 
 from collections import Iterable
 
-from numpy import (asarray, diff, empty, hstack, invert, ones, squeeze, vstack,
+from numpy import (asarray, diff, hstack, invert, ones, squeeze, vstack,
                    where, zeros)
 
 from ..graphoelement import Spindles
-
 
 
 class DetectSpindle:
@@ -105,36 +104,20 @@ class DetectSpindle:
         for i, chan in enumerate(detection_data.axis['chan'][0]):
             lg.info('Reading chan #' + chan)
 
-            # 1. detect spindles, based on detection_data
-            detection_value = self.detection_threshold[i]
-            above_det = detection_data(trial=0, chan=chan) >= detection_value
-            detected = _detect_start_end(above_det)
+            detected = _detect_spindles(detection_data(trial=0, chan=chan),
+                                        self.detection_threshold[i],
+                                        selection_data(trial=0, chan=chan),
+                                        self.selection_threshold[i],
+                                        detection_data.axis['time'][0])
 
             if detected is None:
                 lg.info('No spindles were detected')
                 continue
 
-            lg.debug('Potential spindles: ' + str(detected.shape[1]))
-
-            # 2. select spindles, based on selection_data
-            selection_value = self.selection_threshold[i]
-            above_sel = (selection_data(trial=0, chan=chan) >=
-                         selection_value)
-            detected = _select_complete_period(detected, above_sel)
-
-            # convert to real time
-            detected_in_s = detection_data.axis['time'][0][detected]
-
-            # 3. apply additional criteria
-            duration = squeeze(diff(detected_in_s), axis=1)
-            good_duration = ((duration >= self.minimal_duration) &
-                             (duration <= self.maximal_duration))
-            detected_spindles = detected_in_s[good_duration, :]
-
-            lg.info('Detected ' + str(detected_spindles.shape[0]) +
+            lg.info('Detected ' + str(detected.shape[0]) +
                     ' spindles')
 
-            for one_detected in detected_spindles:
+            for one_detected in detected:
                 one_spindle = {'start_time': one_detected[0],
                                'end_time': one_detected[1],
                                'chan': chan,
@@ -146,6 +129,59 @@ class DetectSpindle:
         spindle.spindle = all_spindles
 
         return spindle
+
+
+def _detect_spindles(detection_data, detection_value,
+                     selection_data, selection_value,
+                     time_axis, minimal_duration, maximal_duration):
+        """Function doing the actual detection.
+
+        Parameters
+        ----------
+        detection_data : ndarray
+            1d matrix with data for one channel used for selection
+        detection_value : float
+            threshold for detection for this channel
+        selection_data : ndarray
+            1d matrix with data for one channel used for selection
+        selection_value : float
+            threshold for detection for this channel
+        time_axis: ndarray
+            time points for each data point
+        minimal_duration : float
+            minimal duration of spindle in s
+        maximal_duration : float
+            maximal duration of spindle in s
+
+        Returns
+        -------
+        ndarray
+            2d array, first column starting time of each spindle and second
+            column the end time.
+
+        """
+        # 1. detect spindles, based on detection_data
+        above_det = detection_data >= detection_value
+        detected = _detect_start_end(above_det)
+
+        if detected is None:
+            return None
+
+        lg.debug('Potential spindles: ' + str(detected.shape[1]))
+
+        # 2. select spindles, based on selection_data
+        above_sel = selection_data >= selection_value
+        detected = _select_complete_period(detected, above_sel)
+
+        # convert to real time
+        detected_in_s = time_axis[detected]
+
+        # 3. apply additional criteria
+        duration = squeeze(diff(detected_in_s), axis=1)
+        good_duration = ((duration >= minimal_duration) &
+                         (duration <= maximal_duration))
+
+        return detected_in_s[good_duration, :]
 
 
 def _detect_start_end(true_values):

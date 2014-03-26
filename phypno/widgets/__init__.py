@@ -28,7 +28,7 @@ try to make at least one info or debug per function
 
 A WIDGET SHOULD CONTAIN:
 
-def MyWidget(QClass):
+class MyWidget(QClass):
     \"""Description
 
     Attributes
@@ -66,8 +66,8 @@ def MyWidget(QClass):
         self.display_mywidget()
 
     def display_mywidget(self):
-        lg.debug('Displaying MyWidget widget')
         \"""Update the widgets with the new information.\"""
+        lg.debug('Displaying MyWidget widget')
 
     def do_more_things(self, input1):
         \"""Description
