@@ -30,6 +30,7 @@ from PySide.QtGui import (QAction,
 from phypno.widgets import (DockWidget,
                             Bookmarks, Events, Stages,
                             Channels,
+                            Detect,
                             Info,
                             Overview,
                             Preferences,
@@ -58,6 +59,8 @@ class MainWindow(QMainWindow):
 
     channels : instance of phypno.widgets.Channels
 
+    detect : instance of phypno.widgets.Detect
+
     info : instance of phypno.widgets.Info
 
     overview : instance of phypno.widgets.Overview
@@ -85,6 +88,7 @@ class MainWindow(QMainWindow):
         self.events = None
         self.stages = None
         self.channels = None
+        self.detect = None
         self.info = None
         self.overview = None
         self.spectrum = None
@@ -344,6 +348,7 @@ class MainWindow(QMainWindow):
         self.bookmarks = Bookmarks(self)
         self.events = Events(self)
         self.stages = Stages(self)
+        self.detect = Detect(self)
         self.video = Video(self)
         self.traces = Traces(self)
 
@@ -376,6 +381,11 @@ class MainWindow(QMainWindow):
                       },
                      {'name': 'Stages',
                       'widget': self.stages,
+                      'main_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
+                      },
+                     {'name': 'Detect',
+                      'widget': self.detect,
                       'main_area': Qt.LeftDockWidgetArea,
                       'extra_area': Qt.RightDockWidgetArea,
                       },
@@ -421,6 +431,8 @@ class MainWindow(QMainWindow):
                               self.idx_docks['Events'])
         self.tabifyDockWidget(self.idx_docks['Events'],
                               self.idx_docks['Stages'])
+        self.tabifyDockWidget(self.idx_docks['Stages'],
+                              self.idx_docks['Detect'])
         self.idx_docks['Bookmarks'].raise_()
 
     def toggle_menu_window(self, dockname, dockwidget):

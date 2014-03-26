@@ -93,6 +93,7 @@ from .info import Info
 from .overview import Overview
 from .notes import Bookmarks, Events, Stages
 from .traces import Traces
+from .detect import Detect
 from .spectrum import Spectrum
 from .utils import DockWidget
 from .video import Video
