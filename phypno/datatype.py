@@ -194,8 +194,7 @@ class Data:
     @property
     def list_of_axes(self):
         """Return the name of all the axes in the data."""
-        return list(self.axis.keys())
-
+        return tuple(self.axis.keys())
 
     def index_of(self, axis):
         """Return the index of a axis.

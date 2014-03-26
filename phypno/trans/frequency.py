@@ -1,7 +1,6 @@
-from numpy import empty, squeeze
-from scipy.signal import periodogram
+from numpy import empty
+from scipy.signal import welch
 from ..datatype import ChanFreq, ChanTimeFreq
-from ..trans import Select
 
 
 class Freq:
@@ -10,7 +9,7 @@ class Freq:
     Parameters
     ----------
     method : str
-        the method to compute the power spectrum
+        the method to compute the power spectrum, such as 'welch'
 
     Attributes
     ----------
@@ -18,30 +17,62 @@ class Freq:
         the method to compute the power spectrum
 
     """
-    def __init__(self, method='periodogram'):
+    def __init__(self, method='welch', **options):
+        implemented_methods = ('welch', )
+
+        if method not in implemented_methods:
+            raise ValueError('Method ' + method + ' is not implemented yet.\n'
+                             'Currently implemented methods are ' +
+                             ', '.join(implemented_methods))
+
         self.method = method
+        self.options = options
 
     def __call__(self, data):
-        freq = DataFreq()
+        """Calculate power on the data.
 
-        if self.method == 'periodogram':
-            freq.s_freq = data.s_freq
-            freq.chan_name = data.chan_name
-            freq.start_time = data.start_time
+        Parameters
+        ----------
+        data : instance of ChanTime
+            one of the datatypes
 
-            freq.data = empty(len(data.data), dtype='O')
-            freq.freq = empty(len(data.data), dtype='O')
-            for i in range(len(data.data)):
-                freq.data[i] = empty((len(freq.chan_name),
-                                      1,
-                                      int(data.s_freq / 2) + 1))
+        Returns
+        -------
+        instance of ChanFreq
 
-                for i_ch in range(data.data[i].shape[0]):
-                    f, Pxx = periodogram(data.data[i][i_ch, :],
-                                         fs=data.s_freq,
-                                         nfft=int(data.s_freq))
-                    freq.data[i][i_ch, 0, :] = Pxx
-                freq.freq[i] = f
+        Notes
+        -----
+        It uses sampling frequency as specified in s_freq, it does not
+        recompute the sampling frequency based on the time axis.
+
+        Raises
+        ------
+        TypeError
+            If the data does not have a 'time' axis. It might work in the
+            future on other axis, but I cannot imagine how.
+
+        """
+        if 'time' not in data.list_of_axes:
+            raise TypeError('\'time\' is not in the axis ' +
+                            str(data.list_of_axes))
+        idx_time = data.index_of('time')
+
+        freq = ChanFreq()
+        freq.s_freq = data.s_freq
+        freq.start_time = data.start_time
+        freq.axis['chan'] = data.axis['chan']
+        freq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
+        freq.data = empty(data.number_of('trial'), dtype='O')
+
+        if self.method == 'welch':
+            for i in range(data.number_of('trial')):
+
+                f, Pxx = welch(data(trial=i),
+                               fs=data.s_freq,
+                               axis=idx_time,
+                               **self.options)
+                freq.axis['freq'][i] = f
+                freq.data[i] = Pxx
 
         return freq
 
@@ -51,11 +82,11 @@ class TimeFreq:
 
     Parameters
     ----------
-    toi : numpy.ndarray
-        1d array with the time of interest.
     method : str, optional
         the method to compute the time-frequency representation, such as
         'stft' (short-time fourier transform).
+    toi : numpy.ndarray
+        1d array with the time of interest.
     duration : float, optional
         length/duration in s to compute fourier-transform.
 
@@ -89,23 +120,5 @@ class TimeFreq:
                                           len(self.toi),
                                           int(data.s_freq / 2) + 1
                                           ))
-
-        """This is too hard at the moment, and I don't need it probably.
-
-            for i_t, t in enumerate(self.toi):
-                t1 = t - self.duration / 2
-                t2 = t + self.duration / 2
-                sel_time = Select(time=(t1, t2))
-
-                for i_ch in range(data.data[i].shape[0]):
-                    f, Pxx = periodogram(data.data[i][i_ch, :],
-                                         fs=data.s_freq,
-                                         nfft=int(data.s_freq))
-                    freq.data[i][i_ch, 0, :] = Pxx
-
-                timefreq.data[:, i_t, :] = squeeze(freq.data[0], axis=1)
-
-                timefreq.freq[i] = freq.freq[i]
-        """
 
         return timefreq
