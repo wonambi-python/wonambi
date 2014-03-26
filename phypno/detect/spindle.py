@@ -114,7 +114,7 @@ class DetectSpindle:
                 lg.info('No spindles were detected')
                 continue
 
-            lg.debug('Potential spindles: ' + str(detected.shape))
+            lg.debug('Potential spindles: ' + str(detected.shape[1]))
 
             # 2. select spindles, based on selection_data
             selection_value = self.selection_threshold[i]
@@ -129,7 +129,7 @@ class DetectSpindle:
             duration = squeeze(diff(detected_in_s), axis=1)
             good_duration = ((duration >= self.minimal_duration) &
                              (duration <= self.maximal_duration))
-            detected_spindles = detected_in_s[good_duration, ]
+            detected_spindles = detected_in_s[good_duration, :]
 
             lg.info('Detected ' + str(detected_spindles.shape[0]) +
                     ' spindles')

@@ -1,5 +1,12 @@
+"""Module to compute frequency representation.
+
+"""
+from logging import getLogger
+lg = getLogger('phypno')
+
 from numpy import empty
-from scipy.signal import welch
+from scipy.signal import welch, morlet, convolve
+
 from ..datatype import ChanFreq, ChanTimeFreq
 
 
@@ -10,11 +17,6 @@ class Freq:
     ----------
     method : str
         the method to compute the power spectrum, such as 'welch'
-
-    Attributes
-    ----------
-    method : str
-        the method to compute the power spectrum
 
     """
     def __init__(self, method='welch', **options):
@@ -49,7 +51,7 @@ class Freq:
         ------
         TypeError
             If the data does not have a 'time' axis. It might work in the
-            future on other axis, but I cannot imagine how.
+            future on other axes, but I cannot imagine how.
 
         """
         if 'time' not in data.list_of_axes:
@@ -84,41 +86,145 @@ class TimeFreq:
     ----------
     method : str, optional
         the method to compute the time-frequency representation, such as
-        'stft' (short-time fourier transform).
-    toi : numpy.ndarray
-        1d array with the time of interest.
-    duration : float, optional
-        length/duration in s to compute fourier-transform.
+        'morlet' (wavelet using complex morlet window)
+    foi : ndarray or list or tuple
+        vector with frequency of interest
+    options : dict
+        Options depends on the method.
 
-    Attributes
-    ----------
-    method : str
-        the method to compute the time-frequency representation.
+    Notes
+    -----
+    For method 'morlet', the following options are specified:
+      - M_in_s : duration of the wavelet in seconds
+      - w : Omega0
 
     """
-    def __init__(self, toi, method='stft', duration=1):
+    def __init__(self, method='morlet', foi=None, **options):
+        implemented_methods = ('morlet', )
+
+        if method not in implemented_methods:
+            raise ValueError('Method ' + method + ' is not implemented yet.\n'
+                             'Currently implemented methods are ' +
+                             ', '.join(implemented_methods))
+
         self.method = method
-        self.toi = toi
-        self.duration = duration
+        if foi is None:
+            raise ValueError('Specify a value for the frequency of interest')
+        self.foi = foi
+
+        if method == 'morlet':
+            default_options = {'M_in_s': 1,
+                               'w': 5,
+                               }
+            default_options.update(options)
+
+        self.options = default_options
 
     def __call__(self, data):
-        timefreq = DataTimeFreq()
+        """Compute the time-frequency analysis.
 
-        if self.method == 'stft':
-            timefreq.s_freq = data.s_freq
-            timefreq.chan_name = data.chan_name
-            timefreq.start_time = data.start_time
+        Parameters
+        ----------
+        data : instance of ChanTime
+            data to analyze
 
-            timefreq.data = empty(len(data.data), dtype='O')
-            timefreq.time = empty(len(data.data), dtype='O')
-            timefreq.freq = empty(len(data.data), dtype='O')
+        Returns
+        -------
+        instance of ChanTimeFreq
+            data in time-frequency representation.
 
-            for i in range(len(data.data)):
-                timefreq.time[i] = self.toi
+        Examples
+        --------
+        The data in ChanTimeFreq are complex and they should stay that way. You
+        can also get the magnitude or power the easy way using Math.
 
-                timefreq.data[i] = empty((len(timefreq.chan_name),
-                                          len(self.toi),
-                                          int(data.s_freq / 2) + 1
-                                          ))
+        >>> from phypno.trans import Math, TimeFreq
+        >>> calc_tf = TimeFreq(foi=(8, 10))
+        >>> tf = calc_tf(data)
+        >>> make_abs = Math(operator_name='abs')
+        >>> tf_abs = make_abs(tf)
+        >>> tf_abs.data[0][0, 0, 0]
+        1737.4662329214384)
+
+        """
+        timefreq = ChanTimeFreq()
+        timefreq.s_freq = data.s_freq
+        timefreq.start_time = data.start_time
+        timefreq.axis['chan'] = data.axis['chan']
+        timefreq.axis['time'] = data.axis['time']
+        timefreq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
+        timefreq.data = empty(data.number_of('trial'), dtype='O')
+
+        if self.method == 'morlet':
+
+            wavelets = _create_morlet(self.foi, data.s_freq, self.options)
+
+            for i in range(data.number_of('trial')):
+                timefreq.axis['freq'][i] = self.foi
+
+                timefreq.data[i] = empty((data.number_of('chan')[i],
+                                          data.number_of('time')[i],
+                                          len(self.foi)),
+                                          dtype='complex')
+                for i_c, chan in enumerate(data.axis['chan'][i]):
+                    dat = data(trial=i, chan=chan)
+                    for i_f, f in enumerate(self.foi):
+                        tf = convolve(dat, wavelets[i_f, :], 'same')
+                        timefreq.data[i][i_c, :, i_f] = tf
 
         return timefreq
+
+
+def _create_morlet(foi, s_freq, options):
+    """Create morlet wavelets, with scipy.signal doing the actula computation.
+
+    Parameters
+    ----------
+    foi : ndarray or list or tuple
+        vector with frequency of interest
+    s_freq : int or float
+        sampling frequency of the data
+    options : dict
+        with 'M_in_s' (duration of the wavelet in seconds) and 'w' (Omega0)
+
+    Returns
+    -------
+    ndarray
+        nFreq X nSamples matrix containing the complex Morlet wavelets.
+
+    Notes
+    -----
+    Wavelets are not scaled by the frequency.
+
+    """
+    M = options['M_in_s'] * s_freq
+
+    wavelets = empty((len(foi), M), dtype='complex')
+    for i, f in enumerate(foi):
+        scaling = _compute_scaling(f, M, options['w'], s_freq)
+        wavelets[i, :] = morlet(M, options['w'], scaling)
+
+    return wavelets
+
+
+def _compute_scaling(f, M, w, r):
+    """Compute the scaling factor for a specific frequency.
+
+    Parameters
+    ----------
+    f : int or float
+        frequency of interest
+    M : int
+        duration of the wavelet in samples
+    w : int
+        Omega0 (wavelet parameter)
+    r : int or float
+        sampling frequency of the data
+
+    Returns
+    -------
+    float
+        scaling factor
+
+    """
+    return (M * f) / (2 * w * r)

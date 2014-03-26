@@ -68,7 +68,6 @@ def plot_xy(data, axis_x='time', axis_subplot='chan',
     return fig
 
 
-
 def _make_fig(fig=None):
     """Create a figure, if it doesn't exist already.
 

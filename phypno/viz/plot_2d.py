@@ -1,5 +1,4 @@
 from numpy import log, isinf, NaN
-from pyqtgraph import ImageView
 
 
 def plot_data(data, zlog=False):

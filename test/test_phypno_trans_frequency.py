@@ -45,3 +45,48 @@ def test_freq_typeerror():
     calc_freq = Freq()
     calc_freq(wrong_data)
 
+
+@raises(ValueError)
+def test_timefreq_methoderror():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TimeFreq(method='nonexistent')
+
+
+@raises(ValueError)
+def test_timefreq_no_foi():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    TimeFreq()
+
+
+def test_timefreq_basic():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    FOI = arange(5, 10)
+    calc_tf = TimeFreq(foi=FOI)
+    tf = calc_tf(data)
+
+    assert tf.list_of_axes == ('chan', 'time', 'freq')
+    assert tf.data[0].shape[0] == data.number_of('chan')[0]
+    assert tf.data[0].shape[1] == data.number_of('time')[0]
+    assert tf.data[0].shape[2] == len(FOI)
+    x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
+    assert_array_equal(x[0], (-2044.061426326871+1949.3118007336147j))
+
+
+def test_timefreq_example_in_doc():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    from phypno.trans import Math, TimeFreq
+    calc_tf = TimeFreq(foi=(8, 10))
+    tf = calc_tf(data)
+    make_abs = Math(operator_name='abs')
+    tf_abs = make_abs(tf)
+    assert_array_equal(tf_abs.data[0][0, 0, 0], 1737.4662329214384)
+
+
+
+
+
+
