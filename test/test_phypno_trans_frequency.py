@@ -1,5 +1,7 @@
 from . import *
 
+from numpy import arange, pi, sin
+
 from phypno import Dataset
 from phypno.utils import create_data
 from phypno.trans import Freq, TimeFreq
@@ -86,7 +88,19 @@ def test_timefreq_example_in_doc():
     assert_array_equal(tf_abs.data[0][0, 0, 0], 1737.4662329214384)
 
 
+def test_timefreq_sine():
+    lg.info('---\nfunction: ' + stack()[0][3])
 
+    FREQ = 10
+    data = create_data(n_chan = 1)
+    data.data[0][0,:] = sin(2 * pi * data.axis['time'][0] * FREQ)
 
+    FOI = arange(4, 20)
+    calc_tf = TimeFreq(foi=FOI)
+    tf = calc_tf(data)
+    make_abs = Math(operator_name='abs')
+    tf_abs = make_abs(tf)
+    x = tf_abs(trial=0, chan='chan00')
 
-
+    # peak in power spectrum is where the frequency of the sine wave
+    assert FOI[x[200, :].argmax()] == FREQ
