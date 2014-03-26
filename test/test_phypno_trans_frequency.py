@@ -4,7 +4,7 @@ from numpy import arange, pi, sin
 
 from phypno import Dataset
 from phypno.utils import create_data
-from phypno.trans import Freq, TimeFreq
+from phypno.trans import Freq, TimeFreq, Math
 
 
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')

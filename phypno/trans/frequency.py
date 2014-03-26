@@ -156,10 +156,10 @@ class TimeFreq:
         timefreq.data = empty(data.number_of('trial'), dtype='O')
 
         if self.method == 'morlet':
-
             wavelets = _create_morlet(self.foi, data.s_freq, self.options)
 
             for i in range(data.number_of('trial')):
+                lg.info('Processing trial # {0: 6}'.format(i))
                 timefreq.axis['freq'][i] = self.foi
 
                 timefreq.data[i] = empty((data.number_of('chan')[i],

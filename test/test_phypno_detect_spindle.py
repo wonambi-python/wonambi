@@ -99,7 +99,3 @@ def test_spindle_relative_thres():
                            selection_threshold=selection_threshold)
     spindles = det_sp(spindle_envelope)
     assert len(spindles.spindle) == 4
-
-
-
-
