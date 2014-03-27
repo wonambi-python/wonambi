@@ -5,7 +5,7 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from numpy import empty
-from scipy.signal import welch, morlet, convolve
+from scipy.signal import welch, morlet, fftconvolve
 
 from ..datatype import ChanFreq, ChanTimeFreq
 
@@ -169,7 +169,7 @@ class TimeFreq:
                 for i_c, chan in enumerate(data.axis['chan'][i]):
                     dat = data(trial=i, chan=chan)
                     for i_f, f in enumerate(self.foi):
-                        tf = convolve(dat, wavelets[i_f, :], 'same')
+                        tf = fftconvolve(dat, wavelets[i_f, :], 'same')
                         timefreq.data[i][i_c, :, i_f] = tf
 
         return timefreq
