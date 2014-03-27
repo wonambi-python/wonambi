@@ -4,14 +4,14 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from collections import Iterable
-
 from numpy import (asarray, diff, hstack, invert, ones, vstack, where, zeros)
+from scipy.signal import welch
 
 from ..trans import Filter, Math
 from ..graphoelement import Spindles
 
 TRIAL = 0
+MAX_FREQUENCY_OF_INTEREST = 50
 
 
 class DetectSpindle:
@@ -47,11 +47,14 @@ class DetectSpindle:
         maximal_duration : float
             maximal duration of spindle in s
 
+            peak_in_fft duration in seconds of fft window.
+
         Returns
         -------
         ndarray
             2d array, first column starting time of each spindle and second
             column the end time.
+
 
 
     Returns
@@ -63,14 +66,16 @@ class DetectSpindle:
     def __init__(self, method='hilbert', frequency=(11, 20),
                  threshold_type='absolute',
                  detection_threshold=None, selection_threshold=None,
-                 duration=(0.5, 2)):
+                 duration=None, peak_in_fft=None):
 
         self.method = 'hilbert'
         self.frequency = frequency
         self.threshold_type = threshold_type
         self.detection_threshold = detection_threshold
         self.selection_threshold = selection_threshold
+
         self.duration = duration
+        self.peak_in_fft = peak_in_fft
 
     def __call__(self, data):
         """Detect spindles on the data.
@@ -137,10 +142,15 @@ class DetectSpindle:
                 detected_in_s = time_axis[detected]
 
                 for time_in_smp, time_in_s in zip(detected, detected_in_s):
+
+                    # detect max value in the spindle interval
+                    spindle_dat = det_dat[time_in_smp[0]:time_in_smp[1]]
+                    peak_smp = spindle_dat.argmax() + time_in_smp[0]
+
                     one_spindle = {'start_time': time_in_s[0],
                                    'end_time': time_in_s[1],
-                                   'start_sample': time_in_smp[0],
-                                   'end_sample': time_in_smp[1],
+                                   'peak_time': time_axis[peak_smp],
+                                   'peak_val': spindle_dat.max(),
                                    'chan': chan,
                                    }
                     all_spindles.append(one_spindle)
@@ -148,11 +158,36 @@ class DetectSpindle:
         lg.info('Number of potential spindles {0}'.format(len(all_spindles)))
 
         # 3. apply additional criteria
+        lg.warning('DURATION ' + str(self.duration))
+
         if self.duration is not None:
+            accepted_spindles = []
             for sp in all_spindles:
                 sp_dur = sp['end_time'] - sp['start_time']
-                if not (self.duration[0] <= sp_dur <= self.duration[1]):
-                    all_spindles.remove(sp)
+                if sp_dur >= self.duration[0] and sp_dur <= self.duration[1]:
+                    lg.debug('accepting duration ' + str(sp_dur))
+                    accepted_spindles.append(sp)
+                else:
+                    lg.debug('Spindle rejected, duration (s) ' + str(sp_dur))
+            all_spindles = accepted_spindles
+
+        if self.peak_in_fft is not None:
+            accepted_spindles = []
+            for sp in all_spindles:
+                peak_freq = _find_peak_in_fft(data, sp['peak_time'],
+                                              sp['chan'],
+                                              self.peak_in_fft)
+                if (peak_freq is not None and
+                    peak_freq >= self.frequency[0] and
+                    peak_freq <= self.frequency[1]):
+                    accepted_spindles.append(sp)
+                    lg.debug('Spindle accepted, freq peak (Hz) ' +
+                             str(peak_freq))
+                else:
+                    lg.debug('Spindle rejected, freq peak (Hz) ' +
+                             str(peak_freq))
+            all_spindles = accepted_spindles
+
 
         lg.info('Number of final spindles {0}'.format(len(all_spindles)))
 
@@ -228,3 +263,25 @@ def _select_complete_period(detected, true_values):
             one_spindle[1] += end_sel[0]
 
     return detected
+
+
+def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
+
+    peak_in_smp = _find_nearest(data.axis['time'][0], peak_in_s)
+
+    beg_fft = peak_in_smp - data.s_freq * fft_window_length / 2
+    end_fft = peak_in_smp + data.s_freq * fft_window_length / 2
+
+    time_for_fft = data.axis['time'][0][beg_fft:end_fft]
+    if len(time_for_fft) == 0:
+        return None
+
+    x = data(trial=TRIAL, chan=chan, time=time_for_fft)
+    f, Pxx = welch(x, data.s_freq, nperseg=data.s_freq)
+
+    idx_peak = Pxx[f < MAX_FREQUENCY_OF_INTEREST].argmax()
+    return f[idx_peak]
+
+
+def _find_nearest(array, value):
+    return abs(array - value).argmin()

@@ -3,7 +3,6 @@ from . import *
 from phypno import Dataset
 from phypno.attr import Scores
 from phypno.detect import DetectSpindle
-from phypno.trans import Math
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
@@ -25,9 +24,10 @@ def test_spindle_absolute_thres():
 
     det_sp = DetectSpindle(threshold_type='absolute',
                            detection_threshold=0.5,
-                           selection_threshold=0.2)
+                           selection_threshold=0.2,
+                           duration=(0.5, 2))
     spindles = det_sp(data)
-    assert len(spindles.spindle) == 272
+    assert len(spindles.spindle) == 93
 
 
 def test_spindle_no_detection():
@@ -35,7 +35,8 @@ def test_spindle_no_detection():
 
     det_sp = DetectSpindle(threshold_type='absolute',
                            detection_threshold=10,
-                           selection_threshold=1)
+                           selection_threshold=1,
+                           duration=(0.5, 2))
 
     spindles = det_sp(data)
     assert len(spindles.spindle) == 0
@@ -47,6 +48,27 @@ def test_spindle_relative_thres():
     det_sp = DetectSpindle(threshold_type='relative',
                            frequency=(11, 20),
                            detection_threshold=3,
-                           selection_threshold=1)
+                           selection_threshold=1,
+                           duration=(0.5, 2))
     spindles = det_sp(data)
-    assert len(spindles.spindle) == 47
+    assert len(spindles.spindle) == 7
+
+
+def test_spindle_peak_in_fft():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    det_sp = DetectSpindle(threshold_type='relative',
+                           frequency=(11, 20),
+                           detection_threshold=3,
+                           selection_threshold=1,
+                           peak_in_fft=1)
+    spindles = det_sp(data)
+    assert len(spindles.spindle) == 16
+
+
+
+
+
+
+
+

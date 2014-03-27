@@ -103,8 +103,8 @@ class Detect(QWidget):
                                float(self.idx_filter1.text())))
         self.thres_det = float(self.idx_thres_det.text())
         self.thres_sel = float(self.idx_thres_sel.text())
-        self.duration = asarray((float(self.idx_min_dur.text()),
-                                 float(self.idx_max_dur.text())))
+        self.duration = ((float(self.idx_min_dur.text()),
+                          float(self.idx_max_dur.text())))
         self.display_detect()
 
     def display_detect(self):
@@ -126,7 +126,8 @@ class Detect(QWidget):
                                         threshold_type='relative',
                                         detection_threshold=self.thres_det,
                                         selection_threshold=self.thres_sel,
-                                        duration=self.duration)
+                                        duration=self.duration,
+                                        peak_in_fft=1)
 
         spindles = detect_spindles(data)
 
