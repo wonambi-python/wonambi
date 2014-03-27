@@ -6,10 +6,12 @@ lg = getLogger('phypno')
 
 from collections import Iterable
 
-from numpy import (asarray, diff, hstack, invert, ones, squeeze, vstack,
-                   where, zeros)
+from numpy import (asarray, diff, hstack, invert, ones, vstack, where, zeros)
 
+from ..trans import Filter, Math
 from ..graphoelement import Spindles
+
+TRIAL = 0
 
 
 class DetectSpindle:
@@ -27,116 +29,6 @@ class DetectSpindle:
         minimal duration in s to be considered a spindle
     maximal_duration : float
         maximal duration in s to be considered a spindle
-
-    Returns
-    -------
-    instance of Spindles
-        description of the detected spindles
-
-    Notes
-    -----
-    If you pass 'threshold_type' as 'absolute', you should pass only one value
-    for all the channels. If you use 'relative', you should pass one value
-    per channel. Note that the values are always in absolute units, if you want
-    to use median + standard deviation, you need to do it outside of this
-    function.
-
-    """
-    def __init__(self, threshold_type='absolute', detection_threshold=None,
-                 selection_threshold=None,
-                 minimal_duration=0.5, maximal_duration=2):
-
-        if threshold_type == 'absolute':
-            if isinstance(detection_threshold, Iterable):
-                raise TypeError('If threshold is absolute, detection_threshold'
-                                ' should be a single value')
-            if (selection_threshold is not None and
-                isinstance(selection_threshold, Iterable)):
-                raise TypeError('If threshold is absolute, selection_threshold'
-                                ' should be a single value')
-
-        if threshold_type == 'relative':
-            if not isinstance(detection_threshold, Iterable):
-                raise TypeError('If threshold is relative, detection_threshold'
-                                ' should be a vector')
-            if (selection_threshold is not None and
-                not isinstance(selection_threshold, Iterable)):
-                raise TypeError('If threshold is relative, selection_threshold'
-                                ' should be a vector')
-
-        self.threshold_type = threshold_type
-        self.detection_threshold = detection_threshold
-        self.selection_threshold = selection_threshold
-        self.minimal_duration = minimal_duration
-        self.maximal_duration = maximal_duration
-
-
-    def __call__(self, detection_data, selection_data=None):
-        """Detect spindles on the data.
-
-        Parameters
-        ----------
-        detection_data : instance of Data
-            data used for detection
-
-        selection_data : instance of Data, optional
-            data used for selection. If empty, detection_data will be used.
-
-        Notes
-        -----
-        TODO: multiple trials.
-
-        """
-        TRIAL = 0
-
-        if selection_data is None:
-            selection_data = detection_data
-
-        if self.threshold_type == 'absolute':
-            n_chan = detection_data.number_of('chan')
-            self.detection_threshold = (ones(n_chan) *
-                                        self.detection_threshold)
-            self.selection_threshold = (ones(n_chan) *
-                                        self.selection_threshold)
-
-        all_spindles = []
-
-        for i, chan in enumerate(detection_data.axis['chan'][TRIAL]):
-            lg.info('Reading chan #' + chan)
-
-            detected = _detect_spindles(detection_data(trial=TRIAL, chan=chan),
-                                        self.detection_threshold[i],
-                                        selection_data(trial=TRIAL, chan=chan),
-                                        self.selection_threshold[i],
-                                        detection_data.axis['time'][TRIAL],
-                                        self.minimal_duration,
-                                        self.maximal_duration)
-
-            if detected is None:
-                lg.info('No spindles were detected')
-                continue
-
-            lg.info('Detected ' + str(detected.shape[0]) +
-                    ' spindles')
-
-            for one_detected in detected:
-                one_spindle = {'start_time': one_detected[0],
-                               'end_time': one_detected[1],
-                               'chan': chan,
-                               }
-
-                all_spindles.append(one_spindle)
-
-        spindle = Spindles()
-        spindle.spindle = all_spindles
-
-        return spindle
-
-
-def _detect_spindles(detection_data, detection_value,
-                     selection_data, selection_value,
-                     time_axis, minimal_duration, maximal_duration):
-        """Function doing the actual detection.
 
         Parameters
         ----------
@@ -161,29 +53,113 @@ def _detect_spindles(detection_data, detection_value,
             2d array, first column starting time of each spindle and second
             column the end time.
 
+
+    Returns
+    -------
+    instance of Spindles
+        description of the detected spindles
+
+    """
+    def __init__(self, method='hilbert', frequency=(11, 20),
+                 threshold_type='absolute',
+                 detection_threshold=None, selection_threshold=None,
+                 duration=(0.5, 2)):
+
+        self.method = 'hilbert'
+        self.frequency = frequency
+        self.threshold_type = threshold_type
+        self.detection_threshold = detection_threshold
+        self.selection_threshold = selection_threshold
+        self.duration = duration
+
+    def __call__(self, data):
+        """Detect spindles on the data.
+
+        Parameters
+        ----------
+        data : instance of Data
+            data used for detection
+
+        Notes
+        -----
+        TODO: multiple trials.
+
         """
-        # 1. detect spindles, based on detection_data
-        above_det = detection_data >= detection_value
-        detected = _detect_start_end(above_det)
+        if self.method == 'hilbert':
+            apply_filter = Filter(low_cut=self.frequency[0],
+                                  high_cut=self.frequency[1],
+                                  s_freq=data.s_freq)
+            filtered = apply_filter(data)
 
-        if detected is None:
-            return None
+            apply_abs_hilb = Math(operator_name=('hilbert', 'abs'),
+                                  axis='time')
+            detection_data = apply_abs_hilb(filtered)
+            selection_data = detection_data
 
-        lg.debug('Potential spindles: ' + str(detected.shape[1]))
+        if self.threshold_type == 'relative':
+            get_mean = Math(operator_name='mean', axis='time')
+            get_std = Math(operator_name='std', axis='time')
 
-        # 2. select spindles, based on selection_data
-        above_sel = selection_data >= selection_value
-        detected = _select_complete_period(detected, above_sel)
+            envelope_mean = get_mean(filtered)
+            envelope_std = get_std(filtered)
 
-        # convert to real time
-        detected_in_s = time_axis[detected]
+            detection_threshold = (envelope_mean(trial=0) +
+                                   envelope_std(trial=0) *
+                                   self.detection_threshold)
+            selection_threshold = (envelope_mean(trial=0) +
+                                   envelope_std(trial=0) *
+                                   self.selection_threshold)
+
+        elif self.threshold_type == 'absolute':
+            n_chan = detection_data.number_of('chan')
+            detection_threshold = (ones(n_chan) * self.detection_threshold)
+            selection_threshold = (ones(n_chan) * self.selection_threshold)
+
+        all_spindles = []
+        if self.threshold_type in ('relative', 'absolute'):
+            for i, chan in enumerate(detection_data.axis['chan'][TRIAL]):
+
+                # 1. detect above threshold
+                det_dat = detection_data(trial=TRIAL, chan=chan)
+                above_det = det_dat >= detection_threshold[i]
+                detected = _detect_start_end(above_det)
+
+                if detected is None:
+                    continue
+
+                # 2. select spindles, based on selection_data
+                sel_dat = selection_data(trial=TRIAL, chan=chan)
+                above_sel = sel_dat >= selection_threshold[i]
+                detected = _select_complete_period(detected, above_sel)
+
+                # convert to real time
+                time_axis = data.axis['time'][TRIAL]
+                detected_in_s = time_axis[detected]
+
+                for time_in_smp, time_in_s in zip(detected, detected_in_s):
+                    one_spindle = {'start_time': time_in_s[0],
+                                   'end_time': time_in_s[1],
+                                   'start_sample': time_in_smp[0],
+                                   'end_sample': time_in_smp[1],
+                                   'chan': chan,
+                                   }
+                    all_spindles.append(one_spindle)
+
+        lg.info('Number of potential spindles {0}'.format(len(all_spindles)))
 
         # 3. apply additional criteria
-        duration = squeeze(diff(detected_in_s), axis=1)
-        good_duration = ((duration >= minimal_duration) &
-                         (duration <= maximal_duration))
+        if self.duration is not None:
+            for sp in all_spindles:
+                sp_dur = sp['end_time'] - sp['start_time']
+                if not (self.duration[0] <= sp_dur <= self.duration[1]):
+                    all_spindles.remove(sp)
 
-        return detected_in_s[good_duration, :]
+        lg.info('Number of final spindles {0}'.format(len(all_spindles)))
+
+        spindle = Spindles()
+        spindle.spindle = all_spindles
+
+        return spindle
 
 
 def _detect_start_end(true_values):
