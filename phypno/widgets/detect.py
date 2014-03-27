@@ -12,7 +12,7 @@ from PySide.QtGui import (QBrush,
                           QLineEdit,
                           QWidget)
 
-from ..trans import Math, Select, Filter
+from ..trans import Math, Filter
 from ..detect import DetectSpindle
 
 FILTER_ORDER = 4

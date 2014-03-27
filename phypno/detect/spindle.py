@@ -41,8 +41,6 @@ class DetectSpindle:
     to use median + standard deviation, you need to do it outside of this
     function.
 
-    Merging of the spindles will occur somewhere else.
-
     """
     def __init__(self, threshold_type='absolute', detection_threshold=None,
                  selection_threshold=None,
