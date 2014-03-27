@@ -8,8 +8,10 @@ from PySide.QtGui import (QBrush,
                           QColor,
                           QGraphicsRectItem,
                           QPen,
+                          QFormLayout,
                           QPushButton,
                           QGridLayout,
+                          QLineEdit,
                           QWidget)
 
 from ..detect.spindle import _detect_spindles as detect_spindle_core
@@ -32,12 +34,19 @@ class Detect(QWidget):
         super().__init__()
         self.parent = parent
 
+        self.filter = (None, None)
         self.thres_det = None
         self.thres_sel = None
         self.min_dur = None
         self.max_dur = None
 
-        self.idx_XXX = []  # list of instances of the objects
+        self.idx_filter0 = None
+        self.idx_filter1 = None
+        self.idx_thres_det = None
+        self.idx_thres_sel = None
+        self.idx_min_dur = None
+        self.idx_max_dur = None
+        self.idx_rect = []
 
         self.create_detect()
 
@@ -45,12 +54,29 @@ class Detect(QWidget):
         """Create the widget with the elements that won't change."""
         lg.debug('Creating Detect widget')
 
-        layout = QGridLayout()
+        l_left = QFormLayout()
+        self.idx_filter0 = QLineEdit(str(self.filter[0]))
+        l_left.addRow('Low Filter (Hz)', self.idx_filter0)
+        self.idx_thres_det = QLineEdit(str(self.thres_det))
+        l_left.addRow('Detection', self.idx_thres_det)
+        self.idx_min_dur = QLineEdit(str(self.min_dur))
+        l_left.addRow('Min Dur', self.idx_min_dur)
+
+        l_right = QFormLayout()
+        self.idx_filter1 = QLineEdit(str(self.filter[1]))
+        l_right.addRow('High Filter (Hz)', self.idx_filter1)
+        self.idx_thres_sel = QLineEdit(str(self.thres_sel))
+        l_right.addRow('Selection', self.idx_thres_sel)
+        self.idx_max_dur = QLineEdit(str(self.max_dur))
+        l_right.addRow('Max Dur', self.idx_max_dur)
 
         apply_button = QPushButton('Apply')
         apply_button.clicked.connect(self.update_detect)
 
-        layout.addWidget(apply_button, 4, 1)
+        layout = QGridLayout()
+        layout.addLayout(l_left, 0, 0)
+        layout.addLayout(l_right, 0, 1)
+        layout.addWidget(apply_button, 2, 1)
         self.setLayout(layout)
 
     def update_detect(self):
@@ -59,11 +85,12 @@ class Detect(QWidget):
         """
         lg.debug('Updating Detect widget')
 
-        self.filter = asarray((11, 18))
-        self.thres_det = .1
-        self.thres_sel = .05
-        self.min_dur = .1
-        self.max_dur = 90
+        self.filter = asarray((float(self.idx_filter0.text()),
+                               float(self.idx_filter1.text())))
+        self.thres_det = float(self.idx_thres_det.text())
+        self.thres_sel = float(self.idx_thres_sel.text())
+        self.min_dur = float(self.idx_min_dur.text())
+        self.max_dur = float(self.idx_max_dur.text())
 
         self.display_detect()
 
@@ -79,7 +106,11 @@ class Detect(QWidget):
         y_scale = self.parent.traces.y_scale
         y_distance = self.parent.traces.y_distance
 
+        for rect in self.idx_rect:
+            scene.removeItem(rect)
+
         row = 0
+        self.idx_rect = []
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
@@ -103,6 +134,7 @@ class Detect(QWidget):
                     rect.setBrush(QBrush(QColor(255, 0, 0, 100)))
                     rect.setPen(Qt.NoPen)
                     rect.setPos(0, y_distance * row + y_distance / 2)
+                    self.idx_rect.append(rect)
 
                 row += 1
 
