@@ -195,8 +195,9 @@ class Spectrum(QWidget):
         self.scene.clear()
         self.add_grid()
 
-        data = self.parent.traces.data[chan_name]
-        s_freq = int(self.parent.info.dataset.header['s_freq'])  # remove int
+        trial = 0
+        data = self.parent.traces.data(trial=trial, chan=chan_name)
+        s_freq = self.parent.traces.data.s_freq
         f, Pxx = welch(data, fs=s_freq, nperseg=s_freq)
 
         freq_limit = (self.x_limit[0] <= f) & (f <= self.x_limit[1])

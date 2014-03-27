@@ -84,11 +84,13 @@ class DetectSpindle:
         selection_data : instance of Data, optional
             data used for selection. If empty, detection_data will be used.
 
-
         Notes
         -----
         TODO: multiple trials.
+
         """
+        TRIAL = 0
+
         if selection_data is None:
             selection_data = detection_data
 
@@ -101,14 +103,16 @@ class DetectSpindle:
 
         all_spindles = []
 
-        for i, chan in enumerate(detection_data.axis['chan'][0]):
+        for i, chan in enumerate(detection_data.axis['chan'][TRIAL]):
             lg.info('Reading chan #' + chan)
 
-            detected = _detect_spindles(detection_data(trial=0, chan=chan),
+            detected = _detect_spindles(detection_data(trial=TRIAL, chan=chan),
                                         self.detection_threshold[i],
-                                        selection_data(trial=0, chan=chan),
+                                        selection_data(trial=TRIAL, chan=chan),
                                         self.selection_threshold[i],
-                                        detection_data.axis['time'][0])
+                                        detection_data.axis['time'][TRIAL],
+                                        self.minimal_duration,
+                                        self.maximal_duration)
 
             if detected is None:
                 lg.info('No spindles were detected')

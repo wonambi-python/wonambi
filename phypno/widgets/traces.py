@@ -3,7 +3,7 @@ lg = getLogger(__name__)
 
 from datetime import timedelta
 
-from numpy import squeeze, floor, ceil
+from numpy import floor, ceil, asarray, empty
 from PySide.QtCore import QPointF, Qt
 from PySide.QtGui import (QBrush,
                           QGraphicsItem,
@@ -13,6 +13,7 @@ from PySide.QtGui import (QBrush,
                           QPen,
                           )
 
+from .. import ChanTime
 from ..trans import Montage, Filter, Select
 from .utils import Path
 
@@ -30,10 +31,8 @@ class Traces(QGraphicsView):
         distance between traces.
     y_scrollbar_value : int
         position of the vertical scrollbar
-    data : dict
-        where the data is stored as chan_name (group_name)
-    time : numpy.ndarray
-        vector containing the time points
+    data : instance of ChanTime
+        filtered and reref'ed data
     scene : instance of QGraphicsScene
         the main scene.
     idx_label : list of instance of QGraphicsSimpleTextItem
@@ -47,11 +46,6 @@ class Traces(QGraphicsView):
     -----
     It doesn't handle NaN at the beginning, but actually well at the end.
 
-    TODO: values are UPSIDE-DOWN!!!!!!!!
-
-    TODO: maybe it's best to move around the whole data, it's cleaner for
-        spindle detection and spectrum.
-
     """
     def __init__(self, parent):
         super().__init__()
@@ -61,8 +55,7 @@ class Traces(QGraphicsView):
         self.y_scale = preferences['traces/y_scale']
         self.y_distance = preferences['traces/y_distance']
         self.y_scrollbar_value = 0
-        self.data = {}
-        self.time = None
+        self.data = None
 
         self.scene = None
         self.idx_label = []
@@ -82,9 +75,10 @@ class Traces(QGraphicsView):
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
+        groups = self.parent.channels.groups
 
         chan_to_read = []
-        for one_grp in self.parent.channels.groups:
+        for one_grp in groups:
             chan_to_read.extend(one_grp['chan_to_plot'] +
                                 one_grp['ref_chan'])
 
@@ -95,28 +89,8 @@ class Traces(QGraphicsView):
                                  begtime=window_start,
                                  endtime=window_end)
 
-        self.time = data.axis['time'][0]
-        self.data = {}
-        for one_grp in self.parent.channels.groups:
-            sel = Select(chan=one_grp['chan_to_plot'] + one_grp['ref_chan'])
-            mont = Montage(ref_chan=one_grp['ref_chan'])
-            data1 = mont(sel(data))
-
-            if one_grp['filter']['low_cut'] is not None:
-                hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
-                                s_freq=data.s_freq)
-                data1 = hpfilt(data1)
-
-            if one_grp['filter']['high_cut'] is not None:
-                lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
-                                s_freq=data.s_freq)
-                data1 = lpfilt(data1)
-
-            for chan in one_grp['chan_to_plot']:
-                dat = data1(chan=chan, trial=0)
-                dat = dat * one_grp['scale']
-                chan_grp_name = chan + ' (' + one_grp['name'] + ')'
-                self.data[chan_grp_name] = dat
+        self.data = _create_data_to_plot(data,
+                                         self.parent.channels.groups)
 
         self.display_traces()
         self.parent.overview.mark_downloaded(window_start, window_end)
@@ -175,10 +149,10 @@ class Traces(QGraphicsView):
         Not very robust, because it uses seconds as integers.
 
         """
-        start_time = self.parent.info.dataset.header['start_time']
+        self.data.start_time
 
-        min_time = int(floor(min(self.time)))
-        max_time = int(ceil(max(self.time)))
+        min_time = int(floor(min(self.data.axis['time'][0])))
+        max_time = int(ceil(max(self.data.axis['time'][0])))
 
         preferences = self.parent.preferences.values
         n_time_labels = int(preferences['traces/n_time_labels'])
@@ -187,7 +161,7 @@ class Traces(QGraphicsView):
         self.idx_time = []
         self.time_pos = []
         for one_time in range(min_time, max_time, step):
-            x_label = (start_time +
+            x_label = (self.data.start_time +
                        timedelta(seconds=one_time)).strftime('%H:%M:%S')
             item = QGraphicsSimpleTextItem(x_label)
             item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
@@ -220,11 +194,12 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                dat = self.data[chan_name] * self.y_scale
-                path = self.scene.addPath(Path(self.time, dat))
+                dat = self.data(trial=0, chan=chan_name) * self.y_scale
+                dat *= -1  # flip data, upside down
+                path = self.scene.addPath(Path(self.data.axis['time'][0],
+                                               dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0,
-                            self.y_distance * row + self.y_distance / 2)
+                path.setPos(0, self.y_distance * row + self.y_distance / 2)
                 row += 1
 
     def resizeEvent(self, event):
@@ -272,3 +247,64 @@ class Traces(QGraphicsView):
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 item.setPen(QPen(Qt.red))
                 self.scene.addItem(item)
+
+
+def _create_data_to_plot(data, chan_groups):
+    """Create data after montage and filtering.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        the raw data
+    chan_groups : list of dict
+        information about channels to plot, to use as reference and about
+        filtering etc.
+
+    Returns
+    -------
+    instance of ChanTime
+        data ready to be plotted.
+
+    """
+    # chan_to_plot only gives the number of channels to plot, for prealloc
+    chan_to_plot = [one_chan for one_grp in chan_groups
+                    for one_chan in one_grp['chan_to_plot']]
+
+    output = ChanTime()
+    output.s_freq = data.s_freq
+    output.start_time = data.start_time
+    output.axis['time'] = data.axis['time']
+    output.axis['chan'] = empty(1, dtype='O')
+    output.data = empty(1, dtype='O')
+    output.data[0] = empty((len(chan_to_plot), data.number_of('time')[0]),
+                           dtype='f')
+
+    all_chan_grp_name = []
+    i_ch = 0
+    for one_grp in chan_groups:
+
+        sel = Select(chan=one_grp['chan_to_plot'] + one_grp['ref_chan'])
+        mont = Montage(ref_chan=one_grp['ref_chan'])
+        data1 = mont(sel(data))
+
+        if one_grp['filter']['low_cut'] is not None:
+            hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
+                            s_freq=data.s_freq)
+            data1 = hpfilt(data1)
+
+        if one_grp['filter']['high_cut'] is not None:
+            lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
+                            s_freq=data.s_freq)
+            data1 = lpfilt(data1)
+
+        for chan in one_grp['chan_to_plot']:
+            chan_grp_name = chan + ' (' + one_grp['name'] + ')'
+            all_chan_grp_name.append(chan_grp_name)
+
+            dat = data1(chan=chan, trial=0)
+            output.data[0][i_ch, :] = dat * one_grp['scale']
+            i_ch += 1
+
+    output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
+
+    return output
