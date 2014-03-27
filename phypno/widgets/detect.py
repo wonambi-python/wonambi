@@ -34,11 +34,13 @@ class Detect(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.filter = (None, None)
-        self.thres_det = None
-        self.thres_sel = None
-        self.min_dur = None
-        self.max_dur = None
+        preferences = self.parent.preferences.values
+        self.filter = (float(preferences['detect/filter'][0]),
+                       float(preferences['detect/filter'][1]))
+        self.thres_det = float(preferences['detect/thres_det'])
+        self.thres_sel = float(preferences['detect/thres_sel'])
+        self.min_dur = float(preferences['detect/dur'][0])
+        self.max_dur = float(preferences['detect/dur'][1])
 
         self.idx_filter0 = None
         self.idx_filter1 = None
@@ -107,7 +109,8 @@ class Detect(QWidget):
         y_distance = self.parent.traces.y_distance
 
         for rect in self.idx_rect:
-            scene.removeItem(rect)
+            if rect in scene.items():
+                scene.removeItem(rect)
 
         row = 0
         self.idx_rect = []
