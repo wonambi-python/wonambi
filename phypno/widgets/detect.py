@@ -5,6 +5,7 @@ from numpy import asarray, max, abs, where
 from PySide.QtCore import Qt
 from PySide.QtGui import (QBrush,
                           QColor,
+                          QComboBox,
                           QGraphicsRectItem,
                           QFormLayout,
                           QPushButton,
@@ -16,6 +17,8 @@ from ..detect import DetectSpindle
 
 FILTER_ORDER = 4
 TRIAL = 0
+METHODS = ('hilbert', 'wavelet')
+THRES = ('absolute', 'relative', 'maxima')
 
 
 class Detect(QWidget):
@@ -47,15 +50,19 @@ class Detect(QWidget):
         self.parent = parent
 
         preferences = self.parent.preferences.values
+        self.method = preferences['detect/method']
         self.filter = (float(preferences['detect/filter'][0]),
                        float(preferences['detect/filter'][1]))
+        self.thres_type = preferences['detect/thres_type']
         self.thres_det = float(preferences['detect/thres_det'])
         self.thres_sel = float(preferences['detect/thres_sel'])
         self.duration = (float(preferences['detect/dur'][0]),
                          float(preferences['detect/dur'][1]))
 
+        self.idx_method = None
         self.idx_filter0 = None
         self.idx_filter1 = None
+        self.idx_thres_type = None
         self.idx_thres_det = None
         self.idx_thres_sel = None
         self.idx_min_dur = None
@@ -69,6 +76,11 @@ class Detect(QWidget):
         lg.debug('Creating Detect widget')
 
         l_left = QFormLayout()
+        self.idx_method = QComboBox()
+        self.idx_method.addItems(METHODS)
+        self.idx_method.setCurrentIndex(METHODS.index(self.method))
+        l_left.addRow(self.idx_method)
+
         self.idx_filter0 = QLineEdit(str(self.filter[0]))
         l_left.addRow('Low Filter (Hz)', self.idx_filter0)
         self.idx_thres_det = QLineEdit(str(self.thres_det))
@@ -77,6 +89,11 @@ class Detect(QWidget):
         l_left.addRow('Min Dur', self.idx_min_dur)
 
         l_right = QFormLayout()
+        self.idx_thres_type = QComboBox()
+        self.idx_thres_type.addItems(THRES)
+        self.idx_thres_type.setCurrentIndex(THRES.index(self.thres_type))
+        l_right.addRow(self.idx_thres_type)
+
         self.idx_filter1 = QLineEdit(str(self.filter[1]))
         l_right.addRow('High Filter (Hz)', self.idx_filter1)
         self.idx_thres_sel = QLineEdit(str(self.thres_sel))
@@ -99,8 +116,10 @@ class Detect(QWidget):
         """
         lg.debug('Updating Detect widget')
 
+        self.method = self.idx_method.currentText()
         self.filter = asarray((float(self.idx_filter0.text()),
                                float(self.idx_filter1.text())))
+        self.thres_type = self.idx_thres_type.currentText()
         self.thres_det = float(self.idx_thres_det.text())
         self.thres_sel = float(self.idx_thres_sel.text())
         self.duration = ((float(self.idx_min_dur.text()),
@@ -121,9 +140,9 @@ class Detect(QWidget):
             if rect in scene.items():
                 scene.removeItem(rect)
 
-        detect_spindles = DetectSpindle(method='hilbert',
+        detect_spindles = DetectSpindle(method=self.method,
                                         frequency=self.filter,
-                                        threshold_type='relative',
+                                        threshold_type=self.thres_type,
                                         detection_threshold=self.thres_det,
                                         selection_threshold=self.thres_sel,
                                         duration=self.duration,

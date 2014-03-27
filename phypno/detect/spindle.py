@@ -4,10 +4,11 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import (asarray, diff, hstack, invert, ones, vstack, where, zeros)
+from numpy import (arange, asarray, diff, hstack, invert, ones, vstack, where,
+                   zeros)
 from scipy.signal import welch
 
-from ..trans import Filter, Math
+from ..trans import Filter, Math, TimeFreq
 from ..graphoelement import Spindles
 
 TRIAL = 0
@@ -68,7 +69,7 @@ class DetectSpindle:
                  detection_threshold=None, selection_threshold=None,
                  duration=None, peak_in_fft=None):
 
-        self.method = 'hilbert'
+        self.method = method
         self.frequency = frequency
         self.threshold_type = threshold_type
         self.detection_threshold = detection_threshold
@@ -101,19 +102,37 @@ class DetectSpindle:
             detection_data = apply_abs_hilb(filtered)
             selection_data = detection_data
 
+        elif self.method == 'wavelet':
+            calc_tf = TimeFreq(method='morlet', foi=arange(self.frequency[0],
+                                                           self.frequency[1]))
+            apply_abs_mean = Math(operator_name=('abs', 'mean'), axis='freq')
+
+            filtered = apply_abs_mean(calc_tf(data))
+            # also possible, sharper wavelets for selection
+            selection_data = detection_data = filtered
+
         if self.threshold_type == 'relative':
             get_mean = Math(operator_name='mean', axis='time')
             get_std = Math(operator_name='std', axis='time')
 
             envelope_mean = get_mean(filtered)
-            envelope_std = get_std(filtered)
 
-            detection_threshold = (envelope_mean(trial=0) +
-                                   envelope_std(trial=0) *
-                                   self.detection_threshold)
-            selection_threshold = (envelope_mean(trial=0) +
-                                   envelope_std(trial=0) *
-                                   self.selection_threshold)
+            if self.method == 'hilbert':
+                envelope_std = get_std(filtered)
+
+                detection_threshold = (envelope_mean(trial=0) +
+                                       envelope_std(trial=0) *
+                                       self.detection_threshold)
+                selection_threshold = (envelope_mean(trial=0) +
+                                       envelope_std(trial=0) *
+                                       self.selection_threshold)
+
+            elif self.method == 'wavelet':
+                # wavelet signal is always positive
+                detection_threshold = (envelope_mean(trial=0) *
+                                       self.detection_threshold)
+                selection_threshold = (envelope_mean(trial=0) *
+                                       self.selection_threshold)
 
         elif self.threshold_type == 'absolute':
             n_chan = detection_data.number_of('chan')
