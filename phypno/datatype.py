@@ -256,12 +256,12 @@ class Data:
 class ChanTime(Data):
     """Specific class for chan-time recordings.
 
-    axiss
-    ----------
+    Axis
+    ----
     chan : ndarray (dtype='O')
-        which channels you want
+        for each trial, channels in the data (dtype='U')
     time : ndarray (dtype='O')
-        the time in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
+        for each trial, 1d matrix with the time stamp (dtype='f')
 
     """
     def __init__(self):
@@ -273,10 +273,12 @@ class ChanTime(Data):
 class ChanFreq(Data):
     """Specific class for channel-frequency recordings.
 
-    axiss
-    ----------
+    Axis
+    ----
+    chan : ndarray (dtype='O')
+        for each trial, channels in the data (dtype='U')
     freq : ndarray (dtype='O')
-        the freq in trials. Each trial is a 1d ndarray (dtype='d' or 'f')
+        for each trial, 1d matrix with the frequency (dtype='f')
 
     Notes
     -----
@@ -295,14 +297,14 @@ class ChanFreq(Data):
 class ChanTimeFreq(Data):
     """Specific class for channel-time-frequency representation.
 
-    axiss
-    ----------
-    chan
-
-    time : numpy.ndarray
-        1d matrix with the time stamp
-    freq : numpy.ndarray
-        1d matrix with the frequency
+    Axis
+    ----
+    chan : ndarray (dtype='O')
+        for each trial, channels in the data (dtype='U')
+    time : ndarray (dtype='O')
+        for each trial, 1d matrix with the time stamp (dtype='f')
+    freq : ndarray (dtype='O')
+        for each trial, 1d matrix with the frequency (dtype='f')
 
     """
     def __init__(self):
