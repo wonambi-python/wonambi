@@ -135,7 +135,7 @@ class DetectSpindle:
                                        self.selection_threshold)
 
         elif self.threshold_type == 'absolute':
-            n_chan = detection_data.number_of('chan')
+            n_chan = detection_data.number_of('chan')[0]
             detection_threshold = (ones(n_chan) * self.detection_threshold)
             selection_threshold = (ones(n_chan) * self.selection_threshold)
 
@@ -177,8 +177,6 @@ class DetectSpindle:
         lg.info('Number of potential spindles {0}'.format(len(all_spindles)))
 
         # 3. apply additional criteria
-        lg.warning('DURATION ' + str(self.duration))
-
         if self.duration is not None:
             accepted_spindles = []
             for sp in all_spindles:
