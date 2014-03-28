@@ -7,8 +7,8 @@ from subprocess import check_output
 
 lg = getLogger('phypno')
 lg.setLevel(DEBUG)
-git_ver = check_output("git --git-dir=../.git log |  awk 'NR==1' | "
-                       "awk '{print $2}'",
+# try this: rev-parse HEAD
+git_ver = check_output('git -C ../.git rev-parse HEAD',
                        shell=True).decode('utf-8').strip()
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
