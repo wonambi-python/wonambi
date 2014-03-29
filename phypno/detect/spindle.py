@@ -289,9 +289,10 @@ def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
     beg_fft = peak_in_smp - data.s_freq * fft_window_length / 2
     end_fft = peak_in_smp + data.s_freq * fft_window_length / 2
 
-    time_for_fft = data.axis['time'][0][beg_fft:end_fft]
-    if len(time_for_fft) == 0:
+    if beg_fft < 0 or end_fft > data.number_of('time')[0]:
         return None
+
+    time_for_fft = data.axis['time'][0][beg_fft:end_fft]
 
     x = data(trial=TRIAL, chan=chan, time=time_for_fft)
     f, Pxx = welch(x, data.s_freq, nperseg=data.s_freq)
