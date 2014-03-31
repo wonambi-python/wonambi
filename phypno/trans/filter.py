@@ -5,8 +5,11 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from copy import deepcopy
+from itertools import product
 
-from scipy.signal import butter, filtfilt
+from numpy import ix_, expand_dims, squeeze
+from numpy.linalg import norm
+from scipy.signal import butter, filtfilt, get_window, fftconvolve
 
 
 class Filter:
@@ -101,3 +104,87 @@ class Filter:
                                      data.data[i],
                                      axis=data.index_of(axis))
         return fdata
+
+
+class Convolve:
+    """Design taper and convolve it with the signal.
+
+    Parameters
+    ----------
+    window : str
+        one of the windows in scipy, using get_window
+    length : float, optional
+        length of the window
+    s_freq : float, optional
+        sampling frequency
+
+    Attributes
+    ----------
+    taper : numpy.ndarray
+        the actual taper used for the convolution
+
+    See Also
+    --------
+    scipy.signal.get_window : function used to create windows
+
+    Notes
+    -----
+    Taper is normalized such that the integral of the function remains the
+    same even after convolution.
+
+    """
+    def __init__(self, window, length=1, s_freq=None):
+        taper = get_window(window, length * s_freq)
+        self.taper = taper / sum(taper)
+
+    def __call__(self, data, axis='time'):
+        """Apply the filter to the data.
+
+        Parameters
+        ----------
+        data : instance of Data
+            the data to filter.
+        axis : str, optional
+            axis to apply the filter on.
+
+        Returns
+        -------
+        filtered_data : instance of DataRaw
+            filtered data
+
+        Notes
+        -----
+        Most of the code is identical to fftconvolve(axis=data.index_of(axis))
+        but unfortunately fftconvolve in scipy 0.13 doesn't take that argument
+        so we need to redefine it here. It's pretty slow too.
+
+        """
+        fdata = deepcopy(data)
+        idx_axis = data.index_of(axis)
+
+        for i in range(data.number_of('trial')):
+
+            sel_dim = []
+            i_dim = []
+            for i_axis, one_axis in enumerate(data.list_of_axes):
+                if one_axis != axis:
+                    i_dim.append(i_axis)
+                    sel_dim.append(range(data.number_of(one_axis)[i]))
+
+            for one_iter in product(*sel_dim):
+                # create the numpy indices for one value per dimension,
+                # except for the dimension of interest
+                idx = [[x] for x in one_iter]
+                idx.insert(idx_axis, range(data.number_of(axis)[0]))
+                indices = ix_(*idx)
+
+                d_1dim = squeeze(data.data[0][indices],
+                                 axis=i_dim)
+
+                d_1dim = fftconvolve(d_1dim, self.taper, 'same')
+
+                for to_squeeze in i_dim:
+                    d_1dim = expand_dims(d_1dim, axis=to_squeeze)
+                fdata.data[0][indices] = d_1dim
+
+        return fdata, d_1dim
