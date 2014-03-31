@@ -37,10 +37,10 @@ class Detect(QWidget):
         low and high frequency for bandpass filter
     thres_type : str
         type of threshold
-    thres_det : float
-        value for the detection threshold
-    thres_sel : float
-        value for the selection threshold
+    paramA : float
+        value for the detection threshold or peak width
+    paramB : float
+        value for the selection threshold or selection width
     min_dur : float
         minimal duration in s of the spindles
     max_dur : float
@@ -53,10 +53,10 @@ class Detect(QWidget):
         text to define high frequency for bandpass filter
     idx_thres_type : instance of QComboBox
         combobox with list of thresholds
-    idx_thres_det : instance of QLineEdit
-        text to define the detection threshold
-    idx_thres_sel : instance of QLineEdit
-        text to define the selection threshold
+    idx_paramA : instance of QLineEdit
+        text to define the detection threshold or peak width
+    idx_paramB : instance of QLineEdit
+        text to define the selection threshold or selection width
     idx_min_dur : instance of QLineEdit
         text to define the minimal duration in s
     idx_max_dur : instance of QLineEdit
@@ -74,8 +74,8 @@ class Detect(QWidget):
         self.filter = (float(preferences['detect/filter'][0]),
                        float(preferences['detect/filter'][1]))
         self.thres_type = preferences['detect/thres_type']
-        self.thres_det = float(preferences['detect/thres_det'])
-        self.thres_sel = float(preferences['detect/thres_sel'])
+        self.paramA = float(preferences['detect/paramA'])
+        self.paramB = float(preferences['detect/paramB'])
         self.duration = (float(preferences['detect/dur'][0]),
                          float(preferences['detect/dur'][1]))
 
@@ -83,8 +83,8 @@ class Detect(QWidget):
         self.idx_filter0 = None
         self.idx_filter1 = None
         self.idx_thres_type = None
-        self.idx_thres_det = None
-        self.idx_thres_sel = None
+        self.idx_paramA = None
+        self.idx_paramB = None
         self.idx_min_dur = None
         self.idx_max_dur = None
         self.idx_rect = []
@@ -101,8 +101,8 @@ class Detect(QWidget):
 
         self.idx_filter0 = QLineEdit(str(self.filter[0]))
         l_left.addRow('Low Filter (Hz)', self.idx_filter0)
-        self.idx_thres_det = QLineEdit(str(self.thres_det))
-        l_left.addRow('Detection', self.idx_thres_det)
+        self.idx_paramA = QLineEdit(str(self.paramA))
+        l_left.addRow('Detection', self.idx_paramA)
         self.idx_min_dur = QLineEdit(str(self.duration[0]))
         l_left.addRow('Min Dur', self.idx_min_dur)
 
@@ -114,8 +114,8 @@ class Detect(QWidget):
 
         self.idx_filter1 = QLineEdit(str(self.filter[1]))
         l_right.addRow('High Filter (Hz)', self.idx_filter1)
-        self.idx_thres_sel = QLineEdit(str(self.thres_sel))
-        l_right.addRow('Selection', self.idx_thres_sel)
+        self.idx_paramB = QLineEdit(str(self.paramB))
+        l_right.addRow('Selection', self.idx_paramB)
         self.idx_max_dur = QLineEdit(str(self.duration[1]))
         l_right.addRow('Max Dur', self.idx_max_dur)
 
@@ -134,11 +134,11 @@ class Detect(QWidget):
         self.filter = asarray((float(self.idx_filter0.text()),
                                float(self.idx_filter1.text())))
         self.thres_type = self.idx_thres_type.currentText()
-        self.thres_det = float(self.idx_thres_det.text())
-        self.thres_sel = float(self.idx_thres_sel.text())
+        self.paramA = float(self.idx_paramA.text())
+        self.paramB = float(self.idx_paramB.text())
         self.duration = ((float(self.idx_min_dur.text()),
                           float(self.idx_max_dur.text())))
-        
+
         self.display_detect()
 
     def display_detect(self):
@@ -153,13 +153,32 @@ class Detect(QWidget):
             if rect in scene.items():
                 scene.removeItem(rect)
 
-        detect_spindles = DetectSpindle(method=self.method,
-                                        frequency=self.filter,
-                                        threshold_type=self.thres_type,
-                                        detection_threshold=self.thres_det,
-                                        selection_threshold=self.thres_sel,
-                                        duration=self.duration,
-                                        peak_in_fft=1)
+        options = {'frequency': self.filter,
+                   'method': self.method,
+                   'method_options': {'detection_wavelet': {'M_in_s': 1,
+                                                            'w': 7,
+                                                            },
+                                      'detection_smoothing': {'window': 'boxcar',
+                                                              'length': 1,
+                                                              },
+                                      },
+                   'threshold': self.thres_type,
+                   'criteria': {'duration': self.duration,
+                                'peak_in_fft': {'length': 1,
+                                                },
+                                },
+                   }
+
+        if self.thres_type in ('maxima', ):
+            options['threshold_options'] =  {'peak_width': self.paramA,
+                                             'select_width': self.paramB,
+                                             }
+        if self.thres_type in ('absolute', 'relative'):
+            options['threshold_options'] =  {'detection_value': self.paramA,
+                                             'selection_value': self.paramB,
+                                             }
+
+        detect_spindles = DetectSpindle(**options)
 
         spindles = detect_spindles(data)
 
