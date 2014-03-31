@@ -165,7 +165,7 @@ class Math:
                     try:
                         output.data[i] = func(output(trial=i),
                                               axis=idx_axis)
-                    except ValueError:
+                    except IndexError:
                         raise ValueError('The axis ' + self.axis + ' does not '
                                          'exist in [' +
                                          ', '.join(list(output.axis.keys()))

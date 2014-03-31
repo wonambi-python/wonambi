@@ -74,7 +74,7 @@ def test_timefreq_basic():
     assert tf.data[0].shape[1] == data.number_of('time')[0]
     assert tf.data[0].shape[2] == len(FOI)
     x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
-    assert_array_equal(x[0], (-2044.061426326871+1949.3118007336147j))
+    assert_almost_equal(x[0], (-2044.0612867768023+1949.3118682758034j))
 
 
 def test_timefreq_example_in_doc():
@@ -85,7 +85,7 @@ def test_timefreq_example_in_doc():
     tf = calc_tf(data)
     make_abs = Math(operator_name='abs')
     tf_abs = make_abs(tf)
-    assert_array_equal(tf_abs.data[0][0, 0, 0], 1737.4662329214384)
+    assert_almost_equal(tf_abs.data[0][0, 0, 0], 1737.4662476482222)
 
 
 def test_timefreq_sine():
