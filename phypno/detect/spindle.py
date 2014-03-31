@@ -20,48 +20,21 @@ class DetectSpindle:
 
     Parameters
     ----------
+    method : str
+        method to detect spindles ('hilbert' or 'wavelet')
+    frequency : tuple of float
+        low and high frequency of the bandpass filter
     threshold_type : str
         typeof threshold ('absolute', 'relative')
-    detection_threshold : float or ndarray (dtype='f')
-        the value used for the threhsold
-    selection_threshold : float or ndarray (dtype='f')
+    detection_threshold : float
+        the value used for the detection threhsold
+    selection_threshold : float, optional
         the value used to calculate the start and end of the spindle
-    minimal_duration : float
-        minimal duration in s to be considered a spindle
-    maximal_duration : float
-        maximal duration in s to be considered a spindle
-
-        Parameters
-        ----------
-        detection_data : ndarray
-            1d matrix with data for one channel used for selection
-        detection_value : float
-            threshold for detection for this channel
-        selection_data : ndarray
-            1d matrix with data for one channel used for selection
-        selection_value : float
-            threshold for detection for this channel
-        time_axis: ndarray
-            time points for each data point
-        minimal_duration : float
-            minimal duration of spindle in s
-        maximal_duration : float
-            maximal duration of spindle in s
-
-            peak_in_fft duration in seconds of fft window.
-
-        Returns
-        -------
-        ndarray
-            2d array, first column starting time of each spindle and second
-            column the end time.
-
-
-
-    Returns
-    -------
-    instance of Spindles
-        description of the detected spindles
+    duration : tuple of str, optional
+        minimal and maximal duration to consider it a spindle
+    peak_in_fft : float
+        duration of the time window, around the peak, to calculate if the peak
+        in the power spectrum falls in the frequency range of interest.
 
     """
     def __init__(self, method='hilbert', frequency=(11, 20),
@@ -85,6 +58,11 @@ class DetectSpindle:
         ----------
         data : instance of Data
             data used for detection
+
+        Returns
+        -------
+        instance of graphoelement.Spindles
+            description of the detected spindles
 
         Notes
         -----
@@ -283,7 +261,25 @@ def _select_complete_period(detected, true_values):
 
 
 def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
-
+    """Find the peak in the power spectrum.
+    
+    Parameters
+    ----------
+    data : instance of phypno.ChanTime
+        the data of interest
+    peak_in_s : float
+        peak, in seconds, of the spindle
+    chan : str
+        in which channel the spindle was observed
+    fft_window_length : float
+        length, in s, of the window used to estimate power spectrum
+    
+    Returns
+    -------
+    float
+        value, in Hz, of the peak in power spectrum
+    
+    """
     peak_in_smp = _find_nearest(data.axis['time'][0], peak_in_s)
 
     beg_fft = peak_in_smp - data.s_freq * fft_window_length / 2
@@ -302,4 +298,18 @@ def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
 
 
 def _find_nearest(array, value):
+    """Find nearest value in one array.
+    
+    Parameters
+    ----------
+    array : ndarray
+        vector with values
+    value : value of interest
+    
+    Returns
+    -------
+    int
+        index of the array value closest to value of interest.
+    
+    """
     return abs(array - value).argmin()

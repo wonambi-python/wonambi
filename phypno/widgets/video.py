@@ -1,3 +1,6 @@
+"""Module to show video, if the file format supports it.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
