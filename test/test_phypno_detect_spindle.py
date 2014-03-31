@@ -1,4 +1,4 @@
-from . import *
+from test import *
 
 from phypno import Dataset
 from phypno.attr import Scores
@@ -22,34 +22,55 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
 def test_spindle_absolute_thres():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    det_sp = DetectSpindle(threshold_type='absolute',
-                           detection_threshold=0.5,
-                           selection_threshold=0.2,
-                           duration=(0.5, 2))
+    OPTIONS = {'frequency': (11, 20),
+               'method': 'hilbert',
+               'method_options': {},
+               'threshold': 'absolute',
+               'threshold_options': {'detection_value': 0.5,
+                                     'selection_value': 0.2,
+                                     },
+               'criteria': {'duration': (.5, 2),
+                            },
+               }
+    det_sp = DetectSpindle(**OPTIONS)
     spindles = det_sp(data)
+
     assert len(spindles.spindle) == 93
 
 
 def test_spindle_no_detection():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    det_sp = DetectSpindle(threshold_type='absolute',
-                           detection_threshold=10,
-                           selection_threshold=1,
-                           duration=(0.5, 2))
-
+    OPTIONS = {'frequency': (11, 20),
+               'method': 'hilbert',
+               'method_options': {},
+               'threshold': 'absolute',
+               'threshold_options': {'detection_value': 10,
+                                     'selection_value': 1,
+                                     },
+               'criteria': {'duration': (.5, 2),
+                            },
+               }
+    det_sp = DetectSpindle(**OPTIONS)
     spindles = det_sp(data)
+
     assert len(spindles.spindle) == 0
 
 
 def test_spindle_relative_thres():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    det_sp = DetectSpindle(threshold_type='relative',
-                           frequency=(11, 20),
-                           detection_threshold=3,
-                           selection_threshold=1,
-                           duration=(0.5, 2))
+    OPTIONS = {'frequency': (11, 20),
+               'method': 'hilbert',
+               'method_options': {},
+               'threshold': 'relative',
+               'threshold_options': {'detection_value': 3,
+                                     'selection_value': 1,
+                                     },
+               'criteria': {'duration': (.5, 2),
+                            },
+               }
+    det_sp = DetectSpindle(**OPTIONS)
     spindles = det_sp(data)
     assert len(spindles.spindle) == 7
 
@@ -57,18 +78,44 @@ def test_spindle_relative_thres():
 def test_spindle_peak_in_fft():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    det_sp = DetectSpindle(threshold_type='relative',
-                           frequency=(11, 20),
-                           detection_threshold=3,
-                           selection_threshold=1,
-                           peak_in_fft=1)
+    OPTIONS = {'frequency': (11, 20),
+               'method': 'hilbert',
+               'method_options': {},
+               'threshold': 'relative',
+               'threshold_options': {'detection_value': 3,
+                                     'selection_value': 1,
+                                     },
+               'criteria': {'peak_in_fft': {'length': 1,
+                                            }
+                            },
+               }
+
+    det_sp = DetectSpindle(**OPTIONS)
     spindles = det_sp(data)
     assert len(spindles.spindle) == 16
 
 
+def test_spindle_wavelet():
+    lg.info('---\nfunction: ' + stack()[0][3])
 
-
-
-
-
-
+    OPTIONS = {'frequency': (9, 20),
+               'method': 'wavelet',
+               'method_options': {'detection_wavelet': {'M_in_s': 1,
+                                                        'w': 7,
+                                                        },
+                                  'detection_smoothing': {'window': 'boxcar',
+                                                          'length': 1,
+                                                          },
+                                  },
+               'threshold': 'maxima',
+               'threshold_options': {'peak_width': 1,
+                                     'select_width': 1,
+                                     },
+               'criteria': {'duration': (.5, 2),
+                            'peak_in_fft': {'length': 1,
+                                            },
+                            },
+               }
+    det_sp = DetectSpindle(**OPTIONS)
+    spindles = det_sp(data)
+    assert len(spindles.spindle) == 18

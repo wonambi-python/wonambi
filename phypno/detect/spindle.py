@@ -4,11 +4,11 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import (arange, asarray, diff, hstack, invert, ones, vstack, where,
-                   zeros)
-from scipy.signal import welch
+from numpy import (arange, argmin, asarray, diff, hstack, invert,
+                   ones, vstack, where, zeros)
+from scipy.signal import welch, argrelmax
 
-from ..trans import Filter, Math, TimeFreq
+from ..trans import Filter, Math, TimeFreq, Convolve
 from ..graphoelement import Spindles
 
 TRIAL = 0
@@ -20,36 +20,101 @@ class DetectSpindle:
 
     Parameters
     ----------
-    method : str
-        method to detect spindles ('hilbert' or 'wavelet')
     frequency : tuple of float
         low and high frequency of the bandpass filter
-    threshold_type : str
-        typeof threshold ('absolute', 'relative')
-    detection_threshold : float
-        the value used for the detection threhsold
-    selection_threshold : float, optional
-        the value used to calculate the start and end of the spindle
-    duration : tuple of str, optional
-        minimal and maximal duration to consider it a spindle
-    peak_in_fft : float
-        duration of the time window, around the peak, to calculate if the peak
-        in the power spectrum falls in the frequency range of interest.
+    method : str
+        method to detect spindles ('hilbert' or 'wavelet')
+    method_options : dict
+        additional options, depending on method
+    threshold : str
+        typeof threshold ('absolute', 'relative', 'maxima')
+    threshold_options : dict
+        additional options, depending on threshold type
+    criteria : dict
+        additional criteria to apply (see below)
+
+    Notes
+    -----
+    method_options, with method 'hilbert':
+        ... (to be filled with info about filter design)
+
+    method_options, with method 'wavelet':
+        - detect_wavelet : dict
+            Options to pass to wavelet used for detection (see TimeFreq)
+        - detect_smoothing : dict, optional
+            - window : str
+                window used for smoothing of the wavelet
+            - length : float
+                length, in s, of window which runs over wavelet
+            (if not specified, it doesn't run)
+        - select_wavelet : dict, optional
+            Options to pass to wavelet used for selection (see TimeFreq)
+            (if not specified, uses detection_wavelet)
+        - select_smoothing : dict, optional
+            (if not specified, uses detection_smoothing)
+            - window : str
+                window used for smoothing of the wavelet
+            - length : float
+                length, in s, of window which runs over wavelet
+
+    threshold_options, with threshold 'absolute' or 'relative'""
+        - detection_value : float
+            the value used for the detection threhsold
+        - selection_value : float, optional
+            the value used to calculate the start and end of the spindle
+
+    threshold_options, with threshold 'maxima':
+        - peak_width : float
+            search area in s to identify peaks (the lower, the fewer the peaks)
+        - select_width : float
+            search area in s before and after a peak to identify beginning and
+            end of the spindle
+
+    criteria
+        - duration : tuple of float
+            minimal and maximal duration in s to be considered a spindle
+        - peak_in_fft : dict
+            - window_lenght : float
+                duration of the time window, around the peak, to calculate if
+                the peak in the power spectrum falls in the frequency range of
+                interest.
 
     """
-    def __init__(self, method='hilbert', frequency=(11, 20),
-                 threshold_type='absolute',
-                 detection_threshold=None, selection_threshold=None,
-                 duration=None, peak_in_fft=None):
+    def __init__(self, frequency=(11, 18),
+                 method='hilbert', method_options={},
+                 threshold='relative', threshold_options={},
+                 criteria={}):
+
+        self.frequency = frequency
 
         self.method = method
-        self.frequency = frequency
-        self.threshold_type = threshold_type
-        self.detection_threshold = detection_threshold
-        self.selection_threshold = selection_threshold
+        if method == 'wavelet':
 
-        self.duration = duration
-        self.peak_in_fft = peak_in_fft
+            # default options for wavelets
+            if not 'detect_wavelet' in method_options.keys():
+                method_options['detect_wavelet'] = {}
+            method_options['detect_wavelet'].update({'M_in_s': 1,
+                                                     'w': 7,
+                                                     })
+
+            if not 'detect_smoothing' in method_options.keys():
+                method_options['detect_smoothing'] = {}
+            method_options['detect_smoothing'].update({'window': 'boxcar',
+                                                       'length': 1,
+                                                       })
+
+            if not 'select_wavelet' in method_options.keys():
+                method_options['select_wavelet'] = None
+
+            if not 'select_smoothing' in method_options.keys():
+                method_options['select_smoothing'] = None
+
+        self.method_options = method_options
+
+        self.threshold = threshold
+        self.threshold_options = threshold_options
+
+        self.criteria = criteria
 
     def __call__(self, data):
         """Detect spindles on the data.
@@ -68,6 +133,8 @@ class DetectSpindle:
         -----
         TODO: multiple trials.
 
+        TODO: sharper wavelets for selection
+
         """
         if self.method == 'hilbert':
             apply_filter = Filter(low_cut=self.frequency[0],
@@ -81,15 +148,20 @@ class DetectSpindle:
             selection_data = detection_data
 
         elif self.method == 'wavelet':
-            calc_tf = TimeFreq(method='morlet', foi=arange(self.frequency[0],
-                                                           self.frequency[1]))
+            calc_tf = TimeFreq(method='morlet',
+                              options=self.method_options['detect_wavelet'],
+                              foi=arange(self.frequency[0],
+                                         self.frequency[1]))
             apply_abs_mean = Math(operator_name=('abs', 'mean'), axis='freq')
+            apply_smooth = Convolve(s_freq=data.s_freq,
+                                    **self.method_options['detect_smoothing'])
 
-            filtered = apply_abs_mean(calc_tf(data))
-            # also possible, sharper wavelets for selection
+            filtered = apply_smooth(apply_abs_mean(calc_tf(data)))
             selection_data = detection_data = filtered
 
-        if self.threshold_type == 'relative':
+        time_axis = data.axis['time'][TRIAL]
+
+        if self.threshold == 'relative':
             get_mean = Math(operator_name='mean', axis='time')
             get_std = Math(operator_name='std', axis='time')
 
@@ -98,32 +170,34 @@ class DetectSpindle:
             if self.method == 'hilbert':
                 envelope_std = get_std(filtered)
 
-                detection_threshold = (envelope_mean(trial=0) +
-                                       envelope_std(trial=0) *
-                                       self.detection_threshold)
-                selection_threshold = (envelope_mean(trial=0) +
-                                       envelope_std(trial=0) *
-                                       self.selection_threshold)
+                detection_value = (envelope_mean(trial=0) +
+                                   envelope_std(trial=0) *
+                                   self.threshold_options['detection_value'])
+                selection_value = (envelope_mean(trial=0) +
+                                   envelope_std(trial=0) *
+                                   self.threshold_options['selection_value'])
 
             elif self.method == 'wavelet':
                 # wavelet signal is always positive
-                detection_threshold = (envelope_mean(trial=0) *
-                                       self.detection_threshold)
-                selection_threshold = (envelope_mean(trial=0) *
-                                       self.selection_threshold)
+                detection_value = (envelope_mean(trial=0) *
+                                   self.threshold_options['detection_value'])
+                selection_value = (envelope_mean(trial=0) *
+                                   self.threshold_options['selection_value'])
 
-        elif self.threshold_type == 'absolute':
+        elif self.threshold == 'absolute':
             n_chan = detection_data.number_of('chan')[0]
-            detection_threshold = (ones(n_chan) * self.detection_threshold)
-            selection_threshold = (ones(n_chan) * self.selection_threshold)
+            detection_value = (ones(n_chan) *
+                               self.threshold_options['detection_value'])
+            selection_value = (ones(n_chan) *
+                               self.threshold_options['selection_value'])
 
         all_spindles = []
-        if self.threshold_type in ('relative', 'absolute'):
+        if self.threshold in ('relative', 'absolute'):
             for i, chan in enumerate(detection_data.axis['chan'][TRIAL]):
 
                 # 1. detect above threshold
                 det_dat = detection_data(trial=TRIAL, chan=chan)
-                above_det = det_dat >= detection_threshold[i]
+                above_det = det_dat >= detection_value[i]
                 detected = _detect_start_end(above_det)
 
                 if detected is None:
@@ -131,11 +205,10 @@ class DetectSpindle:
 
                 # 2. select spindles, based on selection_data
                 sel_dat = selection_data(trial=TRIAL, chan=chan)
-                above_sel = sel_dat >= selection_threshold[i]
+                above_sel = sel_dat >= selection_value[i]
                 detected = _select_complete_period(detected, above_sel)
 
                 # convert to real time
-                time_axis = data.axis['time'][TRIAL]
                 detected_in_s = time_axis[detected]
 
                 for time_in_smp, time_in_s in zip(detected, detected_in_s):
@@ -152,26 +225,62 @@ class DetectSpindle:
                                    }
                     all_spindles.append(one_spindle)
 
+
+        elif self.threshold == 'maxima':
+            for i, chan in enumerate(detection_data.axis['chan'][TRIAL]):
+                order = self.threshold_options['peak_width'] * data.s_freq
+                dat = detection_data(trial=TRIAL, chan=chan)
+                peaks = argrelmax(dat, order=round(order))[0]
+                lg.debug('Found {} peaks'.format(len(peaks)))
+
+                for one_peak in peaks:
+                    width = (self.threshold_options['select_width'] *
+                             data.s_freq)
+
+                    # search minimum before the peak
+                    beg_valley = one_peak - width
+                    if beg_valley < 0:
+                        continue
+                    sp_start = argmin(dat[beg_valley:one_peak]) + beg_valley
+
+                    # search minimum after the peak
+                    end_valley = one_peak + width
+                    if end_valley > len(dat):
+                        continue
+                    sp_end = argmin(dat[one_peak:end_valley]) + one_peak
+
+                    one_spindle = {'start_time': time_axis[sp_start],
+                                   'end_time': time_axis[sp_end],
+                                   'peak_time': time_axis[one_peak],
+                                   'peak_val': dat[one_peak],
+                                   'chan': chan,
+                                   }
+                    all_spindles.append(one_spindle)
+
+
         lg.info('Number of potential spindles {0}'.format(len(all_spindles)))
 
         # 3. apply additional criteria
-        if self.duration is not None:
+        if 'duration' in self.criteria.keys():
+            min_duration = self.criteria['duration'][0]
+            max_duration = self.criteria['duration'][1]
+
             accepted_spindles = []
             for sp in all_spindles:
                 sp_dur = sp['end_time'] - sp['start_time']
-                if sp_dur >= self.duration[0] and sp_dur <= self.duration[1]:
+                if sp_dur >= min_duration and sp_dur <= max_duration:
                     lg.debug('accepting duration ' + str(sp_dur))
                     accepted_spindles.append(sp)
                 else:
                     lg.debug('Spindle rejected, duration (s) ' + str(sp_dur))
             all_spindles = accepted_spindles
 
-        if self.peak_in_fft is not None:
+        if 'peak_in_fft' in self.criteria.keys():
             accepted_spindles = []
             for sp in all_spindles:
+                fft_window_length = self.criteria['peak_in_fft']['length']
                 peak_freq = _find_peak_in_fft(data, sp['peak_time'],
-                                              sp['chan'],
-                                              self.peak_in_fft)
+                                              sp['chan'], fft_window_length)
                 if (peak_freq is not None and
                     peak_freq >= self.frequency[0] and
                     peak_freq <= self.frequency[1]):
@@ -262,7 +371,7 @@ def _select_complete_period(detected, true_values):
 
 def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
     """Find the peak in the power spectrum.
-    
+
     Parameters
     ----------
     data : instance of phypno.ChanTime
@@ -273,12 +382,12 @@ def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
         in which channel the spindle was observed
     fft_window_length : float
         length, in s, of the window used to estimate power spectrum
-    
+
     Returns
     -------
     float
         value, in Hz, of the peak in power spectrum
-    
+
     """
     peak_in_smp = _find_nearest(data.axis['time'][0], peak_in_s)
 
@@ -299,17 +408,17 @@ def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
 
 def _find_nearest(array, value):
     """Find nearest value in one array.
-    
+
     Parameters
     ----------
     array : ndarray
         vector with values
     value : value of interest
-    
+
     Returns
     -------
     int
         index of the array value closest to value of interest.
-    
+
     """
     return abs(array - value).argmin()

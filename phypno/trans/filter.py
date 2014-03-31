@@ -187,4 +187,4 @@ class Convolve:
                     d_1dim = expand_dims(d_1dim, axis=to_squeeze)
                 fdata.data[0][indices] = d_1dim
 
-        return fdata, d_1dim
+        return fdata

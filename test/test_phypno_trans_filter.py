@@ -138,4 +138,3 @@ def test_convolution_chantimefreq_another_dim_fail():
     cdat = fftconvolve(data(trial=0, chan=CHAN, freq=FREQ),
                        tapering.taper, 'same')
     assert_array_equal(cdat, fdata(trial=0, chan=CHAN, freq=FREQ))
-
