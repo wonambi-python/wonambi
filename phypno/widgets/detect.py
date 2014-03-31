@@ -1,3 +1,6 @@
+"""Widgets to help with the detection of graphoelements during sleep.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -28,21 +31,38 @@ class Detect(QWidget):
     ----------
     parent : instance of QMainWindow
         The main window.
-
-        self.filter = (float(preferences['detect/filter'][0]),
-                       float(preferences['detect/filter'][1]))
-        self.thres_det = float(preferences['detect/thres_det'])
-        self.thres_sel = float(preferences['detect/thres_sel'])
-        self.min_dur = float(preferences['detect/dur'][0])
-        self.max_dur = float(preferences['detect/dur'][1])
-
-        self.idx_filter0 = None
-        self.idx_filter1 = None
-        self.idx_thres_det = None
-        self.idx_thres_sel = None
-        self.idx_min_dur = None
-        self.idx_max_dur = None
-        self.idx_rect = []
+    method : str
+        method used to detect spindles
+    filter : tuple of float
+        low and high frequency for bandpass filter
+    thres_type : str
+        type of threshold
+    thres_det : float
+        value for the detection threshold
+    thres_sel : float
+        value for the selection threshold
+    min_dur : float
+        minimal duration in s of the spindles
+    max_dur : float
+        maximal duration in s of the spindles
+    idx_method : instance of QComboBox
+        combobox with list of methods
+    idx_filter0 : instance of QLineEdit
+        text to define low frequency for bandpass filter
+    idx_filter1 : instance of QLineEdit
+        text to define high frequency for bandpass filter
+    idx_thres_type : instance of QComboBox
+        combobox with list of thresholds
+    idx_thres_det : instance of QLineEdit
+        text to define the detection threshold
+    idx_thres_sel : instance of QLineEdit
+        text to define the selection threshold
+    idx_min_dur : instance of QLineEdit
+        text to define the minimal duration in s
+    idx_max_dur : instance of QLineEdit
+        text to define the maximal duration in s
+    idx_rect : list of instances of QGraphicsRectItem
+        rectangles with detected spindles
 
     """
     def __init__(self, parent):
@@ -73,8 +93,6 @@ class Detect(QWidget):
 
     def create_detect(self):
         """Create the widget with the elements that won't change."""
-        lg.debug('Creating Detect widget')
-
         l_left = QFormLayout()
         self.idx_method = QComboBox()
         self.idx_method.addItems(METHODS)
@@ -111,11 +129,7 @@ class Detect(QWidget):
         self.setLayout(layout)
 
     def update_detect(self):
-        """Update the attributes once the dataset has been read in memory.
-
-        """
-        lg.debug('Updating Detect widget')
-
+        """Update the attributes once the dataset has been read in memory."""
         self.method = self.idx_method.currentText()
         self.filter = asarray((float(self.idx_filter0.text()),
                                float(self.idx_filter1.text())))
@@ -124,13 +138,12 @@ class Detect(QWidget):
         self.thres_sel = float(self.idx_thres_sel.text())
         self.duration = ((float(self.idx_min_dur.text()),
                           float(self.idx_max_dur.text())))
+        
         self.display_detect()
 
     def display_detect(self):
         """Update the widgets with the new information."""
-        lg.debug('Displaying Detect widget')
-
-        # keep on working in the same
+        # keep on working in the same scene as traces
         scene = self.parent.traces.scene
         data = self.parent.traces.data
         y_scale = self.parent.traces.y_scale

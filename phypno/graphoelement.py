@@ -21,14 +21,28 @@ class Spindles:
     ----------
     chan_name : ndarray (dtype='U')
         list of channels
-
-
+    spindle : list of dict
+        list of spindles, where each spindle contains:
+            - start_time : float
+                start time of the spindle
+            - end_time : float
+                end time of the spindle
+            - peak_time : float
+                time of the highest value
+            - peak_val : float
+                the highest value
+            - chan': str
+                channel label
+                
     """
     def __init__(self):
         self.chan_name = None
         self.spindle = []
-        one_spindle = {'start': None,
-                       'end': None,
+        one_spindle = {'start_time': None,
+                       'end_time': None,
                        'chan': [],
+                       'peak_val': None,
+                       'peak_time': None,
                        }
         self.spindle.append(one_spindle)
+        

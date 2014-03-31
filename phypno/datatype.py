@@ -80,8 +80,8 @@ class Data:
     Notes
     -----
     Something which is not immediately clear for chan. dtype='U' (meaning
-    Unicode) actually creates string of type 'str_', while if you use dtype='S'
-    (meaning String) it creates strings of type 'bytes_'.
+    Unicode) actually creates string of type str\_, while if you use dtype='S'
+    (meaning String) it creates strings of type bytes\_.
 
     """
     def __init__(self):
@@ -254,10 +254,8 @@ class Data:
 
 
 class ChanTime(Data):
-    """Specific class for chan-time recordings.
-
-    Axis
-    ----
+    """Specific class for chan-time recordings, with axes:
+    
     chan : ndarray (dtype='O')
         for each trial, channels in the data (dtype='U')
     time : ndarray (dtype='O')
@@ -271,10 +269,8 @@ class ChanTime(Data):
 
 
 class ChanFreq(Data):
-    """Specific class for channel-frequency recordings.
-
-    Axis
-    ----
+    """Specific class for channel-frequency recordings, with axes:
+    
     chan : ndarray (dtype='O')
         for each trial, channels in the data (dtype='U')
     freq : ndarray (dtype='O')
@@ -295,10 +291,8 @@ class ChanFreq(Data):
 
 
 class ChanTimeFreq(Data):
-    """Specific class for channel-time-frequency representation.
+    """Specific class for channel-time-frequency representation, with axes:
 
-    Axis
-    ----
     chan : ndarray (dtype='O')
         for each trial, channels in the data (dtype='U')
     time : ndarray (dtype='O')

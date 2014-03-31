@@ -1,3 +1,6 @@
+"""Wide widget giving an overview of the bookmarks, events, and sleep scores.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -20,7 +23,7 @@ from PySide.QtGui import (QBrush,
 # available
 current_line_height = 10
 
-stages = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
+STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
           'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
@@ -28,13 +31,13 @@ stages = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': Qt.NoBrush},
          }
 
-bars = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
+BARS = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
         'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
-time_height = 92
-total_height = 100
+TIME_HEIGHT = 92
+TOTAL_HEIGHT = 100
 
 
 class Overview(QGraphicsView):
@@ -52,7 +55,7 @@ class Overview(QGraphicsView):
         maximum length of the window (in s).
     scene : instance of QGraphicsScene
         to keep track of the objects.
-    item : dict of RectItem, SimpleText
+    idx_item : dict of RectItem, SimpleText
         all the items in the scene
 
     """
@@ -67,24 +70,20 @@ class Overview(QGraphicsView):
         self.maximum = None
 
         self.scene = None
-        self.item = {}
+        self.idx_item = {}
 
         self.create_overview()
 
     def create_overview(self):
         """Define the area of QGraphicsView."""
-        lg.debug('Creating Overview widget')
-
         preferences = self.parent.preferences.values
         x_scale = 1 / float(preferences['stages/scoring_window'])
         lg.debug('Set scene x-scaling to {}'.format(x_scale))
         self.scale(x_scale, 1)
-        self.setMinimumHeight(total_height + 30)
+        self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
     def update_overview(self):
         """Read full duration and update maximum."""
-        lg.debug('Updating Overview widget')
-
         header = self.parent.info.dataset.header
         maximum = header['n_samples'] / header['s_freq']  # in s
         self.minimum = 0
@@ -93,26 +92,24 @@ class Overview(QGraphicsView):
 
     def display_overview(self):
         """Updates the widgets, especially based on length of recordings."""
-        lg.debug('Displaying Overview widget')
-
         lg.debug('GraphicsScene is between {}s and {}s'.format(self.minimum,
                                                                self.maximum))
         self.scene = QGraphicsScene(self.minimum, 0,
                                     self.maximum,
-                                    total_height)
+                                    TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        self.item['current'] = QGraphicsLineItem(self.window_start, 0,
+        self.idx_item['current'] = QGraphicsLineItem(self.window_start, 0,
                                                  self.window_start,
                                                  current_line_height)
-        self.item['current'].setPen(QPen(Qt.red))
-        self.scene.addItem(self.item['current'])
+        self.idx_item['current'].setPen(QPen(Qt.red))
+        self.scene.addItem(self.idx_item['current'])
 
-        for name, pos in bars.items():
-            self.item[name] = QGraphicsRectItem(self.minimum, pos['pos0'],
+        for name, pos in BARS.items():
+            self.idx_item[name] = QGraphicsRectItem(self.minimum, pos['pos0'],
                                                 self.maximum, pos['pos1'])
-            self.item[name].setToolTip(pos['tip'])
-            self.scene.addItem(self.item[name])
+            self.idx_item[name].setToolTip(pos['tip'])
+            self.scene.addItem(self.idx_item[name])
 
         self.add_timestamps()
 
@@ -143,7 +140,7 @@ class Overview(QGraphicsView):
             # set xpos and adjust for text width
             xpos = (t_as_datetime - start_time).total_seconds()
             text_width = text.boundingRect().width() * transform.m11()
-            text.setPos(xpos - text_width / 2, time_height)
+            text.setPos(xpos - text_width / 2, TIME_HEIGHT)
 
     def update_position(self, new_position=None):
         """Update the cursor position and much more.
@@ -164,7 +161,7 @@ class Overview(QGraphicsView):
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
             self.window_start = new_position
-            self.item['current'].setPos(self.window_start, 0)
+            self.idx_item['current'].setPos(self.window_start, 0)
         else:
             lg.debug('Updating position at {}'.format(self.window_start))
 
@@ -186,10 +183,10 @@ class Overview(QGraphicsView):
         """
         bookmarks = self.parent.bookmarks.bookmarks
         for bm in bookmarks:
-            self.scene.addLine(bm['time'], bars['bookmark']['pos0'],
+            self.scene.addLine(bm['time'], BARS['bookmark']['pos0'],
                                bm['time'],
-                               bars['bookmark']['pos0'] +
-                               bars['bookmark']['pos1'])
+                               BARS['bookmark']['pos0'] +
+                               BARS['bookmark']['pos1'])
 
     def mark_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
@@ -204,18 +201,18 @@ class Overview(QGraphicsView):
             one of the stages defined in global stages.
 
         """
-        y_pos = bars['stage']['pos0']
+        y_pos = BARS['stage']['pos0']
 
         # sum of pos0 and pos1 should always be the same, but better be safe
         print('look for item at x={}, y={}'.format(start_time,
                                                    y_pos +
-                                                   stages[stage_name]['pos0'] +
-                                                   stages[stage_name]['pos1']))
+                                                   STAGES[stage_name]['pos0'] +
+                                                   STAGES[stage_name]['pos1']))
         # the -1 is really important, otherwise we stay on the edge of the rect
         old_score = self.scene.itemAt(start_time + length / 2,
                                       y_pos +
-                                      stages[stage_name]['pos0'] +
-                                      stages[stage_name]['pos1'] - 1)
+                                      STAGES[stage_name]['pos0'] +
+                                      STAGES[stage_name]['pos1'] - 1)
 
         # check we are not removing the black border
         if old_score is not None and old_score.pen() == Qt.NoPen:
@@ -224,18 +221,18 @@ class Overview(QGraphicsView):
 
         lg.debug('Adding score {} at {} s'.format(stage_name, start_time))
         rect = QGraphicsRectItem(start_time,
-                                 y_pos + stages[stage_name]['pos0'],
+                                 y_pos + STAGES[stage_name]['pos0'],
                                  length,
-                                 stages[stage_name]['pos1'])
+                                 STAGES[stage_name]['pos1'])
         print('score at x={}-{}, y={}-{}'.format(start_time,
                                                  start_time + length,
                                                  y_pos +
-                                                 stages[stage_name]['pos0'],
+                                                 STAGES[stage_name]['pos0'],
                                                  y_pos +
-                                                 stages[stage_name]['pos0'] +
-                                                 stages[stage_name]['pos1']))
+                                                 STAGES[stage_name]['pos0'] +
+                                                 STAGES[stage_name]['pos1']))
         rect.setPen(Qt.NoPen)
-        rect.setBrush(stages[stage_name]['color'])
+        rect.setBrush(STAGES[stage_name]['color'])
         self.scene.addItem(rect)
 
     def mark_downloaded(self, start_value, end_value):
@@ -250,10 +247,10 @@ class Overview(QGraphicsView):
 
         """
         avail = self.scene.addRect(start_value,
-                                   bars['available']['pos0'],
+                                   BARS['available']['pos0'],
                                    end_value - start_value,
-                                   bars['available']['pos1'])
-        avail.stackBefore(self.item['available'])
+                                   BARS['available']['pos1'])
+        avail.stackBefore(self.idx_item['available'])
         avail.setPen(Qt.NoPen)
         avail.setBrush(QBrush(Qt.green))
 

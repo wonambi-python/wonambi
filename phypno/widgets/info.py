@@ -1,3 +1,6 @@
+"""Widget with general information about the dataset.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -40,8 +43,6 @@ class Info(QWidget):
 
     def create_info(self):
         """Create the QFormLayout with all the information."""
-        lg.debug('Creating empty Info widget')
-
         layout = QFormLayout()
         self.setLayout(layout)
 
@@ -71,7 +72,6 @@ class Info(QWidget):
             path to file to read.
 
         """
-        lg.debug('Updating Info widget')
         lg.info('Loading ' + filename)
         self.filename = filename
         self.dataset = Dataset(filename)
@@ -80,7 +80,6 @@ class Info(QWidget):
 
     def display_info(self):
         """Update the widget with information about the dataset."""
-        lg.debug('Displaying Info widget')
         header = self.dataset.header
 
         self.idx_text['filename'].setText(basename(self.filename))

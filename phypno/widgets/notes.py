@@ -1,3 +1,11 @@
+"""Widgets containing notes (such as bookmarks, events, and stages).
+
+  - bookmarks are unique (might have the same text) and are not mutually 
+    exclusive
+  - events are not unique and are not mutually exclusive
+  - states are not unique and are mutually exclusive
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -21,8 +29,8 @@ from PySide.QtGui import (QAbstractItemView,
 
 from ..attr import Scores
 
-stage_name = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
-stage_shortcut = ['6', '5', '1', '2', '3', '0']
+STAGE_NAME = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
+STAGE_SHORTCUT = ['6', '5', '1', '2', '3', '0']
 
 
 class Bookmarks(QTableWidget):
@@ -34,11 +42,6 @@ class Bookmarks(QTableWidget):
         the main window.
     bookmarks : list of dict
         each dict contains time (in s from beginning of file) and name
-
-    Notes
-    -----
-    I haven't been really careful, I use the term "note" sometimes. To be
-    precise, bookmark, events, stages are all types of notes.
 
     """
     def __init__(self, parent):
@@ -114,11 +117,11 @@ class Events(QWidget):
         super().__init__()
 
         self.parent = parent
-        self.combobox = QComboBox()
+        self.idx_stages = QComboBox()
         self.table = QTableView()
 
         layout = QFormLayout()
-        layout.addRow('Events: ', self.combobox)
+        layout.addRow('Events: ', self.idx_stages)
         layout.addRow('List: ', self.table)
         self.setLayout(layout)
 
@@ -134,7 +137,7 @@ class Events(QWidget):
 
 
 class Stages(QWidget):
-    """Widget that contains about sleep scoring.
+    """Widget that contains information about sleep scoring.
 
     Attributes
     ----------
@@ -142,11 +145,11 @@ class Stages(QWidget):
         the main window.
     scores : instance of Scores
         information about sleep staging
-    file_button : instance of QPushButton
+    idx_filename : instance of QPushButton
         push button to open a new file
-    rater : instance of QLabel
+    idx_rater : instance of QLabel
         widget wit the name of the rater
-    combobox : instance of QComboBox
+    idx_stages : instance of QComboBox
         widget with the possible sleep stages
     action : dict
         names of all the actions related to sleep scoring
@@ -158,16 +161,16 @@ class Stages(QWidget):
         self.parent = parent
         self.action = {}
         self.scores = None
-        self.file_button = QPushButton('Click to choose file')
-        self.file_button.clicked.connect(parent.action_open_stages)
-        self.rater = QLabel()
-        self.combobox = QComboBox()
-        self.combobox.activated.connect(self.get_sleepstage)
+        self.idx_filename = QPushButton('Click to choose file')
+        self.idx_filename.clicked.connect(parent.action_open_stages)
+        self.idx_rater = QLabel()
+        self.idx_stages = QComboBox()
+        self.idx_stages.activated.connect(self.get_sleepstage)
 
         layout = QFormLayout()
-        layout.addRow('Filename: ', self.file_button)
-        layout.addRow('Rater: ', self.rater)
-        layout.addRow('Stage: ', self.combobox)
+        layout.addRow('Filename: ', self.idx_filename)
+        layout.addRow('Rater: ', self.idx_rater)
+        layout.addRow('Stage: ', self.idx_stages)
         self.setLayout(layout)
 
     def update_stages(self, xml_file):
@@ -189,10 +192,10 @@ class Stages(QWidget):
 
     def display_stages(self):
         """Update the widgets of the sleep scoring."""
-        self.file_button.setText(basename(self.scores.xml_file))
-        self.rater.setText(self.scores.get_rater())
-        for one_stage in stage_name:
-            self.combobox.addItem(one_stage)
+        self.idx_filename.setText(basename(self.scores.xml_file))
+        self.idx_rater.setText(self.scores.get_rater())
+        for one_stage in STAGE_NAME:
+            self.idx_stages.addItem(one_stage)
 
         for epoch in self.scores.get_epochs():
             self.parent.overview.mark_stages(epoch['start_time'],
@@ -203,10 +206,10 @@ class Stages(QWidget):
     def create_actions(self):
         """Create actions and shortcut to score sleep."""
         actions = {}
-        for one_stage, one_shortcut in zip(stage_name, stage_shortcut):
+        for one_stage, one_shortcut in zip(STAGE_NAME, STAGE_SHORTCUT):
             actions[one_stage] = QAction('Score as ' + one_stage, self.parent)
             actions[one_stage].setShortcut(one_shortcut)
-            stage_idx = stage_name.index(one_stage)
+            stage_idx = STAGE_NAME.index(one_stage)
             actions[one_stage].triggered.connect(partial(self.get_sleepstage,
                                                          stage_idx))
             self.addAction(actions[one_stage])
@@ -225,11 +228,11 @@ class Stages(QWidget):
         window_length = self.parent.overview.window_length
 
         id_window = str(window_start)
-        lg.info('User staged ' + id_window + ' as ' + stage_name[stage_idx])
-        self.scores.set_stage_for_epoch(id_window, stage_name[stage_idx])
+        lg.info('User staged ' + id_window + ' as ' + STAGE_NAME[stage_idx])
+        self.scores.set_stage_for_epoch(id_window, STAGE_NAME[stage_idx])
         self.set_combobox_index()
         self.parent.overview.mark_stages(window_start, window_length,
-                                         stage_name[stage_idx])
+                                         STAGE_NAME[stage_idx])
         self.parent.action_page_next()
 
     def set_combobox_index(self):
@@ -237,7 +240,7 @@ class Stages(QWidget):
         window_start = self.parent.overview.window_start
         stage = self.scores.get_stage_for_epoch(str(window_start))
         lg.debug('Set combobox at ' + stage)
-        self.combobox.setCurrentIndex(stage_name.index(stage))
+        self.idx_stages.setCurrentIndex(STAGE_NAME.index(stage))
 
     def create_empty_xml(self):
         """Create a new empty xml file, to keep the sleep scoring.

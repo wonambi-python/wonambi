@@ -1,3 +1,6 @@
+"""Large and simple widget to indicate settings/preferences.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -12,7 +15,7 @@ from PySide.QtGui import (QDialog,
 
 config = QSettings("phypno", "scroll_data")
 
-defaults = {'main/geometry': [400, 300, 1024, 768],
+DEFAULTS = {'main/geometry': [400, 300, 1024, 768],
             'main/hidden_docks': ['Video'],
             'main/recording_dir': '/home/gio/recordings',
             'overview/window_start': 0,
@@ -39,14 +42,14 @@ defaults = {'main/geometry': [400, 300, 1024, 768],
             }
 
 # Read/write default values using QSettings
-for key, value in defaults.items():
+for key, value in DEFAULTS.items():
     type_value = type(value)
     config_value = config.value(key)
     if config_value is not None:
         if type_value is list:
-            defaults[key] = eval(config_value)
+            DEFAULTS[key] = eval(config_value)
         else:
-            defaults[key] = type_value(config_value)
+            DEFAULTS[key] = type_value(config_value)
 
 
 class Preferences(QDialog):
@@ -67,7 +70,7 @@ class Preferences(QDialog):
         super().__init__()
         self.parent = parent
 
-        self.values = defaults
+        self.values = DEFAULTS
 
         self.idx_edits = {}
 
@@ -75,14 +78,12 @@ class Preferences(QDialog):
 
     def create_preferences(self):
         """Create the widgets containing the QLineEdit."""
-        lg.debug('Creating Preferences widget')
-
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         group = {}
         group_layout = {}
-        widgets = set([x.split('/')[0] for x in defaults])
+        widgets = set([x.split('/')[0] for x in DEFAULTS])
 
         # It creates a QGroupBox with QFormLayout for each widget
         for one_widget in sorted(widgets):
@@ -93,7 +94,7 @@ class Preferences(QDialog):
             layout.addWidget(group[one_widget])
 
         # It adds row to a widget's QGroupBox
-        for widget_key in sorted(defaults):
+        for widget_key in sorted(DEFAULTS):
             one_widget, key = widget_key.split('/')
             edit = QLineEdit('')
             group_layout[one_widget].addRow(key, edit)
@@ -122,15 +123,11 @@ class Preferences(QDialog):
         widgets are created.
 
         """
-        lg.debug('Updating Preferences widget')
-
         self.display_preferences()
 
     def display_preferences(self):
         """Display the preferences."""
-        lg.debug('Displaying Preferences widget')
-
-        for widget_key, value in defaults.items():
+        for widget_key, value in DEFAULTS.items():
             lg.debug('Setting {} to {}'.format(widget_key, value))
             self.idx_edits[widget_key].setText(str(value))
 

@@ -1,3 +1,6 @@
+"""Widget to define channels, montage and filters.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -19,18 +22,17 @@ from PySide.QtGui import (QAbstractItemView,
                           QVBoxLayout,
                           )
 
-empty_group = {'name': 'General',
+EMPTY_GROUP = {'name': 'General',
                'chan_to_plot': [],
                'ref_chan': [],
                'color': QColor('black'),
                'filter': {'low_cut': None, 'high_cut': None},
                'scale': 1}
-
 EMPTY_FILTER = ('None', '', 'none', '0')
 
 
 class Channels(QWidget):
-    """Allow user to choose channels, and filters.
+    """Allow user to choose channels, montage, and filters.
 
     Attributes
     ----------
@@ -62,8 +64,8 @@ class Channels(QWidget):
         self.parent = parent
 
         self.chan_name = None
-        self.groups = [deepcopy(empty_group)]
-        self.current = empty_group['name']
+        self.groups = [deepcopy(EMPTY_GROUP)]
+        self.current = EMPTY_GROUP['name']
 
         self.idx_grp = None
         self.idx_l0 = None
@@ -285,7 +287,7 @@ class Channels(QWidget):
 
     def new_group(self):
         """Create a new group of channels."""
-        new_group = deepcopy(empty_group)
+        new_group = deepcopy(EMPTY_GROUP)
         new_group['name'] = self.inputdialog.textValue()
         lg.info('Adding new channel group ' + new_group['name'])
 

@@ -1,3 +1,6 @@
+"""Various functions used for the GUI.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -13,7 +16,7 @@ from PySide.QtGui import (QDockWidget,
 config = QSettings("phypno", "scroll_data")
 MAX_RECORDING_HISTORY = 20
 
-icon = {
+ICON = {
     'open_rec': QIcon.fromTheme('document-open'),
     'page_prev': QIcon.fromTheme('go-previous-view'),
     'page_next': QIcon.fromTheme('go-next-view'),
@@ -39,14 +42,7 @@ icon = {
 def create_menubar(mainwindow):
     """Create the whole menubar, based on actions.
 
-    Notes
-    -----
-    TODO: bookmarks are unique (might have the same text) and are not
-          mutually exclusive
 
-    TODO: events are not unique and are not mutually exclusive
-
-    TODO: states are not unique and are mutually exclusive
 
     """
     preferences = mainwindow.preferences.values
@@ -60,7 +56,7 @@ def create_menubar(mainwindow):
         submenu_recent.addAction(one_action_recent)
 
     menu_download = menu_file.addMenu('Download File')
-    menu_download.setIcon(icon['download'])
+    menu_download.setIcon(ICON['download'])
     act = menu_download.addAction('Whole File')
     act.triggered.connect(mainwindow.action_download)
     act = menu_download.addAction('30 Minutes')
@@ -88,22 +84,22 @@ def create_menubar(mainwindow):
     menu_time.addAction(actions['page_next'])
     menu_time.addSeparator()  # use icon cronometer
     act = menu_time.addAction('6 Hours Earlier')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, -6 * 60 * 60))
     act = menu_time.addAction('1 Hour Earlier')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, -60 * 60))
     act = menu_time.addAction('10 Minutes Earlier')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, -10 * 60))
     act = menu_time.addAction('10 Minutes Later')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, 10 * 60))
     act = menu_time.addAction('1 Hour Later')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, 60 * 60))
     act = menu_time.addAction('6 Hours Later')
-    act.setIcon(icon['chronometer'])
+    act.setIcon(ICON['chronometer'])
     act.triggered.connect(partial(mainwindow.action_add_time, 6 * 60 * 60))
 
     menu_time.addSeparator()

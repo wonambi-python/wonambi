@@ -1,3 +1,6 @@
+"""Definition of the main widgets, with recordings.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -36,9 +39,9 @@ class Traces(QGraphicsView):
     scene : instance of QGraphicsScene
         the main scene.
     idx_label : list of instance of QGraphicsSimpleTextItem
-
+        the channel labels on the y-axis
     idx_time : list of instance of QGraphicsSimpleTextItem
-
+        the time labels on the x-axis
     time_pos : list of position of time
         we need to keep track of the position of y-label during creation
 
@@ -66,12 +69,10 @@ class Traces(QGraphicsView):
 
     def create_traces(self):
         """Create empty scene."""
-        lg.debug('Creating Traces widget')
+        pass
 
     def update_traces(self):
         """Read and update the data to plot."""
-        lg.debug('Updating Traces widget')
-
         window_start = self.parent.overview.window_start
         window_end = window_start + self.parent.overview.window_length
         dataset = self.parent.info.dataset
@@ -97,8 +98,6 @@ class Traces(QGraphicsView):
 
     def display_traces(self):
         """Display the recordings."""
-        lg.debug('Displaying Traces widget')
-
         if self.scene is not None:
             self.y_scrollbar_value = self.verticalScrollBar().value()
             self.scene.clear()
@@ -132,7 +131,6 @@ class Traces(QGraphicsView):
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""
-
         self.idx_label = []
         for one_grp in self.parent.channels.groups:
             for one_label in one_grp['chan_to_plot']:
@@ -229,7 +227,6 @@ class Traces(QGraphicsView):
 
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""
-        lg.info('Adding bookmarks')
         bookmarks = self.parent.bookmarks.bookmarks
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length

@@ -1,3 +1,6 @@
+"""Widget to show power spectrum.
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -104,7 +107,6 @@ class Spectrum(QWidget):
 
     def create_spectrum(self):
         """Create empty scene for power spectrum."""
-
         self.idx_chan = QComboBox()
         self.idx_chan.activated.connect(self.display_spectrum)
 
@@ -153,7 +155,6 @@ class Spectrum(QWidget):
 
     def update_limits(self):
         """Read changes in the way spectrum is plotted."""
-
         self.x_limit[0] = get_text(self.idx_x_min, self.x_limit[0])
         self.x_limit[1] = get_text(self.idx_x_max, self.x_limit[1])
         self.y_limit[0] = get_text(self.idx_y_min, self.y_limit[0])
