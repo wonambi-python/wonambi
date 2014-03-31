@@ -126,8 +126,6 @@ class Data:
         -----
         You cannot specify intervals here, you can do it in Select.
 
-        XXX: squeeze any dimension, if the user specifies only one value
-
         """
         if trial is None:
             trial = range(self.number_of('trial'))
@@ -255,7 +253,7 @@ class Data:
 
 class ChanTime(Data):
     """Specific class for chan-time recordings, with axes:
-    
+
     chan : ndarray (dtype='O')
         for each trial, channels in the data (dtype='U')
     time : ndarray (dtype='O')
@@ -270,7 +268,7 @@ class ChanTime(Data):
 
 class ChanFreq(Data):
     """Specific class for channel-frequency recordings, with axes:
-    
+
     chan : ndarray (dtype='O')
         for each trial, channels in the data (dtype='U')
     freq : ndarray (dtype='O')
