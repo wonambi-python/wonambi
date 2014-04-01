@@ -38,6 +38,9 @@ class Info(QWidget):
         self.dataset = None
 
         self.idx_text = {}
+        self.idx_amplitude = None
+        self.idx_distance = None
+        self.idx_length = None
 
         self.create_info()
 
@@ -54,12 +57,19 @@ class Info(QWidget):
         self.idx_text['n_chan'] = QLabel('')
         self.idx_text['start_time'] = QLabel('')
         self.idx_text['end_time'] = QLabel('')
+        self.idx_amplitude = QLabel('')
+        self.idx_distance = QLabel('')
+        self.idx_length = QLabel('')
 
         layout.addRow('Filename:', self.idx_text['filename'])
         layout.addRow('Sampl. Freq:', self.idx_text['s_freq'])
         layout.addRow('N. Channels:', self.idx_text['n_chan'])
         layout.addRow('Start Time: ', self.idx_text['start_time'])
         layout.addRow('End Time: ', self.idx_text['end_time'])
+
+        layout.addRow('Amplitude:', self.idx_amplitude)
+        layout.addRow('Distance:', self.idx_distance)
+        layout.addRow('Length:', self.idx_length)
 
         self.setLayout(layout)
 
@@ -90,3 +100,9 @@ class Info(QWidget):
         end_time = header['start_time'] + timedelta(seconds=header['n_samples']
                                                    / header['s_freq'])
         self.idx_text['end_time'].setText(end_time.strftime('%H:%M:%S'))
+
+    def update_traces_info(self):
+        """Update information about the size of the traces."""
+        self.idx_amplitude.setText(str(self.parent.traces.y_scale))
+        self.idx_distance.setText(str(self.parent.traces.y_distance))
+        self.idx_length.setText(str(self.parent.overview.window_length))

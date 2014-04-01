@@ -128,6 +128,7 @@ class Traces(QGraphicsView):
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
+        self.parent.info.update_traces_info()
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""
