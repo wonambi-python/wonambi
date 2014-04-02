@@ -1,6 +1,6 @@
 """Widgets containing notes (such as bookmarks, events, and stages).
 
-  - bookmarks are unique (might have the same text) and are not mutually 
+  - bookmarks are unique (might have the same text) and are not mutually
     exclusive
   - events are not unique and are not mutually exclusive
   - states are not unique and are mutually exclusive
@@ -29,8 +29,8 @@ from PySide.QtGui import (QAbstractItemView,
 
 from ..attr import Scores
 
-STAGE_NAME = ['Wake', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
-STAGE_SHORTCUT = ['6', '5', '1', '2', '3', '0']
+STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
+STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
 
 
 class Bookmarks(QTableWidget):

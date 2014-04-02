@@ -24,6 +24,7 @@ from PySide.QtGui import (QBrush,
 current_line_height = 10
 
 STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
+          'Movement': {'pos0': 5, 'pos1': 25, 'color': Qt.gray},
           'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
           'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
