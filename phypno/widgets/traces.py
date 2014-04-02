@@ -4,6 +4,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from copy import deepcopy
 from datetime import timedelta
 
 from numpy import floor, ceil, asarray, empty
@@ -17,7 +18,7 @@ from PySide.QtGui import (QBrush,
                           )
 
 from .. import ChanTime
-from ..trans import Montage, Filter, Select
+from ..trans import Montage, Filter
 from .utils import Path
 
 
@@ -85,14 +86,12 @@ class Traces(QGraphicsView):
 
         if not chan_to_read:
             return
-
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
 
         self.data = _create_data_to_plot(data,
                                          self.parent.channels.groups)
-
         self.display_traces()
         self.parent.overview.mark_downloaded(window_start, window_end)
 
@@ -281,9 +280,11 @@ def _create_data_to_plot(data, chan_groups):
     i_ch = 0
     for one_grp in chan_groups:
 
-        sel = Select(chan=one_grp['chan_to_plot'] + one_grp['ref_chan'])
+        sel_data = _select_channels(data,
+                                    one_grp['chan_to_plot'] +
+                                    one_grp['ref_chan'])
         mont = Montage(ref_chan=one_grp['ref_chan'])
-        data1 = mont(sel(data))
+        data1 = mont(sel_data)
 
         if one_grp['filter']['low_cut'] is not None:
             hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
@@ -306,3 +307,32 @@ def _create_data_to_plot(data, chan_groups):
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
 
     return output
+
+
+def _select_channels(data, channels):
+    """Select channels.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data with all the channels
+    channels : list
+        channels of interest
+
+    Returns
+    -------
+    instance of ChanTime
+        data with only channels of interest
+
+    Notes
+    -----
+    This function does the same as phypno.trans.Select, but it's much faster.
+    phypno.trans.Select needs to flexible for any data type, here we assume
+    that we have one trial, and that channel is the first dimension.
+
+    """
+    data = deepcopy(data)
+    chan_list = list(data.axis['chan'][0])
+    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
+    data.data[0] = data.data[0][idx_chan, :]
+    return data
