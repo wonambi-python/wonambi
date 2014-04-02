@@ -335,4 +335,6 @@ def _select_channels(data, channels):
     chan_list = list(data.axis['chan'][0])
     idx_chan = [chan_list.index(i_chan) for i_chan in channels]
     data.data[0] = data.data[0][idx_chan, :]
+    data.axis['chan'][0] = asarray(channels)
+
     return data
