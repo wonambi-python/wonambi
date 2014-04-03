@@ -10,11 +10,13 @@ from os import environ
 from os.path import exists, join, basename, splitext
 from struct import unpack
 
-from nibabel.freesurfer import read_annot
+try:
+    from nibabel.freesurfer import read_annot
+except ImportError:
+    lg.warning('nibabel (optional dependency) is not installed. You will not '
+               'be able to read Freesurfer annotations and segmentations.')
 from numpy import (array, empty, vstack, around, dot, append, reshape,
                    meshgrid, asarray)
-
-from ..utils.caching import read_seg
 
 
 FS_AFFINE = array([[-1, 0, 0, 128],
@@ -285,7 +287,10 @@ class Freesurfer:
 
         """
         parc_file = join(self.dir, 'label', hemi + '.' + parc_type + '.annot')
-        vert_val, region_color, region_name = read_annot(parc_file)
+        try:
+            vert_val, region_color, region_name = read_annot(parc_file)
+        except NameError:
+            raise ImportError('nibabel needs to be installed for this function')
         region_name = [x.decode('utf-8') for x in region_name]
         return vert_val, region_color, region_name
 
@@ -306,7 +311,13 @@ class Freesurfer:
 
         """
         seg_file = join(self.dir, 'mri', parc_type + '+aseg.mgz')
-        return read_seg(seg_file)
+        try:
+            seg_mri = load(seg_file)
+        except NameError:
+            raise ImportError('nibabel needs to be installed for this function')
+        seg_aff = seg_mri.get_affine()
+        seg_dat = seg_mri.get_data()
+        return seg_dat, seg_aff
 
     def read_surf(self, hemi, surf_type='pial'):
         """Read the surface for each hemisphere.

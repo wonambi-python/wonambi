@@ -16,10 +16,12 @@ This module contains functions to read each of the files, the files are called
 _read_EXT where EXT is one of the extensions.
 
 """
+from logging import getLogger
+lg = getLogger(__name__)
+
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
-from logging import getLogger
 from math import ceil
 from os import SEEK_END
 from os.path import basename, join, exists, splitext
@@ -28,8 +30,6 @@ from struct import unpack
 from tempfile import mkdtemp
 from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
                    memmap, int32)
-
-lg = getLogger(__name__)
 
 BITS_IN_BYTE = 8
 # http://support.microsoft.com/kb/167296
