@@ -11,7 +11,7 @@ from os.path import exists, join, basename, splitext
 from struct import unpack
 
 try:
-    from nibabel.freesurfer import read_annot
+    from nibabel.freesurfer import load
 except ImportError:
     lg.warning('nibabel (optional dependency) is not installed. You will not '
                'be able to read Freesurfer annotations and segmentations.')
