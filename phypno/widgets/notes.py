@@ -12,7 +12,7 @@ lg = getLogger(__name__)
 from datetime import datetime, timedelta
 from functools import partial
 from math import floor
-from os.path import basename
+from os.path import basename, exists, splitext
 from xml.etree.ElementTree import Element, SubElement
 
 from PySide.QtGui import (QAbstractItemView,
@@ -31,6 +31,8 @@ from ..attr import Scores
 
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
 STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
+DATA_FOLDER = '/eeg/raw/xltek/'
+SCORES_FOLDER = '/doc/scores/'
 
 
 class Bookmarks(QTableWidget):
@@ -161,8 +163,8 @@ class Stages(QWidget):
         self.parent = parent
         self.action = {}
         self.scores = None
-        self.idx_filename = QPushButton('Click to choose file')
-        self.idx_filename.clicked.connect(parent.action_open_stages)
+        self.idx_filename = QPushButton('Click to open sleep scores')
+        self.idx_filename.clicked.connect(self.action_open_predefined_stages)
         self.idx_rater = QLabel()
         self.idx_stages = QComboBox()
         self.idx_stages.activated.connect(self.get_sleepstage)
@@ -172,6 +174,23 @@ class Stages(QWidget):
         layout.addRow('Rater: ', self.idx_rater)
         layout.addRow('Stage: ', self.idx_stages)
         self.setLayout(layout)
+
+
+    def action_open_predefined_stages(self):
+        """Try to open the score file automatically.
+
+        It inferes the name of the score file based on the name of the
+        dataset. I don't like this solution, because it's very specific to
+        the organization of the folders on my computer, but it saves me quite
+        some time.
+
+        """
+        filename = splitext(self.parent.info.filename)[0] + '_scores.xml'
+        filename = filename.replace(DATA_FOLDER, SCORES_FOLDER)
+        if exists(filename):
+            self.update_stages(filename)
+        else:
+            self.parent.action_open_stages()
 
     def update_stages(self, xml_file):
         """Update information about the sleep scoring.
