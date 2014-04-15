@@ -74,7 +74,7 @@ class DetectSpindle:
         - duration : tuple of float
             minimal and maximal duration in s to be considered a spindle
         - peak_in_fft : dict
-            - window_lenght : float
+            - length : float
                 duration of the time window, around the peak, to calculate if
                 the peak in the power spectrum falls in the frequency range of
                 interest.
@@ -170,22 +170,22 @@ class DetectSpindle:
             if self.method == 'hilbert':
                 envelope_std = get_std(filtered)
 
-                detection_value = (envelope_mean(trial=0) +
-                                   envelope_std(trial=0) *
+                detection_value = (envelope_mean(trial=TRIAL) +
+                                   envelope_std(trial=TRIAL) *
                                    self.threshold_options['detection_value'])
-                selection_value = (envelope_mean(trial=0) +
-                                   envelope_std(trial=0) *
+                selection_value = (envelope_mean(trial=TRIAL) +
+                                   envelope_std(trial=TRIAL) *
                                    self.threshold_options['selection_value'])
 
             elif self.method == 'wavelet':
                 # wavelet signal is always positive
-                detection_value = (envelope_mean(trial=0) *
+                detection_value = (envelope_mean(trial=TRIAL) *
                                    self.threshold_options['detection_value'])
-                selection_value = (envelope_mean(trial=0) *
+                selection_value = (envelope_mean(trial=TRIAL) *
                                    self.threshold_options['selection_value'])
 
         elif self.threshold == 'absolute':
-            n_chan = detection_data.number_of('chan')[0]
+            n_chan = detection_data.number_of('chan')[TRIAL]
             detection_value = (ones(n_chan) *
                                self.threshold_options['detection_value'])
             selection_value = (ones(n_chan) *
@@ -221,6 +221,7 @@ class DetectSpindle:
                                    'end_time': time_in_s[1],
                                    'peak_time': time_axis[peak_smp],
                                    'peak_val': spindle_dat.max(),
+                                   'area_under_curve': sum(spindle_dat),
                                    'chan': chan,
                                    }
                     all_spindles.append(one_spindle)
@@ -249,10 +250,13 @@ class DetectSpindle:
                         continue
                     sp_end = argmin(dat[one_peak:end_valley]) + one_peak
 
+                    spindle_dat = dat[sp_start:sp_end]
+
                     one_spindle = {'start_time': time_axis[sp_start],
                                    'end_time': time_axis[sp_end],
                                    'peak_time': time_axis[one_peak],
                                    'peak_val': dat[one_peak],
+                                   'area_under_curve': sum(spindle_dat),
                                    'chan': chan,
                                    }
                     all_spindles.append(one_spindle)
@@ -389,12 +393,12 @@ def _find_peak_in_fft(data, peak_in_s, chan, fft_window_length):
         value, in Hz, of the peak in power spectrum
 
     """
-    peak_in_smp = _find_nearest(data.axis['time'][0], peak_in_s)
+    peak_in_smp = _find_nearest(data.axis['time'][TRIAL], peak_in_s)
 
     beg_fft = peak_in_smp - data.s_freq * fft_window_length / 2
     end_fft = peak_in_smp + data.s_freq * fft_window_length / 2
 
-    if beg_fft < 0 or end_fft > data.number_of('time')[0]:
+    if beg_fft < 0 or end_fft > data.number_of('time')[TRIAL]:
         return None
 
     time_for_fft = data.axis['time'][0][beg_fft:end_fft]
