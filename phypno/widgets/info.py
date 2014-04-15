@@ -92,6 +92,7 @@ class Info(QWidget):
         """Update the widget with information about the dataset."""
         header = self.dataset.header
 
+        self.parent.setWindowTitle(basename(self.filename))
         self.idx_text['filename'].setText(basename(self.filename))
         self.idx_text['s_freq'].setText(str(header['s_freq']))
         self.idx_text['n_chan'].setText(str(len(header['chan_name'])))
