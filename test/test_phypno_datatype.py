@@ -166,6 +166,18 @@ def test_data_arbitrary_axis():
     assert output[0].shape == (3, 2, 2, 3)
 
 
+def test_iter_trials():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
+
+    from phypno.trans import Math
+
+    for one_trial in iter(data):
+        take_mean = Math(operator_name='mean', axis='time')
+        one_mean = take_mean(one_trial)
+
+
 def test_datatype_with_freq():
     lg.info('---\nfunction: ' + stack()[0][3])
 

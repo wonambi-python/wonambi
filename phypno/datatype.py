@@ -9,6 +9,7 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from collections import OrderedDict, Iterable
+from copy import deepcopy
 
 from numpy import arange, array, empty, ix_, NaN, squeeze, where
 
@@ -249,6 +250,33 @@ class Data:
                 output[i] = len(self.axis[axis][i])
 
             return output
+
+    def __iter__(self):
+        """Implement generator for each trial.
+
+        The generator returns the data for each trial. This is of course really
+        convenient for map and parallel processing.
+
+        Examples
+        --------
+        >>> from phypno.trans import Math
+        >>> take_mean = Math(operator_name='mean', axis='time')
+        >>> for one_trial in iter(data):
+        >>>     one_mean = take_mean(one_trial)
+        >>>     print(one_mean.data[0])
+
+        """
+        for trial in range(self.number_of('trial')):
+            output = deepcopy(self)
+            for one_axis in output.axis:
+                output.axis[one_axis] = empty(1, dtype='O')
+            output.data = empty(1, dtype='O')
+
+            output.data[0] = self.data[trial]
+            for one_axis in output.axis:
+                output.axis[one_axis][0] = self.axis[one_axis][trial]
+
+            yield output
 
 
 class ChanTime(Data):
