@@ -304,6 +304,31 @@ class DetectSpindle:
 
         return spindle
 
+    def __str__(self):
+        """Prepare string if you want to summarize object to string/file."""
+        if self.threshold in ('absolute', 'relative'):
+            thr_opt = ('{0:04.1f}-{1:04.1f}'
+                       ''.format(self.detection_value, self.selection_value))
+        elif self.threshold in ('maxima', ):
+            thr_opt = ('{0:04.1f}-{1:04.1f}'
+                       ''.format(self.threshold_options['peak_width'],
+                                 self.threshold_options['select_width']))
+
+        criteria = []
+        if 'duration' in self.criteria:
+            criteria.append('dur{0:03.1f}-{1:03.1f}'
+                            ''.format(self.criteria['duration'][0],
+                                      self.criteria['duration'][1]))
+        if 'peak_in_fft' in self.criteria:
+            criteria.append('fft{0:04.1f}'
+                            ''.format(self.criteria['peak_in_fft']['length']))
+        criteria = '_'.join(criteria)
+
+        _str = ('DetectSpindle_{0:04.1f}-{1:04.1f}_{2}_{3}_{4}_{5}'
+                ''.format(self.frequency[0], self.frequency[1], self.method,
+                          self.threshold, thr_opt, criteria))
+        return _str
+
 
 def _detect_start_end(true_values):
     """From ndarray of bool values, return intervals of True values.
