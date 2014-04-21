@@ -40,8 +40,9 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
 temp_dir = mkdtemp()
-temp_dir = '/home/gio/ieeg/temp'
-temp_dir = '/home/gio/projects/temp'
+from os.path import expanduser
+home = expanduser('~')
+temp_dir = join(home, 'projects/temp')
 lg.info('Temporary Directory with data: ' + temp_dir)
 
 
