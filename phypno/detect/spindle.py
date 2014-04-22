@@ -78,6 +78,8 @@ class DetectSpindle:
                 duration of the time window, around the peak, to calculate if
                 the peak in the power spectrum falls in the frequency range of
                 interest.
+            - dryrun : bool, optional (default: False)
+                if True, it does not reject spindles, but it only computes fft
 
     """
     def __init__(self, frequency=(11, 18),
@@ -88,32 +90,35 @@ class DetectSpindle:
         self.frequency = frequency
 
         self.method = method
+
         if method == 'wavelet':
 
             # default options for wavelets
-            if not 'detect_wavelet' in method_options.keys():
+            if 'detect_wavelet' not in method_options:
                 method_options['detect_wavelet'] = {}
             method_options['detect_wavelet'].update({'M_in_s': 1,
                                                      'w': 7,
                                                      })
 
-            if not 'detect_smoothing' in method_options.keys():
+            if 'detect_smoothing' not in method_options:
                 method_options['detect_smoothing'] = {}
             method_options['detect_smoothing'].update({'window': 'boxcar',
                                                        'length': 1,
                                                        })
 
-            if not 'select_wavelet' in method_options.keys():
+            if 'select_wavelet' not in method_options:
                 method_options['select_wavelet'] = None
 
-            if not 'select_smoothing' in method_options.keys():
+            if 'select_smoothing' not in method_options:
                 method_options['select_smoothing'] = None
-
         self.method_options = method_options
 
         self.threshold = threshold
         self.threshold_options = threshold_options
 
+        if 'peak_in_fft' in criteria:
+            if 'dryrun' not in criteria['peak_in_fft']:
+                criteria['peak_in_fft']['dryrun'] = False
         self.criteria = criteria
 
     def __call__(self, data):
@@ -265,7 +270,7 @@ class DetectSpindle:
         lg.info('Number of potential spindles {0}'.format(len(all_spindles)))
 
         # 3. apply additional criteria
-        if 'duration' in self.criteria.keys():
+        if 'duration' in self.criteria:
             min_duration = self.criteria['duration'][0]
             max_duration = self.criteria['duration'][1]
 
@@ -279,15 +284,18 @@ class DetectSpindle:
                     lg.debug('Spindle rejected, duration (s) ' + str(sp_dur))
             all_spindles = accepted_spindles
 
-        if 'peak_in_fft' in self.criteria.keys():
+        if 'peak_in_fft' in self.criteria:
+            dryrun = self.criteria['peak_in_fft']['dryrun']
+
             accepted_spindles = []
             for sp in all_spindles:
                 fft_window_length = self.criteria['peak_in_fft']['length']
                 peak_freq = _find_peak_in_fft(data, sp['peak_time'],
                                               sp['chan'], fft_window_length)
-                if (peak_freq is not None and
-                    peak_freq >= self.frequency[0] and
-                    peak_freq <= self.frequency[1]):
+                if (dryrun or (peak_freq is not None and
+                               peak_freq >= self.frequency[0] and
+                               peak_freq <= self.frequency[1])):
+                    sp['peak_freq'] = peak_freq
                     accepted_spindles.append(sp)
                     lg.debug('Spindle accepted, freq peak (Hz) ' +
                              str(peak_freq))
