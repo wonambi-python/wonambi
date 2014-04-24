@@ -279,10 +279,12 @@ class Channels():
 
         Notes
         -----
-        TODO
+        Simplest implementation. We should at least use project onto a 2D plane
 
         """
-        return None
+        xyz = self.return_xyz(labels=labels)
+        xy = asarray(xyz)[:, 1:]
+        return xy
 
     def return_xyz(self, labels=None):
         """Returns the location in xy for some channels.
@@ -337,6 +339,7 @@ class Channels():
 
         return all_attr
 
+    @property
     def n_chan(self):
         """Returns the number of channels."""
         return len(self.chan)
