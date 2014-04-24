@@ -764,6 +764,16 @@ class Ktlx():
         ndarray
             2-d matrix with data (might contain NaN)
 
+        Notes
+        -----
+        The sample numbering is not based on the samples in the files (i.e.
+        the first sample of the first file is NOT the first sample of the
+        dataset) because it depends on the stamps in the STC file. Usually, the
+        recording starts and after a few millisecond (maybe one second), the
+        actual acquisition starts. STC takes the offset into account. This has
+        the counterintuitive result that if you call read_data, the first few
+        hundreds samples are nan.
+
         """
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
