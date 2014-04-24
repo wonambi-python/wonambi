@@ -138,8 +138,7 @@ def _calculate_conversion(hdr):
 
     Notes
     -----
-    Ktlx system converts into microvolts, but here we convert to volts, which
-    are more readible for our recordings.
+    Final units are microvolts
 
     """
     discardbits = hdr['discardbits']
@@ -147,43 +146,43 @@ def _calculate_conversion(hdr):
 
     if hdr['headbox_type'][0] in (1, 3):
         # all channels
-        factor = ones((n_chan)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        factor = ones((n_chan)) * (8711. / (2 ** 21 - 0.5)) * 2 ** discardbits
 
     elif hdr['headbox_type'][0] == 4:
         # 0 - 23
-        ch1 = ones((24)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        ch1 = ones((24)) * (8711. / (2 ** 21 - 0.5)) * 2 ** discardbits
         # 24 - 27
-        ch2 = ones((4)) * ((5000000. / (210 - 0.5)) / 26) * 2 ** discardbits
+        ch2 = ones((4)) * ((5000000. / (2 ** 10 - 0.5)) / (2 ** 6)) * 2 ** discardbits
 
         factor = concatenate((ch1, ch2))
 
     elif hdr['headbox_type'][0] == 9:
         # 0 - 32
-        ch1 = ones((33)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        ch1 = ones((33)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
         # 33 - 34
-        ch2 = ones((2)) * (1 / 26) * 2 ** discardbits
+        ch2 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
 
         factor = concatenate((ch1, ch2))
 
     elif hdr['headbox_type'][0] == 21:
         # 0 -127
-        ch1 = ones((128)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        ch1 = ones((128)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
         # 128 - 129
-        ch2 = ones((2)) * (1 / 26) * 2 ** discardbits
+        ch2 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
         # 130 - 255
-        ch3 = ones((126)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        ch3 = ones((126)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
 
         factor = concatenate((ch1, ch2, ch3))
 
     elif hdr['headbox_type'][0] == 22:
         # 0 -31
-        ch1 = ones((32)) * (8711. / (221 - 0.5)) * 2 ** discardbits
+        ch1 = ones((32)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
         # 32 - 39
-        ch2 = ones((8)) * ((10800000. / 65536.) / 26) * 2 ** discardbits
+        ch2 = ones((8)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
         # 40 - 41
-        ch3 = ones((2)) * (1 / 26) * 2 ** discardbits
+        ch3 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
         # 42
-        ch4 = ones((1)) * ((10800000. / 65536.) / 26) * 2 ** discardbits
+        ch4 = ones((1)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
 
         factor = concatenate((ch1, ch2, ch3, ch4))
 
@@ -191,7 +190,7 @@ def _calculate_conversion(hdr):
         raise NotImplementedError('Implement conversion factor for headbox ' +
                                   str(hdr['headbox_type'][0]))
 
-    return factor[:n_chan] * 1e-6
+    return factor[:n_chan]
 
 
 def _filetime_to_dt(ft):
