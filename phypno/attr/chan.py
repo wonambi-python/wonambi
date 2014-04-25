@@ -183,7 +183,7 @@ class Channels():
     labels : list of str
         the name of the channel
     coords : numpy.ndarray
-       location in 3D, with shape (3, n_chan)
+       location in 3D, with shape (n_chan, 3)
 
     Attributes
     ----------
