@@ -135,6 +135,29 @@ class DetectSpindle:
                              'use': False,
                              }
 
+        if method == 'Wamsley2012':
+            self.basic = {'data': ('morlet', 'abs'),
+                          'opt': (mean(frequency), .5),
+                          }
+            self.thres = {'data': ('movingavg', ),
+                          'opt': 0.1,
+                          'method': 'mean',
+                          }
+            self.detect = {'data': ('movingavg', ),
+                           'opt': 0.1,
+                           'method': 'threshold',
+                           'values': 4.5,
+                           }
+            self.select = {'method': None,
+                           'values': None,
+                           }
+            self.duration = {'values': duration,
+                             }
+            self.psd_peak = {'method': 'peak',
+                             'values': 2,
+                             'use': False,
+                             }
+
         if method == 'UCSD':
             self.basic = {'data': ('morlet', 'abs'),
                           'opt': (mean(frequency), .5),
@@ -225,7 +248,9 @@ class DetectSpindle:
             lg.info('Number of potential spindles: %d', events.shape[0])
 
             # select beginning and end
-            if self.select['method'] == 'troughs':
+            if self.select['method'] is None:
+                sel_value = None
+            elif self.select['method'] == 'troughs':
                 sel_value = self.select['values'] * data.s_freq
             elif self.select['method'] == 'threshold':
                 if self.thres['method'] in ('mean', 'std'):
@@ -318,6 +343,9 @@ def transform_signal(dat, s_freq, method, opt=None):
 
     if 'hilbert' in method:
         dat = hilbert(dat)
+
+    if 'real' in method:
+        dat = dat.real
 
     if 'abs' in method:
         dat = absolute(dat)
@@ -686,7 +714,7 @@ hp_filt = Filter(low_cut=HP_FILTER, s_freq=data.s_freq)
 lp_filt = Filter(high_cut=LP_FILTER, s_freq=data.s_freq)
 data = lp_filt(hp_filt(data))
 
-self = DetectSpindle(method='Nir2011')
-
+self = DetectSpindle(method='Wamsley2012')
+self.detect['values'] = 3
 sp = self(data, True)
 [x['peak_freq'] for x in sp.spindle]
