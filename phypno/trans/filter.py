@@ -9,7 +9,7 @@ from itertools import product
 
 from numpy import ix_, expand_dims, squeeze
 from numpy.linalg import norm
-from scipy.signal import butter, filtfilt, get_window, fftconvolve
+from scipy.signal import iirfilter, filtfilt, get_window, fftconvolve
 
 
 class Filter:
@@ -45,7 +45,8 @@ class Filter:
     specify s_freq, then the ratio will be computed automatically.
 
     """
-    def __init__(self, low_cut=None, high_cut=None, order=4, s_freq=None):
+    def __init__(self, low_cut=None, high_cut=None, order=4, ftype='butter',
+                 s_freq=None, Rs=None):
 
         if s_freq is not None:
             nyquist = s_freq / 2.
@@ -72,13 +73,18 @@ class Filter:
         except TypeError:
             freq = str(Wn)
 
-        self.info = {'order': order,
-                     'type': btype,
-                     'freq': freq}
+        if Rs is None:
+            Rs = 40
 
-        lg.debug('order {0: 2}, Wn {1}, btype {2}'.format(order, str(Wn),
-                                                          btype))
-        b, a = butter(order, Wn, btype=btype)
+        self.info = {'order': order,
+                     'btype': btype,
+                     'ftype': ftype,
+                     'freq': freq,
+                     }
+
+        lg.debug('order {0: 2}, Wn {1}, btype {2}, ftype {3}'
+                 ''.format(order, str(Wn), btype, ftype))
+        b, a = iirfilter(order, Wn, btype=btype, ftype=ftype, rs=Rs)
         self.b = b
         self.a = a
 
