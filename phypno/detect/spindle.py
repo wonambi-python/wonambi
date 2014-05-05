@@ -528,11 +528,7 @@ def _detect_start_end(true_values):
     event_starts = where(cross_threshold == 1)[0]
     event_ends = where(cross_threshold == -1)[0]
 
-    if any(event_starts):
-        if event_ends[-1] == len(true_values):
-            lg.debug('End of the last event is after end of the recording')
-            event_ends[-1] -= 1
-
+    if len(event_starts):
         events = vstack((event_starts, event_ends)).T
 
     else:
