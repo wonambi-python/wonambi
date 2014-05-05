@@ -455,8 +455,8 @@ def select_events(dat, detected, method, value):
 
 
 def within_duration(events, time, limits):
-    min_dur = time[events][:, 2] - time[events][:, 0] >= limits[0]
-    max_dur = time[events][:, 2] - time[events][:, 0] <= limits[1]
+    min_dur = time[events[:, 2] - 1] - time[events[:, 0]] >= limits[0]
+    max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
 
     return events[min_dur & max_dur, :]
 
