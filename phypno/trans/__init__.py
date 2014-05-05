@@ -7,7 +7,7 @@ basic elements, use the package "detect" for example.
 
 """
 from .filter import Filter, Convolve
-from .select import Select
+from .select import Select, Resample
 from .frequency import Freq, TimeFreq
 from .merge import Merge
 from .math import Math

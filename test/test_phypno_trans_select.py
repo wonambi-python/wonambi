@@ -2,8 +2,10 @@ from . import *
 
 from os.path import join
 
+from numpy import sum, sin, pi
+
 from phypno import Dataset
-from phypno.trans import Select
+from phypno.trans import Select, Resample
 from phypno.utils import create_data
 
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
@@ -108,8 +110,19 @@ def test_select_interval_not_in_data():
 def test_resample():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    from phypno.utils import create_data
-    data = create_data(n_trial=10)
-    res = Resample(s_freq=50)
+    data = create_data(n_trial=1, n_chan=1)
+
+    data.data[0][0, :] = sin(80 * 2 * pi * data.axis['time'][0])
+
+    NEW_FREQ = 100
+    res = Resample(s_freq=100)
     data1 = res(data)
-    # test also frequency/power
+    assert data.s_freq == NEW_FREQ
+    assert data.data[0].shape[1] == data.number_of('time')[0]
+
+    f, Pxx = welch(data(trial=0, chan=data.axis['chan'][0]),
+                   fs=data.s_freq, nperseg=data.s_freq)
+    f1, Pxx1 = welch(data1(trial=0, chan=data.axis['chan'][0]),
+                     fs=data1.s_freq, nperseg=data1.s_freq)
+
+    assert_array_almost_equal(sum(Pxx), sum(Pxx1))
