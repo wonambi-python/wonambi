@@ -224,7 +224,8 @@ class DetectSpindle:
             description of the detected spindles
 
         """
-        from visvis import plot
+        if make_plots:
+            from visvis import plot
 
         all_spindles = []
         for chan in data.axis['chan'][0]:
