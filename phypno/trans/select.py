@@ -16,7 +16,8 @@ lg = getLogger('phypno')
 from collections import Iterable
 from copy import deepcopy
 
-from numpy import asarray, empty
+from numpy import asarray, empty, linspace
+from scipy.signal import resample
 
 
 class Select:
@@ -105,3 +106,27 @@ class Select:
             output.data[cnt] = data(trial=i, **to_select)
 
         return output
+
+
+class Resample:
+
+    def __init__(self, s_freq=None, axis='time'):
+        self.s_freq = s_freq
+        self.axis = axis
+
+    def __call__(self, data):
+        axis = self.axis
+
+        for i in range(data.number_of('trial')):
+
+            ratio = data.s_freq / self.s_freq
+            n_samples = data.axis[axis][i].shape[0] / ratio
+            data.axis[axis][i] = linspace(data.axis[axis][i][0],
+                                            data.axis[axis][i][-1] +
+                                            1 / data.s_freq,
+                                            n_samples)
+
+            data.data[i] = resample(data.data[i], n_samples, axis=data.index_of(axis))
+            data.s_freq = self.s_freq
+
+        return data

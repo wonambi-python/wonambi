@@ -103,3 +103,13 @@ def test_select_interval_not_in_data():
     assert len(data1.axis['time'][0]) == 0
     assert data1.data[0].shape[1] == 0
     assert data1.data[8].shape[1] == 0
+
+
+def test_resample():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    from phypno.utils import create_data
+    data = create_data(n_trial=10)
+    res = Resample(s_freq=50)
+    data1 = res(data)
+    # test also frequency/power
