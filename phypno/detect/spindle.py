@@ -3,7 +3,6 @@
 """
 from logging import getLogger
 lg = getLogger('phypno')
-lg.setLevel(10)
 
 from numpy import (absolute, arange, argmax, argmin, asarray, diff, exp, expand_dims, hstack, insert,
                    invert, mean, NaN, ones, pi, power, sqrt, std, vstack, where, zeros)
@@ -168,7 +167,30 @@ class DetectSpindle:
                           }
             self.detect = {'data': (None, ),
                            'opt': None,
-                           'method': 'peaks',
+                           'method': 'maxima',
+                           'values': 4
+                           }
+            self.select = {'method': 'troughs',
+                           'values': 1,
+                           }
+            self.duration = {'values': duration,
+                             }
+            self.psd_peak = {'method': 'peak',
+                             'values': 1,
+                             'use': True,
+                             }
+
+        if method == 'housestyle':
+            self.basic = {'data': ('cheby2', 'hilbert', 'abs'),
+                          'opt': frequency,
+                          }
+            self.thres = {'data': (None, ),
+                          'opt': None,
+                          'method': None,
+                          }
+            self.detect = {'data': (None, ),
+                           'opt': None,
+                           'method': 'maxima',
                            'values': 4
                            }
             self.select = {'method': 'troughs',
@@ -205,97 +227,97 @@ class DetectSpindle:
         from visvis import plot
 
         all_spindles = []
-        chan = 'GR1'  # loop over chan
-        lg.info('Detecting spindles on chan %s', chan)
-        time = hstack(data.axis['time'])
-        dat_orig = hstack(data(chan=chan))
+        for chan in data.axis['chan'][0]:
+            lg.info('Detecting spindles on chan %s', chan)
+            time = hstack(data.axis['time'])
+            dat_orig = hstack(data(chan=chan))
 
-        # basic transformation
-        dat_common = transform_signal(dat_orig, data.s_freq,
-                                      self.basic['data'], self.basic['opt'])
+            # basic transformation
+            dat_common = transform_signal(dat_orig, data.s_freq,
+                                          self.basic['data'], self.basic['opt'])
 
-        if make_plots:
-            plot(time, dat_common, ls=':')
-
-        # define thresholds
-        dat_thres = transform_signal(dat_common, data.s_freq,
-                                     self.thres['data'], self.thres['opt'])
-        thres_det, thres_sel = define_thresholds(dat_thres,
-                                                 self.thres['method'])
-
-        # detect spindles
-        dat_detect = transform_signal(dat_common, data.s_freq,
-                                      self.detect['data'], self.detect['opt'])
-        if make_plots:
-            plot(time, dat_detect)
-
-        if self.detect['method'] == 'peaks':
-            det_value = self.detect['values'] * data.s_freq
-        elif self.detect['method'] == 'threshold':
-            if self.thres['method'] in ('mean', 'std'):
-                det_value = self.detect['values'] * thres_det
-            if self.thres['method'] in ('mean+std', ):
-                det_value = thres_det[0] + self.detect['values'] * thres_det[1]
-
-            lg.debug('Thresholds: detection %f', det_value)
             if make_plots:
-                plot((time[0], time[-1]), (det_value, det_value),
-                     lc='r', ls='-')
+                plot(time, dat_common, ls=':')
 
-        events = detect_events(dat_detect, self.detect['method'], det_value)
+            # define thresholds
+            dat_thres = transform_signal(dat_common, data.s_freq,
+                                         self.thres['data'], self.thres['opt'])
+            thres_det, thres_sel = define_thresholds(dat_thres,
+                                                     self.thres['method'])
 
-        if events is not None:
-            lg.info('Number of potential spindles: %d', events.shape[0])
+            # detect spindles
+            dat_detect = transform_signal(dat_common, data.s_freq,
+                                          self.detect['data'], self.detect['opt'])
+            if make_plots:
+                plot(time, dat_detect)
 
-            # select beginning and end
-            if self.select['method'] is None:
-                sel_value = None
-            elif self.select['method'] == 'troughs':
-                sel_value = self.select['values'] * data.s_freq
-            elif self.select['method'] == 'threshold':
+            if self.detect['method'] == 'maxima':
+                det_value = self.detect['values'] * data.s_freq
+            elif self.detect['method'] == 'threshold':
                 if self.thres['method'] in ('mean', 'std'):
-                    sel_value = self.select['values'] * thres_sel
+                    det_value = self.detect['values'] * thres_det
                 if self.thres['method'] in ('mean+std', ):
-                    sel_value = thres_sel[0] + self.select['values'] * thres_sel[1]
-                lg.debug('Thresholds: selection %f', sel_value)
+                    det_value = thres_det[0] + self.detect['values'] * thres_det[1]
 
-            events = select_events(dat_detect, events, self.select['method'],
-                                   sel_value)
+                lg.debug('Thresholds: detection %f', det_value)
+                if make_plots:
+                    plot((time[0], time[-1]), (det_value, det_value),
+                         lc='r', ls='-')
 
-            # apply criteria: duration
-            events = within_duration(events, time, self.duration['values'])
-            lg.debug('Number of spindles with good duration: %d',
-                    events.shape[0])
+            events = detect_events(dat_detect, self.detect['method'], det_value)
 
-            if self.psd_peak['use']:
-                peak_limits = self.frequency
+            if events is not None:
+                lg.info('Number of potential spindles: %d', events.shape[0])
+
+                # select beginning and end
+                if self.select['method'] is None:
+                    sel_value = None
+                elif self.select['method'] == 'troughs':
+                    sel_value = self.select['values'] * data.s_freq
+                elif self.select['method'] == 'threshold':
+                    if self.thres['method'] in ('mean', 'std'):
+                        sel_value = self.select['values'] * thres_sel
+                    if self.thres['method'] in ('mean+std', ):
+                        sel_value = thres_sel[0] + self.select['values'] * thres_sel[1]
+                    lg.debug('Thresholds: selection %f', sel_value)
+
+                events = select_events(dat_detect, events, self.select['method'],
+                                       sel_value)
+
+                # apply criteria: duration
+                events = within_duration(events, time, self.duration['values'])
+                lg.debug('Number of spindles with good duration: %d',
+                        events.shape[0])
+
+                if self.psd_peak['use']:
+                    peak_limits = self.frequency
+                else:
+                    peak_limits = None
+
+                events = peak_in_power(events, dat_orig, data.s_freq,
+                                       self.psd_peak['method'],
+                                       self.psd_peak['values'],
+                                       peak_limits)
+
+                if make_plots:
+                    plot(time[events[:, 0]], dat_detect[events[:, 0]],
+                         ls=None, ms='>', mc='r')
+                    plot(time[events[:, 1]], dat_detect[events[:, 1]],
+                         ls=None, ms='v', mc='r')
+                    plot(time[events[:, 2]], dat_detect[events[:, 2]],
+                         ls=None, ms='<', mc='r')
+
+                sp_in_chan = make_spindles(events, dat_detect, time)
+                lg.info('Number of spindles: %d', len(sp_in_chan))
+
             else:
-                peak_limits = None
+                lg.info('No spindle found')
+                sp_in_chan = []
 
-            events = peak_in_power(events, dat_orig, data.s_freq,
-                                   self.psd_peak['method'],
-                                   self.psd_peak['values'],
-                                   peak_limits)
-
-            if make_plots:
-                plot(time[events[:, 0]], dat_detect[events[:, 0]],
-                     ls=None, ms='>', mc='r')
-                plot(time[events[:, 1]], dat_detect[events[:, 1]],
-                     ls=None, ms='v', mc='r')
-                plot(time[events[:, 2]], dat_detect[events[:, 2]],
-                     ls=None, ms='<', mc='r')
-
-            sp_in_chan = make_spindles(events, dat_detect, time)
-            lg.info('Number of spindles: %d', len(sp_in_chan))
-
-        else:
-            lg.info('No spindle found')
-            sp_in_chan = []
-
-        for sp in sp_in_chan:
-            sp.update({'chan': chan})
-        all_spindles.extend(sp_in_chan)
-        # end of loop over chan
+            for sp in sp_in_chan:
+                sp.update({'chan': chan})
+            all_spindles.extend(sp_in_chan)
+            # end of loop over chan
 
         spindle = Spindles()
         spindle.spindle = all_spindles
@@ -412,8 +434,10 @@ def select_events(dat, detected, method, value):
         detected = _select_period(detected, above_sel)
 
     elif method == 'troughs':
-        detected[:, 0] = detected[:, 1] - value
-        detected[:, 2] = detected[:, 1] + value
+        beg_trough = detected - value
+        end_trough = detected + value
+
+        detected = hstack((beg_trough, detected, end_trough))
 
         good_peaks = (detected[:, 0] >= 0) & (detected[:, 2] < len(dat))
         detected = detected[good_peaks, :].astype(int)
@@ -454,11 +478,11 @@ def peak_in_power(events, dat, s_freq, method, value, limits=None):
                 x1 = i[1]
 
             if x0 < 0 or x1 >= len(dat):
-                i[3] = NaN  # or zero?
-
-            f, Pxx = welch(dat[x0:x1], s_freq, nperseg=s_freq)
-            idx_peak = Pxx[f < MAX_FREQUENCY_OF_INTEREST].argmax()
-            i[3] = f[idx_peak]
+                i[3] = 0  # you cannot use NaN in int numpy
+            else:
+                f, Pxx = welch(dat[x0:x1], s_freq, nperseg=s_freq)
+                idx_peak = Pxx[f < MAX_FREQUENCY_OF_INTEREST].argmax()
+                i[3] = f[idx_peak]
 
         if limits is not None:
             in_limits = ((events[:, 3] >= limits[0]) &
@@ -689,32 +713,3 @@ def ferrarelli_spindle_detection(data):
     return all_spindles
 
 """
-
-from phypno import Dataset
-from phypno.attr import Scores
-
-d = Dataset('/home/gio/recordings/MG72/eeg/raw/xltek/MG72_eeg_xltek_sessA_d09_07_47_00')
-
-
-score = Scores('/home/gio/recordings/MG72/doc/scores/MG72_eeg_xltek_sessA_d09_07_47_00_scores.xml')
-N2_sleep = score.get_epochs(('NREM2', 'NREM3'))
-
-start_time = [x['start_time'] for x in N2_sleep]
-end_time = [x['end_time'] for x in N2_sleep]
-
-data = d.read_data(chan=['GR1', 'GR2'],
-                   begtime=start_time,
-                   endtime=end_time)
-
-
-HP_FILTER = 1
-LP_FILTER = 40
-from phypno.trans import Filter
-hp_filt = Filter(low_cut=HP_FILTER, s_freq=data.s_freq)
-lp_filt = Filter(high_cut=LP_FILTER, s_freq=data.s_freq)
-data = lp_filt(hp_filt(data))
-
-self = DetectSpindle(method='Wamsley2012')
-self.detect['values'] = 3
-sp = self(data, True)
-[x['peak_freq'] for x in sp.spindle]
