@@ -1,8 +1,7 @@
-from test import *
+# from test import *
 
 from sys import path
 path[3] = '/home/gio/tools/detsp'
-
 
 from os.path import join
 data_dir = '/home/gio/tools/phypno/data'

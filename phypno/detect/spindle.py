@@ -504,8 +504,8 @@ def make_spindles(events, dat, time):
         one_spindle = {'start_time': time[i[0]],
                        'end_time': time[i[2]],
                        'peak_time': time[i[1]],
-                       'peak_val': dat[i[0]],
-                       'area_under_curve': sum(dat[i[0]:i[1]]),
+                       'peak_val': dat[i[1]],
+                       'area_under_curve': sum(dat[i[0]:i[2]]),
                        'peak_freq': i[3],
                        }
         spindles.append(one_spindle)
