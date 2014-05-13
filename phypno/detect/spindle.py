@@ -81,34 +81,36 @@ class DetectSpindle:
                 if True, it does not reject spindles, but it only computes fft
 
     """
-    def __init__(self, method='UCSD', frequency=(11, 18),
+    def __init__(self, method='housestyle', frequency=(11, 18),
                  duration=(0.5, 2)):
 
         self.method = method
         self.frequency = frequency
 
         if method == 'housestyle':
-            self.basic = {'data': ('morlet_interval', 'moving_avg'),
-                          'opt': (frequency, 1),
+            self.basic = {'data': ('butter', 'hilbert', 'abs'),
+                          'opt': (frequency, None, None),
                           }
             self.detect = {'data': (None, ),
                            'opt': None,
                            'method': 'maxima',
-                           'values': 1,  # probably 4
+                           'value': 3,
                            }
-            self.select = {'method': 'minima',
-                           'values': 1,
+            self.select = {'data': (None, ),
+                           'opt': None,
+                           'method': 'minima',
+                           'value': 1,
                            }
-            self.duration = {'values': duration,
+            self.duration = {'value': duration,
                              }
             self.psd_peak = {'method': 'peak',
-                             'values': 1,
+                             'value': 1,
                              'use': True,
                              }
 
-        if method == 'Ferrarelli2007':
+        if method == 'Ferrarelli2007':  # to do
             self.basic = {'data': ('cheby2', ),  # not in the paper
-                          'opt': frequency,
+                          'opt': (frequency, ),
                           }
             self.detect = {'data': ('hilbert', 'abs'),
                            'opt': None,
@@ -152,8 +154,8 @@ class DetectSpindle:
                              }
 
         if method == 'UCSD':
-            self.basic = {'data': ('morlet', ),
-                          'opt': (mean(frequency), .5),
+            self.basic = {'data': ('morlet_interval', 'moving_avg'),
+                          'opt': (frequency, 1),  # frequency (9, 20)
                           }
             self.detect = {'method': 'maxima',
                            'values': 4,
@@ -272,7 +274,7 @@ class DetectSpindle:
                                        sel_value)
 
                 # apply criteria: duration
-                events = within_duration(events, time, self.duration['values'])
+                events = within_duration(events, time, self.duration['value'])
                 lg.debug('Number of spindles with good duration: %d',
                         events.shape[0])
 
@@ -283,7 +285,7 @@ class DetectSpindle:
 
                 events = peak_in_power(events, dat_orig, data.s_freq,
                                        self.psd_peak['method'],
-                                       self.psd_peak['values'],
+                                       self.psd_peak['value'],
                                        peak_limits)
 
                 if make_plots:
@@ -466,7 +468,7 @@ def within_duration(events, time, limits):
 
 def peak_in_power(events, dat, s_freq, method, value, limits=None):
 
-    dat = diff(dat)  # remove 1/f
+    # dat = diff(dat)  # remove 1/f
 
     events = insert(events, 3, 0, axis=1)
 

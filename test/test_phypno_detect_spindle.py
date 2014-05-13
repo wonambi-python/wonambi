@@ -33,14 +33,18 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
 
 
 
-self = DetectSpindle(method='Nir2011', frequency=(11, 20), duration=(0.5, 2))
+self = DetectSpindle(method='housestyle', frequency=(11, 18), duration=(0.5, 2))
+
+self.basic = {'data': ('morlet_interval', 'moving_avg'),
+              'opt': ((9, 20), 1)}
+self.psd_peak['use'] = False
+sp = self(data)
+len(sp.spindle)
+
+# peak values are still different
 
 
 dat_orig = data(trial=0, chan='GR1')
-
-
-
-
 
 
 
