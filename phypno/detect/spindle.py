@@ -14,26 +14,7 @@ from phypno.graphoelement import Spindles
 MAX_FREQUENCY_OF_INTEREST = 50
 
 
-class DetectSpindle:
-    """Design spindle detection on a single channel.
-
-    Parameters
-    ----------
-    frequency : tuple of float
-        low and high frequency of the bandpass filter
-    method : str
-        method to detect spindles ('hilbert' or 'wavelet')
-    method_options : dict
-        additional options, depending on method
-    threshold : str
-        typeof threshold ('absolute', 'relative', 'maxima')
-    threshold_options : dict
-        additional options, depending on threshold type
-    criteria : dict
-        additional criteria to apply (see below)
-
-    Notes
-    -----
+"""
     method_options, with method 'hilbert':
         ... (to be filled with info about filter design)
 
@@ -78,7 +59,67 @@ class DetectSpindle:
                 the peak in the power spectrum falls in the frequency range of
                 interest.
             - dryrun : bool, optional (default: False)
-                if True, it does not reject spindles, but it only computes fft
+                if True, it does not reject spindles, but it only computes ff
+"""
+
+class DetectSpindle:
+    """Design spindle detection on a single channel.
+
+    Parameters
+    ----------
+    method : str
+        one of the predefined methods (see below 'housestyle')
+    frequency : tuple of float
+        low and high frequency of spindle band
+    duration : tuple of float
+        min and max duration of spindles
+
+    Notes
+    -----
+    The possible methods are:
+       - 'housestyle': hilbert envelope after bandpass filtering and detection
+                       based on maxima
+       -
+
+
+    If you want to create your own detection method, this is the pipeline:
+
+                   Detection Threshold
+                  /               \
+             BASIC--Transform--DETECT--Events
+            /     \                      \
+        ORIG       \---Transform--------SELECT----Long Events
+            \       \                   /               |
+             \       Selection Threshold                |
+              \                                 Duration Criteria
+               \                                        |
+                \--------------------------------------PSD----> SPINDLES
+
+    with
+        basic['data'] : transformations for futher processing and thresholds
+        basic['opt'] : options for above
+        detect['method'] : method to detect spindles ('maxima',
+                           'threshold_mean', 'threshold_std' or
+                           'threshold_mean+std')
+        detect['value'] : for threshold, one value to multiply the threshold;
+                          for maxima, how many peaks it finds in s
+        detect['data'] : transformations only for detection (not for threshold)
+                         these data are used for peak values and area under
+                         curve
+        detect['opt'] : options for above
+        select['method'] : method to detect spindles ('minima',
+                           'threshold_mean', 'threshold_std' or
+                           'threshold_mean+std')
+        select['value'] : for threshold, one value to multiply the threshold;
+                          for minima, how long the window to detect minima in s
+        select['data'] : transformations only for selection (not for threshold)
+        select['opt'] : options for above
+        duration['value'] : tuple of float for min and max duration
+        psd_peak['method'] : 'peak' (predefined period around the maximum
+                             value) or 'interval' (only the data in the
+                             selection window)
+        psd_peak['value'] : for 'peak', the length of window around peak
+        psd_peak['use'] : if it's used to remove spindles
 
     """
     def __init__(self, method='housestyle', frequency=(11, 18),
@@ -91,15 +132,15 @@ class DetectSpindle:
             self.basic = {'data': ('butter', 'hilbert', 'abs'),
                           'opt': (frequency, None, None),
                           }
-            self.detect = {'data': (None, ),
-                           'opt': None,
-                           'method': 'maxima',
+            self.detect = {'method': 'maxima',
                            'value': 3,
+                           'data': (None, ),
+                           'opt': (None, ),
                            }
-            self.select = {'data': (None, ),
-                           'opt': None,
-                           'method': 'minima',
+            self.select = {'method': 'minima',
                            'value': 1,
+                           'data': (None, ),
+                           'opt': (None, ),
                            }
             self.duration = {'value': duration,
                              }
@@ -108,19 +149,52 @@ class DetectSpindle:
                              'use': True,
                              }
 
-        if method == 'Ferrarelli2007':  # to do
+        if method == 'Nir2011':
+            """Nir, Y. et al. Neuron 70, 153-69 (2011).
+
+
+            This paper also selects channels carefully:
+            'First, the channels with spindle activity in NREM sleep were
+            chosen for further analysis.'
+
+            'Third, those channels, in which an increase in spectral power
+            within the detected events was restricted to the spindle-frequency
+            range (10-16 Hz) rather than broadband.'
+
+            """
+            self.basic = {'data': ('butter', ),
+                          'opt': (frequency, ),
+                          }
+            self.detect = {'method': 'threshold_mean+std',
+                           'value': 3,
+                           'data': ('hilbert', 'abs', 'gaussian'),
+                           'opt': (None, None, 40),
+                           }
+            self.select = {'method': 'threshold_std',
+                           'value': 1,
+                           'data': ('hilbert', 'abs', 'gaussian'),
+                           'opt': (None, None, 40),
+                           }
+            self.duration = {'value': duration,
+                             }
+            self.psd_peak = {'method': 'peak',
+                             'value': 1,
+                             'use': False,
+                             }
+
+        if method == 'Ferrarelli2007':
             self.basic = {'data': ('cheby2', ),  # not in the paper
                           'opt': (frequency, ),
                           }
-            self.detect = {'data': ('hilbert', 'abs'),
-                           'opt': None,
-                           'method': 'threshold_std',
+            self.detect = {'method': 'threshold_std',
                            'values': 8,
-                           }
-            self.select = {'data': ('hilbert', 'abs'),
+                           'data': ('hilbert', 'abs'),
                            'opt': None,
-                           'method': 'threshold_std',
+                           }
+            self.select = {'method': 'threshold_std',
                            'values': 3,
+                           'data': ('hilbert', 'abs'),
+                           'opt': None,
                            }
             self.duration = {'values': duration,
                              }
@@ -128,7 +202,6 @@ class DetectSpindle:
                              'values': 1,
                              'use': False,
                              }
-
 
         if method == 'Wamsley2012':
             self.basic = {'data': ('morlet', 'abs'),
@@ -175,41 +248,11 @@ class DetectSpindle:
                              }
 
 
-
-        if method == 'Nir2011':
-            """                      ORIG
-                                    /    \
-                                 BASIC
-                                /
-                          threshold
-
-            """
-            # they only selected channels that had enough spindle activity
-            self.basic = {'data': ('butter', 'hilbert', 'abs'),
-                          'opt': frequency,
-                          }
-            self.detect = {'method': 'threshold_std',
-                           'value': 3,
-                           'data': ('gaussian', ),  # hardly changes anything
-                           'opt': 40,
-                           }
-            self.select = {'method': 'threshold_std',
-                           'value': 1,
-                           'data': None,
-                           'opt': None,
-                           }
-            self.duration = {'values': duration,
-                             }
-            self.psd_peak = {'method': 'peak',
-                             'value': 1,
-                             'use': False,
-                             }
-
     def __repr__(self):
-        duration = self.duration['values']
+        duration = self.duration['value']
         _repr = ('detsp_{0}_{1:02}-{2:02}Hz_{3:04.1f}-{4:04.1f}s'
-                ''.format(self.method, self.frequency[0], self.frequency[1],
-                          duration[0], duration[1]))
+                 ''.format(self.method, self.frequency[0], self.frequency[1],
+                           duration[0], duration[1]))
         return _repr
 
     def __call__(self, data, make_plots=False):
@@ -309,7 +352,7 @@ class DetectSpindle:
             # end of loop over chan
 
         spindle = Spindles()
-        spindle.spindle = all_spindles
+        spindle.spindle = sorted(all_spindles, key=lambda x: x['start_time'])
 
         return spindle
 
@@ -479,9 +522,9 @@ def peak_in_power(events, dat, s_freq, method, value, limits=None):
                 x0 = i[1] - value / 2 * s_freq
                 x1 = i[1] + value / 2 * s_freq
 
-            elif method == 'window':
+            elif method == 'interval':
                 x0 = i[0]
-                x1 = i[1]
+                x1 = i[2]
 
             if x0 < 0 or x1 >= len(dat):
                 i[3] = 0  # you cannot use NaN in int numpy

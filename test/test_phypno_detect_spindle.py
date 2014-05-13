@@ -30,13 +30,7 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
                          begtime=N2_sleep[0]['start_time'],
                          endtime=N2_sleep[0]['end_time'])
 
-
-
-self = DetectSpindle(method='housestyle', frequency=(11, 18), duration=(0.5, 2))
-
-self.basic = {'data': ('morlet_interval', 'moving_avg'),
-              'opt': ((9, 20), 1)}
-self.psd_peak['use'] = False
+self = DetectSpindle(method='Nir2011', frequency=(10, 16), duration=(0.5, 2))
 sp = self(data)
 len(sp.spindle)
 
