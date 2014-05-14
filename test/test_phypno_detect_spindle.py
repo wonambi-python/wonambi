@@ -1,4 +1,11 @@
-from test import *
+# from test import *
+
+from sys import path
+path[3] = '/home/gio/tools/detsp'
+
+from os.path import join
+data_dir = '/home/gio/tools/phypno/data'
+
 
 from numpy import array
 from numpy.testing import assert_array_equal
@@ -22,6 +29,17 @@ dataset = Dataset(ktlx_dir)
 data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
                          begtime=N2_sleep[0]['start_time'],
                          endtime=N2_sleep[0]['end_time'])
+
+self = DetectSpindle(method='Nir2011', frequency=(10, 16), duration=(0.5, 2))
+sp = self(data)
+len(sp.spindle)
+
+# peak values are still different
+
+
+dat_orig = data(trial=0, chan='GR1')
+
+
 
 
 def test_detect_start_end():
