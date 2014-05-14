@@ -152,7 +152,6 @@ class DetectSpindle:
         if method == 'Nir2011':
             """Nir, Y. et al. Neuron 70, 153-69 (2011).
 
-
             This paper also selects channels carefully:
             'First, the channels with spindle activity in NREM sleep were
             chosen for further analysis.'
@@ -182,28 +181,10 @@ class DetectSpindle:
                              'use': False,
                              }
 
-        if method == 'Ferrarelli2007':
-            self.basic = {'data': ('cheby2', ),  # not in the paper
-                          'opt': (frequency, ),
-                          }
-            self.detect = {'method': 'threshold_std',
-                           'values': 8,
-                           'data': ('hilbert', 'abs'),
-                           'opt': None,
-                           }
-            self.select = {'method': 'threshold_std',
-                           'values': 3,
-                           'data': ('hilbert', 'abs'),
-                           'opt': None,
-                           }
-            self.duration = {'values': duration,
-                             }
-            self.psd_peak = {'method': 'peak',
-                             'values': 1,
-                             'use': False,
-                             }
-
         if method == 'Wamsley2012':
+            """Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
+
+            """
             self.basic = {'data': ('morlet', 'abs'),
                           'opt': (mean(frequency), .5),
                           }
@@ -223,6 +204,27 @@ class DetectSpindle:
                              }
             self.psd_peak = {'method': 'peak',
                              'values': 2,
+                             'use': False,
+                             }
+
+        if method == 'Ferrarelli2007':
+            self.basic = {'data': ('cheby2', ),  # not in the paper
+                          'opt': (frequency, ),
+                          }
+            self.detect = {'method': 'threshold_std',
+                           'values': 8,
+                           'data': ('hilbert', 'abs'),
+                           'opt': None,
+                           }
+            self.select = {'method': 'threshold_std',
+                           'values': 3,
+                           'data': ('hilbert', 'abs'),
+                           'opt': None,
+                           }
+            self.duration = {'values': duration,
+                             }
+            self.psd_peak = {'method': 'peak',
+                             'values': 1,
                              'use': False,
                              }
 
@@ -267,12 +269,6 @@ class DetectSpindle:
         -------
         instance of graphoelement.Spindles
             description of the detected spindles
-
-
-        OLD:
-        hilbert == ('butter', 'hilbert', 'abs')
-        relative == 'threshold_mean+std'
-
 
         """
         if make_plots:
