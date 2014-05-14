@@ -118,10 +118,10 @@ class Resample:
         axis = self.axis
 
         data = deepcopy(data)
+        ratio = data.s_freq / self.s_freq
 
         for i in range(data.number_of('trial')):
 
-            ratio = data.s_freq / self.s_freq
             n_samples = data.axis[axis][i].shape[0] / ratio
             data.axis[axis][i] = linspace(data.axis[axis][i][0],
                                           data.axis[axis][i][-1] +
