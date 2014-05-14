@@ -4,8 +4,9 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import (absolute, arange, argmax, argmin, asarray, diff, exp, empty, expand_dims, hstack, insert,
-                   invert, mean, NaN, ones, pi, power, sqrt, std, vstack, where, zeros)
+from numpy import (absolute, arange, argmax, argmin, asarray, diff, exp, empty,
+                   expand_dims, hstack, insert, invert, mean, ones, pi, power,
+                   sqrt, std, vstack, where, zeros)
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           gaussian, hilbert, welch)
 
@@ -13,54 +14,6 @@ from phypno.graphoelement import Spindles
 
 MAX_FREQUENCY_OF_INTEREST = 50
 
-
-"""
-    method_options, with method 'hilbert':
-        ... (to be filled with info about filter design)
-
-    method_options, with method 'wavelet':
-        - detect_wavelet : dict
-            Options to pass to wavelet used for detection (see TimeFreq)
-        - detect_smoothing : dict, optional
-            - window : str
-                window used for smoothing of the wavelet
-            - length : float
-                length, in s, of window which runs over wavelet
-            (if not specified, it doesn't run)
-        - select_wavelet : dict, optional
-            Options to pass to wavelet used for selection (see TimeFreq)
-            (if not specified, uses detection_wavelet)
-        - select_smoothing : dict, optional
-            (if not specified, uses detection_smoothing)
-            - window : str
-                window used for smoothing of the wavelet
-            - length : float
-                length, in s, of window which runs over wavelet
-
-    threshold_options, with threshold 'absolute' or 'relative'""
-        - detection_value : float
-            the value used for the detection threhsold
-        - selection_value : float, optional
-            the value used to calculate the start and end of the spindle
-
-    threshold_options, with threshold 'maxima':
-        - peak_width : float
-            search area in s to identify peaks (the lower, the fewer the peaks)
-        - select_width : float
-            search area in s before and after a peak to identify beginning and
-            end of the spindle
-
-    criteria
-        - duration : tuple of float
-            minimal and maximal duration in s to be considered a spindle
-        - peak_in_fft : dict
-            - length : float
-                duration of the time window, around the peak, to calculate if
-                the peak in the power spectrum falls in the frequency range of
-                interest.
-            - dryrun : bool, optional (default: False)
-                if True, it does not reject spindles, but it only computes ff
-"""
 
 class DetectSpindle:
     """Design spindle detection on a single channel.
@@ -249,7 +202,6 @@ class DetectSpindle:
                              'use': True,
                              }
 
-
     def __repr__(self):
         duration = self.duration['value']
         _repr = ('detsp_{0}_{1:02}-{2:02}Hz_{3:04.1f}-{4:04.1f}s'
@@ -282,7 +234,8 @@ class DetectSpindle:
 
             # basic transformation
             dat_common = transform_signal(dat_orig, data.s_freq,
-                                          self.basic['data'], self.basic['opt'])
+                                          self.basic['data'],
+                                          self.basic['opt'])
 
             if make_plots:
                 plot(time, dat_common, ls=':')
@@ -294,8 +247,10 @@ class DetectSpindle:
 
             # DETECTION
             dat_detect = transform_signal(dat_common, data.s_freq,
-                                          self.detect['data'], self.detect['opt'])
-            events = detect_events(dat_detect, self.detect['method'], det_value)
+                                          self.detect['data'],
+                                          self.detect['opt'])
+            events = detect_events(dat_detect, self.detect['method'],
+                                   det_value)
 
             if events is not None:
                 lg.info('Number of potential spindles: %d', events.shape[0])
@@ -309,13 +264,13 @@ class DetectSpindle:
                 dat_select = transform_signal(dat_common, data.s_freq,
                                               self.select['data'],
                                               self.select['opt'])
-                events = select_events(dat_select, events, self.select['method'],
-                                       sel_value)
+                events = select_events(dat_select, events,
+                                       self.select['method'], sel_value)
 
                 # apply criteria: duration
                 events = within_duration(events, time, self.duration['value'])
                 lg.debug('Number of spindles with good duration: %d',
-                        events.shape[0])
+                         events.shape[0])
 
                 if self.psd_peak['use']:
                     peak_limits = self.frequency
@@ -335,7 +290,8 @@ class DetectSpindle:
                     plot(time[events[:, 2]], dat_detect[events[:, 2]],
                          ls=None, ms='<', mc='r')
 
-                sp_in_chan = make_spindles(events, dat_detect, time)
+                sp_in_chan = make_spindles(events, dat_detect, time,
+                                           data.s_freq)
                 lg.info('Number of spindles: %d', len(sp_in_chan))
 
             else:
@@ -506,7 +462,29 @@ def within_duration(events, time, limits):
 
 
 def peak_in_power(events, dat, s_freq, method, value, limits=None):
+    """Define peak in power of the signal.
 
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    dat : ndarray (dtype='float')
+        vector with the original data
+    s_freq : float
+        sampling frequency
+    method : str
+        'peak' or 'interval'
+    value : float
+        size of the window around peak, or nothing (for 'interval')
+    limits : tuple of float
+        if not None, keep only spindles with psd peak within limits
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 4 matrix with start, peak, end samples, and peak frequency
+
+    """
     # dat = diff(dat)  # remove 1/f
 
     events = insert(events, 3, 0, axis=1)
@@ -537,7 +515,28 @@ def peak_in_power(events, dat, s_freq, method, value, limits=None):
     return events
 
 
-def make_spindles(events, dat, time):
+def make_spindles(events, dat, time, s_freq):
+    """Create dict for each spindle, based on events of time points.
+
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 4 matrix with start, peak, end samples, and peak frequency
+    dat : ndarray (dtype='float')
+        vector with the data after detection-transformation (to compute peak)
+    time : ndarray (dtype='float')
+        vector with time points
+    s_freq : float
+        sampling frequency
+
+    Returns
+    -------
+    list of dict
+        list of all the spindles, with information about start_time, peak_time,
+        end_time (s), peak_val (signal units), area_under_curve
+        (signal units * s), peak_freq (Hz)
+
+    """
     spindles = []
     for i in events:
         one_spindle = {'start_time': time[i[0]],
@@ -594,7 +593,7 @@ def _select_period(detected, true_values):
 
     Returns
     -------
-    detected : ndarray (dtype='int')
+    ndarray (dtype='int')
         2 x N matrix with starting and ending times, but these periods are
         usually larger than those of the input, because the selection window is
         usually more lenient (lower threshold) than the detection window.
@@ -609,7 +608,7 @@ def _select_period(detected, true_values):
             one_spindle[0] = start_sel[-1]
 
         # get the last time point when it stays above selection thres
-        #TODO: check if accurate
+        # TODO: check if accurate
         end_sel = where(true_values[one_spindle[2]:])[0]
         if end_sel.any():
             one_spindle[2] += end_sel[0]
