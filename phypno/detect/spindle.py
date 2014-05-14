@@ -455,6 +455,23 @@ def select_events(dat, detected, method, value):
 
 
 def within_duration(events, time, limits):
+    """Check whether spindle is within time limits.
+
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    time : ndarray (dtype='float')
+        vector with time points
+    limits : tuple of float
+        low and high limit for spindle duration
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+
+    """
     min_dur = time[events[:, 2] - 1] - time[events[:, 0]] >= limits[0]
     max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
 
@@ -543,7 +560,7 @@ def make_spindles(events, dat, time, s_freq):
                        'end_time': time[i[2]],
                        'peak_time': time[i[1]],
                        'peak_val': dat[i[1]],
-                       'area_under_curve': sum(dat[i[0]:i[2]]),
+                       'area_under_curve': sum(dat[i[0]:i[2]]) / s_freq,
                        'peak_freq': i[3],
                        }
         spindles.append(one_spindle)
