@@ -1,15 +1,11 @@
 # from test import *
 
-from sys import path
-path[3] = '/home/gio/tools/detsp'
-
 from os.path import join
 data_dir = '/home/gio/tools/phypno/data'
 
 
 from numpy import array
 from numpy.testing import assert_array_equal
-
 
 from phypno import Dataset
 from phypno.attr import Scores
@@ -30,9 +26,29 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
                          begtime=N2_sleep[0]['start_time'],
                          endtime=N2_sleep[0]['end_time'])
 
-self = DetectSpindle(method='Nir2011', frequency=(10, 16), duration=(0.5, 2))
-sp = self(data)
+
+
+from pickle import load
+
+with open('/home/gio/orig.pkl', 'rb') as f:
+    data0 = load(f)
+with open('/home/gio/resampled.pkl', 'rb') as f:
+    data1 = load(f)
+
+
+
+detsp = DetectSpindle(method='housestyle', frequency=(10, 16), duration=(0.5, 2))
+sp = detsp(data1)
 len(sp.spindle)
+
+from phypno.trans import Resample
+res = Resample(s_freq=100)
+data1 = res(data)
+sp1 = detsp(data1)
+len(sp1.spindle)
+
+
+
 
 # peak values are still different
 

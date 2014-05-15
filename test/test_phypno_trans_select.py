@@ -115,7 +115,7 @@ def test_resample():
     data.data[0][0, :] = sin(80 * 2 * pi * data.axis['time'][0])
 
     NEW_FREQ = 100
-    res = Resample(s_freq=100)
+    res = Resample(s_freq=NEW_FREQ)
     data1 = res(data)
     assert data.s_freq == NEW_FREQ
     assert data.data[0].shape[1] == data.number_of('time')[0]

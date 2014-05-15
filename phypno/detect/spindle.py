@@ -429,7 +429,17 @@ def detect_events(dat, method, value=None):
 
 
 def select_events(dat, detected, method, value):
+    """Select duration of the events.
 
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
+        vector with the data after selection-transformation
+    detected : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+
+
+    """
     if method == 'threshold':
         above_sel = dat >= value
         detected = _select_period(detected, above_sel)
@@ -502,7 +512,7 @@ def peak_in_power(events, dat, s_freq, method, value, limits=None):
         N x 4 matrix with start, peak, end samples, and peak frequency
 
     """
-    # dat = diff(dat)  # remove 1/f
+    dat = diff(dat)  # remove 1/f
 
     events = insert(events, 3, 0, axis=1)
 
@@ -579,7 +589,7 @@ def _detect_start_end(true_values):
     Returns
     -------
     ndarray (dtype='int')
-        2 x N matrix with starting and ending times.
+        N x 2 matrix with starting and ending times.
 
     """
     neg = zeros((1), dtype='bool')
@@ -604,14 +614,14 @@ def _select_period(detected, true_values):
     Parameters
     ----------
     detected : ndarray (dtype='int')
-        3 x N matrix with starting and ending times.
+        N x 3 matrix with starting and ending times.
     true_values : ndarray (dtype='bool')
         array with bool values
 
     Returns
     -------
     ndarray (dtype='int')
-        2 x N matrix with starting and ending times, but these periods are
+        N x 2 matrix with starting and ending times, but these periods are
         usually larger than those of the input, because the selection window is
         usually more lenient (lower threshold) than the detection window.
 
