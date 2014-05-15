@@ -122,7 +122,7 @@ class DetectSpindle:
                            'data': ('hilbert', 'abs', 'gaussian'),
                            'opt': (None, None, 40),
                            }
-            self.select = {'method': 'threshold_std',
+            self.select = {'method': 'threshold_mean+std',
                            'value': 1,
                            'data': ('hilbert', 'abs', 'gaussian'),
                            'opt': (None, None, 40),
@@ -148,15 +148,15 @@ class DetectSpindle:
             self.detect = {'data': ('movingavg', ),
                            'opt': 0.1,
                            'method': 'threshold',
-                           'values': 4.5,
+                           'value': 4.5,
                            }
             self.select = {'method': None,
-                           'values': None,
+                           'value': None,
                            }
-            self.duration = {'values': duration,
+            self.duration = {'value': duration,
                              }
             self.psd_peak = {'method': 'peak',
-                             'values': 2,
+                             'value': 2,
                              'use': False,
                              }
 
@@ -165,19 +165,19 @@ class DetectSpindle:
                           'opt': (frequency, ),
                           }
             self.detect = {'method': 'threshold_std',
-                           'values': 8,
+                           'value': 8,
                            'data': ('hilbert', 'abs'),
                            'opt': None,
                            }
             self.select = {'method': 'threshold_std',
-                           'values': 3,
+                           'value': 3,
                            'data': ('hilbert', 'abs'),
                            'opt': None,
                            }
-            self.duration = {'values': duration,
+            self.duration = {'value': duration,
                              }
             self.psd_peak = {'method': 'peak',
-                             'values': 1,
+                             'value': 1,
                              'use': False,
                              }
 
@@ -226,8 +226,15 @@ class DetectSpindle:
         if make_plots:
             from visvis import plot
 
+        spindle = Spindles()
+        spindle.chan_name = data.axis['chan'][0]
+        spindle.mean = zeros(data.number_of('chan')[0])
+        spindle.std = zeros(data.number_of('chan')[0])
+        spindle.det_value = zeros(data.number_of('chan')[0])
+        spindle.sel_value = zeros(data.number_of('chan')[0])
+
         all_spindles = []
-        for chan in data.axis['chan'][0]:
+        for i, chan in enumerate(data.axis['chan'][0]):
             lg.info('Detecting spindles on chan %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
@@ -244,6 +251,7 @@ class DetectSpindle:
             det_value = define_threshold(dat_common, data.s_freq,
                                          self.detect['method'],
                                          self.detect['value'])
+            spindle.det_value[i] = det_value
 
             # DETECTION
             dat_detect = transform_signal(dat_common, data.s_freq,
@@ -252,6 +260,10 @@ class DetectSpindle:
             events = detect_events(dat_detect, self.detect['method'],
                                    det_value)
 
+            spindle.mean[i] = mean(dat_detect)
+            spindle.std[i] = std(dat_detect)
+
+            sel_value = None
             if events is not None:
                 lg.info('Number of potential spindles: %d', events.shape[0])
 
@@ -259,6 +271,7 @@ class DetectSpindle:
                 sel_value = define_threshold(dat_common, data.s_freq,
                                              self.select['method'],
                                              self.select['value'])
+                spindle.sel_value[i] = sel_value
 
                 # SELECTION
                 dat_select = transform_signal(dat_common, data.s_freq,
@@ -303,7 +316,6 @@ class DetectSpindle:
             all_spindles.extend(sp_in_chan)
             # end of loop over chan
 
-        spindle = Spindles()
         spindle.spindle = sorted(all_spindles, key=lambda x: x['start_time'])
 
         return spindle

@@ -21,6 +21,14 @@ class Spindles:
     ----------
     chan_name : ndarray (dtype='U')
         list of channels
+    mean : ndarray (dtype='float')
+        mean of each channel
+    std : ndarray (dtype='float')
+        standard deviation of each channel
+    det_value : ndarray (dtype='float')
+        value used for detection for each channel
+    sel_value : ndarray (dtype='float')
+        value used for selection for each channel
     spindle : list of dict
         list of spindles, where each spindle contains:
             - start_time : float
@@ -33,10 +41,15 @@ class Spindles:
                 the highest value
             - chan': str
                 channel label
-                
+
     """
     def __init__(self):
         self.chan_name = None
+        self.mean = None
+        self.std = None
+        self.det_value = None
+        self.sel_value = None
+
         self.spindle = []
         one_spindle = {'start_time': None,
                        'end_time': None,
@@ -45,4 +58,3 @@ class Spindles:
                        'peak_time': None,
                        }
         self.spindle.append(one_spindle)
-        
