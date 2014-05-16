@@ -19,14 +19,22 @@ def test_import_freesurfer_LUT_01():
     import_freesurfer_LUT()
 
 
+@raises(OSError)
 def test_import_freesurfer_LUT_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    del environ['FREESURFER_HOME']
+    import_freesurfer_LUT()
+
+
+def test_import_freesurfer_LUT_03():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     import_freesurfer_LUT(join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
 
 
 @raises(FileNotFoundError)
-def test_import_freesurfer_LUT_03():
+def test_import_freesurfer_LUT_04():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     import_freesurfer_LUT(join(data_dir, 'does_not_exist'))

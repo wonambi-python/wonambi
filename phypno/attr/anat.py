@@ -11,7 +11,7 @@ from os.path import exists, join, basename, splitext
 from struct import unpack
 
 try:
-    from nibabel.freesurfer import load
+    from nibabel.freesurfer import load, read_annot
 except ImportError:
     lg.warning('nibabel (optional dependency) is not installed. You will not '
                'be able to read Freesurfer annotations and segmentations.')
@@ -115,9 +115,8 @@ def import_freesurfer_LUT(fs_lut=None):
         try:
             fs_home = environ['FREESURFER_HOME']
         except KeyError:
-            raise EnvironmentError('Freesurfer is not installed or '
-                                   'FREESURFER_HOME is not defined as '
-                                   'environmental variable')
+            raise OSError('Freesurfer is not installed or FREESURFER_HOME is '
+                          'not defined as environmental variable')
         else:
             fs_lut = join(fs_home, 'FreeSurferColorLUT.txt')
             lg.info('Reading lookuptable in FREESURFER_HOME {}'.format(fs_lut))
@@ -255,7 +254,7 @@ class Freesurfer:
         for approx in range(max_approx + 1):
             lg.debug('Trying approx {} out of {}'.format(approx, max_approx))
             regions = _find_neighboring_regions(pos, mri_dat,
-                                                     self.lookuptable, approx)
+                                                self.lookuptable, approx)
             if regions:
                 break
 

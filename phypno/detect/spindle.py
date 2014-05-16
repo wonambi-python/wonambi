@@ -322,9 +322,11 @@ class DetectSpindle:
 
 
 def transform_signal(dat, s_freq, method, opt=None):
-    """
+    """Transform the data using different methods.
 
-    dat : ndarray
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
         vector with all the data for one channel
     s_freq : float
         sampling frequency
@@ -334,6 +336,11 @@ def transform_signal(dat, s_freq, method, opt=None):
         if method is 'cheby2' or 'butter', the two frequency bands of interest;
         if method is 'wavelet', the first value is the center frequency, the
         second is the standard deviation in Hz.
+
+    Returns
+    -------
+    ndarray (dtype='float')
+        vector with all the data for one channel
 
     Notes
     -----
