@@ -1,5 +1,6 @@
 from inspect import stack
 from logging import getLogger, DEBUG, INFO
+from nose.plugins.attrib import attr
 from nose.tools import raises
 from os.path import abspath, join
 from numpy.testing import assert_array_equal, assert_almost_equal

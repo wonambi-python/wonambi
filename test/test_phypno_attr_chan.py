@@ -44,6 +44,8 @@ def test_convert_unit():
     assert unit == 'mV'
     unit = _convert_unit('mVolt')
     assert unit == 'mV'
+    unit = _convert_unit('mV')
+    assert unit == 'mV'
 
 
 def test_Chan_01():
@@ -77,7 +79,7 @@ def test_Channels_01():
 def test_Channels_02():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
-    assert ch.n_chan() == 103
+    assert ch.n_chan == 103
     assert_array_equal(ch.return_xyz(['FPS1']),
                        array([[-19.29,  67.92,  20.56]]))
     ch.export(join(temp_dir, 'elec_file.csv'))
@@ -116,7 +118,7 @@ def test_Channels_05():
 def test_Channels_06():
     lg.info('---\nfunction: ' + stack()[0][3])
     labels = ch.return_label()
-    assert len(labels) == ch.n_chan()
+    assert len(labels) == ch.n_chan
 
 
 @raises(TypeError)
@@ -150,6 +152,7 @@ def test_Channels_11():
     assert region[1] is None
 
 
+@attr('slow')
 def test_assign_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
@@ -159,6 +162,7 @@ def test_assign_region_01():
     assert neuroport == 'ctx-lh-rostralmiddlefrontal'
 
 
+@attr('slow')
 def test_find_chan_in_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
