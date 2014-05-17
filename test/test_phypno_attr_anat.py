@@ -22,7 +22,7 @@ def test_import_freesurfer_LUT_02():
     lg.info('---\nfunction: ' + stack()[0][3])
     del environ['FREESURFER_HOME']
     import_freesurfer_LUT()
-
+    environ['FREESURFER_HOME'] = FREESURFER_HOME
 
 def test_import_freesurfer_LUT_03():
     lg.info('---\nfunction: ' + stack()[0][3])

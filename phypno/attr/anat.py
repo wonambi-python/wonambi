@@ -212,7 +212,8 @@ class Freesurfer:
             lut = import_freesurfer_LUT(fs_lut)
             self.lookuptable = {'index': lut[0], 'label': lut[1],
                                 'RGBA': lut[2]}
-        except (IOError, OSError):  # IOError for 2.7, OSError for 3.3
+        except OSError:
+            self.lookuptable = None
             lg.warning('Could not find lookup table, some functions that rely '
                        'on it might complain or crash.')
 
