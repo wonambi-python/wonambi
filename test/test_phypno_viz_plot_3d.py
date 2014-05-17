@@ -27,6 +27,7 @@ def test_viz_plot_chan_and_surf():
     plot_surf(surf, fig)
 
 
+@attr('slow')
 def test_viz_plot_values_on_surf():
     lg.info('---\nfunction: ' + stack()[0][3])
 

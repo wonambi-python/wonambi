@@ -3,7 +3,7 @@ from logging import getLogger, DEBUG, INFO
 from nose.plugins.attrib import attr
 from nose.tools import raises
 from os.path import abspath, join
-from numpy.testing import assert_array_equal, assert_almost_equal
+from numpy.testing import assert_array_equal, assert_almost_equal, assert_array_almost_equal
 from subprocess import check_output
 
 lg = getLogger('phypno')

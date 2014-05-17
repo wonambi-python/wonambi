@@ -73,7 +73,7 @@ def test_convolution_01():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     tapering = Convolve(window='boxcar', length=1, s_freq=data.s_freq)
-    fdata, d = tapering(data)
+    fdata = tapering(data)
     assert data.data[0].shape == fdata.data[0].shape
 
     # check that the values have the same magnitude
@@ -95,7 +95,7 @@ def test_convolution_chantimefreq():
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)
-    fdata, d = tapering(data)
+    fdata = tapering(data)
     assert data.data[0].shape == fdata.data[0].shape
 
     # check that running one channel is identical to the Convolve class
@@ -112,7 +112,7 @@ def test_convolution_chantimefreq_another_dim():
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)
-    fdata, d = tapering(data, axis='freq')
+    fdata = tapering(data, axis='freq')
     assert data.data[0].shape == fdata.data[0].shape
 
     CHAN = data.axis['chan'][0][-1]
@@ -129,7 +129,7 @@ def test_convolution_chantimefreq_another_dim_fail():
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)
-    fdata, d = tapering(data, axis='freq')
+    fdata = tapering(data, axis='freq')
     assert data.data[0].shape == fdata.data[0].shape
 
     # this should fail, convolve is on freq, but here we convolve on time axis

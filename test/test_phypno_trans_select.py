@@ -3,6 +3,7 @@ from . import *
 from os.path import join
 
 from numpy import sum, sin, pi
+from scipy.signal import welch
 
 from phypno import Dataset
 from phypno.trans import Select, Resample
@@ -112,12 +113,12 @@ def test_resample():
 
     data = create_data(n_trial=1, n_chan=1)
 
-    data.data[0][0, :] = sin(80 * 2 * pi * data.axis['time'][0])
+    data.data[0][0, :] = sin(20 * 2 * pi * data.axis['time'][0])
 
     NEW_FREQ = 100
     res = Resample(s_freq=NEW_FREQ)
     data1 = res(data)
-    assert data.s_freq == NEW_FREQ
+    assert float(data1.s_freq) == float(NEW_FREQ)
     assert data.data[0].shape[1] == data.number_of('time')[0]
 
     f, Pxx = welch(data(trial=0, chan=data.axis['chan'][0]),
