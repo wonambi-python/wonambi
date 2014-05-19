@@ -1,5 +1,5 @@
 from inspect import stack
-from logging import getLogger, DEBUG, INFO
+from logging import getLogger, DEBUG, INFO, WARNING, CRITICAL
 from nose.plugins.attrib import attr
 from nose.tools import raises
 from os.path import abspath, join

@@ -3,8 +3,6 @@
 from logging import getLogger, DEBUG, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
-lg.setLevel(DEBUG)
-
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
 DATE_FORMAT = '%H:%M:%S'
 
@@ -473,6 +471,8 @@ if __name__ == '__main__':
         standalone = True
     except RuntimeError:
         standalone = False
+
+    lg.setLevel(DEBUG)
 
     q = MainWindow()
     q.show()

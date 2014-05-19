@@ -95,3 +95,4 @@ def test_scroll_data_edf():
 
 
 def test_read_scores():
+    lg.info('---\nfunction: ' + stack()[0][3])

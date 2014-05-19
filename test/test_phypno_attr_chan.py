@@ -1,5 +1,6 @@
 from . import *
 
+from os import environ
 from os.path import join
 from numpy import array
 from numpy.random import random
@@ -16,6 +17,9 @@ elec_file = join(data_dir, 'MGXX/doc/elec/elec_pos_adjusted.csv')
 random_file = join(data_dir, 'MGXX/doc/wiki/xltek_datasets')
 
 mu = '\N{GREEK SMALL LETTER MU}'
+
+
+FREESURFER_HOME = environ['FREESURFER_HOME']
 
 
 def test_detect_format_01():
@@ -156,7 +160,7 @@ def test_Channels_11():
 def test_assign_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
-    fs = Freesurfer(fs_dir)
+    fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
     ch = assign_region_to_channels(ch, fs)
     neuroport = ch(lambda x: x.label == 'neuroport').chan[0].attr['region']
     assert neuroport == 'ctx-lh-rostralmiddlefrontal'
@@ -166,6 +170,6 @@ def test_assign_region_01():
 def test_find_chan_in_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
-    fs = Freesurfer(fs_dir)
+    fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
     cing_chan = find_chan_in_region(ch, fs, 'cingulate')
     assert cing_chan == ['LOF1', 'LOF2', 'LAF1', 'LAF2', 'LMF2']
