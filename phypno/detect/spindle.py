@@ -75,8 +75,12 @@ class DetectSpindle:
         psd_peak['use'] : if it's used to remove spindles
 
     """
-    def __init__(self, method='housestyle', frequency=(11, 18),
-                 duration=(0.5, 2)):
+    def __init__(self, method='housestyle', frequency=None, duration=None):
+
+        if frequency is None:
+            frequency = (11, 18)
+        if duration is None:
+            duration = (0.5, 2)
 
         self.method = method
         self.frequency = frequency
@@ -186,19 +190,19 @@ class DetectSpindle:
                           'opt': (frequency, 1),  # frequency (9, 20)
                           }
             self.detect = {'method': 'maxima',
-                           'values': 4,
+                           'value': 4,
                            'data': (None, ),
                            'opt': None,
                            }
             self.select = {'method': 'minima',
-                           'values': 1,
+                           'value': 1,
                            'data': (None, ),
                            'opt': None,
                            }
-            self.duration = {'values': duration,
+            self.duration = {'value': duration,
                              }
             self.psd_peak = {'method': 'peak',
-                             'values': 1,
+                             'value': 1,
                              'use': True,
                              }
 
