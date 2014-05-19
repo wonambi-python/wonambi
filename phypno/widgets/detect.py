@@ -4,7 +4,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from numpy import asarray, max, abs, where
+from numpy import max, abs, where
 from PySide.QtCore import Qt
 from PySide.QtGui import (QBrush,
                           QColor,
@@ -163,7 +163,7 @@ class Detect(QWidget):
         self.idx_max_dur.setText(str(self.detfun.duration['value'][1]))
 
     def run_detect(self):
-
+        """Detect graphoelements, based on info in widget."""
         # update GUI with most current info and create functions for detection
         self.update_detect()
 

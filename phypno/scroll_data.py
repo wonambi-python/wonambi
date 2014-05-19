@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from logging import getLogger, DEBUG, StreamHandler, Formatter
+from logging import getLogger, DEBUG, INFO, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
@@ -472,7 +472,7 @@ if __name__ == '__main__':
     except RuntimeError:
         standalone = False
 
-    lg.setLevel(DEBUG)
+    lg.setLevel(INFO)
 
     q = MainWindow()
     q.show()

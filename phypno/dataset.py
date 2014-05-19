@@ -1,14 +1,13 @@
 """Module has information about the datasets, not data.
 
 """
-from __future__ import division
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
 from os.path import isdir, join
 
-from numpy import arange, asarray, empty, float64
+from numpy import arange, asarray, empty, int64
 
 from .ioeeg import Edf, Ktlx, BlackRock
 from .datatype import ChanTime
@@ -24,7 +23,7 @@ def _convert_time_to_sample(abs_time, dataset):
     Parameters
     ----------
     abs_time : dat
-        if it's int, it's assumed it's s;
+        if it's int or float, it's assumed it's s;
         if it's datedelta, it's assumed from the start of the recording;
         if it's datetime, it's assumed it's absolute time.
     dataset : instance of phypno.Dataset
@@ -38,12 +37,19 @@ def _convert_time_to_sample(abs_time, dataset):
     """
     if isinstance(abs_time, datetime):
         abs_time = abs_time - dataset.header['start_time']
-    if type(abs_time) in (int, float) or isinstance(abs_time, float64):
-        abs_time = timedelta(seconds=abs_time)
-    if isinstance(abs_time, timedelta):
-        sample = ceil(abs_time.total_seconds() *
-                      dataset.header['s_freq'])
-    return int(sample)
+
+    if not isinstance(abs_time, timedelta):
+        try:
+            abs_time = timedelta(seconds=abs_time)
+        except TypeError as err:
+            if isinstance(abs_time, int64):
+                # timedelta and int64: http://bugs.python.org/issue5476
+                abs_time = timedelta(seconds=int(abs_time))
+            else:
+                raise err
+
+    sample = int(ceil(abs_time.total_seconds() * dataset.header['s_freq']))
+    return sample
 
 
 def detect_format(filename):
