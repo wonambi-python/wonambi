@@ -8,7 +8,7 @@ from math import ceil
 from logging import getLogger
 from os.path import isdir, join
 
-from numpy import arange, asarray, empty
+from numpy import arange, asarray, empty, float64
 
 from .ioeeg import Edf, Ktlx, BlackRock
 from .datatype import ChanTime
@@ -38,7 +38,7 @@ def _convert_time_to_sample(abs_time, dataset):
     """
     if isinstance(abs_time, datetime):
         abs_time = abs_time - dataset.header['start_time']
-    if type(abs_time) in (int, float):
+    if type(abs_time) in (int, float) or isinstance(abs_time, float64):
         abs_time = timedelta(seconds=abs_time)
     if isinstance(abs_time, timedelta):
         sample = ceil(abs_time.total_seconds() *

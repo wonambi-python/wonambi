@@ -19,6 +19,7 @@ from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
 
+from numpy import arange
 from PySide.QtCore import Qt
 from PySide.QtGui import (QAction,
                           QApplication,
@@ -322,9 +323,9 @@ class MainWindow(QMainWindow):
         if length is None or length > self.overview.maximum:
             length = self.overview.maximum
 
-        steps = list(range(self.overview.window_start,
-                           self.overview.window_start + length,
-                           self.preferences.values['utils/read_intervals']))
+        steps = arange(self.overview.window_start,
+                       self.overview.window_start + length,
+                       self.preferences.values['utils/read_intervals'])
         one_chan = dataset.header['chan_name'][0]
         for begtime, endtime in zip(steps[:-1], steps[1:]):
             dataset.read_data(chan=[one_chan],

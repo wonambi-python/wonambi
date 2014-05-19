@@ -12,6 +12,7 @@ scores_file = join(data_dir, 'MGXX/doc/scores',
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 
 app = QApplication([])
+# or %gui qt
 
 
 def test_scroll_data_ktlx():
@@ -29,7 +30,9 @@ def test_scroll_data_ktlx():
     # move to the next page
     q.action['page_next'].trigger()
 
-    q.stages.update_stages(scores_file)
+    q.stages.action_open_predefined_stages()
+
+    # q.stages.update_stages(scores_file)
 
     # close window
     q.action['close_wndw'].trigger()
@@ -40,9 +43,10 @@ def test_scroll_data_edf():
 
     q = MainWindow()
     q.action_open_rec(edf_file)
+    q.info.dataset.header['s_freq'] = 512
 
     # select some channels
-    q.channels.highlight_channels(q.channels.idx_l0, ['GR1', 'GR2'])
+    q.channels.highlight_channels(q.channels.idx_l0, ['LOF1', 'LOF2'])
 
     # click on "apply"
     q.channels.apply_changes()
@@ -67,5 +71,27 @@ def test_scroll_data_edf():
 
     q.action_X_length(30)
 
+    q.action_Y_more()
+    q.action_Y_less()
+
+    q.action_Y_ampl(10)
+
+    q.action_Y_wider()
+    q.action_Y_tighter()
+
+    q.action_Y_dist(10)
+
+    q.action_download(10)
+    q.action_download(1000000)
+
+    q.toggle_menu_window('Video', q.idx_docks['Video'])  # set visible
+    q.toggle_menu_window('Video', q.idx_docks['Video'])  # set invisible
+
+    q.open_preferences()
+    q.preferences.hide()
+
     # close window
     q.action['close_wndw'].trigger()
+
+
+def test_read_scores():

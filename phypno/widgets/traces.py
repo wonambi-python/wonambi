@@ -147,8 +147,6 @@ class Traces(QGraphicsView):
         Not very robust, because it uses seconds as integers.
 
         """
-        self.data.start_time
-
         min_time = int(floor(min(self.data.axis['time'][0])))
         max_time = int(ceil(max(self.data.axis['time'][0])))
 
