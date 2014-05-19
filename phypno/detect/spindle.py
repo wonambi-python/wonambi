@@ -86,7 +86,7 @@ class DetectSpindle:
         self.frequency = frequency
 
         if method == 'housestyle':
-            self.basic = {'data': ('butter', 'hilbert', 'abs'),
+            self.basic = {'data': ('cheby2', 'hilbert', 'abs'),
                           'opt': (frequency, None, None),
                           }
             self.detect = {'method': 'maxima',
