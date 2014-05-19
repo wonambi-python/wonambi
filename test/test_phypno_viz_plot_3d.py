@@ -17,7 +17,6 @@ surf = anat.read_surf(hemi)
 
 def test_viz_plot_chan_and_surf():
     lg.info('---\nfunction: ' + stack()[0][3])
-
     neuroport = chan(lambda x: x.label.lower() == 'neuroport')
     other_chan = chan(lambda x: not x.label.lower() == 'neuroport')
 
@@ -30,6 +29,5 @@ def test_viz_plot_chan_and_surf():
 @attr('slow')
 def test_viz_plot_values_on_surf():
     lg.info('---\nfunction: ' + stack()[0][3])
-
     trans = calculate_chan2surf_trans(surf, chan.return_xyz())
     plot_values_on_surf(surf, 5 * ones(trans.shape[1]), trans)
