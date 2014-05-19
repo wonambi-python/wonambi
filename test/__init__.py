@@ -11,6 +11,8 @@ lg.setLevel(INFO)
 # try this: rev-parse HEAD
 git_ver = check_output('git -C ../.git rev-parse HEAD',
                        shell=True).decode('utf-8').strip()
+
+# this does not get written to output
 lg.info('phypno ver: ' + git_ver)
 lg.info('Module: ' + __name__)
 
