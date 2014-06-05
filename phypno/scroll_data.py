@@ -398,16 +398,16 @@ class MainWindow(QMainWindow):
                       'main_area': Qt.BottomDockWidgetArea,
                       'extra_area': Qt.TopDockWidgetArea,
                       },
-                      ]
+                     ]
 
         self.idx_docks = {}
         actions = self.action
         for dock in new_docks:
             self.idx_docks[dock['name']] = DockWidget(self,
-                                                  dock['name'],
-                                                  dock['widget'],
-                                                  dock['main_area'] |
-                                                  dock['extra_area'])
+                                                      dock['name'],
+                                                      dock['widget'],
+                                                      dock['main_area'] |
+                                                      dock['extra_area'])
             self.addDockWidget(dock['main_area'], self.idx_docks[dock['name']])
             new_act = QAction(ICON['widget'], dock['name'], self)
             new_act.setCheckable(True)
