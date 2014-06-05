@@ -1,9 +1,9 @@
 from datetime import datetime
-from os import SEEK_END
+from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
-from numpy.random import rand
+from numpy import fromfile, reshape, asarray, expand_dims
 
 from ..utils.timezone import Eastern, utc
 
@@ -15,12 +15,6 @@ class BlackRock:
     ----------
     filename : path to file
         the name of the filename or directory
-
-    Notes
-    -----
-    Check that the date and time is correct, by comparing with a known file.
-    There seems to be something wrong with the date/time, nev and nsX don't
-    correspond.
 
     """
     def __init__(self, filename):
@@ -47,13 +41,17 @@ class BlackRock:
         """
         ext = splitext(self.filename)[1]
         if ext[:3] == '.ns':
-            orig = _read_neuralcd()
+            orig = _read_neuralcd(self.filename)
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
             chan_name = [x['Label'] for x in orig['ElectrodesInfo']]
 
+            # we need these two items to read the data
+            self.BOData = orig['BOData']
+            self.factor = _convert_factor(orig['ElectrodesInfo'])
+
         elif ext == '.nev':
-            orig = _read_neuralev()[0]
+            orig = _read_neuralev(self.filename)[0]
             s_freq = orig['SampleRes']
             n_samples = orig['DataDuration']
             chan_name = ['dummy', ]
@@ -81,8 +79,30 @@ class BlackRock:
             A 2d matrix, with dimension chan X samples
 
         """
-        data = rand(10, 100)
-        return data[chan, begsam:endsam]
+        ext = splitext(self.filename)[1]
+        if ext == '.nev':
+            raise NotImplementedError('You cannot read for NEV yet')
+
+        data = _read_nsx(self.filename, self.BOData, self.factor,
+                         begsam, endsam)
+
+        return data[chan, :]
+
+
+def _read_nsx(filename, BOData, factor, begsam, endsam):
+
+    n_chan = factor.shape[0]
+
+    with open(filename, 'rb') as f:
+
+        f.seek(BOData, SEEK_SET)
+        f.seek(n_chan * 2 * begsam, SEEK_CUR)
+
+        n_sam = endsam - begsam
+        dat = fromfile(f, 'int16', n_chan * n_sam)
+        dat = reshape(dat, (n_chan, n_sam), order='F')
+
+    return expand_dims(factor, 1) * dat
 
 
 def _read_neuralcd(filename):
@@ -91,7 +111,7 @@ def _read_neuralcd(filename):
     Notes
     -----
     For some reason, the time stamps are stored in UTC here (but in local
-    time in the NEV file). So we need to take into account
+    time in the NEV file). So we need to take that into account
 
     """
     hdr = {}
@@ -103,16 +123,16 @@ def _read_neuralcd(filename):
         filespec = unpack('bb', BasicHdr[0:2])
         hdr['FileSpec'] = str(filespec[0]) + '.' + str(filespec[1])
         hdr['HeaderBytes'] = unpack('<I', BasicHdr[2:6])[0]
-        hdr['SamplingLabel'] = BasicHdr[6:22].decode('utf-8').strip('\x00')
-        # hdr['Comment'] = BasicHdr[22:278].decode('utf-8').strip('\x00')
+        hdr['SamplingLabel'] = _str(BasicHdr[6:22].decode('utf-8'))
+        # hdr['Comment'] = _str(BasicHdr[22:278].decode('utf-8'))
         hdr['TimeRes'] = unpack('<I', BasicHdr[282:286])[0]
         hdr['SamplingFreq'] = int(hdr['TimeRes'] /
                                   unpack('<i', BasicHdr[278:282])[0])
         time = unpack('<' + 'H' * 8, BasicHdr[286:302])
         hdr['DateTimeRaw'] = time
-        hdr['DateTime'] = datetime(time[0], time[1], time[3],
-                                   time[4], time[5], time[6], time[7],
-                                   utc).astimezone(Eastern)
+        d = datetime(time[0], time[1], time[3], time[4], time[5], time[6],
+                     time[7], utc)
+        hdr['DateTime'] = d.astimezone(Eastern).replace(tzinfo=None)
         hdr['ChannelCount'] = unpack('<I', BasicHdr[302:306])[0]
 
         ExtHdrLength = 66
@@ -129,7 +149,7 @@ def _read_neuralcd(filename):
             i0, i1 = i1, i1 + 2
             elec['ElectrodeID'] = unpack('H', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 16
-            elec['Label'] = ExtHdr[i0:i1].decode('utf-8').strip('\x00')
+            elec['Label'] = _str(ExtHdr[i0:i1].decode('utf-8'))
             i0, i1 = i1, i1 + 1
             elec['ConnectorBank'] = chr(unpack('B', ExtHdr[i0:i1])[0] +
                                         ord('A') - 1)
@@ -144,7 +164,7 @@ def _read_neuralcd(filename):
             i0, i1 = i1, i1 + 2
             elec['MaxAnalogValue'] = unpack('h', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 16
-            elec['AnalogUnits'] = ExtHdr[i0:i1].decode('utf-8').strip('\x00')
+            elec['AnalogUnits'] = _str(ExtHdr[i0:i1].decode('utf-8'))
             i0, i1 = i1, i1 + 4
             elec['HighFreqCorner'] = unpack('I', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 4
@@ -160,11 +180,12 @@ def _read_neuralcd(filename):
             ElectrodesInfo.append(elec)
 
         hdr['ElectrodesInfo'] = ElectrodesInfo
+        hdr['ChannelID'] = [x['ElectrodeID'] for x in ElectrodesInfo]
 
         EOexH = f.tell()
         f.seek(0, SEEK_END)
         EOF = f.tell()
-        f.seek(EOexH)
+        f.seek(EOexH, SEEK_SET)
         n_chan = hdr['ChannelCount']
 
         if f.tell() >= EOF:
@@ -172,16 +193,22 @@ def _read_neuralcd(filename):
                            '(size {1} B)'.format(filename, EOF))
 
         # TODO: allow for paused files, if they exist
+        # "Added by NH - Feb 19, 2014" seems incorrect to me about BOData
+
         while f.tell() < EOF:
-            Timestamp = unpack('I', f.read(4))[0]
-            DataPoints = unpack('I', f.read(4))[0]
-            BOData = f.tell()
-            f.seek(DataPoints * n_chan * 2)
-            EOData = f.tell()
-            hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
+
             if f.tell() < EOF and unpack('B', f.read(1))[0] != 1:
                 hdr['DataPoints'] = int((EOF - BOData) / (n_chan * 2))
                 break
+
+            Timestamp = unpack('I', f.read(4))[0]
+            DataPoints = unpack('I', f.read(4))[0]
+            BOData = f.tell()
+            f.seek(DataPoints * n_chan * 2, SEEK_CUR)
+            EOData = f.tell()
+            hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
+
+        hdr['BOData'] = BOData
 
     return hdr
 
@@ -239,10 +266,10 @@ def _read_neuralev(filename):
         hdr['DateTime'] = datetime(time[0], time[1], time[3],
                                    time[4], time[5], time[6], time[7])
         i0, i1 = i1, i1 + 32
-        hdr['Application'] = BasicHdr[i0:i1].decode('utf-8').strip('\x00')
+        # hdr['Application'] = _str(BasicHdr[i0:i1].decode('utf-8'))
         i0, i1 = i1, i1 + 256
-        hdr['Comment'] = BasicHdr[i0:i1].decode('utf-8',
-                                                errors='replace').strip('\x00')
+        hdr['Comment'] = _str(BasicHdr[i0:i1].decode('utf-8',
+                                                     errors='replace'))
         i0, i1 = i1, i1 + 4
         countExtHeader = unpack('I', BasicHdr[i0:i1])[0]
 
@@ -295,7 +322,7 @@ def _read_neuralev(filename):
             elif PacketID == 'NEUEVLBL':
                 i0, i1 = i1, i1 + 2
                 ElectrodeID = unpack('H', ExtendedHeader[i0:i1])[0] - 1
-                s = ExtendedHeader[i1:].decode('utf-8').strip('\x00')
+                s = _str(ExtendedHeader[i1:].decode('utf-8'))
                 ElectrodesInfo[ElectrodeID]['ElectrodeLabel'] = s
 
             elif PacketID == 'NEUEVFLT':
@@ -320,7 +347,7 @@ def _read_neuralev(filename):
                 # TODO: the order is not taken into account and probably wrong!
                 iolabel = {}
                 iolabel['mode'] = ExtendedHeader[24] + 1
-                s = ExtendedHeader[8:25].decode('utf-8').strip('\x00')
+                s = _str(ExtendedHeader[8:25].decode('utf-8'))
                 iolabel['label'] = s
                 IOLabels.append(iolabel)
 
@@ -330,3 +357,27 @@ def _read_neuralev(filename):
     hdr['ChannelID'] = [x['ElectrodeID'] for x in ElectrodesInfo]
 
     return hdr, ElectrodesInfo, IOLabels
+
+
+def _str(t_in):
+    t_out = []
+    for t in t_in:
+        if t == '\x00':
+            break
+        t_out.append(t)
+    return ''.join(t_out)
+
+
+def _convert_factor(ElectrodesInfo):
+
+    factor = []
+    for elec in ElectrodesInfo:
+
+        # have to be equal, so it's simple to calculate conversion factor
+        assert elec['MaxDigiValue'] == -elec['MinDigiValue']
+        assert elec['MaxAnalogValue'] == -elec['MinAnalogValue']
+
+        factor.append((elec['MaxAnalogValue'] - elec['MinAnalogValue']) /
+                      (elec['MaxDigiValue'] - elec['MinDigiValue']))
+
+    return asarray(factor)

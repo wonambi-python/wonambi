@@ -165,6 +165,9 @@ class DetectSpindle:
                              }
 
         if method == 'Ferrarelli2007':
+            """Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
+
+            """
             self.basic = {'data': ('cheby2', ),  # not in the paper
                           'opt': (frequency, ),
                           }
