@@ -3,7 +3,7 @@ from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
-from numpy import fromfile, reshape, asarray, expand_dims
+from numpy import fromfile, reshape, asarray, expand_dims, ones
 
 from ..utils.timezone import Eastern, utc
 
@@ -38,10 +38,24 @@ class BlackRock:
         orig : dict
             additional information taken directly from the header
 
+        Notes
+        -----
+        BOData and factor
+
         """
-        ext = splitext(self.filename)[1]
-        if ext[:3] == '.ns':
+        with open(self.filename, 'rb') as f:
+            file_header = f.read(8)
+
+        if file_header == b'NEURALEV':
+            orig = _read_neuralev(self.filename)[0]
+
+            s_freq = orig['SampleRes']
+            n_samples = orig['DataDuration']
+            chan_name = ['dummy', ]  # TODO: digital channels?
+
+        elif file_header == b'NEURALCD':
             orig = _read_neuralcd(self.filename)
+
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
             chan_name = [x['Label'] for x in orig['ElectrodesInfo']]
@@ -50,11 +64,18 @@ class BlackRock:
             self.BOData = orig['BOData']
             self.factor = _convert_factor(orig['ElectrodesInfo'])
 
-        elif ext == '.nev':
-            orig = _read_neuralev(self.filename)[0]
-            s_freq = orig['SampleRes']
-            n_samples = orig['DataDuration']
-            chan_name = ['dummy', ]
+        elif file_header == b'NEURALSG':
+            orig = _read_neuralsg(self.filename)
+
+            s_freq = orig['SamplingFreq']
+            n_samples = orig['DataPoints']
+
+            # make up names
+            chan_name = ['chan{0:04d}'.format(x) for x in orig['ChannelID']]
+
+            # we need these two items to read the data
+            self.BOData = orig['BOData']
+            self.factor = 0.25 * ones(len(orig['ChannelID']))
 
         subj_id = str()
         start_time = orig['DateTime']
@@ -90,7 +111,11 @@ class BlackRock:
 
 
 def _read_nsx(filename, BOData, factor, begsam, endsam):
+    """
 
+    Common to NEURALCD and NEURALSG
+
+    """
     n_chan = factor.shape[0]
 
     with open(filename, 'rb') as f:
@@ -105,6 +130,43 @@ def _read_nsx(filename, BOData, factor, begsam, endsam):
     return expand_dims(factor, 1) * dat
 
 
+def _read_neuralsg(filename):
+    """
+
+
+    """
+    hdr = {}
+    with open(filename, 'rb') as f:
+
+        hdr['FileTypeID'] = f.read(8).decode('utf-8')
+        hdr['FileSpec'] = '2.1'
+        hdr['SamplingLabel'] = _str(f.read(16).decode('utf-8'))
+        hdr['TimeRes'] = 30000
+        hdr['SamplingFreq'] = int(hdr['TimeRes'] / unpack('<I', f.read(4))[0])
+        n_chan = unpack('I', f.read(4))[0]
+        hdr['ChannelCount'] = n_chan
+        hdr['ChannelID'] = unpack('I' * n_chan, f.read(4 * n_chan))
+
+        BOData = f.tell()
+        f.seek(0, SEEK_END)
+        EOData = f.tell()
+
+    # we read the time information from the corresponding NEV file
+    nev_filename = splitext(filename)[0] + '.nev'
+    with open(nev_filename, 'rb') as f:
+        f.seek(28)
+        time = unpack('<' + 'H' * 8, f.read(16))
+
+    hdr['DateTimeRaw'] = time
+    hdr['DateTime'] = datetime(time[0], time[1], time[3],
+                               time[4], time[5], time[6], time[7])
+
+    hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
+    hdr['BOData'] = BOData
+
+    return hdr
+
+
 def _read_neuralcd(filename):
     """
 
@@ -117,7 +179,6 @@ def _read_neuralcd(filename):
     hdr = {}
     with open(filename, 'rb') as f:
         hdr['FileTypeID'] = f.read(8).decode('utf-8')
-        assert hdr['FileTypeID'] == 'NEURALCD'
 
         BasicHdr = f.read(306)
         filespec = unpack('bb', BasicHdr[0:2])

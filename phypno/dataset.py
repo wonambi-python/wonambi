@@ -84,7 +84,7 @@ def detect_format(filename):
                     recformat = 'EDF+D'
                 else:
                     recformat = Edf
-            elif file_header in (b'NEURALCD', b'NEURALEV'):
+            elif file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
                 recformat = BlackRock
             else:
                 raise UnrecognizedFormat('Unrecognized format for file ' +
