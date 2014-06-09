@@ -369,21 +369,34 @@ def _read_erd(erd_file, n_samples):
       The rest of the byte of the delta mask is filled with "1".
       If file_schema <= 7, it generates a "fake" delta, where everything is 0.
 
+    Some channels are shorted (i.e. not recorded), however they are stored in
+    a non-intuitive way: deltamask takes them into account, but for the rest
+    they are never used/recorded. So, we need to keep track both of all the
+    channels (including the non-shorted) and of the actual channels only.
+
+    When we save the data as memory-mapped, we only save the real channels.
+    However, the data in the output have both shorted and non-shorted channels.
+    Shorted channels have NaN's only.
+
     """
     hdr = _read_hdr_file(erd_file)
-    n_chan = hdr['num_channels']
+    n_allchan = hdr['num_channels']
+    shorted = hdr['shorted']  # does this exist for Schema 7 at all?
+    n_shorted = sum(shorted)
+    n_chan = n_allchan - n_shorted
 
     memmap_file = join(temp_dir, basename(erd_file))
     if exists(memmap_file):
         lg.info('Reading existing file: ' + memmap_file)
-        output = memmap(memmap_file, mode='c',
-                        shape=(n_chan, n_samples), dtype=int32)
+        dat = memmap(memmap_file, mode='c', shape=(n_chan, n_samples),
+                     dtype=int32)
     else:
         lg.info('Writing new file: ' + memmap_file)
-        output = memmap(memmap_file, mode='w+',
-                        shape=(n_chan, n_samples), dtype=int32)
+        dat = memmap(memmap_file, mode='w+', shape=(n_chan, n_samples),
+                     dtype=int32)
 
-        l_deltamask = int(ceil(n_chan / BITS_IN_BYTE))  # deltamask length
+        # deltamask length (use all channels)
+        l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
         with open(erd_file, 'rb') as f:
             filebytes = f.read()
 
@@ -405,9 +418,9 @@ def _read_erd(erd_file, n_samples):
             try:
                 assert eventbite in (b'\x00', b'\x01')
             except:
-                Exception('at pos ' + str(i) +
-                          ', eventbite (should be x00 or x01): ' +
-                          str(eventbite))
+                raise Exception('at pos ' + str(i) +
+                                ', eventbite (should be x00 or x01): ' +
+                                str(eventbite))
 
             # Delta Information
             if hdr['file_schema'] in (7,):
@@ -421,9 +434,14 @@ def _read_erd(erd_file, n_samples):
                 deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
                 deltamask = ''.join(deltamask)
 
-            absvalue = [False] * n_chan
-            info_toread = ''
-            for i_c, m in enumerate(deltamask[:n_chan]):
+            i_chan = 0  # excluding the shorted channels
+            read_absvalue = [False] * n_chan
+
+            for i_allchan, m in enumerate(deltamask[:n_allchan]):
+
+                if shorted[i_allchan]:
+                    continue
+
                 if m == '1':
                     val = filebytes[i:i + 2]
                     i += 2
@@ -432,21 +450,30 @@ def _read_erd(erd_file, n_samples):
                     i += 1
 
                 if val == abs_delta:
-                    absvalue[i_c] = True  # read the full value below
-                    info_toread += 'T'
+                    read_absvalue[i_chan] = True
                 else:
                     if m == '1':
-                        output[i_c, sam] = output[i_c, sam - 1] + unpack('h',
-                                                                  val)[0]
+                        dat[i_chan, sam] = (dat[i_chan, sam - 1] +
+                                            unpack('h', val)[0])
                     elif m == '0':
-                        output[i_c, sam] = output[i_c, sam - 1] + unpack('b',
-                                                                  val)[0]
-                    info_toread += 'F'
+                        dat[i_chan, sam] = (dat[i_chan, sam - 1] +
+                                            unpack('b', val)[0])
 
-            for i_c, to_read in enumerate(absvalue):
+                i_chan += 1
+
+            for i_chan, to_read in enumerate(read_absvalue):
                 if to_read:
-                    output[i_c, sam] = unpack('i', filebytes[i:i + 4])[0]
+                    dat[i_chan, sam] = unpack('i', filebytes[i:i + 4])[0]
                     i += 4
+
+    # fill up the output data, put NaN for shorted channels
+    if len(n_shorted) > 0:
+        full_channels = where(asarray([x == 0 for x in shorted]))[0]
+        output = empty((n_allchan, n_samples))
+        output.fill(NaN)
+        output[full_channels, :] = dat
+    else:
+        output = dat
 
     factor = _calculate_conversion(hdr)
     return expand_dims(factor, 1) * output
@@ -680,7 +707,8 @@ def _read_hdr_file(ktlx_file):
 
         if hdr['file_schema'] >= 7:
             hdr['sample_freq'], = unpack('d', f.read(8))
-            hdr['num_channels'], = unpack('i', f.read(4))
+            n_chan, = unpack('i', f.read(4))
+            hdr['num_channels'] = n_chan
             hdr['deltabits'], = unpack('i', f.read(4))
             hdr['phys_chan'] = unpack('i' * hdr['num_channels'],
                                       f.read(hdr['num_channels'] * 4))
@@ -694,8 +722,8 @@ def _read_hdr_file(ktlx_file):
             hdr['discardbits'], = unpack('i', f.read(4))
 
         if hdr['file_schema'] >= 8:
-            hdr['shorted'] = unpack('h' * 1024, f.read(2048))
-            hdr['frequency_factor'] = unpack('h' * 1024, f.read(2048))
+            hdr['shorted'] = unpack('h' * 1024, f.read(2048))[:n_chan]
+            hdr['frequency_factor'] = unpack('h' * 1024, f.read(2048))[:n_chan]
 
     return hdr
 
