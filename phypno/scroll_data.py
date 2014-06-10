@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
         else:
             try:
                 dir_name = dirname(self.info.filename)
-            except AttributeError:
+            except (AttributeError, TypeError):
                 dir_name = self.preferences.values['main/recording_dir']
 
             file_or_dir = choose_file_or_dir()
