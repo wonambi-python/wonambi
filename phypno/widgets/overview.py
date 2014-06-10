@@ -23,13 +23,19 @@ from PyQt4.QtGui import (QBrush,
 # available
 current_line_height = 10
 
+NoPen = QPen()
+NoPen.setStyle(Qt.NoPen)
+
+NoBrush = QBrush()
+NoBrush.setStyle(Qt.NoBrush)
+
 STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Movement': {'pos0': 5, 'pos1': 25, 'color': Qt.gray},
           'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
           'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
           'NREM3': {'pos0': 25, 'pos1': 5, 'color': Qt.darkBlue},
-          'Unknown': {'pos0': 30, 'pos1': 0, 'color': Qt.NoBrush},
+          'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
 BARS = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
@@ -216,7 +222,7 @@ class Overview(QGraphicsView):
                                       STAGES[stage_name]['pos1'] - 1)
 
         # check we are not removing the black border
-        if old_score is not None and old_score.pen() == Qt.NoPen:
+        if old_score is not None and old_score.pen() == NoPen:
             lg.debug('Removing old score at {}'.format(start_time))
             self.scene.removeItem(old_score)
 
@@ -232,7 +238,7 @@ class Overview(QGraphicsView):
                                                  y_pos +
                                                  STAGES[stage_name]['pos0'] +
                                                  STAGES[stage_name]['pos1']))
-        rect.setPen(Qt.NoPen)
+        rect.setPen(NoPen)
         rect.setBrush(STAGES[stage_name]['color'])
         self.scene.addItem(rect)
 
@@ -252,7 +258,7 @@ class Overview(QGraphicsView):
                                    end_value - start_value,
                                    BARS['available']['pos1'])
         avail.stackBefore(self.idx_item['available'])
-        avail.setPen(Qt.NoPen)
+        avail.setPen(NoPen)
         avail.setBrush(QBrush(Qt.green))
 
     def mousePressEvent(self, event):

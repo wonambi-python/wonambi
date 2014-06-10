@@ -10,12 +10,12 @@ from datetime import timedelta
 from numpy import floor, ceil, asarray, empty
 from PyQt4.QtCore import QPointF, Qt
 from PyQt4.QtGui import (QBrush,
-                          QGraphicsItem,
-                          QGraphicsScene,
-                          QGraphicsSimpleTextItem,
-                          QGraphicsView,
-                          QPen,
-                          )
+                         QGraphicsItem,
+                         QGraphicsScene,
+                         QGraphicsSimpleTextItem,
+                         QGraphicsView,
+                         QPen,
+                         )
 
 from .. import ChanTime
 from ..trans import Montage, Filter

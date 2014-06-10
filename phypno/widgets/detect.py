@@ -7,16 +7,21 @@ lg = getLogger(__name__)
 from numpy import max, abs, where
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
-                          QColor,
-                          QComboBox,
-                          QGraphicsRectItem,
-                          QFormLayout,
-                          QPushButton,
-                          QGridLayout,
-                          QLineEdit,
-                          QWidget)
+                         QColor,
+                         QComboBox,
+                         QGraphicsRectItem,
+                         QFormLayout,
+                         QPushButton,
+                         QGridLayout,
+                         QLineEdit,
+                         QPen,
+                         QWidget,
+                         )
 
 from ..detect import DetectSpindle
+
+NoPen = QPen()
+NoPen.setStyle(Qt.NoPen)
 
 TRIAL = 0
 GRAPHOELEMENTS = ('spindles', )
@@ -194,6 +199,6 @@ class Detect(QWidget):
                                      y_value * 2)
             scene.addItem(rect)
             rect.setBrush(QBrush(QColor(255, 0, 0, 100)))
-            rect.setPen(Qt.NoPen)
+            rect.setPen(NoPen)
             rect.setPos(0, y_distance * row + y_distance / 2)
             self.idx_rect.append(rect)

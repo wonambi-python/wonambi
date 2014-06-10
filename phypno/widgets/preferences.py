@@ -6,12 +6,13 @@ lg = getLogger(__name__)
 
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QDialog,
-                          QFormLayout,
-                          QGroupBox,
-                          QHBoxLayout,
-                          QLineEdit,
-                          QPushButton,
-                          QVBoxLayout)
+                         QFormLayout,
+                         QGroupBox,
+                         QHBoxLayout,
+                         QLineEdit,
+                         QPushButton,
+                         QVBoxLayout,
+                         )
 
 config = QSettings("phypno", "scroll_data")
 

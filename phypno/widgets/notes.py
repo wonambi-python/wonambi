@@ -16,16 +16,16 @@ from os.path import basename, exists, splitext
 from xml.etree.ElementTree import Element, SubElement
 
 from PyQt4.QtGui import (QAbstractItemView,
-                          QAction,
-                          QComboBox,
-                          QFormLayout,
-                          QPushButton,
-                          QLabel,
-                          QTableView,
-                          QTableWidget,
-                          QTableWidgetItem,
-                          QWidget,
-                          )
+                         QAction,
+                         QComboBox,
+                         QFormLayout,
+                         QPushButton,
+                         QLabel,
+                         QTableView,
+                         QTableWidget,
+                         QTableWidgetItem,
+                         QWidget,
+                         )
 
 from ..attr import Scores
 
@@ -174,7 +174,6 @@ class Stages(QWidget):
         layout.addRow('Rater: ', self.idx_rater)
         layout.addRow('Stage: ', self.idx_stages)
         self.setLayout(layout)
-
 
     def action_open_predefined_stages(self):
         """Try to open the score file automatically.

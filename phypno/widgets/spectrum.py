@@ -8,17 +8,17 @@ from numpy import log, ceil, floor
 from scipy.signal import welch
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QCheckBox,
-                          QComboBox,
-                          QFormLayout,
-                          QGraphicsView,
-                          QGraphicsScene,
-                          QHBoxLayout,
-                          QLineEdit,
-                          QPen,
-                          QPushButton,
-                          QVBoxLayout,
-                          QWidget,
-                          )
+                         QComboBox,
+                         QFormLayout,
+                         QGraphicsView,
+                         QGraphicsScene,
+                         QHBoxLayout,
+                         QLineEdit,
+                         QPen,
+                         QPushButton,
+                         QVBoxLayout,
+                         QWidget,
+                         )
 
 from phypno.widgets.utils import Path
 
