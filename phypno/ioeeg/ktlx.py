@@ -467,7 +467,7 @@ def _read_erd(erd_file, n_samples):
                     i += 4
 
     # fill up the output data, put NaN for shorted channels
-    if len(n_shorted) > 0:
+    if n_shorted > 0:
         full_channels = where(asarray([x == 0 for x in shorted]))[0]
         output = empty((n_allchan, n_samples))
         output.fill(NaN)
