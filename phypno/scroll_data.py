@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
                                                             dir_name)
             elif file_or_dir == 'file':
                 filename = QFileDialog.getOpenFileName(self, 'Open file',
-                                                       dir_name)[0]
+                                                       dir_name)
             elif file_or_dir == 'abort':
                 return
 
