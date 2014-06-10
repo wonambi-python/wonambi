@@ -8,8 +8,8 @@ from copy import deepcopy
 from datetime import timedelta
 
 from numpy import floor, ceil, asarray, empty
-from PySide.QtCore import QPointF, Qt
-from PySide.QtGui import (QBrush,
+from PyQt4.QtCore import QPointF, Qt
+from PyQt4.QtGui import (QBrush,
                           QGraphicsItem,
                           QGraphicsScene,
                           QGraphicsSimpleTextItem,

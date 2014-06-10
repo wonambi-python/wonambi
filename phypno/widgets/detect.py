@@ -5,8 +5,8 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from numpy import max, abs, where
-from PySide.QtCore import Qt
-from PySide.QtGui import (QBrush,
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QBrush,
                           QColor,
                           QComboBox,
                           QGraphicsRectItem,

@@ -7,12 +7,12 @@ lg = getLogger(__name__)
 from functools import partial
 from os.path import dirname, join, realpath
 
-from PySide.QtCore import QSettings
-from PySide.QtGui import (QDockWidget,
-                          QIcon,
-                          QMessageBox,
-                          QPainterPath,
-                          )
+from PyQt4.QtCore import QSettings
+from PyQt4.QtGui import (QDockWidget,
+                         QIcon,
+                         QMessageBox,
+                         QPainterPath,
+                         )
 
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',

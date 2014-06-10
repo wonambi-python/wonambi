@@ -7,15 +7,15 @@ lg = getLogger(__name__)
 from datetime import datetime, timedelta
 
 from numpy import floor
-from PySide.QtCore import Qt
-from PySide.QtGui import (QBrush,
-                          QPen,
-                          QGraphicsLineItem,
-                          QGraphicsRectItem,
-                          QGraphicsScene,
-                          QGraphicsView,
-                          QGraphicsItem,
-                          )
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QBrush,
+                         QPen,
+                         QGraphicsLineItem,
+                         QGraphicsRectItem,
+                         QGraphicsScene,
+                         QGraphicsView,
+                         QGraphicsItem,
+                         )
 
 # bookmark
 # event
@@ -30,7 +30,7 @@ STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
           'NREM3': {'pos0': 25, 'pos1': 5, 'color': Qt.darkBlue},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': Qt.NoBrush},
-         }
+          }
 
 BARS = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
         'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},

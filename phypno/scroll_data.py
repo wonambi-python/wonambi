@@ -18,14 +18,14 @@ from os.path import dirname, basename, splitext
 from sys import argv
 
 from numpy import arange
-from PySide.QtCore import Qt
-from PySide.QtGui import (QAction,
-                          QApplication,
-                          QFileDialog,
-                          QIcon,
-                          QKeySequence,
-                          QMainWindow,
-                          )
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QAction,
+                         QApplication,
+                         QFileDialog,
+                         QIcon,
+                         QKeySequence,
+                         QMainWindow,
+                         )
 # change phypno.widgets into .widgets
 from phypno.widgets import (DockWidget,
                             Bookmarks, Events, Stages,
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         I do not know how to run tests for QFileDialog.
 
         """
-        if recent is not None:
+        if recent:
             filename = recent
         else:
             try:

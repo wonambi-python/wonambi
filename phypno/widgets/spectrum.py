@@ -6,8 +6,8 @@ lg = getLogger(__name__)
 
 from numpy import log, ceil, floor
 from scipy.signal import welch
-from PySide.QtCore import Qt
-from PySide.QtGui import (QCheckBox,
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import (QCheckBox,
                           QComboBox,
                           QFormLayout,
                           QGraphicsView,

@@ -15,7 +15,7 @@ from math import floor
 from os.path import basename, exists, splitext
 from xml.etree.ElementTree import Element, SubElement
 
-from PySide.QtGui import (QAbstractItemView,
+from PyQt4.QtGui import (QAbstractItemView,
                           QAction,
                           QComboBox,
                           QFormLayout,

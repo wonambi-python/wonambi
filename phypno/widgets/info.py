@@ -7,7 +7,7 @@ lg = getLogger(__name__)
 from datetime import timedelta
 from os.path import basename
 
-from PySide.QtGui import (QFormLayout,
+from PyQt4.QtGui import (QFormLayout,
                           QLabel,
                           QPushButton,
                           QWidget,
@@ -99,7 +99,7 @@ class Info(QWidget):
         start_time = header['start_time'].strftime('%H:%M:%S')
         self.idx_text['start_time'].setText(start_time)
         end_time = header['start_time'] + timedelta(seconds=header['n_samples']
-                                                   / header['s_freq'])
+                                                    / header['s_freq'])
         self.idx_text['end_time'].setText(end_time.strftime('%H:%M:%S'))
 
     def update_traces_info(self):

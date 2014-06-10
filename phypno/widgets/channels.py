@@ -6,21 +6,21 @@ lg = getLogger(__name__)
 
 from copy import deepcopy
 
-from PySide.QtGui import (QAbstractItemView,
-                          QColor,
-                          QColorDialog,
-                          QComboBox,
-                          QFormLayout,
-                          QGridLayout,
-                          QWidget,
-                          QInputDialog,
-                          QLabel,
-                          QLineEdit,
-                          QListWidget,
-                          QListWidgetItem,
-                          QPushButton,
-                          QVBoxLayout,
-                          )
+from PyQt4.QtGui import (QAbstractItemView,
+                         QColor,
+                         QColorDialog,
+                         QComboBox,
+                         QFormLayout,
+                         QGridLayout,
+                         QWidget,
+                         QInputDialog,
+                         QLabel,
+                         QLineEdit,
+                         QListWidget,
+                         QListWidgetItem,
+                         QPushButton,
+                         QVBoxLayout,
+                         )
 
 EMPTY_GROUP = {'name': 'General',
                'chan_to_plot': [],
