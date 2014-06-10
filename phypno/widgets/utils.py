@@ -5,6 +5,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from functools import partial
+from os.path import dirname, join, realpath
 
 from PySide.QtCore import QSettings
 from PySide.QtGui import (QDockWidget,
@@ -13,29 +14,33 @@ from PySide.QtGui import (QDockWidget,
                           QPainterPath,
                           )
 
+
+icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
+                 'oxygen')
+
 config = QSettings("phypno", "scroll_data")
 MAX_RECORDING_HISTORY = 20
 
 ICON = {
-    'open_rec': QIcon.fromTheme('document-open'),
-    'page_prev': QIcon.fromTheme('go-previous-view'),
-    'page_next': QIcon.fromTheme('go-next-view'),
-    'step_prev': QIcon.fromTheme('go-previous'),
-    'step_next': QIcon.fromTheme('go-next'),
-    'chronometer': QIcon.fromTheme('chronometer'),
-    'up': QIcon.fromTheme('go-up'),
-    'down': QIcon.fromTheme('go-down'),
-    'zoomin': QIcon.fromTheme('zoom-in'),
-    'zoomout': QIcon.fromTheme('zoom-out'),
-    'zoomnext': QIcon.fromTheme('zoom-next'),
-    'zoomprev': QIcon.fromTheme('zoom-previous'),
-    'ydist_more': QIcon.fromTheme('format-line-spacing-triple'),
-    'ydist_less': QIcon.fromTheme('format-line-spacing-normal'),
-    'selchan': QIcon.fromTheme('mail-mark-task'),
-    'download': QIcon.fromTheme('download'),
-    'widget': QIcon.fromTheme('window-duplicate'),
-    'preferences': QIcon.fromTheme('configure'),
-    'quit': QIcon.fromTheme('window-close'),
+    'open_rec': join(icon_path, 'document-open.png'),
+    'page_prev': join(icon_path, 'go-previous-view.png'),
+    'page_next': join(icon_path, 'go-next-view.png'),
+    'step_prev': join(icon_path, 'go-previous.png'),
+    'step_next': join(icon_path, 'go-next.png'),
+    'chronometer': join(icon_path, 'chronometer.png'),
+    'up': join(icon_path, 'go-up.png'),
+    'down': join(icon_path, 'go-down.png'),
+    'zoomin': join(icon_path, 'zoom-in.png'),
+    'zoomout': join(icon_path, 'zoom-out.png'),
+    'zoomnext': join(icon_path, 'zoom-next.png'),
+    'zoomprev': join(icon_path, 'zoom-previous.png'),
+    'ydist_more': join(icon_path, 'format-line-spacing-triple.png'),
+    'ydist_less': join(icon_path, 'format-line-spacing-normal.png'),
+    'selchan': join(icon_path, 'mail-mark-task.png'),
+    'download': join(icon_path, 'download.png'),
+    'widget': join(icon_path, 'window-duplicate.png'),
+    'preferences': join(icon_path, 'configure.png'),
+    'quit': join(icon_path, 'window-close.png'),
     }
 
 
@@ -56,7 +61,7 @@ def create_menubar(mainwindow):
         submenu_recent.addAction(one_action_recent)
 
     menu_download = menu_file.addMenu('Download File')
-    menu_download.setIcon(ICON['download'])
+    menu_download.setIcon(QIcon(ICON['download']))
     act = menu_download.addAction('Whole File')
     act.triggered.connect(mainwindow.action_download)
     act = menu_download.addAction('30 Minutes')
@@ -84,22 +89,22 @@ def create_menubar(mainwindow):
     menu_time.addAction(actions['page_next'])
     menu_time.addSeparator()  # use icon cronometer
     act = menu_time.addAction('6 Hours Earlier')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, -6 * 60 * 60))
     act = menu_time.addAction('1 Hour Earlier')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, -60 * 60))
     act = menu_time.addAction('10 Minutes Earlier')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, -10 * 60))
     act = menu_time.addAction('10 Minutes Later')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, 10 * 60))
     act = menu_time.addAction('1 Hour Later')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, 60 * 60))
     act = menu_time.addAction('6 Hours Later')
-    act.setIcon(ICON['chronometer'])
+    act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, 6 * 60 * 60))
 
     menu_time.addSeparator()

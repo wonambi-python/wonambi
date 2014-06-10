@@ -22,6 +22,7 @@ from PySide.QtCore import Qt
 from PySide.QtGui import (QAction,
                           QApplication,
                           QFileDialog,
+                          QIcon,
                           QKeySequence,
                           QMainWindow,
                           )
@@ -111,8 +112,8 @@ class MainWindow(QMainWindow):
 
         """
         actions = {}
-        actions['open_rec'] = QAction(ICON['open_rec'], 'Open Recording...',
-                                      self)
+        actions['open_rec'] = QAction(QIcon(ICON['open_rec']),
+                                      'Open Recording...', self)
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open_rec)
 
@@ -129,53 +130,57 @@ class MainWindow(QMainWindow):
         actions['open_stages'] = QAction('Open Stages File...', self)
         actions['open_stages'].triggered.connect(self.action_open_stages)
 
-        actions['open_preferences'] = QAction(ICON['preferences'],
+        actions['open_preferences'] = QAction(QIcon(ICON['preferences']),
                                               'Preferences', self)
         actions['open_preferences'].triggered.connect(self.open_preferences)
-        actions['close_wndw'] = QAction(ICON['quit'], 'Quit', self)
+        actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', self)
         actions['close_wndw'].triggered.connect(self.close)
 
-        actions['step_prev'] = QAction(ICON['step_prev'], 'Previous Step',
-                                       self)
+        actions['step_prev'] = QAction(QIcon(ICON['step_prev']),
+                                       'Previous Step', self)
         actions['step_prev'].setShortcut(QKeySequence.MoveToPreviousChar)
         actions['step_prev'].triggered.connect(self.action_step_prev)
 
-        actions['step_next'] = QAction(ICON['step_next'], 'Next Step', self)
+        actions['step_next'] = QAction(QIcon(ICON['step_next']),
+                                       'Next Step', self)
         actions['step_next'].setShortcut(QKeySequence.MoveToNextChar)
         actions['step_next'].triggered.connect(self.action_step_next)
 
-        actions['page_prev'] = QAction(ICON['page_prev'], 'Previous Page',
-                                       self)
+        actions['page_prev'] = QAction(QIcon(ICON['page_prev']),
+                                       'Previous Page', self)
         actions['page_prev'].setShortcut(QKeySequence.MoveToPreviousPage)
         actions['page_prev'].triggered.connect(self.action_page_prev)
 
-        actions['page_next'] = QAction(ICON['page_next'], 'Next Page', self)
+        actions['page_next'] = QAction(QIcon(ICON['page_next']),
+                                       'Next Page', self)
         actions['page_next'].setShortcut(QKeySequence.MoveToNextPage)
         actions['page_next'].triggered.connect(self.action_page_next)
 
-        actions['X_more'] = QAction(ICON['zoomprev'], 'Wider Time Window',
-                                    self)
+        actions['X_more'] = QAction(QIcon(ICON['zoomprev']),
+                                    'Wider Time Window', self)
         actions['X_more'].setShortcut(QKeySequence.ZoomIn)
         actions['X_more'].triggered.connect(self.action_X_more)
 
-        actions['X_less'] = QAction(ICON['zoomnext'], 'Narrower Time Window',
-                                    self)
+        actions['X_less'] = QAction(QIcon(ICON['zoomnext']),
+                                    'Narrower Time Window', self)
         actions['X_less'].setShortcut(QKeySequence.ZoomOut)
         actions['X_less'].triggered.connect(self.action_X_less)
 
-        actions['Y_less'] = QAction(ICON['zoomin'], 'Larger Amplitude', self)
+        actions['Y_less'] = QAction(QIcon(ICON['zoomin']),
+                                    'Larger Amplitude', self)
         actions['Y_less'].setShortcut(QKeySequence.MoveToPreviousLine)
         actions['Y_less'].triggered.connect(self.action_Y_more)
 
-        actions['Y_more'] = QAction(ICON['zoomout'], 'Smaller Amplitude', self)
+        actions['Y_more'] = QAction(QIcon(ICON['zoomout']),
+                                    'Smaller Amplitude', self)
         actions['Y_more'].setShortcut(QKeySequence.MoveToNextLine)
         actions['Y_more'].triggered.connect(self.action_Y_less)
 
-        actions['Y_wider'] = QAction(ICON['ydist_more'],
+        actions['Y_wider'] = QAction(QIcon(ICON['ydist_more']),
                                      'Larger Y Distance', self)
         actions['Y_wider'].triggered.connect(self.action_Y_wider)
 
-        actions['Y_tighter'] = QAction(ICON['ydist_less'],
+        actions['Y_tighter'] = QAction(QIcon(ICON['ydist_less']),
                                        'Smaller Y Distance', self)
         actions['Y_tighter'].triggered.connect(self.action_Y_tighter)
 
@@ -409,7 +414,7 @@ class MainWindow(QMainWindow):
                                                       dock['main_area'] |
                                                       dock['extra_area'])
             self.addDockWidget(dock['main_area'], self.idx_docks[dock['name']])
-            new_act = QAction(ICON['widget'], dock['name'], self)
+            new_act = QAction(QIcon(ICON['widget']), dock['name'], self)
             new_act.setCheckable(True)
             new_act.setChecked(True)
             new_act.triggered.connect(partial(self.toggle_menu_window,
