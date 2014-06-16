@@ -5,8 +5,8 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from numpy import (absolute, arange, argmax, argmin, asarray, diff, exp, empty,
-                   expand_dims, hstack, insert, invert, mean, ones, pi, power,
-                   sqrt, std, vstack, where, zeros)
+                   expand_dims, hstack, insert, invert, mean, median, ones, pi,
+                   power, sqrt, std, vstack, where, zeros)
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           gaussian, hilbert, welch)
 
@@ -189,11 +189,11 @@ class DetectSpindle:
                              }
 
         if method == 'UCSD':
-            self.basic = {'data': ('morlet_interval', 'moving_avg'),
-                          'opt': (frequency, 1),  # frequency (9, 20)
+            self.basic = {'data': ('morlet_interval', ),
+                          'opt': (frequency, ),  # frequency (8, 16)
                           }
-            self.detect = {'method': 'maxima',
-                           'value': 4,
+            self.detect = {'method': 'threshold_median+std',
+                           'value': 0.5,
                            'data': (None, ),
                            'opt': None,
                            }
@@ -383,12 +383,12 @@ def transform_signal(dat, s_freq, method, opt=None):
         method_opt = opt[method.index('morlet_interval')]
 
         from phypno.trans.frequency import _create_morlet
-        method_opt = range(method_opt[0], method_opt[1])
-        wm = _create_morlet(method_opt, s_freq, {'w': 5, 'M_in_s': 1})
+        method_opt = arange(method_opt[0], method_opt[1])
+        # with a w of 10, mimic the wavelet of UCSD script
+        wm = _create_morlet(method_opt, s_freq, {'w': 10, 'M_in_s': 1})
         tfr = empty((dat.shape[0], wm.shape[0]))
         for i, one_wm in enumerate(wm):
             tfr[:, i] = absolute(fftconvolve(dat, one_wm, mode='same'))
-
         dat = mean(tfr, axis=1)
 
     if 'hilbert' in method:
@@ -426,10 +426,14 @@ def define_threshold(dat, s_freq, method, value):
         value = value * s_freq
     elif method == 'threshold_mean':
         value = value * mean(dat)
+    elif method == 'threshold_median':
+        value = value * median(dat)
     elif method == 'threshold_std':
         value = value * mean(dat)
     elif method == 'threshold_mean+std':
         value = mean(dat) + value * std(dat)
+    elif method == 'threshold_median+std':
+        value = median(dat) + value * std(dat)
 
     return value
 

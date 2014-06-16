@@ -176,7 +176,7 @@ class TimeFreq:
 
 
 def _create_morlet(foi, s_freq, options):
-    """Create morlet wavelets, with scipy.signal doing the actula computation.
+    """Create morlet wavelets, with scipy.signal doing the actual computation.
 
     Parameters
     ----------
