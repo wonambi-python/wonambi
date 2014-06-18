@@ -5,10 +5,10 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from numpy import (absolute, arange, argmax, argmin, asarray, cos, diff, exp, empty,
-                   expand_dims, hstack, insert, invert, linspace, mean, median, nan, ones, pi,
-                   power, sqrt, std, vstack, where, zeros)
+                   hstack, insert, invert, linspace, mean, median, nan, ones, pi,
+                   sqrt, std, vstack, where, zeros)
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
-                          gaussian, hilbert, periodogram, welch)
+                          hilbert, periodogram, welch)
 
 from phypno.graphoelement import Spindles
 
@@ -41,43 +41,29 @@ class DetectSpindle:
         self.duration = duration
 
         if method == 'Nir2011':
-            """Nir, Y. et al. Neuron 70, 153-69 (2011).
+            self.det_butter = {'order': 4,
+                               'freq': self.frequency,
+                               }
+            self.det_thresh = 3
+            self.moving_avg = {'dur':  .4}
+            self.sel_thresh = 1
 
-            This paper also selects channels carefully:
-            'First, the channels with spindle activity in NREM sleep were
-            chosen for further analysis.'
+        elif method == 'Ferrarelli2007':
+            self.det_butter = {'order': 4,
+                               'freq': self.frequency,
+                               }
+            self.det_thresh = 8
+            self.sel_thresh = 3
 
-            'Third, those channels, in which an increase in spectral power
-            within the detected events was restricted to the spindle-frequency
-            range (10-16 Hz) rather than broadband.'
+        elif method == 'Wamsley2012':
+            self.det_wavelet = {'f0': mean(self.frequency),
+                                'sd': .5,
+                                'dur': 2,
+                                }
+            self.det_thresh = 4.5
+            self.moving_avg = {'dur': .1}
 
-            """
-
-        if method == 'Ferrarelli2007':
-            """Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
-
-            """
-            self.basic = {'data': ('cheby2', ),  # not in the paper
-                          'opt': (frequency, ),
-                          }
-            self.detect = {'method': 'threshold_std',
-                           'value': 8,
-                           'data': ('hilbert', 'abs'),
-                           'opt': None,
-                           }
-            self.select = {'method': 'threshold_std',
-                           'value': 3,
-                           'data': ('hilbert', 'abs'),
-                           'opt': None,
-                           }
-            self.duration = {'value': duration,
-                             }
-            self.psd_peak = {'method': 'peak',
-                             'value': 1,
-                             'use': False,
-                             }
-
-        if method == 'UCSD':
+        elif method == 'UCSD':
             self.det_wavelet = {'freqs': arange(frequency[0],
                                                 frequency[1] + .5, .5),
                                 'dur': 1,
@@ -93,14 +79,8 @@ class DetectSpindle:
                                 }
             self.sel_thresh = .2
             self.ratio_thresh = .5
-
-        if method == 'Nir2011':
-            self.det_butter = {'order': 4,
-                               'freq': self.frequency,
-                               }
-            self.det_thresh = 3
-            self.moving_avg = {'dur':  .4}
-            self.sel_thresh = 1
+        else:
+            raise ValueError('Unknown method')
 
     def __repr__(self):
         return ('detsp_{0}_{1:02}-{2:02}Hz_{3:04.1f}-{4:04.1f}s'
@@ -132,67 +112,27 @@ class DetectSpindle:
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
 
-            if self.method == 'UCSD':
-                dat_det = transform_signal(dat_orig, data.s_freq,
-                                           'wavelet_real', self.det_wavelet)
+            if self.method == 'Ferrarelli2007':
+                sp_in_chan, values = detect_Ferrarelli2007(dat_orig,
+                                                           data.s_freq, time,
+                                                           self)
 
-                det_value = define_threshold(dat_det, data.s_freq,
-                                             'threshold_median+std',
-                                             self.det_thresh)
-                spindle.det_value[i] = det_value
-                events = detect_events(dat_det, 'maxima', det_value)
+            elif self.method == 'Nir2011':
+                sp_in_chan, values = detect_Nir2011(dat_orig, data.s_freq,
+                                                    time, self)
 
-                dat_sel = transform_signal(dat_orig, data.s_freq,
-                                           'wavelet_real', self.sel_wavelet)
-                sel_value = define_threshold(dat_sel, data.s_freq,
-                                             'threshold_median+std',
-                                             self.sel_thresh)
-                spindle.sel_value[i] = sel_value
-                events = select_events(dat_sel, events,
-                                       'threshold', sel_value)
+            elif self.method == 'Wamsley2012':
+                sp_in_chan, values = detect_Wamsley2012(dat_orig, data.s_freq,
+                                                        time, self)
 
-                sp_in_chan = make_spindles(events, dat_det, time,
-                                           data.s_freq)
+            elif self.method == 'UCSD':
+                sp_in_chan, values = detect_UCSD(dat_orig, data.s_freq, time,
+                                                 self)
+            else:
+                raise ValueError('Unknown method')
 
-                events = within_duration(events, time, self.duration)
-
-                events = power_ratio(events, dat_orig, data.s_freq,
-                                     self.frequency, self.ratio_thresh)
-
-                sp_in_chan = make_spindles(events, dat_det, time, data.s_freq)
-
-            if self.method == 'Nir2011':
-                dat_det = transform_signal(dat_orig, data.s_freq,
-                                           'butter', self.det_butter)
-                det_value = define_threshold(dat_det, data.s_freq,
-                                             'threshold_mean+std',
-                                             self.det_thresh)
-                sel_value = define_threshold(dat_det, data.s_freq,
-                                             'threshold_mean+std',
-                                             self.sel_thresh)
-
-                dat_det = transform_signal(dat_det, data.s_freq,
-                                           'hilbert')
-                dat_det = transform_signal(dat_det, data.s_freq,
-                                           'abs')
-                dat_det = transform_signal(dat_det, data.s_freq,
-                                           'moving_avg', self.moving_avg)
-
-                events = detect_events(dat_det, 'threshold', det_value)
-
-                if events is not None:
-                    events = select_events(dat_det, events, 'threshold',
-                                           sel_value)
-
-                    events = within_duration(events, time, self.duration)
-
-                    sp_in_chan = make_spindles(events, dat_det, time,
-                                               data.s_freq)
-
-                else:
-                    lg.info('No spindle found')
-                    sp_in_chan = []
-
+            spindle.det_value[i] = values['det_value']
+            spindle.sel_value[i] = values['sel_value']
             for sp in sp_in_chan:
                 sp.update({'chan': chan})
             all_spindles.extend(sp_in_chan)
@@ -201,6 +141,134 @@ class DetectSpindle:
         spindle.spindle = sorted(all_spindles, key=lambda x: x['start_time'])
 
         return spindle
+
+
+def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
+    """Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
+
+    """
+
+    dat_det = transform_signal(dat_orig, s_freq, 'cheby2', opts.det_cheby2)
+    det_value = define_threshold(dat_det, s_freq, 'threshold_mean+std',
+                                 opts.det_thresh)
+    sel_value = define_threshold(dat_det, s_freq, 'threshold_mean+std',
+                                 opts.sel_thresh)
+
+    dat_det = transform_signal(dat_det, s_freq, 'hilbert')
+    dat_det = transform_signal(dat_det, s_freq, 'abs')
+
+    events = detect_events(dat_det, 'threshold', det_value)
+
+    if events is not None:
+        events = select_events(dat_det, events, 'threshold', sel_value)
+
+        events = within_duration(events, time, opts.duration)
+
+        sp_in_chan = make_spindles(events, dat_det, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value': det_value, 'sel_value': sel_value}
+
+    return sp_in_chan, values
+
+
+def detect_Nir2011(dat_orig, s_freq, time, opts):
+    """Nir, Y. et al. Neuron 70, 153-69 (2011).
+
+    This paper also selects channels carefully:
+    'First, the channels with spindle activity in NREM sleep were
+    chosen for further analysis.'
+
+    'Third, those channels, in which an increase in spectral power
+    within the detected events was restricted to the spindle-frequency
+    range (10-16 Hz) rather than broadband.'
+
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    det_value = define_threshold(dat_det, s_freq, 'threshold_mean+std',
+                                 opts.det_thresh)
+    sel_value = define_threshold(dat_det, s_freq, 'threshold_mean+std',
+                                 opts.sel_thresh)
+
+    dat_det = transform_signal(dat_det, s_freq, 'hilbert')
+    dat_det = transform_signal(dat_det, s_freq, 'abs')
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.moving_avg)
+
+    events = detect_events(dat_det, 'threshold', det_value)
+
+    if events is not None:
+        events = select_events(dat_det, events, 'threshold', sel_value)
+
+        events = within_duration(events, time, opts.duration)
+
+        sp_in_chan = make_spindles(events, dat_det, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value': det_value, 'sel_value': sel_value}
+
+    return sp_in_chan, values
+
+
+def detect_Wamsley2012(dat_orig, s_freq, time, opts):
+    """Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
+
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
+    dat_det = transform_signal(dat_det, s_freq, 'abs')
+
+    det_value = define_threshold(dat_det, s_freq, 'threshold_mean',
+                                 opts.det_thresh)
+
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.moving_avg)
+
+    events = detect_events(dat_det, 'threshold', det_value)
+
+    if events is not None:
+        events = within_duration(events, time, opts.duration)
+
+        sp_in_chan = make_spindles(events, dat_det, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value': det_value, 'sel_value': nan}
+
+    return sp_in_chan, values
+
+
+def detect_UCSD(dat_orig, s_freq, time, opts):
+
+    dat_det = transform_signal(dat_orig, s_freq, 'wavelet_real',
+                               opts.det_wavelet)
+
+    det_value = define_threshold(dat_det, s_freq, 'threshold_median+std',
+                                 opts.det_thresh)
+
+    events = detect_events(dat_det, 'maxima', det_value)
+
+    dat_sel = transform_signal(dat_orig, s_freq, 'wavelet_real',
+                               opts.sel_wavelet)
+    sel_value = define_threshold(dat_sel, s_freq, 'threshold_median+std',
+                                 opts.sel_thresh)
+    events = select_events(dat_sel, events, 'threshold', sel_value)
+
+    events = within_duration(events, time, opts.duration)
+
+    events = power_ratio(events, dat_orig, s_freq, opts.frequency,
+                         opts.ratio_thresh)
+
+    sp_in_chan = make_spindles(events, dat_det, time, s_freq)
+
+    values = {'det_value': det_value, 'sel_value': sel_value}
+
+    return sp_in_chan, values
 
 
 def transform_signal(dat, s_freq, method, method_opt=None):
@@ -213,7 +281,8 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     s_freq : float
         sampling frequency
     method : str
-        'cheby2' or 'butter' or 'morlet'
+        one of 'cheby2', 'butter', 'morlet', 'morlet_real', 'hilbert', 'abs',
+        'moving_avg'
     method_opt : dict
         depends on methods
 
@@ -229,12 +298,25 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
     Methods
     -------
+    cheby2 has parameters:
+        freq : tuple of float
+            high and low values for bandpass
+        order : int
+            filter order
 
     butter has parameters:
         freq : tuple of float
-            top and low values for bandpass
+            high and low values for bandpass
         order : int
             filter order
+
+    morlet has parameters:
+        f0 : float
+            center frequency in Hz
+        sd : float
+            standard deviation of frequency
+        dur : float
+            window length in number of standard deviations
 
     morlet_real has parameters:
         freqs : ndarray
@@ -252,10 +334,12 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
     """
     if 'cheby2' == method:
-        N = 4
+        freq = method_opt['freq']
+        N = method_opt['order']
+
         Rs = 80
         nyquist = s_freq / 2
-        Wn = asarray(method_opt) / nyquist
+        Wn = asarray(freq) / nyquist
         b, a = cheby2(N, Rs, Wn, btype='bandpass')
         dat = filtfilt(b, a, dat)
 
@@ -269,18 +353,12 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         dat = filtfilt(b, a, dat)
 
     if 'morlet' == method:
-        wm = _wmorlet(method_opt[0], method_opt[1], s_freq)
-        dat = absolute(fftconvolve(dat, wm, mode='same'))
+        f0 = method_opt['f0']
+        sd = method_opt['sd']
+        dur = method_opt['dur']
 
-    if 'morlet_interval' == method:
-        from phypno.trans.frequency import _create_morlet
-        method_opt = arange(method_opt[0], method_opt[1])
-        # with a w of 10, mimic the wavelet of UCSD script
-        wm = _create_morlet(method_opt, s_freq, {'w': 10, 'M_in_s': 1})
-        tfr = empty((dat.shape[0], wm.shape[0]))
-        for i, one_wm in enumerate(wm):
-            tfr[:, i] = absolute(fftconvolve(dat, one_wm, mode='same'))
-        dat = mean(tfr, axis=1)
+        wm = _wmorlet(f0, sd, s_freq, dur)
+        dat = absolute(fftconvolve(dat, wm, mode='same'))
 
     if 'wavelet_real' == method:
         freqs = method_opt['freqs']
@@ -298,25 +376,14 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     if 'hilbert' == method:
         dat = hilbert(dat)
 
-    if 'real' == method:
-        dat = dat.real
-
     if 'abs' == method:
         dat = absolute(dat)
 
-    if 'rms' == method:
-        dat = power(dat, 2)
-        flat = ones(method_opt * s_freq)
-        dat = sqrt(fftconvolve(dat, flat / sum(flat), mode='same'))
-
     if 'moving_avg' == method:
         dur = method_opt['dur']
+
         flat = ones(dur * s_freq)
         dat = fftconvolve(dat, flat / sum(flat), mode='same')
-
-    if 'gaussian' == method:
-        gw = gaussian(s_freq, std=s_freq / method_opt)
-        dat = fftconvolve(dat, gw / sum(gw), mode='same')
 
     return dat
 
@@ -590,6 +657,11 @@ def _select_period(detected, true_values):
         usually larger than those of the input, because the selection window is
         usually more lenient (lower threshold) than the detection window.
 
+    Notes
+    -----
+    Both start and end time points are inclusive (not python convention, but
+    matlab convention) because these values are converted to time points later.
+
     """
     true_values = invert(true_values)
 
@@ -600,8 +672,7 @@ def _select_period(detected, true_values):
             one_spindle[0] = start_sel[-1]
 
         # get the last time point when it stays above selection thres
-        # TODO: check if accurate
-        end_sel = where(true_values[one_spindle[2]:])[0]
+        end_sel = where(true_values[one_spindle[2]:])[0] - 1
         if end_sel.any():
             one_spindle[2] += end_sel[0]
 
@@ -620,8 +691,6 @@ def _wmorlet(f0, sd, sampling_rate, ns=5):
         sd : standard deviation of frequency
         sampling_rate : samplingrate
         ns : window length in number of standard deviations
-
-    TODO: compare with scipy. However, this wavelet has sd
 
     """
     st = 1. / (2. * pi * sd)
