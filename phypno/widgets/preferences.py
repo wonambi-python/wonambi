@@ -32,7 +32,7 @@ DEFAULTS = {'main/geometry': [400, 300, 1024, 768],
             'traces/label_ratio': 0.05,
             'utils/read_intervals': 10 * 60,
             'stages/scoring_window': 30,
-            'detect/spindle_method': 'housestyle',
+            'detect/spindle_method': 'UCSD',
             'spectrum/x_limit': [0, 30],
             'spectrum/y_limit': [-5, 5],
             }

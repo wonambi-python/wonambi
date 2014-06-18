@@ -27,7 +27,6 @@ class DetectSpindle:
     duration : tuple of float
         min and max duration of spindles
 
-
     """
     def __init__(self, method='UCSD', frequency=None, duration=None):
 
@@ -40,20 +39,21 @@ class DetectSpindle:
         self.frequency = frequency
         self.duration = duration
 
-        if method == 'Nir2011':
+
+        if method == 'Ferrarelli2007':
+            self.det_cheby2 = {'order': 4,
+                               'freq': self.frequency,
+                               }
+            self.det_thresh = 8
+            self.sel_thresh = 3
+
+        elif method == 'Nir2011':
             self.det_butter = {'order': 4,
                                'freq': self.frequency,
                                }
             self.det_thresh = 3
             self.moving_avg = {'dur':  .4}
             self.sel_thresh = 1
-
-        elif method == 'Ferrarelli2007':
-            self.det_butter = {'order': 4,
-                               'freq': self.frequency,
-                               }
-            self.det_thresh = 8
-            self.sel_thresh = 3
 
         elif method == 'Wamsley2012':
             self.det_wavelet = {'f0': mean(self.frequency),
@@ -62,6 +62,7 @@ class DetectSpindle:
                                 }
             self.det_thresh = 4.5
             self.moving_avg = {'dur': .1}
+            self.sel_thresh = nan  # necessary for gui/detect
 
         elif method == 'UCSD':
             self.det_wavelet = {'freqs': arange(frequency[0],
@@ -431,13 +432,23 @@ def detect_events(dat, method, value=None):
 
 
 def select_events(dat, detected, method, value):
-    """Select duration of the events.
+    """Select start sample and end sample of the events.
 
     Parameters
     ----------
     dat : ndarray (dtype='float')
         vector with the data after selection-transformation
     detected : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    method : str
+        'threshold' or 'minima'
+    value : float
+        for 'threshold', it's the value of threshold for the spindle selection.
+        for 'maxima', it's the distance in s from the peak to find a minimum
+
+    Returns
+    -------
+    ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
 
     """
@@ -490,7 +501,29 @@ def within_duration(events, time, limits):
 
 
 def power_ratio(events, dat, s_freq, limits, ratio_thresh):
-    """
+    """Estimate the ratio in power between spindle band and lower frequencies.
+
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    dat : ndarray (dtype='float')
+        vector with the original data
+    s_freq : float
+        sampling frequency
+    limits : tuple of float
+        high and low frequencies for spindle band
+    ratio_thresh : float
+        ratio between spindle vs non-spindle amplitude
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+
+    Notes
+    -----
+    In the original matlab script, it uses amplitude, not power.
 
     """
     ratio = empty(events.shape[0])

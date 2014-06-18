@@ -25,7 +25,7 @@ NoPen.setStyle(Qt.NoPen)
 
 TRIAL = 0
 GRAPHOELEMENTS = ('spindles', )
-METHODS = ('housestyle', 'Nir2011', 'Wamsley2012', 'Ferrarelli2007', 'UCSD')
+METHODS = ('UCSD', 'Nir2011', 'Wamsley2012', 'Ferrarelli2007')
 
 
 class Detect(QWidget):
@@ -150,11 +150,11 @@ class Detect(QWidget):
 
         det_value = self.idx_det_value.text()
         if not det_value == '':
-            self.detfun.detect['value'] = float(det_value)
+            self.detfun.det_thresh = float(det_value)
 
         sel_value = self.idx_sel_value.text()
         if not sel_value == '':
-            self.detfun.select['value'] = float(sel_value)
+            self.detfun.sel_thresh = float(sel_value)
 
         self.display_detect()
 
@@ -162,10 +162,10 @@ class Detect(QWidget):
         """Update the widgets with the information of the detection method."""
         self.idx_freq0.setText(str(self.detfun.frequency[0]))
         self.idx_freq1.setText(str(self.detfun.frequency[1]))
-        self.idx_det_value.setText(str(self.detfun.detect['value']))
-        self.idx_sel_value.setText(str(self.detfun.select['value']))
-        self.idx_min_dur.setText(str(self.detfun.duration['value'][0]))
-        self.idx_max_dur.setText(str(self.detfun.duration['value'][1]))
+        self.idx_det_value.setText(str(self.detfun.det_thresh))
+        self.idx_sel_value.setText(str(self.detfun.sel_thresh))
+        self.idx_min_dur.setText(str(self.detfun.duration[0]))
+        self.idx_max_dur.setText(str(self.detfun.duration[1]))
 
     def run_detect(self):
         """Detect graphoelements, based on info in widget."""
