@@ -390,7 +390,15 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
 
 def define_threshold(dat, s_freq, method, value):
-    """Be ready for the case when there are two types of threshold."""
+    """Return the value of the threshold based on relative values.
+
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
+        vector with the data after selection-transformation
+    method : str
+
+    """
 
     if method in ('maxima', 'minima'):
         value = value * s_freq
@@ -409,6 +417,24 @@ def define_threshold(dat, s_freq, method, value):
 
 
 def detect_events(dat, method, value=None):
+    """Detect events using 'threshold' or 'maxima' method.
+
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
+        vector with the data after selection-transformation
+    method : str
+        'threshold' or 'maxima'
+    value : float
+        for 'threshold', it's the value of threshold for the event detection
+        for 'maxima', it's the distance in s from the peak to find a minimum
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+
+    """
     if method == 'threshold':
         above_det = dat >= value
         detected = _detect_start_end(above_det)
@@ -441,10 +467,9 @@ def select_events(dat, detected, method, value):
     detected : ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
     method : str
-        'threshold' or 'minima'
+        'threshold'
     value : float
         for 'threshold', it's the value of threshold for the spindle selection.
-        for 'maxima', it's the distance in s from the peak to find a minimum
 
     Returns
     -------
@@ -455,23 +480,6 @@ def select_events(dat, detected, method, value):
     if method == 'threshold':
         above_sel = dat >= value
         detected = _select_period(detected, above_sel)
-
-    elif method == 'minima':
-        beg_trough = detected - value
-        end_trough = detected + value
-
-        detected = hstack((beg_trough, detected, end_trough))
-
-        good_peaks = (detected[:, 0] >= 0) & (detected[:, 2] < len(dat))
-        detected = detected[good_peaks, :].astype(int)
-
-        for i in detected:
-
-            # search minimum before the peak
-            i[0] = argmin(dat[i[0]:i[1]]) + i[0]
-
-            # search minimum after the peak
-            i[2] = argmin(dat[i[1]:i[2]]) + i[1]
 
     return detected
 
