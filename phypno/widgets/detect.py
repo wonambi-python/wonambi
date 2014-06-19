@@ -147,6 +147,7 @@ class Detect(QWidget):
 
         self.detfun = DetectSpindle(method=method, frequency=frequency,
                                     duration=duration)
+        self.detfun.power_peaks = None
 
         det_value = self.idx_det_value.text()
         if not det_value == '':
