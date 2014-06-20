@@ -702,8 +702,8 @@ def peak_in_power(events, dat, s_freq, method, value=None):
         vector with the original data
     s_freq : float
         sampling frequency
-    method : str
-        'peak' or 'interval'
+    method : str or None
+        'peak' or 'interval'. If None, values will be all NaN
     value : float
         size of the window around peak, or nothing (for 'interval')
 
@@ -716,23 +716,25 @@ def peak_in_power(events, dat, s_freq, method, value=None):
     dat = diff(dat)  # remove 1/f
 
     peak = empty(events.shape[0])
+    peak.fill(nan)
 
-    for i, one_event in enumerate(events):
+    if method is not None:
+        for i, one_event in enumerate(events):
 
-        if method == 'peak':
-            x0 = one_event[1] - value / 2 * s_freq
-            x1 = one_event[1] + value / 2 * s_freq
+            if method == 'peak':
+                x0 = one_event[1] - value / 2 * s_freq
+                x1 = one_event[1] + value / 2 * s_freq
 
-        elif method == 'interval':
-            x0 = one_event[0]
-            x1 = one_event[2]
+            elif method == 'interval':
+                x0 = one_event[0]
+                x1 = one_event[2]
 
-        if x0 < 0 or x1 >= len(dat):
-            peak[i] = nan
-        else:
-            f, Pxx = periodogram(dat[x0:x1], s_freq)
-            idx_peak = Pxx[f < MAX_FREQUENCY_OF_INTEREST].argmax()
-            peak[i] = f[idx_peak]
+            if x0 < 0 or x1 >= len(dat):
+                peak[i] = nan
+            else:
+                f, Pxx = periodogram(dat[x0:x1], s_freq)
+                idx_peak = Pxx[f < MAX_FREQUENCY_OF_INTEREST].argmax()
+                peak[i] = f[idx_peak]
 
     return peak
 
