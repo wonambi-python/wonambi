@@ -763,18 +763,17 @@ def make_spindles(events, power_peaks, dat, time, s_freq):
         (signal units * s), peak_freq (Hz)
 
     """
-
-    events = vstack((events.T, power_peaks)).T
-    events = _remove_duplicate(events, dat)
+    i, events = _remove_duplicate(events, dat)
+    power_peaks = power_peaks[i]
 
     spindles = []
-    for i in events:
+    for i, one_peak in zip(events, power_peaks):
         one_spindle = {'start_time': time[i[0]],
                        'end_time': time[i[2] - 1],
                        'peak_time': time[i[1]],
                        'peak_val': dat[i[1]],
                        'area_under_curve': sum(dat[i[0]:i[2]]) / s_freq,
-                       'peak_freq': i[3],
+                       'peak_freq': one_peak,
                        }
         spindles.append(one_spindle)
 
@@ -787,14 +786,16 @@ def _remove_duplicate(old_events, dat):
     Parameters
     ----------
     old_events : ndarray (dtype='int')
-        N x 4 matrix with start, peak, end samples, and peak frequency
+        N x 3 matrix with start, peak, end samples
     dat : ndarray (dtype='float')
         vector with the data after detection-transformation (to compute peak)
 
     Returns
     -------
     ndarray (dtype='int')
-        N x 4 matrix with start, peak, end samples, and peak frequency
+        index of the periods to keep
+    ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
 
     Notes
     -----
@@ -802,7 +803,7 @@ def _remove_duplicate(old_events, dat):
     end time. When two (or more) events have the same start time and the same
     end time, then it takes the largest peak.
 
-    There is no tolerance, indeces need to be identical.
+    There is no tolerance, indices need to be identical.
 
     """
     diff_events = diff(old_events, axis=0)
@@ -815,19 +816,21 @@ def _remove_duplicate(old_events, dat):
         lg.debug('Removing ' + str(len(dupl)) + ' duplicate events')
 
     i = 0
+    indices = []
     for i_old, one_old_event in enumerate(old_events):
         if i_old not in dupl:
             new_events[i, :] = one_old_event
             i += 1
+            indices.append(i_old)
         else:
-            peak_0 = new_events[i-1, 1]
+            peak_0 = new_events[i - 1, 1]
             peak_1 = one_old_event[1]
             if dat[peak_0] >= dat[peak_1]:
-                new_events[i-1, 1] = peak_0
+                new_events[i - 1, 1] = peak_0
             else:
-                new_events[i-1, 1] = peak_1
+                new_events[i - 1, 1] = peak_1
 
-    return new_events
+    return indices, new_events
 
 
 def _detect_start_end(true_values):
