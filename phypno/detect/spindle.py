@@ -8,7 +8,7 @@ from numpy import (absolute, arange, argmax, asarray, cos, diff, exp, empty,
                    hstack, insert, invert, linspace, mean, median, nan, ones,
                    pi, sqrt, std, vstack, where, zeros)
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
-                          hilbert, periodogram, welch)
+                          hilbert, periodogram)
 
 from phypno.graphoelement import Spindles
 
@@ -770,7 +770,7 @@ def make_spindles(events, power_peaks, dat, time, s_freq):
     spindles = []
     for i in events:
         one_spindle = {'start_time': time[i[0]],
-                       'end_time': time[i[2]],
+                       'end_time': time[i[2] - 1],
                        'peak_time': time[i[1]],
                        'peak_val': dat[i[1]],
                        'area_under_curve': sum(dat[i[0]:i[2]]) / s_freq,
@@ -811,7 +811,8 @@ def _remove_duplicate(old_events, dat):
 
     n_nondupl_events = old_events.shape[0] - len(dupl)
     new_events = zeros((n_nondupl_events, old_events.shape[1]), dtype='int')
-    lg.debug('Removing ' + str(len(dupl)) + ' duplicate events')
+    if len(dupl):
+        lg.debug('Removing ' + str(len(dupl)) + ' duplicate events')
 
     i = 0
     for i_old, one_old_event in enumerate(old_events):
