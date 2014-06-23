@@ -793,7 +793,7 @@ def _remove_duplicate(old_events, dat):
     Returns
     -------
     ndarray (dtype='int')
-        index of the periods to keep
+        vector of indices of the events to keep
     ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
 
