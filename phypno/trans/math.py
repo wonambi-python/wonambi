@@ -37,14 +37,14 @@ class Math:
     operator and operator_name are mutually exclusive. operator_name is given
     as shortcut for most common operations.
 
-    If a function accepts a 'axis' argument, you need to pass 'axis' to the
+    If a function accepts an 'axis' argument, you need to pass 'axis' to the
     constructor. In this way, it'll apply the function to the correct
     dimension.
 
     The possible point-wise operator_name are:
     'absolute', 'exp', 'log', 'sqrt', 'square'
 
-    The operator_name's that need an axis, but do not delete one:
+    The operator_name's that need an axis, but do not remove it:
     'hilbert'
 
     The operator_name's that need an axis and remove it:

@@ -244,7 +244,7 @@ class MainWindow(QMainWindow):
                                           filename)
         if filename[0] == '':
             return
-        self.stages.update_stages(filename[0])
+        self.stages.update_stages(filename)
 
     def action_step_prev(self):
         """Go to the previous step."""
