@@ -72,14 +72,14 @@ class DetectSpindle:
                                 'width': .5,
                                 'win': .5,
                                 }
-            self.det_thresh = .5  # wavelet_peak_thresh
+            self.det_thresh = 2  # wavelet_peak_thresh
             self.sel_wavelet = {'freqs': arange(frequency[0],
                                                 frequency[1] + .5, .5),
                                 'dur': 1,
                                 'width': .2,
                                 'win': .2,
                                 }
-            self.sel_thresh = .2
+            self.sel_thresh = 1
             self.ratio_thresh = .5
         else:
             raise ValueError('Unknown method')
