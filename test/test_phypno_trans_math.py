@@ -94,3 +94,17 @@ def test_math_lambda_with_axis():
     std_ddof = lambda x, axis: std(x, axis, ddof=1)
     apply_std = Math(operator=std_ddof, axis='time')
     apply_std(data)
+
+
+def test_math_diff():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    m_diff = Math(operator_name='diff', axis='time')
+    data1 = m_diff(data)
+    # shape should not change
+    assert_array_equal(data1.data[0].shape, data.data[0].shape)
+    assert_array_equal(data1.data[-1].shape, data.data[-1].shape)
+    # check that the values are correct
+    dat = data(trial=0, chan='chan01')[2] - data(trial=0, chan='chan01')[1]
+    dat1 = data1(trial=0, chan='chan01')[2]
+    assert dat == dat1

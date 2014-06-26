@@ -8,7 +8,7 @@ from copy import deepcopy
 from inspect import getfullargspec
 
 # for Math
-from numpy import absolute, exp, log, mean, sqrt, square, std
+from numpy import absolute, diff, exp, log, mean, pad, sqrt, square, std
 from scipy.signal import hilbert
 
 
@@ -45,7 +45,7 @@ class Math:
     'absolute', 'exp', 'log', 'sqrt', 'square'
 
     The operator_name's that need an axis, but do not remove it:
-    'hilbert'
+    'hilbert', 'diff'
 
     The operator_name's that need an axis and remove it:
     'mean', 'std'
@@ -163,8 +163,12 @@ class Math:
             for i in range(output.number_of('trial')):
                 if op['on_axis']:
                     try:
-                        output.data[i] = func(output(trial=i),
-                                              axis=idx_axis)
+                        x = output(trial=i)
+                        if func == diff:
+                            lg.debug('Diff has one-point of zero padding')
+                            x = _pad_one_axis_one_value(x, idx_axis)
+
+                        output.data[i] = func(x, axis=idx_axis)
                     except IndexError:
                         raise ValueError('The axis ' + self.axis + ' does not '
                                          'exist in [' +
@@ -177,3 +181,9 @@ class Math:
                 del output.axis[self.axis]
 
         return output
+
+
+def _pad_one_axis_one_value(x, idx_axis):
+    pad_width = [(0, 0)] * x.ndim
+    pad_width[idx_axis] = (1, 0)
+    return pad(x, pad_width=pad_width, mode='mean')
