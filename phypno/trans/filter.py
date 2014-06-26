@@ -17,6 +17,8 @@ class Filter:
 
     Parameters
     ----------
+    ftype : str
+        'butter', 'cheby1', 'cheby2', 'ellip', 'bessel' or 'diff'
     low_cut : float, optional
         low cutoff for high-pass filter
     high_cut : float, optional
@@ -35,7 +37,7 @@ class Filter:
 
     Notes
     -----
-    At the moment, it only uses a butterworth filter.
+    You can specify any filter type as defined by iirfilter.
 
     If you specify low_cut only, it generates a high-pass filter.
     If you specify high_cut only, it generates a low-pass filter.
