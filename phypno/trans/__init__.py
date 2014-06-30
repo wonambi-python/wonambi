@@ -12,4 +12,6 @@ from .frequency import Freq, TimeFreq
 from .merge import Merge
 from .math import Math
 from .montage import Montage
+from .peaks import Peaks
 from .reject import RejectBadChan
+
