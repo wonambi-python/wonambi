@@ -11,13 +11,13 @@ from copy import deepcopy
 from numpy import asarray, concatenate, empty, expand_dims, unique
 
 
-class Merge:
-    """Merge multiple trials into one trials, according to any dimension.
+class Concatenate:
+    """Concatenate multiple trials into one trials, according to any dimension.
 
     Parameters
     ----------
     axis : str
-        axis that you want to merge (it can be 'trial')
+        axis that you want to concatenate (it can be 'trial')
 
     Notes
     -----
@@ -30,7 +30,7 @@ class Merge:
         self.axis = axis
 
     def __call__(self, data):
-        """Merge the data across trials.
+        """Concatenate the data across trials.
 
         # if you want to concatenate across trials, you need:
         #   expand_dims(data1.data[0], axis=1).shape

@@ -9,7 +9,7 @@ basic elements, use the package "detect" for example.
 from .filter import Filter, Convolve
 from .select import Select, Resample
 from .frequency import Freq, TimeFreq
-from .merge import Merge
+from .merge import Concatenate
 from .math import Math
 from .montage import Montage
 from .peaks import Peaks
