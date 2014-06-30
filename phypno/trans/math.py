@@ -77,7 +77,12 @@ class Math:
     If you don't pass 'axis' in lambda, it'll never know on which axis the
     function should be applied and you'll get unpredictable results.
 
-    TODO: are we going to use keepdims?
+    If you want to pass a function that operates on an axis and removes it (for
+    example, if you want the max value over time), you need to add an argument
+    in your function called ''keepdims'' (the values won't be used):
+
+    >>> def func(x, axis, keepdims=None):
+    >>>     return nanmax(x, axis=axis)
 
     """
     def __init__(self, operator=None, operator_name=None,

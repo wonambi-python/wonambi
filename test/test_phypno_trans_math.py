@@ -1,6 +1,6 @@
 from . import *
 
-from numpy import power, mean, std
+from numpy import power, mean, nanmax, std
 
 from phypno.trans import Math
 from phypno.utils import create_data
@@ -96,6 +96,17 @@ def test_math_lambda_with_axis():
     apply_std(data)
 
 
+def test_own_funct():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    def func(x, axis, keepdims=None):
+        return nanmax(x, axis=axis)
+
+    max_math = Math(operator=func, axis='time')
+    m_data = max_math(data)
+    assert len(m_data.list_of_axes) == 1
+
+
 def test_math_diff():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -108,3 +119,4 @@ def test_math_diff():
     dat = data(trial=0, chan='chan01')[2] - data(trial=0, chan='chan01')[1]
     dat1 = data1(trial=0, chan='chan01')[2]
     assert dat == dat1
+

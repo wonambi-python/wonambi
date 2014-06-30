@@ -19,7 +19,7 @@ class Freq:
         the method to compute the power spectrum, such as 'welch'
 
     """
-    def __init__(self, method='welch', **options):
+    def __init__(self, method='welch', duration=2, **options):
         implemented_methods = ('welch', )
 
         if method not in implemented_methods:
@@ -28,6 +28,7 @@ class Freq:
                              ', '.join(implemented_methods))
 
         self.method = method
+        self.duration = duration
         self.options = options
 
     def __call__(self, data):
@@ -71,6 +72,7 @@ class Freq:
 
                 f, Pxx = welch(data(trial=i),
                                fs=data.s_freq,
+                               nperseg=data.s_freq * self.duration,
                                axis=idx_time,
                                **self.options)
                 freq.axis['freq'][i] = f
