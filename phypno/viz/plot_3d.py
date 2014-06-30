@@ -109,7 +109,7 @@ def calculate_chan2surf_trans(surf, xyz, dist_func=None):
 
     """
     if dist_func is None:
-        dist_func = lambda one_vert, one_chan : 1 / norm(one_vert - one_chan)
+        dist_func = lambda one_vert, one_chan: 1 / norm(one_vert - one_chan)
 
     trans = zeros((surf.vert.shape[0], xyz.shape[0]))
 
