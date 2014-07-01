@@ -10,7 +10,7 @@ from os.path import join
 from subprocess import call
 from tempfile import mkdtemp
 
-from numpy import asarray, dot, hstack, max, mean, min, zeros
+from numpy import asarray, dot, hstack, max, mean, min, ones, zeros
 from numpy.linalg import norm
 from visvis import Mesh, gca, figure, solidSphere, CM_JET, record
 
@@ -137,7 +137,8 @@ def calculate_chan2surf_trans(surf, xyz, dist_func=None):
     return trans
 
 
-def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None):
+def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None,
+              colormap=CM_JET):
     """Plot channels in 3d space.
 
     Parameters
@@ -152,6 +153,8 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None):
         vector with values for each electrode
     limits : 2 float values
         min and max values
+    colormap : ndarray, optional
+        2d matrix (for example, from visvis import CM_JET)
 
     Returns
     -------
@@ -179,10 +182,12 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None):
         s = solidSphere(list(one_chan.xyz), scaling=SCALING)
 
         if values is not None:
-            s.faceColor = _value_to_rgb(values[i], limits)
+            n_vert = s._vertices.shape[0]
+            s.SetValues(values[i] * ones((n_vert, 1)))
+            s.clim = limits
         else:
             s.faceColor = color
-        s.colormap = CM_JET
+        s.colormap = colormap
 
     fig.currentAxes.camera.azimuth = azimuth
     fig.currentAxes.camera.elevation = elevation
@@ -207,7 +212,7 @@ def make_gif(fig, gif_file, loop='full', step=5):
 
     Notes
     -----
-    It requires ''convert'' from I
+    It requires ''convert'' from Imagemagick
     """
     ax = fig.currentAxes
     AZIMUTH = ax.camera.azimuth
@@ -260,37 +265,3 @@ def _make_fig(fig=None):
     ax.axis.visible = False
 
     return fig
-
-
-def _value_to_rgb(value, limits, colormap=CM_JET):
-    """Convert value to RGB based on colormap.
-
-    Parameters
-    ----------
-    value : float
-        value in the interval between limits
-    limits : 2 float values
-        min and max values
-    colormap : ndarray, optional
-        2d matrix (for example, from visvis import CM_JET)
-
-    Returns
-    -------
-    ndarray
-        3-value vector with RGB
-
-    Notes
-    -----
-    It's important to use python/math floor and ceil because they return int
-
-    """
-    colormap = asarray(colormap)
-
-    value = (value - limits[0]) / (limits[1] - limits[0])
-    value_in_colormap = value * (colormap.shape[0] - 1)
-
-    c0 = i_floor(value_in_colormap)
-    c1 = i_ceil(value_in_colormap)
-    c1c0 = i_modf(value_in_colormap)[0]  # distance between c0 and c1
-
-    return (colormap[c1, :] - colormap[c0, :]) * c1c0 + colormap[c0, :]
