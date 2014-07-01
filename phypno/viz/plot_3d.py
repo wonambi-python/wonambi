@@ -196,7 +196,7 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None,
     return fig
 
 
-def make_gif(fig, gif_file, loop='full', step=5):
+def make_gif(fig, gif_file, loop='full', step=5, focus='fig'):
     """Save the image as rotating gif.
 
     Parameters
@@ -209,12 +209,18 @@ def make_gif(fig, gif_file, loop='full', step=5):
         'full' (complete rotation) or 'patrol' (half rotation)
     step : int
         distance in degrees between frames
-
+    focus : str
+        'fig' or 'axis', which part of the image should be saved
     Notes
     -----
     It requires ''convert'' from Imagemagick
     """
     ax = fig.currentAxes
+    if focus == 'fig':
+        obj = fig
+    elif focus == 'axis':
+        obj = ax
+
     AZIMUTH = ax.camera.azimuth
 
     OFFSET = 180  # start at the front
@@ -229,7 +235,7 @@ def make_gif(fig, gif_file, loop='full', step=5):
             angles = chain(range(OFFSET, OFFSET - 180, -step),
                            range(OFFSET - 180, OFFSET, step))
 
-    rec = record(ax)
+    rec = record(obj)
     for i in angles:
         ax.camera.azimuth = i + OFFSET
         if ax.camera.azimuth > 180:
