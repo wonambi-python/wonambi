@@ -4,9 +4,15 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import hstack, asarray, dot, zeros
+from itertools import chain
+from math import floor as i_floor, ceil as i_ceil, modf as i_modf  # return int
+from os.path import join
+from subprocess import call
+from tempfile import mkdtemp
+
+from numpy import asarray, dot, hstack, max, mean, min, zeros
 from numpy.linalg import norm
-from visvis import Mesh, gca, figure, solidSphere, CM_JET
+from visvis import Mesh, gca, figure, solidSphere, CM_JET, record
 
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255.)
@@ -30,9 +36,20 @@ def plot_surf(surf, fig=None):
     """
     fig = _make_fig(fig)
 
-    ax = gca()
+    ax = fig.currentAxes
     m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
     m.faceColor = hstack((asarray(SKIN_COLOR), 0.5))
+
+    # center the image
+    center_surf = tuple(mean(surf.vert, axis=0))
+    ax.camera.loc = center_surf
+    ax.camera.elevation = 0
+    ax.camera.zoom = 0.007
+
+    if center_surf[0] > 0:  # right hemisphere
+        ax.camera.azimuth = 90
+    else:
+        ax.camera.azimuth = 270
 
     return fig
 
@@ -68,7 +85,7 @@ def plot_values_on_surf(surf, values, trans, fig=None):
     """
     fig = _make_fig(fig)
 
-    ax = gca()
+    ax = fig.currentAxes
     m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
     m.SetValues(dot(trans, values), setClim=True)
     m.colormap = CM_JET
@@ -120,7 +137,7 @@ def calculate_chan2surf_trans(surf, xyz, dist_func=None):
     return trans
 
 
-def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
+def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None):
     """Plot channels in 3d space.
 
     Parameters
@@ -129,8 +146,12 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
         channels to plot.
     fig : instance of visvis.Figure, optional
         figure being plotted.
-    color : tuple
+    color : tuple, optional
         4-element tuple, representing RGB and alpha.
+    values : ndarray, optional
+        vector with values for each electrode
+    limits : 2 float values
+        min and max values
 
     Returns
     -------
@@ -138,12 +159,87 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1)):
 
     """
     fig = _make_fig(fig)
+    azimuth = fig.currentAxes.camera.azimuth
+    elevation = fig.currentAxes.camera.elevation
+    zoom = fig.currentAxes.camera.zoom
 
-    for one_chan in chan.chan:
-        s = solidSphere(list(one_chan.xyz), scaling=1.5)
-        s.faceColor = color
+    # larger if colors are meaningful
+    if values is not None:
+        SCALING = 3
+    else:
+        SCALING = 1.5
+
+    if values is not None and limits is None:
+        limits = (min(values), max(values))
+
+    values[values < limits[0]] = limits[0]
+    values[values > limits[1]] = limits[1]
+
+    for i, one_chan in enumerate(chan.chan):
+        s = solidSphere(list(one_chan.xyz), scaling=SCALING)
+
+        if values is not None:
+            s.faceColor = _value_to_rgb(values[i], limits)
+        else:
+            s.faceColor = color
+        s.colormap = CM_JET
+
+    fig.currentAxes.camera.azimuth = azimuth
+    fig.currentAxes.camera.elevation = elevation
+    fig.currentAxes.camera.zoom = zoom
 
     return fig
+
+
+def make_gif(fig, gif_file, loop='full', step=5):
+    """Save the image as rotating gif.
+
+    Parameters
+    ----------
+    fig : instance of visvis.Figure
+        figure being plotted.
+    gif_file : path to file
+        file where you want to save the gif
+    loop : str, optional
+        'full' (complete rotation) or 'patrol' (half rotation)
+    step : int
+        distance in degrees between frames
+
+    Notes
+    -----
+    It requires ''convert'' from I
+    """
+    ax = fig.currentAxes
+    AZIMUTH = ax.camera.azimuth
+
+    OFFSET = 180  # start at the front
+
+    if loop == 'full':
+        angles = range(OFFSET, 360 + OFFSET, step)
+    elif loop == 'patrol':
+        if ax.camera.azimuth > 0:
+            angles = chain(range(OFFSET, OFFSET + 180, step),
+                           range(OFFSET + 180, OFFSET, -step))
+        else:
+            angles = chain(range(OFFSET, OFFSET - 180, -step),
+                           range(OFFSET - 180, OFFSET, step))
+
+    rec = record(ax)
+    for i in angles:
+        ax.camera.azimuth = i + OFFSET
+        if ax.camera.azimuth > 180:
+            ax.camera.azimuth -= 360
+        ax.Draw()
+        fig.DrawNow()
+
+    rec.Stop()
+    ax.camera.azimuth = AZIMUTH
+
+    img_dir = mkdtemp()
+    rec.Export(join(img_dir, 'image.png'))
+
+    call('convert ' + join(img_dir, 'image*.png') + ' ' + gif_file,
+         shell=True)
 
 
 def _make_fig(fig=None):
@@ -164,3 +260,37 @@ def _make_fig(fig=None):
     ax.axis.visible = False
 
     return fig
+
+
+def _value_to_rgb(value, limits, colormap=CM_JET):
+    """Convert value to RGB based on colormap.
+
+    Parameters
+    ----------
+    value : float
+        value in the interval between limits
+    limits : 2 float values
+        min and max values
+    colormap : ndarray, optional
+        2d matrix (for example, from visvis import CM_JET)
+
+    Returns
+    -------
+    ndarray
+        3-value vector with RGB
+
+    Notes
+    -----
+    It's important to use python/math floor and ceil because they return int
+
+    """
+    colormap = asarray(colormap)
+
+    value = (value - limits[0]) / (limits[1] - limits[0])
+    value_in_colormap = value * (colormap.shape[0] - 1)
+
+    c0 = i_floor(value_in_colormap)
+    c1 = i_ceil(value_in_colormap)
+    c1c0 = i_modf(value_in_colormap)[0]  # distance between c0 and c1
+
+    return (colormap[c1, :] - colormap[c0, :]) * c1c0 + colormap[c0, :]
