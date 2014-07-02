@@ -5,14 +5,15 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from itertools import chain
-from math import floor as i_floor, ceil as i_ceil, modf as i_modf  # return int
-from os.path import join
+from os import listdir, remove
+from os.path import join, splitext
+from shutil import copyfile
 from subprocess import call
 from tempfile import mkdtemp
 
 from numpy import asarray, dot, hstack, max, mean, min, ones, zeros
 from numpy.linalg import norm
-from visvis import Mesh, gca, figure, solidSphere, CM_JET, record
+from visvis import Mesh, gca, figure, solidSphere, CM_JET, record, screenshot
 
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255.)
@@ -175,9 +176,6 @@ def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None,
     if values is not None and limits is None:
         limits = (min(values), max(values))
 
-    values[values < limits[0]] = limits[0]
-    values[values > limits[1]] = limits[1]
-
     for i, one_chan in enumerate(chan.chan):
         s = solidSphere(list(one_chan.xyz), scaling=SCALING)
 
@@ -211,46 +209,68 @@ def make_gif(fig, gif_file, loop='full', step=5, focus='fig'):
         distance in degrees between frames
     focus : str
         'fig' or 'axis', which part of the image should be saved
+
     Notes
     -----
     It requires ''convert'' from Imagemagick
     """
-    ax = fig.currentAxes
-    if focus == 'fig':
-        obj = fig
-    elif focus == 'axis':
-        obj = ax
-
-    AZIMUTH = ax.camera.azimuth
-
-    OFFSET = 180  # start at the front
-
-    if loop == 'full':
-        angles = range(OFFSET, 360 + OFFSET, step)
-    elif loop == 'patrol':
-        if ax.camera.azimuth > 0:
-            angles = chain(range(OFFSET, OFFSET + 180, step),
-                           range(OFFSET + 180, OFFSET, -step))
-        else:
-            angles = chain(range(OFFSET, OFFSET - 180, -step),
-                           range(OFFSET - 180, OFFSET, step))
-
-    rec = record(obj)
-    for i in angles:
-        ax.camera.azimuth = i + OFFSET
-        if ax.camera.azimuth > 180:
-            ax.camera.azimuth -= 360
-        ax.Draw()
-        fig.DrawNow()
-
-    rec.Stop()
-    ax.camera.azimuth = AZIMUTH
-
-    img_dir = mkdtemp()
-    rec.Export(join(img_dir, 'image.png'))
+    img_dir = _rotate_images(fig, loop=loop, step=step, focus=focus)
 
     call('convert ' + join(img_dir, 'image*.png') + ' ' + gif_file,
          shell=True)
+
+
+def make_movie(fig, movie_file, loop='full', step=5, focus='fig', rate=24,
+               poster=False):
+    """Save the image as rotating movie.
+
+    Parameters
+    ----------
+    fig : instance of visvis.Figure
+        figure being plotted.
+    movie_file : path to file
+        file where you want to save the movie
+    loop : str, optional
+        'full' (complete rotation) or 'hemi' (half rotation) or 'patrol' (half
+        rotation in two directions) or 'consistent' (like hemi, but in the same
+        direction for both hemispheres)
+    step : int
+        distance in degrees between frames
+    focus : str
+        'fig' or 'axis', which part of the image should be saved
+    poster : bool, optional
+        make a poster image before the video (it creates "poster.png")
+
+    Notes
+    -----
+    It requires ''avconv'' from LibAv
+
+    """
+    img_dir = _rotate_images(fig, loop=loop, step=step, focus=focus,
+                             poster=poster)
+
+    # name in the images depends on the number of images
+    # I took this part from visvis directly
+    N = len(listdir(img_dir))
+    formatter = '%04d'
+    if N < 10:
+        formatter = '%d'
+    elif N < 100:
+        formatter = '%02d'
+    elif N < 1000:
+        formatter = '%03d'
+
+    try:
+        remove(movie_file)
+    except FileNotFoundError:
+        pass
+
+    call('avconv -i ' + join(img_dir, 'image' + formatter + '.png') +
+         ' -r ' + str(rate) + ' -tune animation ' + movie_file, shell=True)
+
+    if poster:
+        poster_file = splitext(movie_file)[0] + '_poster.jpg'
+        copyfile(join(img_dir, 'poster.jpg'), poster_file)
 
 
 def _make_fig(fig=None):
@@ -271,3 +291,79 @@ def _make_fig(fig=None):
     ax.axis.visible = False
 
     return fig
+
+
+def _rotate_images(fig, loop='full', step=5, focus='fig', poster=False):
+    """Create rotating images in a temporary folder.
+
+    Parameters
+    ----------
+    fig : instance of visvis.Figure
+        figure being plotted.
+    loop : str, optional
+        'full' (complete rotation) or 'patrol' (half rotation)
+    step : int, optional
+        distance in degrees between frames
+    focus : str, optional
+        'fig' or 'axis', which part of the image should be saved
+    poster : bool, optional
+        make a poster image before the video (it creates "poster.png")
+
+    Returns
+    -------
+    path to dir
+        temporary directory with images
+
+    """
+    img_dir = mkdtemp()
+
+    ax = fig.currentAxes
+    if focus == 'fig':
+        obj = fig
+    elif focus == 'axis':
+        obj = ax
+
+    AZIMUTH = ax.camera.azimuth
+
+    if ax.camera.azimuth > 0:  # right hemi
+        poster_angle = 90
+        if loop == 'hemi':
+            angles = range(180, 0, -step)
+        elif loop == 'full':
+            angles = range(180, -180, -step)
+        elif loop == 'patrol':
+            angles = chain(range(180, 0, -step),
+                           range(0, 180, step))
+        elif loop == 'consistent':
+            angles = range(180, 0, -step)
+
+    else:
+        poster_angle = -90
+        if loop == 'hemi':
+            angles = range(-180, 0, step)
+        elif loop == 'full':
+            angles = range(-180, 180, step)
+        elif loop == 'patrol':
+            angles = chain(range(-180, 0, step),
+                           range(0, -180, -step))
+        elif loop == 'consistent':
+            angles = range(0, -180, -step)
+
+    rec = record(obj)
+    for i in angles:
+        ax.camera.azimuth = i
+        ax.Draw()
+        fig.DrawNow()
+
+    rec.Stop()
+    rec.Export(join(img_dir, 'image.png'))
+
+    if poster:
+        ax.camera.azimuth = poster_angle
+        ax.Draw()
+        fig.DrawNow()
+        screenshot(join(img_dir, 'poster.jpg'), obj)
+
+    ax.camera.azimuth = AZIMUTH
+
+    return img_dir
