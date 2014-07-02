@@ -108,6 +108,45 @@ def test_select_interval_not_in_data():
     assert data1.data[8].shape[1] == 0
 
 
+def test_select_oneside_interval_0():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (None, 0.5)
+    s = Select(time=TIME)
+    data1 = s(data)
+    assert len(data1.axis['time'][0]) * 2 == len(data.axis['time'][0])
+    assert data1.data[0].shape[1] * 2 == data.data[0].shape[1]
+    assert data1.axis['time'][0][0] == 0
+    assert data1.axis['time'][0][-1] < .5
+
+
+def test_select_oneside_interval_1():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (0.5, None)
+    s = Select(time=TIME)
+    data1 = s(data)
+    assert len(data1.axis['time'][0]) * 2 == len(data.axis['time'][0])
+    assert data1.data[0].shape[1] * 2 == data.data[0].shape[1]
+    assert data1.axis['time'][0][0] >= 0.5
+    assert data1.axis['time'][0][-1] == data.axis['time'][0][-1]
+
+
+def test_select_oneside_interval_both():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (None, None)
+    s = Select(time=TIME)
+    data1 = s(data)
+    assert len(data1.axis['time'][0]) == len(data.axis['time'][0])
+    assert data1.data[0].shape[1] == data.data[0].shape[1]
+    assert data1.axis['time'][0][0] == data.axis['time'][0][0]
+    assert data1.axis['time'][0][-1] == data.axis['time'][0][-1]
+
+
 def test_resample():
     lg.info('---\nfunction: ' + stack()[0][3])
 

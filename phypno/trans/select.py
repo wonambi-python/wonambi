@@ -16,7 +16,7 @@ lg = getLogger('phypno')
 from collections import Iterable
 from copy import deepcopy
 
-from numpy import asarray, empty, linspace
+from numpy import asarray, empty, linspace, ones
 from scipy.signal import resample
 
 
@@ -31,7 +31,8 @@ class Select:
         Values need to be tuple or list. If the values in one axis are string,
         then you need to specify all the strings that you want. If the values
         are numeric, then you should specify the range (you cannot specify
-        single values, nor multiple values).
+        single values, nor multiple values). To select only up to one point,
+        you can use (None, value_of_interest)
 
     """
     def __init__(self, trial=None, **axes_to_select):
@@ -83,12 +84,19 @@ class Select:
                         selected_values = ()
 
                     elif isinstance(values_to_select[0], str):
-                        selected_values = asarray(values_to_select,
-                                                             dtype='U')
+                        selected_values = asarray(values_to_select, dtype='U')
 
                     else:
-                        bool_values = ((values_to_select[0] <= values) &
-                                       (values < values_to_select[1]))
+                        if (values_to_select[0] is None and
+                            values_to_select[1] is None):
+                            bool_values = ones(len(values), dtype=bool)
+                        elif values_to_select[0] is None:
+                            bool_values = values < values_to_select[1]
+                        elif values_to_select[1] is None:
+                            bool_values = values_to_select[0] <= values
+                        else:
+                            bool_values = ((values_to_select[0] <= values) &
+                                           (values < values_to_select[1]))
                         selected_values = values[bool_values]
 
                     lg.debug('In axis {0}, selecting {1: 6} '
