@@ -9,7 +9,7 @@ from inspect import getfullargspec
 
 # for Math
 from numpy import (absolute, diff, exp, log, median, mean, pad, sqrt, square,
-                   std)
+                   sum, std)
 from scipy.signal import hilbert
 from scipy.stats import mode
 
