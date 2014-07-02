@@ -84,6 +84,16 @@ def test_select_trials_and_string():
     assert len(data1.axis['chan'][0]) == 2
 
 
+def test_select_trials_and_string_invert():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    s = Select(trial=(1, 5), chan=('chan01', 'chan02'), invert=True)
+    data1 = s(data)
+    assert len(data1.axis['chan']) == data.number_of('trial') - 2
+    assert len(data1.axis['chan'][0]) == data.number_of('chan') - 2
+
+
 def test_select_interval():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -94,6 +104,18 @@ def test_select_interval():
     assert data1.axis['time'][0].shape[0] == 153
     assert data1.data[0].shape[1] == 153
     assert data1.data[8].shape[1] == 153
+
+
+def test_select_interval_invert():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10)
+    TIME = (0.2, 0.5)
+    s = Select(time=TIME, invert=True)
+    data1 = s(data)
+    assert data1.number_of('time')[0] == data.number_of('time')[0] - 153
+    assert data1.data[0].shape[1] == data.number_of('time')[0] - 153
+    assert data1.data[8].shape[1] == data.number_of('time')[0] - 153
 
 
 def test_select_interval_not_in_data():

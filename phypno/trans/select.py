@@ -16,7 +16,7 @@ lg = getLogger('phypno')
 from collections import Iterable
 from copy import deepcopy
 
-from numpy import asarray, empty, linspace, ones
+from numpy import asarray, empty, linspace, ones, setdiff1d
 from scipy.signal import resample
 
 
@@ -33,9 +33,11 @@ class Select:
         are numeric, then you should specify the range (you cannot specify
         single values, nor multiple values). To select only up to one point,
         you can use (None, value_of_interest)
+    invert : bool
+        take the opposite selection
 
     """
-    def __init__(self, trial=None, **axes_to_select):
+    def __init__(self, trial=None, invert=False, **axes_to_select):
 
         if trial is not None and not isinstance(trial, Iterable):
             raise TypeError('Trial needs to be iterable.')
@@ -47,6 +49,7 @@ class Select:
 
         self.trial = trial
         self.axis_to_select = axes_to_select
+        self.invert = invert
 
     def __call__(self, data):
         """Apply selection to the data.
@@ -62,6 +65,9 @@ class Select:
             data where selection has been applied.
 
         """
+        if self.trial is not None and self.invert:
+            self.trial = setdiff1d(range(data.number_of('trial')), self.trial)
+
         if self.trial is None:
             self.trial = range(data.number_of('trial'))
 
@@ -98,6 +104,9 @@ class Select:
                             bool_values = ((values_to_select[0] <= values) &
                                            (values < values_to_select[1]))
                         selected_values = values[bool_values]
+
+                    if self.invert:
+                        selected_values = setdiff1d(values, selected_values)
 
                     lg.debug('In axis {0}, selecting {1: 6} '
                              'values'.format(one_axis,
