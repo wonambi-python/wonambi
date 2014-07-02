@@ -8,8 +8,12 @@ from copy import deepcopy
 from inspect import getfullargspec
 
 # for Math
-from numpy import absolute, diff, exp, log, mean, pad, sqrt, square, std
+from numpy import (absolute, diff, exp, log, median, mean, pad, sqrt, square,
+                   std)
 from scipy.signal import hilbert
+from scipy.stats import mode
+
+NOKEEPDIM = (median, mode)
 
 
 class Math:
@@ -48,7 +52,7 @@ class Math:
     'hilbert', 'diff'
 
     The operator_name's that need an axis and remove it:
-    'mean', 'std'
+    'mean', 'median', 'mode', 'std'
 
     Raises
     ------
@@ -127,7 +131,7 @@ class Math:
                                         'use ' + one_operator.__name__ +
                                         '(which applies to an axis)')
 
-                if 'keepdims' in args:
+                if 'keepdims' in args or one_operator in NOKEEPDIM:
                     keepdims = False
 
             operations.append({'name': one_operator.__name__,
@@ -164,6 +168,9 @@ class Math:
         for op in self.operations:
             lg.info('running operator: ' + op['name'])
             func = op['func']
+
+            if func == mode:
+                func = lambda x, axis: mode(x, axis=axis)[0]
 
             for i in range(output.number_of('trial')):
                 if op['on_axis']:
