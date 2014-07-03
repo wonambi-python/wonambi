@@ -65,20 +65,21 @@ class Select:
             data where selection has been applied.
 
         """
-        if self.trial is not None and self.invert:
-            self.trial = setdiff1d(range(data.number_of('trial')), self.trial)
-
         if self.trial is None:
-            self.trial = range(data.number_of('trial'))
+            trial = range(data.number_of('trial'))
+        else:
+            trial = self.trial
+            if self.invert:
+                trial = setdiff1d(range(data.number_of('trial')), trial)
 
         # create empty axis
         output = deepcopy(data)
         for one_axis in output.axis:
-            output.axis[one_axis] = empty(len(self.trial), dtype='O')
-        output.data = empty(len(self.trial), dtype='O')
+            output.axis[one_axis] = empty(len(trial), dtype='O')
+        output.data = empty(len(trial), dtype='O')
 
         to_select = {}
-        for cnt, i in enumerate(self.trial):
+        for cnt, i in enumerate(trial):
             lg.debug('Selection on trial {0: 6}'.format(i))
             for one_axis in output.axis:
                 values = data.axis[one_axis][i]

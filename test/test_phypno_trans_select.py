@@ -117,6 +117,8 @@ def test_select_interval_invert():
     assert data1.data[0].shape[1] == data.number_of('time')[0] - 153
     assert data1.data[8].shape[1] == data.number_of('time')[0] - 153
 
+    data2 = s(data)
+    assert data1.number_of('trial') == data2.number_of('trial')
 
 def test_select_interval_not_in_data():
     lg.info('---\nfunction: ' + stack()[0][3])
