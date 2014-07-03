@@ -33,6 +33,7 @@ def plot_surf(surf, fig=None):
     Returns
     -------
     instance of visvis.Figure
+        main figure
 
     """
     fig = _make_fig(fig)

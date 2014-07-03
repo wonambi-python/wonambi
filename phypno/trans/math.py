@@ -36,6 +36,11 @@ class Math:
         if it accepts an 'axis' argument), 'keepdims' (bool, if it accepts a
         'keepdims' argument).
 
+    Raises
+    ------
+    TypeError
+        If you pass both operator and operator_name.
+
     Notes
     -----
     operator and operator_name are mutually exclusive. operator_name is given
@@ -53,11 +58,6 @@ class Math:
 
     The operator_name's that need an axis and remove it:
     'mean', 'median', 'mode', 'std'
-
-    Raises
-    ------
-    TypeError
-        If you pass both operator and operator_name.
 
     Examples
     --------
