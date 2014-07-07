@@ -298,10 +298,10 @@ def _read_ent(ent_file):
         allnote = []
         while True:
             note = {}
-            note['type'], = unpack('i', f.read(4))
-            note['length'], = unpack('i', f.read(4))
-            note['prev_length'], = unpack('i', f.read(4))
-            note['unused'], = unpack('i', f.read(4))
+            note['type'], = unpack('<i', f.read(4))
+            note['length'], = unpack('<i', f.read(4))
+            note['prev_length'], = unpack('<i', f.read(4))
+            note['unused'], = unpack('<i', f.read(4))
             if not note['type']:
                 break
             s = f.read(note['length'] - note_hdr_length)
@@ -428,7 +428,7 @@ def _read_erd(erd_file, n_samples):
 
             if hdr['file_schema'] in (8, 9):
                 # read single bits as they appear, one by one
-                byte_deltamask = unpack('B' * l_deltamask,
+                byte_deltamask = unpack('<' + 'B' * l_deltamask,
                                         filebytes[i:i + l_deltamask])
                 i += l_deltamask
                 deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
@@ -454,16 +454,16 @@ def _read_erd(erd_file, n_samples):
                 else:
                     if m == '1':
                         dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                            unpack('h', val)[0])
+                                            unpack('<h', val)[0])
                     elif m == '0':
                         dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                            unpack('b', val)[0])
+                                            unpack('<b', val)[0])
 
                 i_chan += 1
 
             for i_chan, to_read in enumerate(read_absvalue):
                 if to_read:
-                    dat[i_chan, sam] = unpack('i', filebytes[i:i + 4])[0]
+                    dat[i_chan, sam] = unpack('<i', filebytes[i:i + 4])[0]
                     i += 4
 
     # fill up the output data, put NaN for shorted channels
@@ -489,11 +489,11 @@ def _read_etc(etc_file):
     """
     with open(etc_file, 'rb') as f:
         f.seek(352)  # end of header
-        v1 = unpack('i', f.read(4))[0]
-        v2 = unpack('i', f.read(4))[0]
-        v3 = unpack('i', f.read(4))[0]  # always zero?
-        v4_a = unpack('h', f.read(2))[0]  # they look like two values
-        v4_b = unpack('h', f.read(2))[0]  # maybe this one is unsigned (H)
+        v1 = unpack('<i', f.read(4))[0]
+        v2 = unpack('<i', f.read(4))[0]
+        v3 = unpack('<i', f.read(4))[0]  # always zero?
+        v4_a = unpack('<h', f.read(2))[0]  # they look like two values
+        v4_b = unpack('<h', f.read(2))[0]  # maybe this one is unsigned (H)
 
         f.seek(352)  # end of header
         # lg.debug(hexlify(f.read(16)))
@@ -537,9 +537,9 @@ def _read_snc(snc_file):
     sampleStamp = []
     sampleTime = []
     while i < len(filebytes):
-        sampleStamp.append(unpack('i', filebytes[i:(i + 4)])[0])
+        sampleStamp.append(unpack('<i', filebytes[i:(i + 4)])[0])
         i += 4
-        sampleTime.append(_filetime_to_dt(unpack('l',
+        sampleTime.append(_filetime_to_dt(unpack('<q',
                                                  filebytes[i:(i + 8)])[0]))
         i += 8
 
@@ -592,9 +592,9 @@ def _read_stc(stc_file):
         endfile = f.tell()
         f.seek(352)  # end of header
         hdr = {}
-        hdr['next_segment'] = unpack('i', f.read(4))[0]
-        hdr['final'] = unpack('i', f.read(4))[0]
-        hdr['padding'] = unpack('i' * 12, f.read(48))
+        hdr['next_segment'] = unpack('<i', f.read(4))[0]
+        hdr['final'] = unpack('<i', f.read(4))[0]
+        hdr['padding'] = unpack('<' + 'i' * 12, f.read(48))
 
         all_stamp = []
 
@@ -603,10 +603,10 @@ def _read_stc(stc_file):
                 break
             stamp = {}
             stamp['segment_name'] = _make_str(unpack('c' * 256, f.read(256)))
-            stamp['start_stamp'] = unpack('i', f.read(4))[0]
-            stamp['end_stamp'] = unpack('i', f.read(4))[0]
-            stamp['sample_num'] = unpack('i', f.read(4))[0]
-            stamp['sample_span'] = unpack('i', f.read(4))[0]
+            stamp['start_stamp'] = unpack('<i', f.read(4))[0]
+            stamp['end_stamp'] = unpack('<i', f.read(4))[0]
+            stamp['sample_num'] = unpack('<i', f.read(4))[0]
+            stamp['sample_span'] = unpack('<i', f.read(4))[0]
 
             all_stamp.append(stamp)
 
@@ -649,10 +649,10 @@ def _read_vtc(vtc_file):
         correct = b'\xff\xfe\xf8^\xfc\xdc\xe5D\x8f\xae\x19\xf5\xd6"\xb6\xd4'
         assert Location == correct
         i += 16
-        start_time.append(_filetime_to_dt(unpack('l',
+        start_time.append(_filetime_to_dt(unpack('<q',
                                                  filebytes[i:(i + 8)])[0]))
         i += 8
-        end_time.append(_filetime_to_dt(unpack('l',
+        end_time.append(_filetime_to_dt(unpack('<q',
                                                filebytes[i:(i + 8)])[0]))
         i += 8
 
@@ -685,20 +685,20 @@ def _read_hdr_file(ktlx_file):
         assert f.tell() == 0
 
         hdr['file_guid'] = hexlify(f.read(16))
-        hdr['file_schema'], = unpack('H', f.read(2))
+        hdr['file_schema'], = unpack('<H', f.read(2))
         if not hdr['file_schema'] in (1, 3, 7, 8, 9):
             raise NotImplementedError('Reading header not implemented for ' +
                                       'file_schema ' + str(hdr['file_schema']))
 
-        hdr['base_schema'], = unpack('H', f.read(2))
+        hdr['base_schema'], = unpack('<H', f.read(2))
         if not hdr['base_schema'] == 1:  # p.3: base_schema 0 is rare, I think
             raise NotImplementedError('Reading header not implemented for ' +
                                       'base_schema ' + str(hdr['base_schema']))
 
-        hdr['creation_time'] = datetime.fromtimestamp(unpack('i',
+        hdr['creation_time'] = datetime.fromtimestamp(unpack('<i',
                                                              f.read(4))[0])
-        hdr['patient_id'], = unpack('i', f.read(4))
-        hdr['study_id'], = unpack('i', f.read(4))
+        hdr['patient_id'], = unpack('<i', f.read(4))
+        hdr['study_id'], = unpack('<i', f.read(4))
         hdr['pat_last_name'] = _make_str(unpack('c' * 80, f.read(80)))
         hdr['pat_first_name'] = _make_str(unpack('c' * 80, f.read(80)))
         hdr['pat_middle_name'] = _make_str(unpack('c' * 80, f.read(80)))
@@ -706,24 +706,25 @@ def _read_hdr_file(ktlx_file):
         assert f.tell() == 352
 
         if hdr['file_schema'] >= 7:
-            hdr['sample_freq'], = unpack('d', f.read(8))
-            n_chan, = unpack('i', f.read(4))
+            hdr['sample_freq'], = unpack('<d', f.read(8))
+            n_chan, = unpack('<i', f.read(4))
             hdr['num_channels'] = n_chan
-            hdr['deltabits'], = unpack('i', f.read(4))
-            hdr['phys_chan'] = unpack('i' * hdr['num_channels'],
+            hdr['deltabits'], = unpack('<i', f.read(4))
+            hdr['phys_chan'] = unpack('<' + 'i' * hdr['num_channels'],
                                       f.read(hdr['num_channels'] * 4))
 
             f.seek(4464)
-            hdr['headbox_type'] = unpack('i' * 4, f.read(16))
-            hdr['headbox_sn'] = unpack('i' * 4, f.read(16))
+            hdr['headbox_type'] = unpack('<' + 'i' * 4, f.read(16))
+            hdr['headbox_sn'] = unpack('<' + 'i' * 4, f.read(16))
             hdr['headbox_sw_version'] = _make_str(unpack('c' * 40, f.read(40)))
             hdr['dsp_hw_version'] = _make_str(unpack('c' * 10, f.read(10)))
             hdr['dsp_sw_version'] = _make_str(unpack('c' * 10, f.read(10)))
-            hdr['discardbits'], = unpack('i', f.read(4))
+            hdr['discardbits'], = unpack('<i', f.read(4))
 
         if hdr['file_schema'] >= 8:
-            hdr['shorted'] = unpack('h' * 1024, f.read(2048))[:n_chan]
-            hdr['frequency_factor'] = unpack('h' * 1024, f.read(2048))[:n_chan]
+            hdr['shorted'] = unpack('<' + 'h' * 1024, f.read(2048))[:n_chan]
+            hdr['frequency_factor'] = unpack('<' + 'h' * 1024,
+							     f.read(2048))[:n_chan]
 
     return hdr
 
