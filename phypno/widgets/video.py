@@ -7,7 +7,9 @@ lg = getLogger(__name__)
 from os.path import join
 from subprocess import call
 
-from PyQt4.QtGui import (QLabel,
+from PyQt4.QtGui import (QFormLayout,
+                         QLabel,
+                         QLineEdit,
                          QPushButton,
                          QVBoxLayout,
                          QWidget,
@@ -71,9 +73,25 @@ class Video(QWidget):
             self.video.currentSourceChanged.connect(self.next_video)
             self.video.setTickInterval(100)
             self.video.tick.connect(self.stop_video)
+
         else:
-            video_widget = QLabel('Embedded video is not available.\n' +
-                                  'VLC will be used instead')
+            layout = QVBoxLayout()
+            layout.addWidget(QLabel('Embedded video is not available'))
+            layout.addWidget(QLabel('VLC will be used instead'))
+            layout.addStretch()
+
+            formlayout = QFormLayout()
+
+            preferences = self.parent.preferences.values
+            vlc_size = preferences['video/vlc_size']
+            self.idx_vlc_size = QLineEdit(vlc_size)
+            formlayout.addRow('Size', self.idx_vlc_size)
+
+            layout.addLayout(formlayout)
+            layout.addStretch()
+
+            video_widget = QWidget()
+            video_widget.setLayout(layout)
 
         self.idx_button = QPushButton('Start')
         self.idx_button.clicked.connect(self.start_stop_video)
@@ -123,6 +141,8 @@ class Video(QWidget):
         if 'Start' in self.idx_button.text():
             try:
                 self.update_video()
+                # in case it has one indexerror once before
+                self.idx_button.setText('Start')
             except IndexError as er:
                 lg.debug(er)
                 self.idx_button.setText('Not Available / Start')
@@ -210,7 +230,11 @@ class Video(QWidget):
             preferences = self.parent.preferences.values
             vlc_exe = preferences['video/vlc_exe']
 
+            vlc_size = self.idx_vlc_size.text()
+            vlc_width, vlc_height = vlc_size.split('x')
+
             vlc_cmd = '"' + vlc_exe + '" '
+            vlc_cmd += '--no-video-title '
 
             # first file has start time
             vlc_cmd += '"file:///' + full_mpgfiles[0] + '" '
@@ -220,6 +244,9 @@ class Video(QWidget):
                 vlc_cmd += '"file:///' + one_mpg + '" '
 
             vlc_cmd += ':stop-time=' + str(end_diff) + ' '
+            vlc_cmd += '--width=' + str(vlc_width) + ' '
+            vlc_cmd += '--height=' + str(vlc_height) + ' '
+            vlc_cmd += '--autoscale '
             vlc_cmd += 'vlc://quit'
             lg.debug(vlc_cmd)
             call(vlc_cmd, shell=True)

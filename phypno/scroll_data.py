@@ -13,6 +13,9 @@ handler.setFormatter(formatter)
 lg.handlers = []
 lg.addHandler(handler)
 
+lg.setLevel(DEBUG)
+
+
 from functools import partial
 from os.path import dirname, basename, splitext
 from sys import argv
@@ -476,8 +479,6 @@ if __name__ == '__main__':
         standalone = True
     except RuntimeError:
         standalone = False
-
-    lg.setLevel(INFO)
 
     q = MainWindow()
     q.show()
