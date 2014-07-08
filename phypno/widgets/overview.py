@@ -107,14 +107,14 @@ class Overview(QGraphicsView):
         self.setScene(self.scene)
 
         self.idx_item['current'] = QGraphicsLineItem(self.window_start, 0,
-                                                 self.window_start,
-                                                 current_line_height)
+                                                     self.window_start,
+                                                     current_line_height)
         self.idx_item['current'].setPen(QPen(Qt.red))
         self.scene.addItem(self.idx_item['current'])
 
         for name, pos in BARS.items():
             self.idx_item[name] = QGraphicsRectItem(self.minimum, pos['pos0'],
-                                                self.maximum, pos['pos1'])
+                                                    self.maximum, pos['pos1'])
             self.idx_item[name].setToolTip(pos['tip'])
             self.scene.addItem(self.idx_item[name])
 
@@ -169,6 +169,12 @@ class Overview(QGraphicsView):
             lg.debug('Updating position to {}'.format(new_position))
             self.window_start = new_position
             self.idx_item['current'].setPos(self.window_start, 0)
+
+            header = self.parent.info.dataset.header
+            current_time = (header['start_time'] +
+                            timedelta(seconds=new_position))
+            msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
+            self.parent.statusBar().showMessage(msg)
         else:
             lg.debug('Updating position at {}'.format(self.window_start))
 

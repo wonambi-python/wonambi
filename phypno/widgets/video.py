@@ -17,15 +17,6 @@ from PyQt4.phonon import Phonon
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
 
-availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
-lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
-
-if availableMimeTypes:
-    PHONON = True
-else:
-    PHONON = False
-
-
 class Video(QWidget):
     """Widget containing the movie, if available.
 
@@ -58,12 +49,21 @@ class Video(QWidget):
 
         self.video = None
         self.idx_button = None
+
+        availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
+        lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
+
+        if availableMimeTypes:
+            self.phonon = True
+        else:
+            self.phonon = False
+
         self.create_video()
 
     def create_video(self):
         """Create video widget."""
 
-        if PHONON:
+        if self.phonon:
             video_widget = Phonon.VideoWidget()
             self.video = Phonon.MediaObject()
             Phonon.createPath(self.video, video_widget)
@@ -74,7 +74,6 @@ class Video(QWidget):
         else:
             video_widget = QLabel('Embedded video is not available.\n' +
                                   'VLC will be used instead')
-
 
         self.idx_button = QPushButton('Start')
         self.idx_button.clicked.connect(self.start_stop_video)
@@ -133,7 +132,7 @@ class Video(QWidget):
                 self.idx_button.setText('NO VIDEO for this dataset')
                 return
 
-            if PHONON:
+            if self.phonon:
                 self.idx_button.setText('Stop')
                 self.video.play()
                 self.video.seek(self.beg_diff)
@@ -193,7 +192,7 @@ class Video(QWidget):
         lg.debug('First Video (#{}) starts at {}'.format(beg_avi, beg_diff))
         lg.debug('Last Video (#{}) ends at {}'.format(end_avi, end_diff))
 
-        if PHONON:
+        if self.phonon:
             self.beg_diff = beg_diff * 1e3
             self.end_diff = end_diff * 1e3
 
@@ -208,7 +207,6 @@ class Video(QWidget):
             self.n_video = len(full_mpgfiles) + 1
 
         else:
-
             preferences = self.parent.preferences.values
             vlc_exe = preferences['video/vlc_exe']
 
