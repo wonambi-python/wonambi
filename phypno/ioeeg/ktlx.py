@@ -23,11 +23,11 @@ from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
-from os import SEEK_END
-from os.path import basename, join, exists, splitext
+from os import environ, makedirs, SEEK_END
+from os.path import basename, expanduser, join, exists, splitext
+from platform import system
 from re import sub
 from struct import unpack
-from tempfile import tempdir
 from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
                    memmap, int32)
 
@@ -39,10 +39,18 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
-from os.path import expanduser
-home = expanduser('~')
-temp_dir = join(tempdir, 'phypno_cache')
-lg.info('Temporary Directory with data: ' + temp_dir)
+
+if system() == 'Windows':
+    APPDATA = environ['APPDATA']
+    cache_dir = join(APPDATA, 'phypno_cache')
+
+elif system() == 'Linux':
+    # only for Gio's Linux, it should more general in the future
+    home = expanduser('~')
+    cache_dir = join(home, 'projects/temp')
+
+makedirs(cache_dir, exist_ok=True)
+lg.info('Temporary Directory with data: ' + cache_dir)
 
 
 def get_erd(sample, all_beg, all_end):
@@ -384,7 +392,7 @@ def _read_erd(erd_file, n_samples):
     n_shorted = sum(shorted)
     n_chan = n_allchan - n_shorted
     safe_name = "".join([x if x.isalnum() else "_" for x in basename(erd_file)])
-    memmap_file = join(temp_dir, safe_name)
+    memmap_file = join(cache_dir, safe_name)
     if exists(memmap_file):
         lg.info('Reading existing file: ' + memmap_file)
         dat = memmap(memmap_file, mode='c', shape=(n_chan, n_samples),
