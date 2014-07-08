@@ -11,6 +11,7 @@ lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
 from functools import partial
+from getpass import getuser
 from math import floor
 from os.path import basename, exists, splitext
 from xml.etree.ElementTree import Element, SubElement
@@ -275,7 +276,7 @@ class Stages(QWidget):
         main = Element('sleep_stages')
         main.set('filename', self.parent.info.filename)
         rated = SubElement(main, 'rater')
-        rated.set('name', 'gio')
+        rated.set('name', getuser())
 
         for t in range(minimum, maximum, window_length):
             epoch = SubElement(rated, 'epoch')
