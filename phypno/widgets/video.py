@@ -5,14 +5,25 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from os.path import join
+from subprocess import call
 
-from PyQt4.QtGui import (QPushButton,
+from PyQt4.QtGui import (QLabel,
+                         QPushButton,
                          QVBoxLayout,
                          QWidget,
                          )
 from PyQt4.phonon import Phonon
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
+
+
+availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
+lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
+
+if availableMimeTypes:
+    PHONON = True
+else:
+    PHONON = False
 
 
 class Video(QWidget):
@@ -51,16 +62,22 @@ class Video(QWidget):
 
     def create_video(self):
         """Create video widget."""
-        video_widget = Phonon.VideoWidget()
-        self.video = Phonon.MediaObject()
-        Phonon.createPath(self.video, video_widget)
+
+        if PHONON:
+            video_widget = Phonon.VideoWidget()
+            self.video = Phonon.MediaObject()
+            Phonon.createPath(self.video, video_widget)
+
+            self.video.currentSourceChanged.connect(self.next_video)
+            self.video.setTickInterval(100)
+            self.video.tick.connect(self.stop_video)
+        else:
+            video_widget = QLabel('Embedded video is not available.\n' +
+                                  'VLC will be used instead')
+
 
         self.idx_button = QPushButton('Start')
         self.idx_button.clicked.connect(self.start_stop_video)
-
-        self.video.currentSourceChanged.connect(self.next_video)
-        self.video.setTickInterval(100)
-        self.video.tick.connect(self.stop_video)
 
         layout = QVBoxLayout()
         layout.addWidget(video_widget)
@@ -100,6 +117,9 @@ class Video(QWidget):
         -----
         It catches expection when video is not in index.
 
+        If it uses VLC, it never changes the button to "STOP", because the
+        video works in an external window.
+
         """
         if 'Start' in self.idx_button.text():
             try:
@@ -113,9 +133,10 @@ class Video(QWidget):
                 self.idx_button.setText('NO VIDEO for this dataset')
                 return
 
-            self.idx_button.setText('Stop')
-            self.video.play()
-            self.video.seek(self.beg_diff)
+            if PHONON:
+                self.idx_button.setText('Stop')
+                self.video.play()
+                self.video.seek(self.beg_diff)
 
         elif 'Stop' in self.idx_button.text():
             self.idx_button.setText('Start')
@@ -164,22 +185,43 @@ class Video(QWidget):
 
         lg.debug('First Video (#{}) {}'.format(beg_avi, mpgfile[beg_avi]))
         lg.debug('Last Video (#{}) {}'.format(end_avi, mpgfile[end_avi]))
-        selected_mpgfile = mpgfile[beg_avi:end_avi + 1]
+        mpgfiles = mpgfile[beg_avi:end_avi + 1]
+        full_mpgfiles = [join(d.filename, one_mpg) for one_mpg in mpgfiles]
 
         beg_diff = (beg_snc - start_time[beg_avi]).total_seconds()
         end_diff = (end_snc - start_time[end_avi]).total_seconds()
         lg.debug('First Video (#{}) starts at {}'.format(beg_avi, beg_diff))
         lg.debug('Last Video (#{}) ends at {}'.format(end_avi, end_diff))
 
-        self.beg_diff = beg_diff * 1e3
-        self.end_diff = end_diff * 1e3
+        if PHONON:
+            self.beg_diff = beg_diff * 1e3
+            self.end_diff = end_diff * 1e3
 
-        self.video.clear()
-        source = []
-        for one_mpg in selected_mpgfile:
-            source.append(Phonon.MediaSource(join(d.filename, one_mpg)))
+            self.video.clear()
+            source = []
+            for one_mpg in full_mpgfiles:
+                source.append(Phonon.MediaSource(one_mpg))
 
-        self.video.enqueue(source)
+            self.video.enqueue(source)
 
-        self.cnt_video = 0
-        self.n_video = len(selected_mpgfile) + 1
+            self.cnt_video = 0
+            self.n_video = len(full_mpgfiles) + 1
+
+        else:
+
+            preferences = self.parent.preferences.values
+            vlc_exe = preferences['video/vlc_exe']
+
+            vlc_cmd = '"' + vlc_exe + '" '
+
+            # first file has start time
+            vlc_cmd += '"file:///' + full_mpgfiles[0] + '" '
+            vlc_cmd += ':start-time=' + str(beg_diff) + ' '
+
+            for one_mpg in full_mpgfiles[1:]:
+                vlc_cmd += '"file:///' + one_mpg + '" '
+
+            vlc_cmd += ':stop-time=' + str(end_diff) + ' '
+            vlc_cmd += 'vlc://quit'
+            lg.debug(vlc_cmd)
+            call(vlc_cmd, shell=True)

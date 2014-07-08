@@ -35,6 +35,7 @@ DEFAULTS = {'main/geometry': [400, 300, 1024, 768],
             'detect/spindle_method': 'UCSD',
             'spectrum/x_limit': [0, 30],
             'spectrum/y_limit': [-5, 5],
+            'video/vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
             }
 
 # Read/write default values using QSettings
