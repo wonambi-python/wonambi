@@ -27,7 +27,7 @@ from os import SEEK_END
 from os.path import basename, join, exists, splitext
 from re import sub
 from struct import unpack
-from tempfile import mkdtemp
+from tempfile import tempdir
 from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
                    memmap, int32)
 
@@ -39,10 +39,9 @@ HUNDREDS_OF_NANOSECONDS = 10000000
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
-temp_dir = mkdtemp()
 from os.path import expanduser
 home = expanduser('~')
-temp_dir = join(home, 'projects/temp')
+temp_dir = join(tempdir, 'phypno_cache')
 lg.info('Temporary Directory with data: ' + temp_dir)
 
 
@@ -384,8 +383,8 @@ def _read_erd(erd_file, n_samples):
     shorted = hdr['shorted']  # does this exist for Schema 7 at all?
     n_shorted = sum(shorted)
     n_chan = n_allchan - n_shorted
-
-    memmap_file = join(temp_dir, basename(erd_file))
+    safe_name = "".join([x if x.isalnum() else "_" for x in basename(erd_file)])
+    memmap_file = join(temp_dir, safe_name)
     if exists(memmap_file):
         lg.info('Reading existing file: ' + memmap_file)
         dat = memmap(memmap_file, mode='c', shape=(n_chan, n_samples),
