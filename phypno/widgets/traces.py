@@ -23,8 +23,7 @@ from PyQt4.QtGui import (QBrush,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .utils import Path
-
-from phypno.widgets.preferences import Config, FormFloat, FormInt
+from .preferences import Config, FormFloat, FormInt
 
 
 class ConfigTraces(Config):

@@ -17,7 +17,7 @@ from PyQt4.QtGui import (QDockWidget,
                          QVBoxLayout,
                          )
 
-from phypno.widgets.preferences import Config, FormInt, FormList, FormStr, FormFloat
+from .preferences import Config, FormInt, FormList, FormStr, FormFloat
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')

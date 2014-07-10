@@ -17,8 +17,8 @@ from PyQt4.QtGui import (QComboBox,
                          QWidget,
                          )
 
-from phypno.widgets.utils import Path
-from phypno.widgets.preferences import Config, FormFloat, FormBool
+from .utils import Path
+from .preferences import Config, FormFloat, FormBool
 
 
 class ConfigSpectrum(Config):

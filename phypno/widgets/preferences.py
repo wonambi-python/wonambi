@@ -65,15 +65,23 @@ DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
 
 
 class Preferences(QDialog):
+    """Window showing the preferences/settings.
 
+    Parameters
+    ----------
+    parent : instance of QMainWindow
+        the main window
+
+    """
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
-        self.setWindowTitle('Preferences')
 
+        self.setWindowTitle('Preferences')
         self.create_preferences()
 
     def create_preferences(self):
+        """Create the widget, organized in two parts."""
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply
                                 | QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
@@ -85,7 +93,8 @@ class Preferences(QDialog):
         page_list.setSpacing(1)
         page_list.currentRowChanged.connect(self.change_widget)
 
-        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Notes', 'Detection', 'Video']
+        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Notes',
+                 'Detection', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
@@ -113,6 +122,7 @@ class Preferences(QDialog):
         self.setLayout(vlayout)
 
     def change_widget(self, new_row):
+        """"""
         self.stacked.setCurrentIndex(new_row)
 
     def button_clicked(self, button):
@@ -135,8 +145,27 @@ class Preferences(QDialog):
 
 
 class Config(QWidget):
-    """You'll need to implement one methods:
-        - create_config with the QGroupBox and layouts
+    """Base class for widgets used in the Preferences.
+
+    Parameters
+    ----------
+    widget : str
+        name of the widget
+    update_widget : function
+        function to run to update the main window with new values
+
+    Attributes
+    ----------
+    modified : bool
+        if the preference widget has been changed
+    value : dict
+        dictionary with the actual current values
+    index : dict
+        dictionary with the instances of the small widgets
+
+    Notes
+    -----
+    You'll need to implement create_config with the QGroupBox and layouts
 
     """
     def __init__(self, widget, update_widget):
@@ -144,8 +173,8 @@ class Config(QWidget):
 
         self.modified = False
         self.widget = widget
-        value_names = list(DEFAULTS[widget].keys())
 
+        value_names = list(DEFAULTS[widget].keys())
         self.value = self.create_values(value_names)
         self.index = self.create_indices(value_names)
 
@@ -155,7 +184,19 @@ class Config(QWidget):
         self.update_widget = update_widget
 
     def create_values(self, value_names):
-        # it should read the preferences
+        """Read original values from the preferences or the defaults.
+
+        Parameters
+        ----------
+        value_names : list of str
+            list of value names to read
+
+        Returns
+        -------
+        dict
+            dictionary with the value names as keys
+
+        """
         output = {}
         for value_name in value_names:
             output[value_name] = read_settings(self.widget, value_name)
@@ -163,33 +204,63 @@ class Config(QWidget):
         return output
 
     def create_indices(self, value_names):
-        # default to None as long as we don't have an index
+        """Create empty indices as None. They'll be created by create_config.
+
+        """
         return dict(zip(value_names, [None] * len(value_names)))
 
     def get_values(self):
-        # GET VALUES FROM THE GUI
+        """Get values from the GUI and save them in preference file."""
         for value_name, widget in self.index.items():
-            self.value[value_name] = widget.get_value()  # TODO: pass defaults
+            self.value[value_name] = widget.get_value(self.value[value_name])
 
             setting_name = self.widget + '/' + value_name
             settings.setValue(setting_name, self.value[value_name])
 
     def set_values(self):
-        # SET VALUES TO THE GUI
+        """Set values to the GUI.
+
+        Notes
+        -----
+        In addition, when one small widget has been changed, it calls
+        set_modified, so that we know that the preference widget was modified.
+
+        """
         for value_name, widget in self.index.items():
             widget.set_value(self.value[value_name])
-            widget.connect(self.set_modified)  # also connect to modified
+            widget.connect(self.set_modified)
 
     def create_config(self):
-        # TO BE OVERLOAD
+        """Placeholder: it'll be replaced with actual layout."""
         pass
 
     def set_modified(self):
+        """Simply mark that the preference widget was modified.
+
+        Notes
+        -----
+        You cannot use lambda because they don't accept assignments.
+
+        """
         self.modified = True
 
 
 def read_settings(widget, value_name):
+    """Read Settings information, either from INI or from default values.
 
+    Parameters
+    ----------
+    widget : str
+        name of the widget
+    value_name : str
+        name of the value of interest.
+
+    Returns
+    -------
+    multiple types
+        type depends on the type in the default values.
+
+    """
     setting_name = widget + '/' + value_name
     default_value = DEFAULTS[widget][value_name]
 
@@ -202,26 +273,62 @@ def read_settings(widget, value_name):
 
 
 class FormBool(QCheckBox):
+    """Subclass QCheckBox to have a more consistent API across widgets.
+
+    Parameters
+    ----------
+    checkbox_label : str
+        label next to checkbox
+
+    """
     def __init__(self, checkbox_label):
         super().__init__(checkbox_label)
 
     def get_value(self, default=False):
+        """Get the value of the QCheckBox, as boolean.
+
+        Parameters
+        ----------
+        default : bool
+            not used
+
+        Returns
+        -------
+        bool
+            state of the checkbox
+
+        """
         return self.checkState() == Qt.Checked
 
     def set_value(self, value):
+        """Set value of the checkbox.
+
+        Parameters
+        ----------
+        value : bool
+            value for the checkbox
+
+        """
         if value:
             self.setCheckState(Qt.Checked)
         else:
             self.setCheckState(Qt.Unchecked)
 
     def connect(self, funct):
-        # TODO:
-        pass
+        """Call funct when user ticks the box.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.stateChanged.connect(funct)
 
 
 class FormFloat(QLineEdit):
-    """Subclass QLineEdit for floats.
-    value is read directly from defaults
+    """Subclass QLineEdit for float to have a more consistent API across
+    widgets.
 
     """
     def __init__(self):
@@ -233,7 +340,7 @@ class FormFloat(QLineEdit):
         Parameters
         ----------
         default : float
-            default value for the parameter
+            default value for the parameter in case it fails
 
         Returns
         -------
@@ -252,31 +359,46 @@ class FormFloat(QLineEdit):
         return text
 
     def set_value(self, value):
+        """Set value of the float.
+
+        Parameters
+        ----------
+        value : float
+            value for the line edit
+
+        """
         self.setText(str(value))
 
     def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
         self.textEdited.connect(funct)
 
 
 class FormInt(QLineEdit):
-    """Subclass QLineEdit for floats.
-    value is read directly from defaults
+    """Subclass QLineEdit for int to have a more consistent API across widgets.
 
     """
     def __init__(self):
         super().__init__('')
 
     def get_value(self, default=0):
-        """Get float from widget.
+        """Get int from widget.
 
         Parameters
         ----------
-        default : float
-            default value for the parameter
+        default : int
+            default value for the parameter in case it fails
 
         Returns
         -------
-        float
+        int
             the value in text or default
 
         """
@@ -291,41 +413,50 @@ class FormInt(QLineEdit):
         return text
 
     def set_value(self, value):
+        """Set value of the int.
+
+        Parameters
+        ----------
+        value : int
+            value for the line edit
+
+        """
         self.setText(str(value))
 
     def connect(self, funct):
-        self.textEdited.connect(funct)
+        """Call funct when the text was changed.
 
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
 
-class FormStr(QLineEdit):
-    """Subclass QLineEdit for strings.
-
-    value is read directly from defaults
-    """
-    def __init__(self):
-        super().__init__('')
-
-    def get_value(self, default=''):
-        """Get string from widget."""
-        return self.text()
-
-    def set_value(self, value):
-        self.setText(value)
-
-    def connect(self, funct):
+        """
         self.textEdited.connect(funct)
 
 
 class FormList(QLineEdit):
-    """Subclass QLineEdit for strings.
+    """Subclass QLineEdit for lists to have a more consistent API across
+    widgets.
 
-    value is read directly from defaults
     """
     def __init__(self):
         super().__init__('')
 
     def get_value(self, default=None):
-        """Get string from widget."""
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : list
+            list with widgets
+
+        Returns
+        -------
+        list
+            list that might contain int or str or float etc
+
+        """
         if default is None:
             default = []
 
@@ -344,7 +475,69 @@ class FormList(QLineEdit):
         return text
 
     def set_value(self, value):
+        """Set value of the list.
+
+        Parameters
+        ----------
+        value : list
+            value for the line edit
+
+        """
         self.setText(str(value))
 
     def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.textEdited.connect(funct)
+
+
+class FormStr(QLineEdit):
+    """Subclass QLineEdit for str to have a more consistent API across widgets.
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=''):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : str
+            not used
+
+        Returns
+        -------
+        str
+            the value in text
+
+        """
+        return self.text()
+
+    def set_value(self, value):
+        """Set value of the string.
+
+        Parameters
+        ----------
+        value : str
+            value for the line edit
+
+        """
+        self.setText(value)
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
         self.textEdited.connect(funct)

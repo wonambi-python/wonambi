@@ -32,7 +32,7 @@ from PyQt4.QtGui import (QAbstractItemView,
 
 from ..attr import Scores
 
-from phypno.widgets.preferences import Config, FormInt
+from .preferences import Config, FormInt
 
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
