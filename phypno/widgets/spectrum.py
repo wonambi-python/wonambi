@@ -12,41 +12,46 @@ from PyQt4.QtGui import (QCheckBox,
                          QFormLayout,
                          QGraphicsView,
                          QGraphicsScene,
-                         QHBoxLayout,
+                         QGroupBox,
                          QLineEdit,
                          QPen,
-                         QPushButton,
                          QVBoxLayout,
                          QWidget,
                          )
 
 from phypno.widgets.utils import Path
+from phypno.widgets.preferences import Config
 
-TICK_SIZE = 20
 
+class SpectrumConfig(Config):
 
-def get_text(widget, default):
-    """Get text from widget.
+    def __init__(self, update_widget):
+        super().__init__('spectrum', update_widget)
 
-    Parameters
-    ----------
-    widget : instance of widget
-        widget that has the getText method
-    default : float
-        default value for the parameter
+    def create_config(self):
 
-    Returns
-    -------
-    float
-        the value in text or default
+        box0 = QGroupBox('Spectrum')
 
-    """
-    text = widget.text()
-    try:
-        text = float(text)
-    except ValueError:
-        text = default
-    return text
+        for k in self.value:
+            self.index[k] = QLineEdit('')
+        self.index['log'] = QCheckBox('Log-transform')
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Min X', self.index['x_min'])
+        form_layout.addRow('Max X', self.index['x_max'])
+        form_layout.addRow('Ticks on X-axis', self.index['x_tick'])
+        form_layout.addRow('Min Y', self.index['y_min'])
+        form_layout.addRow('Max Y', self.index['y_max'])
+        form_layout.addRow('Ticks on Y-axis', self.index['y_tick'])
+
+        form_layout.addWidget(self.index['log'])
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 class Spectrum(QWidget):
@@ -88,18 +93,9 @@ class Spectrum(QWidget):
         super().__init__()
         self.parent = parent
 
-        preferences = self.parent.preferences.values
-        self.x_limit = preferences['spectrum/x_limit']
-        self.y_limit = preferences['spectrum/y_limit']
-        self.log = True
+        self.config = SpectrumConfig(self.display_spectrum)
 
         self.idx_chan = None
-        self.idx_x_min = None
-        self.idx_x_max = None
-        self.idx_y_min = None
-        self.idx_y_max = None
-        self.idx_log = None
-
         self.idx_fig = None
         self.scene = None
 
@@ -110,66 +106,19 @@ class Spectrum(QWidget):
         self.idx_chan = QComboBox()
         self.idx_chan.activated.connect(self.display_spectrum)
 
-        self.idx_x_min = QLineEdit(str(self.x_limit[0]))
-        self.idx_x_max = QLineEdit(str(self.x_limit[1]))
-
-        self.idx_y_min = QLineEdit(str(self.y_limit[0]))
-        self.idx_y_max = QLineEdit(str(self.y_limit[1]))
-
-        self.idx_log = QCheckBox('Log-transform')
-        self.idx_log.setCheckState(Qt.Checked)
-
-        apply_button = QPushButton('Apply')
-        apply_button.clicked.connect(self.update_limits)
-
         self.idx_fig = QGraphicsView(self)
         self.idx_fig.scale(1, -1)
 
-        self.scene = QGraphicsScene(self.x_limit[0], self.y_limit[0],
-                                    self.x_limit[1] - self.x_limit[0],
-                                    self.y_limit[1] - self.y_limit[0])
+        value = self.config.value
+        self.scene = QGraphicsScene(value['x_min'], value['y_min'],
+                                    value['x_max'] - value['x_min'],
+                                    value['y_max'] - value['y_min'])
         self.idx_fig.setScene(self.scene)
-
-        x_layout = QFormLayout()
-        x_layout.addRow('min x', self.idx_x_min)
-        x_layout.addRow('max x', self.idx_x_max)
-
-        y_layout = QFormLayout()
-        y_layout.addRow('min y', self.idx_y_min)
-        y_layout.addRow('max y', self.idx_y_max)
-
-        button_layout = QVBoxLayout()
-        button_layout.addWidget(self.idx_log)
-        button_layout.addWidget(apply_button)
-
-        control_layout = QHBoxLayout()
-        control_layout.addLayout(x_layout)
-        control_layout.addLayout(y_layout)
-        control_layout.addLayout(button_layout)
 
         layout = QVBoxLayout()
         layout.addWidget(self.idx_chan)
-        layout.addLayout(control_layout)
         layout.addWidget(self.idx_fig)
         self.setLayout(layout)
-
-    def update_limits(self):
-        """Read changes in the way spectrum is plotted."""
-        self.x_limit[0] = get_text(self.idx_x_min, self.x_limit[0])
-        self.x_limit[1] = get_text(self.idx_x_max, self.x_limit[1])
-        self.y_limit[0] = get_text(self.idx_y_min, self.y_limit[0])
-        self.y_limit[1] = get_text(self.idx_y_max, self.y_limit[1])
-
-        if self.idx_log.checkState() == Qt.Checked:
-            self.log = True
-        else:
-            self.log = False
-
-        self.scene.setSceneRect(self.x_limit[0], self.y_limit[0],
-                                self.x_limit[1] - self.x_limit[0],
-                                self.y_limit[1] - self.y_limit[0])
-
-        self.display_spectrum()
 
     def update_spectrum(self):
         """Add channel names to the combobox.
@@ -187,6 +136,11 @@ class Spectrum(QWidget):
 
     def display_spectrum(self):
         """Make graphicsitem for spectrum figure."""
+        value = self.config.value
+        self.scene.setSceneRect(value['x_min'], value['y_min'],
+                                value['x_max'] - value['x_min'],
+                                value['y_max'] - value['y_min'])
+
         chan_name = self.idx_chan.currentText()
         lg.info('Power spectrum for channel ' + chan_name)
 
@@ -201,9 +155,9 @@ class Spectrum(QWidget):
         s_freq = self.parent.traces.data.s_freq
         f, Pxx = welch(data, fs=s_freq, nperseg=s_freq)
 
-        freq_limit = (self.x_limit[0] <= f) & (f <= self.x_limit[1])
+        freq_limit = (value['x_min'] <= f) & (f <= value['x_max'])
 
-        if self.log:
+        if self.config.value['log']:
             Pxx_to_plot = log(Pxx[freq_limit])
         else:
             Pxx_to_plot = Pxx[freq_limit]
@@ -222,36 +176,38 @@ class Spectrum(QWidget):
         pretty fast.
 
         """
+        value = self.config.value
+
         # X-AXIS
         # x-bottom
-        self.scene.addLine(self.x_limit[0], self.y_limit[0],
-                           self.x_limit[0], self.y_limit[1])
+        self.scene.addLine(value['x_min'], value['y_min'],
+                           value['x_min'], value['y_max'])
         # at y = 0, dashed
-        self.scene.addLine(self.x_limit[0], 0,
-                           self.x_limit[1], 0, QPen(Qt.DashLine))
+        self.scene.addLine(value['x_min'], 0,
+                           value['x_max'], 0, QPen(Qt.DashLine))
         # ticks on y-axis
-        y_high = int(floor(self.y_limit[1]))
-        y_low = int(ceil(self.y_limit[0]))
-        x_length = (self.x_limit[1] - self.x_limit[0]) / TICK_SIZE
+        y_high = int(floor(value['y_max']))
+        y_low = int(ceil(value['y_min']))
+        x_length = (value['x_max'] - value['x_min']) / value['x_tick']
         for y in range(y_low, y_high):
-            self.scene.addLine(self.x_limit[0], y,
-                               self.x_limit[0] + x_length, y)
+            self.scene.addLine(value['x_min'], y,
+                               value['x_min'] + x_length, y)
         # Y-AXIS
         # left axis
-        self.scene.addLine(self.x_limit[0], self.y_limit[0],
-                           self.x_limit[1], self.y_limit[0])
+        self.scene.addLine(value['x_min'], value['y_min'],
+                           value['x_max'], value['y_min'])
         # larger ticks on x-axis every 10 Hz
-        x_high = int(floor(self.x_limit[1]))
-        x_low = int(ceil(self.x_limit[0]))
-        y_length = (self.y_limit[1] - self.y_limit[0]) / TICK_SIZE
+        x_high = int(floor(value['x_max']))
+        x_low = int(ceil(value['x_min']))
+        y_length = (value['y_max'] - value['y_min']) / value['y_tick']
         for x in range(x_low, x_high, 10):
-            self.scene.addLine(x, self.y_limit[0],
-                               x, self.y_limit[0] + y_length)
+            self.scene.addLine(x, value['y_min'],
+                               x, value['y_min'] + y_length)
         # smaller ticks on x-axis every 10 Hz
-        y_length = (self.y_limit[1] - self.y_limit[0]) / TICK_SIZE / 2
+        y_length = (value['y_max'] - value['y_min']) / value['y_tick'] / 2
         for x in range(x_low, x_high, 5):
-            self.scene.addLine(x, self.y_limit[0],
-                               x, self.y_limit[0] + y_length)
+            self.scene.addLine(x, value['y_min'],
+                               x, value['y_min'] + y_length)
 
     def resizeEvent(self, event):
         """Fit the whole scene in view.
@@ -262,7 +218,8 @@ class Spectrum(QWidget):
             not important
 
         """
-        self.idx_fig.fitInView(self.x_limit[0],
-                               self.y_limit[0],
-                               self.x_limit[1] - self.x_limit[0],
-                               self.y_limit[1] - self.y_limit[0])
+        value = self.config.value
+        self.idx_fig.fitInView(value['x_min'],
+                               value['y_min'],
+                               value['x_max'] - value['x_min'],
+                               value['y_max'] - value['y_min'])

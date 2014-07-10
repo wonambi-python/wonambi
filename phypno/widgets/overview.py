@@ -15,7 +15,14 @@ from PyQt4.QtGui import (QBrush,
                          QGraphicsScene,
                          QGraphicsView,
                          QGraphicsItem,
+                         QCheckBox,
+                         QFormLayout,
+                         QGroupBox,
+                         QLineEdit,
+                         QVBoxLayout,
                          )
+
+from phypno.widgets.preferences import Config
 
 # bookmark
 # event
@@ -45,6 +52,7 @@ BARS = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
         }
 TIME_HEIGHT = 92
 TOTAL_HEIGHT = 100
+
 
 
 class Overview(QGraphicsView):

@@ -12,14 +12,19 @@ from PyQt4.QtGui import (QDockWidget,
                          QIcon,
                          QMessageBox,
                          QPainterPath,
+                         QCheckBox,
+                         QFormLayout,
+                         QGroupBox,
+                         QLineEdit,
+                         QVBoxLayout,
                          )
 
+from phypno.widgets.preferences import Config
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')
 
 config = QSettings("phypno", "scroll_data")
-MAX_RECORDING_HISTORY = 20
 
 ICON = {
     'open_rec': join(icon_path, 'document-open.png'),
@@ -42,6 +47,29 @@ ICON = {
     'preferences': join(icon_path, 'configure.png'),
     'quit': join(icon_path, 'window-close.png'),
     }
+
+
+class UtilsConfig(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('utils', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('General')
+
+        self.index['max_recording_history'] = QLineEdit('')
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Max History Size',
+                           self.index['max_recording_history'])
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 def create_menubar(mainwindow):

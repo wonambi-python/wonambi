@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+from PyQt4.QtGui import QApplication
+
+if __name__ == '__main__':
+    try:
+        app = QApplication([])
+        standalone = True
+    except RuntimeError:
+        standalone = False
+
 from logging import getLogger, DEBUG, INFO, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
@@ -18,12 +27,10 @@ lg.setLevel(DEBUG)
 
 from functools import partial
 from os.path import dirname, basename, splitext
-from sys import argv
 
 from numpy import arange
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
-                         QApplication,
                          QFileDialog,
                          QIcon,
                          QKeySequence,
@@ -40,8 +47,10 @@ from phypno.widgets import (DockWidget,
                             Spectrum,
                             Traces,
                             Video)
+from phypno.widgets.preferences import REMOVEPreferences
 from phypno.widgets.utils import (ICON, create_menubar, create_toolbar,
-                                  keep_recent_recordings, choose_file_or_dir)
+                                  keep_recent_recordings, choose_file_or_dir,
+                                  UtilsConfig)
 
 
 class MainWindow(QMainWindow):
@@ -84,7 +93,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.preferences = Preferences(self)
+        self.config = UtilsConfig(None)  # TODO: which function should we call here?
+        self.preferences = REMOVEPreferences(self)  # TODO: remove this, use only to raise Preference window
 
         self.idx_docks = {}
         self.bookmarks = None
@@ -358,6 +368,7 @@ class MainWindow(QMainWindow):
         self.detect = Detect(self)
         self.video = Video(self)
         self.traces = Traces(self)
+        self.settings = Preferences(self)
 
         self.setCentralWidget(self.traces)
 
@@ -464,8 +475,8 @@ class MainWindow(QMainWindow):
             lg.debug('Setting ' + dockname + ' to visible')
 
     def open_preferences(self):
-        self.preferences.update_preferences()
-        self.preferences.show()
+        self.settings.update_preferences()
+        self.settings.show()
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
@@ -474,11 +485,6 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    try:
-        app = QApplication(argv)
-        standalone = True
-    except RuntimeError:
-        standalone = False
 
     q = MainWindow()
     q.show()
