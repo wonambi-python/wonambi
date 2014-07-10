@@ -8,6 +8,7 @@ from os.path import join
 from subprocess import call
 
 from PyQt4.QtGui import (QFormLayout,
+                         QGroupBox,
                          QLabel,
                          QLineEdit,
                          QPushButton,
@@ -17,6 +18,46 @@ from PyQt4.QtGui import (QFormLayout,
 from PyQt4.phonon import Phonon
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
+
+
+from phypno.widgets.preferences import Config
+
+
+class ConfigVideo(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('video', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Video')
+
+        box1 = QGroupBox('Fallback Video')
+        fallback_text = QLabel('When the embedded video is not available, ' +
+                               'it uses VLC as external window.')
+        form_layout = QFormLayout()
+
+        self.index['vlc_exe'] = QLineEdit('')
+        self.index['vlc_width'] = QLineEdit('')
+        self.index['vlc_height'] = QLineEdit('')
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Path to VLC executable', self.index['vlc_exe'])
+        form_layout.addRow('VLC width', self.index['vlc_width'])
+        form_layout.addRow('VLC height', self.index['vlc_height'])
+
+        fallback_layout = QVBoxLayout()
+        fallback_layout.addWidget(fallback_text)
+        fallback_layout.addLayout(form_layout)
+
+        box1.setLayout(fallback_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 class Video(QWidget):
@@ -43,6 +84,7 @@ class Video(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.config = ConfigVideo(self.update_video)
 
         self.beg_diff = 0
         self.end_diff = 0
@@ -78,17 +120,7 @@ class Video(QWidget):
             layout = QVBoxLayout()
             layout.addWidget(QLabel('Embedded video is not available'))
             layout.addWidget(QLabel('VLC will be used instead'))
-            layout.addStretch()
-
-            formlayout = QFormLayout()
-
-            preferences = self.parent.preferences.values
-            vlc_size = preferences['video/vlc_size']
-            self.idx_vlc_size = QLineEdit(vlc_size)
-            formlayout.addRow('Size', self.idx_vlc_size)
-
-            layout.addLayout(formlayout)
-            layout.addStretch()
+            layout.addStretch(1)
 
             video_widget = QWidget()
             video_widget.setLayout(layout)
@@ -227,11 +259,9 @@ class Video(QWidget):
             self.n_video = len(full_mpgfiles) + 1
 
         else:
-            preferences = self.parent.preferences.values
-            vlc_exe = preferences['video/vlc_exe']
-
-            vlc_size = self.idx_vlc_size.text()
-            vlc_width, vlc_height = vlc_size.split('x')
+            vlc_exe = self.config.value['vlc_exe']
+            vlc_width = self.config.value['vlc_width']
+            vlc_height = self.config.value['vlc_height']
 
             vlc_cmd = '"' + vlc_exe + '" '
             vlc_cmd += '--no-video-title '

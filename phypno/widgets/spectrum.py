@@ -23,7 +23,7 @@ from phypno.widgets.utils import Path
 from phypno.widgets.preferences import Config
 
 
-class SpectrumConfig(Config):
+class ConfigSpectrum(Config):
 
     def __init__(self, update_widget):
         super().__init__('spectrum', update_widget)
@@ -93,7 +93,7 @@ class Spectrum(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.config = SpectrumConfig(self.display_spectrum)
+        self.config = ConfigSpectrum(self.display_spectrum)
 
         self.idx_chan = None
         self.idx_fig = None

@@ -36,8 +36,6 @@ OLD_DEFAULTS = {'main/geometry': [400, 300, 1024, 768],
             'utils/read_intervals': 10 * 60,
             'stages/scoring_window': 30,
             'detect/spindle_method': 'UCSD',
-            'video/vlc_size': '640x480',
-            'video/vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
             }
 
 
@@ -51,6 +49,10 @@ DEFAULTS['spectrum'] = {'x_min': 0,
                         'log': True,
                         }
 DEFAULTS['utils'] = {'max_recording_history': 20,
+                     }
+DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
+                     'vlc_width': 640,
+                     'vlc_height': 480,
                      }
 
 
@@ -192,13 +194,14 @@ class Preferences(QDialog):
         page_list.setSpacing(1)
         page_list.currentRowChanged.connect(self.change_widget)
 
-        pages = ['General', 'Spectrum']
+        pages = ['General', 'Spectrum', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
         self.stacked = QStackedWidget()
         self.stacked.addWidget(self.parent.config)
         self.stacked.addWidget(self.parent.spectrum.config)
+        self.stacked.addWidget(self.parent.video.config)
 
         hsplitter = QSplitter()
         hsplitter.addWidget(page_list)

@@ -49,7 +49,7 @@ ICON = {
     }
 
 
-class UtilsConfig(Config):
+class ConfigUtils(Config):
 
     def __init__(self, update_widget):
         super().__init__('utils', update_widget)
