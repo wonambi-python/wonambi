@@ -12,10 +12,8 @@ from PyQt4.QtGui import (QDockWidget,
                          QIcon,
                          QMessageBox,
                          QPainterPath,
-                         QCheckBox,
                          QFormLayout,
                          QGroupBox,
-                         QLineEdit,
                          QVBoxLayout,
                          )
 
@@ -56,23 +54,55 @@ class ConfigUtils(Config):
 
     def create_config(self):
 
-        box0 = QGroupBox('General')
+        box0 = QGroupBox('Geometry')
+        self.index['window_x'] = FormInt()
+        self.index['window_y'] = FormInt()
+        self.index['window_width'] = FormInt()
+        self.index['window_height'] = FormInt()
 
+        form_layout = QFormLayout()
+        form_layout.addRow('Window X-position', self.index['window_x'])
+        form_layout.addRow('Window Y-position', self.index['window_y'])
+        form_layout.addRow('Window width', self.index['window_width'])
+        form_layout.addRow('Window height', self.index['window_height'])
+
+        box0.setLayout(form_layout)
+
+        box1 = QGroupBox('History')
         self.index['max_recording_history'] = FormInt()
-        self.index['y_distance_presets'] = FormList()  # require restart
-        self.index['y_scale_presets'] = FormList()  # require restart
 
         form_layout = QFormLayout()
         form_layout.addRow('Max History Size',
                            self.index['max_recording_history'])
+        box1.setLayout(form_layout)
+
+        box2 = QGroupBox('Default values')
+        self.index['y_distance_presets'] = FormList()  # require restart
+        self.index['y_scale_presets'] = FormList()  # require restart
+        self.index['window_length_presets'] = FormList()  # require restart
+
+        form_layout = QFormLayout()
         form_layout.addRow('Signal scaling, presets',
                            self.index['y_scale_presets'])
         form_layout.addRow('Distance between signals, presets',
                            self.index['y_distance_presets'])
-        box0.setLayout(form_layout)
+        form_layout.addRow('Window length, presets',
+                           self.index['window_length_presets'])
+        box2.setLayout(form_layout)
+
+        box3 = QGroupBox('Download Data')
+        self.index['read_intervals'] = FormInt()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Read intervals (in s)',
+                           self.index['read_intervals'])
+        box3.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
+        main_layout.addWidget(box2)
+        main_layout.addWidget(box3)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -158,7 +188,8 @@ def create_menubar(mainwindow):
     submenu_dist.addAction(actions['Y_wider'])
     submenu_dist.addAction(actions['Y_tighter'])
     submenu_dist.addSeparator()
-    for x in sorted(mainwindow.config.value['y_distance_presets'], reverse=True):
+    for x in sorted(mainwindow.config.value['y_distance_presets'],
+                    reverse=True):
         act = submenu_dist.addAction('Set to ' + str(x))
         act.triggered.connect(partial(mainwindow.action_Y_dist, x))
 
@@ -166,7 +197,7 @@ def create_menubar(mainwindow):
     submenu_length.addAction(actions['X_more'])
     submenu_length.addAction(actions['X_less'])
     submenu_length.addSeparator()
-    for x in sorted(preferences['overview/window_length_presets'],
+    for x in sorted(mainwindow.config.value['window_length_presets'],
                     reverse=True):
         act = submenu_length.addAction('Set to ' + str(x))
         act.triggered.connect(partial(mainwindow.action_X_length, x))

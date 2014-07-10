@@ -15,14 +15,12 @@ from PyQt4.QtGui import (QBrush,
                          QGraphicsScene,
                          QGraphicsView,
                          QGraphicsItem,
-                         QCheckBox,
                          QFormLayout,
                          QGroupBox,
-                         QLineEdit,
                          QVBoxLayout,
                          )
 
-from phypno.widgets.preferences import Config
+from phypno.widgets.preferences import Config, FormInt
 
 # bookmark
 # event
@@ -54,6 +52,38 @@ TIME_HEIGHT = 92
 TOTAL_HEIGHT = 100
 
 
+class ConfigOverview(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('overview', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Overview')
+
+        self.index['window_start'] = FormInt()
+        self.index['window_length'] = FormInt()
+        self.index['window_step'] = FormInt()
+        self.index['timestamp_steps'] = FormInt()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Window start time',
+                           self.index['window_start'])
+        form_layout.addRow('Window length',
+                           self.index['window_length'])
+        form_layout.addRow('Step size',
+                           self.index['window_step'])
+        form_layout.addRow('Steps in overview (in s)',
+                           self.index['timestamp_steps'])
+
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
+
 
 class Overview(QGraphicsView):
     """Show an overview of data, such as hypnogram and data in memory.
@@ -77,10 +107,8 @@ class Overview(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.config = ConfigOverview(self.display_overview)
 
-        preferences = self.parent.preferences.values
-        self.window_start = int(preferences['overview/window_start'])
-        self.window_length = int(preferences['overview/window_length'])
         self.minimum = None
         self.maximum = None
 
@@ -114,8 +142,8 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        self.idx_item['current'] = QGraphicsLineItem(self.window_start, 0,
-                                                     self.window_start,
+        self.idx_item['current'] = QGraphicsLineItem(self.config.value['window_start'], 0,
+                                                     self.config.value['window_start'],
                                                      current_line_height)
         self.idx_item['current'].setPen(QPen(Qt.red))
         self.scene.addItem(self.idx_item['current'])
@@ -141,8 +169,7 @@ class Overview(QGraphicsView):
                                  end_time.day,
                                  end_time.hour + 1).timestamp())
 
-        preferences = self.parent.preferences.values
-        steps = int(preferences['overview/timestamp_steps'])
+        steps = self.config.value['timestamp_steps']
         transform, _ = self.transform().inverted()
 
         for t in range(first_hour, last_hour, steps):
@@ -175,8 +202,8 @@ class Overview(QGraphicsView):
         """
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
-            self.window_start = new_position
-            self.idx_item['current'].setPos(self.window_start, 0)
+            self.config.value['window_start'] = new_position
+            self.idx_item['current'].setPos(self.config.value['window_start'], 0)
 
             header = self.parent.info.dataset.header
             current_time = (header['start_time'] +
@@ -184,7 +211,7 @@ class Overview(QGraphicsView):
             msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
             self.parent.statusBar().showMessage(msg)
         else:
-            lg.debug('Updating position at {}'.format(self.window_start))
+            lg.debug('Updating position at {}'.format(self.config.value['window_start']))
 
         self.parent.traces.update_traces()
         self.parent.spectrum.display_spectrum()
@@ -290,6 +317,6 @@ class Overview(QGraphicsView):
 
         """
         x_in_scene = self.mapToScene(event.pos()).x()
-        window_length = self.parent.overview.window_length
+        window_length = self.config.value['window_length']
         window_start = int(floor(x_in_scene / window_length) * window_length)
         self.update_position(window_start)

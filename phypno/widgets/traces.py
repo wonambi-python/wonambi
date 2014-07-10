@@ -110,8 +110,8 @@ class Traces(QGraphicsView):
 
     def update_traces(self):
         """Read and update the data to plot."""
-        window_start = self.parent.overview.window_start
-        window_end = window_start + self.parent.overview.window_length
+        window_start = self.parent.overview.config.value['window_start']
+        window_end = window_start + self.parent.overview.config.value['window_length']
         dataset = self.parent.info.dataset
         groups = self.parent.channels.groups
 
@@ -140,8 +140,8 @@ class Traces(QGraphicsView):
         self.create_labels()
         self.create_time()
 
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
 
         time_height = max([x.boundingRect().height() for x in self.idx_time])
         label_width = window_length * self.config.value['label_ratio']
@@ -203,8 +203,8 @@ class Traces(QGraphicsView):
 
     def add_labels(self):
         """Add channel labels on the left."""
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
         label_width = window_length * self.config.value['label_ratio']
 
         for row, one_label_item in enumerate(self.idx_label):
@@ -261,8 +261,8 @@ class Traces(QGraphicsView):
     def add_bookmarks(self):
         """Add bookmarks on top of first plot."""
         bookmarks = self.parent.bookmarks.bookmarks
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
         window_end = window_start + window_length
         time_height = max([x.boundingRect().height() for x in self.idx_time])
 

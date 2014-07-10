@@ -21,27 +21,19 @@ from PyQt4.QtGui import (QCheckBox,
 config = QSettings("phypno", "scroll_data")
 
 
-OLD_DEFAULTS = {'main/geometry': [400, 300, 1024, 768],
-            'main/hidden_docks': ['Video'],
-            'main/recording_dir': '/home/gio/recordings',
-            'overview/window_start': 0,
-            'overview/window_length': 30,
-            'overview/window_length_presets': [1, 5, 10, 20, 30, 60],
-            'overview/window_step': 5,
-            'overview/timestamp_steps': 60 * 60,
-            'traces/n_time_labels': 3,
-            'traces/y_distance': 50.,
-            'traces/y_distance_presets': [20, 30, 40, 50, 100, 200],
-            'traces/y_scale': 1.,
-            'traces/y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
-            'traces/label_ratio': 0.05,
-            'utils/read_intervals': 10 * 60,
+OLD_DEFAULTS = {'main/hidden_docks': ['Video'],
+                'main/recording_dir': '/home/gio/recordings',
             'stages/scoring_window': 30,
             'detect/spindle_method': 'UCSD',
             }
 
 
 DEFAULTS = {}
+DEFAULTS['overview'] = {'window_start': 0,
+                        'window_length': 30,
+                        'window_step': 5,
+                        'timestamp_steps': 60 * 60,
+                        }
 DEFAULTS['spectrum'] = {'x_min': 0,
                         'x_max': 30,
                         'x_tick': 10,
@@ -55,9 +47,15 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'y_scale': 1.,
                       'label_ratio': 0.05,
                       }
-DEFAULTS['utils'] = {'max_recording_history': 20,
+DEFAULTS['utils'] = {'window_x': 400,
+                     'window_y': 300,
+                     'window_width': 1024,
+                     'window_height': 768,
+                     'max_recording_history': 20,
                      'y_distance_presets': [20, 30, 40, 50, 100, 200],
                      'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
+                     'window_length_presets': [1, 5, 10, 20, 30, 60],
+                     'read_intervals': 10 * 60,
                      }
 DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      'vlc_width': 640,
@@ -203,12 +201,14 @@ class Preferences(QDialog):
         page_list.setSpacing(1)
         page_list.currentRowChanged.connect(self.change_widget)
 
-        pages = ['General', 'Spectrum', 'Video']
+        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
         self.stacked = QStackedWidget()
         self.stacked.addWidget(self.parent.config)
+        self.stacked.addWidget(self.parent.overview.config)
+        self.stacked.addWidget(self.parent.traces.config)
         self.stacked.addWidget(self.parent.spectrum.config)
         self.stacked.addWidget(self.parent.video.config)
 
@@ -237,6 +237,7 @@ class Preferences(QDialog):
                     lg.debug('Preferences for ' + one_config.widget +
                              ' were modified')
                     one_config.get_values()
+                    # TODO: try (if dataset is available)
                     one_config.update_widget()
                     one_config.modified = False
 
@@ -436,6 +437,9 @@ class FormList(QLineEdit):
             default = []
         try:
             text = literal_eval(self.text())
+            if isinstance(text, list):
+                raise ValueError
+
         except ValueError:
             text = default
             self.set_value(text)

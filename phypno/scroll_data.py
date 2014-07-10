@@ -116,7 +116,10 @@ class MainWindow(QMainWindow):
         self.create_widgets()
         self.statusBar()
 
-        self.setGeometry(*self.preferences.values['main/geometry'])
+        self.setGeometry(self.config.value['window_x'],
+                         self.config.value['window_y'],
+                         self.config.value['window_width'],
+                         self.config.value['window_height'])
         self.setWindowTitle('Scroll Data')
         self.show()
 
@@ -261,76 +264,78 @@ class MainWindow(QMainWindow):
 
     def action_step_prev(self):
         """Go to the previous step."""
-        window_start = (self.overview.window_start -
-                        self.overview.window_length /
-                        self.preferences.values['overview/window_step'])
+        window_start = (self.overview.config.value['window_start'] -
+                        self.overview.config.value['window_length'] /
+                        self.overview.config.value['window_step'])
         self.overview.update_position(window_start)
 
     def action_step_next(self):
         """Go to the next step."""
-        window_start = (self.overview.window_start +
-                        self.overview.window_length /
-                        self.preferences.values['overview/window_step'])
+        window_start = (self.overview.config.value['window_start'] +
+                        self.overview.config.value['window_length'] /
+                        self.overview.config.value['window_step'])
         self.overview.update_position(window_start)
 
     def action_page_prev(self):
         """Go to the previous page."""
-        window_start = self.overview.window_start - self.overview.window_length
+        window_start = (self.overview.config.value['window_start'] -
+                        self.overview.config.value['window_length'])
         self.overview.update_position(window_start)
 
     def action_page_next(self):
         """Go to the next page."""
-        window_start = self.overview.window_start + self.overview.window_length
+        window_start = (self.overview.config.value['window_start'] +
+                        self.overview.config.value['window_length'])
         self.overview.update_position(window_start)
 
     def action_add_time(self, extra_time):
         """Go to the predefined time forward."""
-        window_start = self.overview.window_start + extra_time
+        window_start = self.overview.config.value['window_start'] + extra_time
         self.overview.update_position(window_start)
 
     def action_X_more(self):
         """Zoom in on the x-axis."""
-        self.overview.window_length = self.overview.window_length * 2
+        self.overview.config.value['window_length'] *= 2
         self.overview.update_position()
 
     def action_X_less(self):
         """Zoom out on the x-axis."""
-        self.overview.window_length = self.overview.window_length / 2
+        self.overview.config.value['window_length'] /= 2
         self.overview.update_position()
 
     def action_X_length(self, new_window_length):
         """Use presets for length of the window."""
-        self.overview.window_length = new_window_length
+        self.overview.config.value['window_length'] = new_window_length
         self.overview.update_position()
 
     def action_Y_more(self):
         """Increase the amplitude."""
-        self.traces.y_scale = self.traces.y_scale * 2
+        self.traces.config.value['y_scale'] *= 2
         self.traces.display_traces()
 
     def action_Y_less(self):
         """Decrease the amplitude."""
-        self.traces.y_scale = self.traces.y_scale / 2
+        self.traces.config.value['y_scale'] /= 2
         self.traces.display_traces()
 
     def action_Y_ampl(self, new_y_scale):
         """Make amplitude on Y axis using predefined values"""
-        self.traces.y_scale = new_y_scale
+        self.traces.config.value['y_scale'] = new_y_scale
         self.traces.display_traces()
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
-        self.traces.y_distance *= 1.4
+        self.traces.config.value['y_distance'] *= 1.4
         self.traces.display_traces()
 
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
-        self.traces.y_distance /= 1.4
+        self.traces.config.value['y_distance'] /= 1.4
         self.traces.display_traces()
 
     def action_Y_dist(self, new_y_distance):
         """Use preset values for the distance between lines."""
-        self.traces.y_distance = new_y_distance
+        self.traces.config.value['y_distance'] = new_y_distance
         self.traces.display_traces()
 
     def action_download(self, length=None):
@@ -339,9 +344,9 @@ class MainWindow(QMainWindow):
         if length is None or length > self.overview.maximum:
             length = self.overview.maximum
 
-        steps = arange(self.overview.window_start,
-                       self.overview.window_start + length,
-                       self.preferences.values['utils/read_intervals'])
+        steps = arange(self.overview.config.value['window_start'],
+                       self.overview.config.value['window_start'] + length,
+                       self.config.value['read_intervals'])
         one_chan = dataset.header['chan_name'][0]
         for begtime, endtime in zip(steps[:-1], steps[1:]):
             dataset.read_data(chan=[one_chan],

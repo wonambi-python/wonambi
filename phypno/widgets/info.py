@@ -104,6 +104,6 @@ class Info(QWidget):
 
     def update_traces_info(self):
         """Update information about the size of the traces."""
-        self.idx_amplitude.setText(str(self.parent.traces.y_scale))
-        self.idx_distance.setText(str(self.parent.traces.y_distance))
-        self.idx_length.setText(str(self.parent.overview.window_length))
+        self.idx_amplitude.setText(str(self.parent.traces.config.value['y_scale']))
+        self.idx_distance.setText(str(self.parent.traces.config.value['y_distance']))
+        self.idx_length.setText(str(self.parent.overview.config.value['window_length']))
