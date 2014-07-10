@@ -122,19 +122,38 @@ class Preferences(QDialog):
         self.setLayout(vlayout)
 
     def change_widget(self, new_row):
-        """"""
+        """Change the widget on the right side.
+
+        Parameters
+        ----------
+        new_row : int
+            index of the widgets
+
+        """
         self.stacked.setCurrentIndex(new_row)
 
     def button_clicked(self, button):
+        """Action when button was clicked.
+
+        Parameters
+        ----------
+        button : instance of QPushButton
+            which button was pressed
+
+        """
         if button in (self.idx_ok, self.idx_apply):
+
+            # loop over widgets, to see if they were modified
             for i_config in range(self.stacked.count()):
                 one_config = self.stacked.widget(i_config)
+
                 if one_config.modified:
                     lg.debug('Preferences for ' + one_config.widget +
                              ' were modified')
                     one_config.get_values()
-                    # TODO: try (if dataset is available)
-                    one_config.update_widget()
+
+                    if self.parent.info.dataset is not None:
+                        one_config.update_widget()
                     one_config.modified = False
 
             if button == self.idx_ok:
