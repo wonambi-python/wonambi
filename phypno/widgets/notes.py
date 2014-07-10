@@ -20,54 +20,48 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
                          QComboBox,
                          QFormLayout,
+                         QGroupBox,
                          QPushButton,
                          QLabel,
                          QTableView,
                          QTableWidget,
                          QTableWidgetItem,
                          QWidget,
+                         QVBoxLayout,
                          )
 
 from ..attr import Scores
 
+from phypno.widgets.preferences import Config, FormInt
 
-from phypno.widgets.preferences import Config
+# TODO: this in ConfigNotes
+STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
+STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
+DATA_FOLDER = '/eeg/raw/xltek/'
+SCORES_FOLDER = '/doc/scores/'
 
 
 class ConfigNotes(Config):
 
     def __init__(self, update_widget):
-        super().__init__('notes', update_widget)
+        super().__init__('detect', update_widget)
 
     def create_config(self):
 
-        box0 = QGroupBox('Notes')
+        box0 = QGroupBox('Detection')
 
-        self.index['scoring_window'] = QLineEdit('')
+        self.index['scoring_window'] = FormInt()
 
         form_layout = QFormLayout()
-        form_layout.addRow('Path to VLC executable', self.index['vlc_exe'])
-        form_layout.addRow('VLC width', self.index['vlc_width'])
-        form_layout.addRow('VLC height', self.index['vlc_height'])
-
-        fallback_layout = QVBoxLayout()
-        fallback_layout.addWidget(fallback_text)
-        fallback_layout.addLayout(form_layout)
-
-        box1.setLayout(fallback_layout)
+        form_layout.addRow('Length of scoring window',
+                           self.index['scoring_window'])
+        box0.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
-        main_layout.addWidget(box1)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
-
-
-STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
-STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
-DATA_FOLDER = '/eeg/raw/xltek/'
-SCORES_FOLDER = '/doc/scores/'
 
 
 class Bookmarks(QTableWidget):
@@ -140,7 +134,7 @@ class Bookmarks(QTableWidget):
         column : QtCore.int
 
         """
-        window_length = self.parent.overview.window_length
+        window_length = self.parent.overview.config.value['window_length']
         bookmark_time = self.bookmarks[row]['time']
         window_start = floor(bookmark_time / window_length) * window_length
         self.parent.overview.update_position(window_start)
@@ -196,6 +190,7 @@ class Stages(QWidget):
         super().__init__()
 
         self.parent = parent
+        self.config = ConfigNotes(lambda: None)
         self.action = {}
         self.scores = None
         self.idx_filename = QPushButton('Click to open sleep scores')
@@ -305,7 +300,7 @@ class Stages(QWidget):
         """
         minimum = int(floor(self.parent.overview.minimum))
         maximum = int(floor(self.parent.overview.maximum))
-        window_length = self.parent.preferences.values['stages/']
+        window_length = self.config.value['scoring_window']
 
         main = Element('sleep_stages')
         main.set('filename', self.parent.info.filename)

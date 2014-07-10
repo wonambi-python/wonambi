@@ -10,15 +10,18 @@ from PyQt4.QtGui import (QBrush,
                          QColor,
                          QComboBox,
                          QGraphicsRectItem,
+                         QGroupBox,
                          QFormLayout,
                          QPushButton,
                          QGridLayout,
                          QLineEdit,
                          QPen,
+                         QVBoxLayout,
                          QWidget,
                          )
 
 from ..detect import DetectSpindle
+from phypno.widgets.preferences import Config, FormStr
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -26,6 +29,29 @@ NoPen.setStyle(Qt.NoPen)
 TRIAL = 0
 GRAPHOELEMENTS = ('spindles', )
 METHODS = ('UCSD', 'Nir2011', 'Wamsley2012', 'Ferrarelli2007')
+
+
+class ConfigDetect(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('detect', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Detection')
+
+        self.index['spindle_method'] = FormStr()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Current Spindle Method',
+                           self.index['spindle_method'])
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 class Detect(QWidget):
@@ -60,6 +86,7 @@ class Detect(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.config = ConfigDetect(lambda: None)  # do nothing?
 
         self.detfun = None
 
@@ -90,7 +117,7 @@ class Detect(QWidget):
         self.idx_min_dur = QLineEdit('')
         l_left.addRow('Min Dur', self.idx_min_dur)
 
-        method = self.parent.preferences.values['detect/spindle_method']
+        method = self.config.value['spindle_method']
         l_right = QFormLayout()
         self.idx_method = QComboBox()
         self.idx_method.addItems(METHODS)

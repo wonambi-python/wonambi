@@ -9,11 +9,8 @@ from ast import literal_eval
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
                          QDialog,
-                         QFormLayout,
-                         QGroupBox,
                          QHBoxLayout,
                          QLineEdit,
-                         QPushButton,
                          QVBoxLayout,
                          QWidget,
                          )
@@ -21,18 +18,15 @@ from PyQt4.QtGui import (QCheckBox,
 config = QSettings("phypno", "scroll_data")
 
 
-OLD_DEFAULTS = {'main/hidden_docks': ['Video'],
-                'main/recording_dir': '/home/gio/recordings',
-            'stages/scoring_window': 30,
-            'detect/spindle_method': 'UCSD',
-            }
-
-
 DEFAULTS = {}
+DEFAULTS['detect'] = {'spindle_method': 'UCSD',
+                      }
+
 DEFAULTS['overview'] = {'window_start': 0,
                         'window_length': 30,
                         'window_step': 5,
                         'timestamp_steps': 60 * 60,
+                        'overview_scale': 30,
                         }
 DEFAULTS['spectrum'] = {'x_min': 0,
                         'x_max': 30,
@@ -42,6 +36,8 @@ DEFAULTS['spectrum'] = {'x_min': 0,
                         'y_tick': 5,
                         'log': True,
                         }
+DEFAULTS['stages'] = {'scoring_window': 30,
+                      }
 DEFAULTS['traces'] = {'n_time_labels': 3,
                       'y_distance': 50.,
                       'y_scale': 1.,
@@ -56,6 +52,7 @@ DEFAULTS['utils'] = {'window_x': 400,
                      'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
                      'window_length_presets': [1, 5, 10, 20, 30, 60],
                      'read_intervals': 10 * 60,
+                     'recording_dir': '/home/gio/recordings',
                      }
 DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      'vlc_width': 640,
@@ -178,7 +175,7 @@ from PyQt4.QtGui import QDialogButtonBox, QStackedWidget, QSplitter, QListWidget
 
 class REMOVEPreferences():
     def __init__(self, parent):
-        self.values = OLD_DEFAULTS  # TODO: remove
+        self.values = {}  # TODO: remove
 
 
 class Preferences(QDialog):
@@ -201,7 +198,7 @@ class Preferences(QDialog):
         page_list.setSpacing(1)
         page_list.currentRowChanged.connect(self.change_widget)
 
-        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Video']
+        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Notes', 'Detection', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
@@ -210,6 +207,8 @@ class Preferences(QDialog):
         self.stacked.addWidget(self.parent.overview.config)
         self.stacked.addWidget(self.parent.traces.config)
         self.stacked.addWidget(self.parent.spectrum.config)
+        self.stacked.addWidget(self.parent.spectrum.config)
+        self.stacked.addWidget(self.parent.detect.config)
         self.stacked.addWidget(self.parent.video.config)
 
         hsplitter = QSplitter()

@@ -17,7 +17,7 @@ from PyQt4.QtGui import (QDockWidget,
                          QVBoxLayout,
                          )
 
-from phypno.widgets.preferences import Config, FormInt, FormList
+from phypno.widgets.preferences import Config, FormInt, FormList, FormStr
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')
@@ -70,10 +70,13 @@ class ConfigUtils(Config):
 
         box1 = QGroupBox('History')
         self.index['max_recording_history'] = FormInt()
+        self.index['recording_dir'] = FormStr()
 
         form_layout = QFormLayout()
         form_layout.addRow('Max History Size',
                            self.index['max_recording_history'])
+        form_layout.addRow('Directory with recordings',
+                           self.index['recording_dir'])
         box1.setLayout(form_layout)
 
         box2 = QGroupBox('Default values')
@@ -284,13 +287,14 @@ class Path(QPainterPath):
             self.lineTo(i_x, i_y)
 
 
-def keep_recent_recordings(new_recording=None):
+def keep_recent_recordings(max_recording_history, new_recording=None):
     """Keep track of the most recent recordings.
 
     Parameters
     ----------
     new_recording : str, optional
         path to file
+    max_recording_history : TODO
 
     Returns
     -------
@@ -307,7 +311,7 @@ def keep_recent_recordings(new_recording=None):
         if new_recording in history:
             lg.debug(new_recording + ' already present, will be replaced')
             history.remove(new_recording)
-        if len(history) > MAX_RECORDING_HISTORY:
+        if len(history) > max_recording_history:
             lg.debug('Removing last recording ' + history[-1])
             history.pop()
 

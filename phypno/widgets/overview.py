@@ -59,12 +59,10 @@ class ConfigOverview(Config):
 
     def create_config(self):
 
-        box0 = QGroupBox('Overview')
-
+        box0 = QGroupBox('Current Window')
         self.index['window_start'] = FormInt()
         self.index['window_length'] = FormInt()
         self.index['window_step'] = FormInt()
-        self.index['timestamp_steps'] = FormInt()
 
         form_layout = QFormLayout()
         form_layout.addRow('Window start time',
@@ -73,13 +71,23 @@ class ConfigOverview(Config):
                            self.index['window_length'])
         form_layout.addRow('Step size',
                            self.index['window_step'])
+        box0.setLayout(form_layout)
+
+        box1 = QGroupBox('Overview')
+        self.index['timestamp_steps'] = FormInt()
+        self.index['overview_scale'] = FormInt()
+
+        form_layout = QFormLayout()
         form_layout.addRow('Steps in overview (in s)',
                            self.index['timestamp_steps'])
+        form_layout.addRow('One pixel corresponds to (s)',
+                           self.index['overview_scale'])
 
-        box0.setLayout(form_layout)
+        box1.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -119,8 +127,7 @@ class Overview(QGraphicsView):
 
     def create_overview(self):
         """Define the area of QGraphicsView."""
-        preferences = self.parent.preferences.values
-        x_scale = 1 / float(preferences['stages/scoring_window'])
+        x_scale = 1 / self.config.value['overview_scale']
         lg.debug('Set scene x-scaling to {}'.format(x_scale))
         self.scale(x_scale, 1)
         self.setMinimumHeight(TOTAL_HEIGHT + 30)

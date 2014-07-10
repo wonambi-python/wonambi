@@ -133,7 +133,8 @@ class MainWindow(QMainWindow):
         actions['open_rec'].setShortcut(QKeySequence.Open)
         actions['open_rec'].triggered.connect(self.action_open_rec)
 
-        recent_recs = keep_recent_recordings()
+        max_recording_history = self.config.value['max_recording_history']
+        recent_recs = keep_recent_recordings(max_recording_history)
         actions['recent_rec'] = []
         for one_recent_rec in recent_recs:
             action_recent = QAction(one_recent_rec, self)
@@ -216,7 +217,7 @@ class MainWindow(QMainWindow):
             try:
                 dir_name = dirname(self.info.filename)
             except (AttributeError, TypeError):
-                dir_name = self.preferences.values['main/recording_dir']
+                dir_name = self.config.value['recording_dir']
 
             file_or_dir = choose_file_or_dir()
             if file_or_dir == 'dir':
@@ -442,10 +443,6 @@ class MainWindow(QMainWindow):
             self.menu_window.addAction(new_act)
             actions[dock['name']] = new_act
 
-            if dock['name'] in self.preferences.values['main/hidden_docks']:
-                self.idx_docks[dock['name']].setVisible(False)
-                actions[dock['name']].setChecked(False)
-
         self.tabifyDockWidget(self.idx_docks['Information'],
                               self.idx_docks['Video'])
         self.idx_docks['Information'].raise_()
@@ -485,7 +482,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
-        keep_recent_recordings(self.info.filename)
+        max_recording_history = self.config.value['max_recording_history']
+        keep_recent_recordings(max_recording_history, self.info.filename)
         event.accept()
 
 
@@ -496,3 +494,4 @@ if __name__ == '__main__':
 
     if standalone:
         app.exec_()
+        app.deleteLater()  # so that it kills the figure in the right order
