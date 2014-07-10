@@ -203,8 +203,8 @@ class Video(QWidget):
         """
         d = self.parent.info.dataset
 
-        window_start = self.parent.overview.window_start
-        window_length = self.parent.overview.window_length
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
 
         s_freq = d.header['s_freq']
         orig = d.header['orig']

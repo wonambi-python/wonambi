@@ -207,7 +207,7 @@ class Preferences(QDialog):
         self.stacked.addWidget(self.parent.overview.config)
         self.stacked.addWidget(self.parent.traces.config)
         self.stacked.addWidget(self.parent.spectrum.config)
-        self.stacked.addWidget(self.parent.spectrum.config)
+        self.stacked.addWidget(self.parent.stages.config)
         self.stacked.addWidget(self.parent.detect.config)
         self.stacked.addWidget(self.parent.video.config)
 

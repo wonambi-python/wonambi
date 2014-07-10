@@ -44,11 +44,11 @@ SCORES_FOLDER = '/doc/scores/'
 class ConfigNotes(Config):
 
     def __init__(self, update_widget):
-        super().__init__('detect', update_widget)
+        super().__init__('stages', update_widget)
 
     def create_config(self):
 
-        box0 = QGroupBox('Detection')
+        box0 = QGroupBox('Stages')
 
         self.index['scoring_window'] = FormInt()
 
