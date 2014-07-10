@@ -30,6 +30,40 @@ from PyQt4.QtGui import (QAbstractItemView,
 
 from ..attr import Scores
 
+
+from phypno.widgets.preferences import Config
+
+
+class ConfigNotes(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('notes', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Notes')
+
+        self.index['scoring_window'] = QLineEdit('')
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Path to VLC executable', self.index['vlc_exe'])
+        form_layout.addRow('VLC width', self.index['vlc_width'])
+        form_layout.addRow('VLC height', self.index['vlc_height'])
+
+        fallback_layout = QVBoxLayout()
+        fallback_layout.addWidget(fallback_text)
+        fallback_layout.addLayout(form_layout)
+
+        box1.setLayout(fallback_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
+
+
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
 STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
 DATA_FOLDER = '/eeg/raw/xltek/'
@@ -271,7 +305,7 @@ class Stages(QWidget):
         """
         minimum = int(floor(self.parent.overview.minimum))
         maximum = int(floor(self.parent.overview.maximum))
-        window_length = self.parent.preferences.values['stages/scoring_window']
+        window_length = self.parent.preferences.values['stages/']
 
         main = Element('sleep_stages')
         main.set('filename', self.parent.info.filename)

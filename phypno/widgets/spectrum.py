@@ -7,20 +7,18 @@ lg = getLogger(__name__)
 from numpy import log, ceil, floor
 from scipy.signal import welch
 from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QCheckBox,
-                         QComboBox,
+from PyQt4.QtGui import (QComboBox,
                          QFormLayout,
                          QGraphicsView,
                          QGraphicsScene,
                          QGroupBox,
-                         QLineEdit,
                          QPen,
                          QVBoxLayout,
                          QWidget,
                          )
 
 from phypno.widgets.utils import Path
-from phypno.widgets.preferences import Config
+from phypno.widgets.preferences import Config, FormFloat, FormBool
 
 
 class ConfigSpectrum(Config):
@@ -33,8 +31,8 @@ class ConfigSpectrum(Config):
         box0 = QGroupBox('Spectrum')
 
         for k in self.value:
-            self.index[k] = QLineEdit('')
-        self.index['log'] = QCheckBox('Log-transform')
+            self.index[k] = FormFloat()
+        self.index['log'] = FormBool('Log-transform')
 
         form_layout = QFormLayout()
         form_layout.addRow('Min X', self.index['x_min'])

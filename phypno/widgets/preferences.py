@@ -4,6 +4,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from ast import literal_eval
+
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
                          QDialog,
@@ -48,7 +50,14 @@ DEFAULTS['spectrum'] = {'x_min': 0,
                         'y_tick': 5,
                         'log': True,
                         }
+DEFAULTS['traces'] = {'n_time_labels': 3,
+                      'y_distance': 50.,
+                      'y_scale': 1.,
+                      'label_ratio': 0.05,
+                      }
 DEFAULTS['utils'] = {'max_recording_history': 20,
+                     'y_distance_presets': [20, 30, 40, 50, 100, 200],
+                     'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
                      }
 DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      'vlc_width': 640,
@@ -222,8 +231,14 @@ class Preferences(QDialog):
 
     def button_clicked(self, button):
         if button in (self.idx_ok, self.idx_apply):
-            self.parent.spectrum.config.get_values()
-            self.parent.spectrum.config.update_widget()
+            for i_config in range(self.stacked.count()):
+                one_config = self.stacked.widget(i_config)
+                if one_config.modified:
+                    lg.debug('Preferences for ' + one_config.widget +
+                             ' were modified')
+                    one_config.get_values()
+                    one_config.update_widget()
+                    one_config.modified = False
 
             if button == self.idx_ok:
                 self.accept()
@@ -237,32 +252,6 @@ class Preferences(QDialog):
         pass
 
 
-def get_float(widget, default):
-    """Get float from widget.
-
-    Parameters
-    ----------
-    widget : instance of widget
-        widget that has the getText method
-    default : float
-        default value for the parameter
-
-    Returns
-    -------
-    float
-        the value in text or default
-
-    """
-    text = widget.text()
-    try:
-        text = float(text)
-    except ValueError:
-        lg.debug('Cannot convert "' + str(text) + '" to float.' +
-                 'Using default ' + str(default))
-        text = default
-    return text
-
-
 class Config(QWidget):
     """You'll need to implement one methods:
         - create_config with the QGroupBox and layouts
@@ -271,6 +260,7 @@ class Config(QWidget):
     def __init__(self, widget, update_widget):
         super().__init__()
 
+        self.modified = False
         self.widget = widget
         value_names = list(DEFAULTS[widget].keys())
 
@@ -298,30 +288,162 @@ class Config(QWidget):
         # GET VALUES FROM THE GUI
         # TODO: save to preferences
         for value_name, widget in self.index.items():
-            if isinstance(widget, QCheckBox):
-                self.value[value_name] = widget.checkState() == Qt.Checked
+            self.value[value_name] = widget.get_value()  # TODO: pass defaults
 
-            if isinstance(widget, QLineEdit):
-                self.value[value_name] = get_float(widget,
-                                                   self.value[value_name])
-
-        # update values in case some values were not acceptable
-        self.set_values()
         # call the function from parent widget
         self.update_widget()
 
     def set_values(self):
         # SET VALUES TO THE GUI
         for value_name, widget in self.index.items():
-            if isinstance(widget, QCheckBox):
-                if self.value[value_name]:
-                    widget.setCheckState(Qt.Checked)
-                else:
-                    widget.setCheckState(Qt.Unchecked)
-
-            if isinstance(widget, QLineEdit):
-                widget.setText(str(self.value[value_name]))
+            widget.set_value(self.value[value_name])
+            widget.connect(self.set_modified)  # also connect to modified
 
     def create_config(self):
         # TO BE OVERLOAD
         pass
+
+    def set_modified(self):
+        self.modified = True
+
+
+class FormBool(QCheckBox):
+    def __init__(self, checkbox_label):
+        super().__init__(checkbox_label)
+
+    def get_value(self, default=False):
+        return self.checkState() == Qt.Checked
+
+    def set_value(self, value):
+        if value:
+            self.setCheckState(Qt.Checked)
+        else:
+            self.setCheckState(Qt.Unchecked)
+
+    def connect(self, funct):
+        # TODO:
+        pass
+
+
+class FormFloat(QLineEdit):
+    """Subclass QLineEdit for floats.
+    value is read directly from defaults
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=0):
+        """Get float from widget.
+
+        Parameters
+        ----------
+        default : float
+            default value for the parameter
+
+        Returns
+        -------
+        float
+            the value in text or default
+
+        """
+        text = self.text()
+        try:
+            text = float(text)
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to float.' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+        return text
+
+    def set_value(self, value):
+        self.setText(str(value))
+
+    def connect(self, funct):
+        self.textEdited.connect(funct)
+
+
+class FormInt(QLineEdit):
+    """Subclass QLineEdit for floats.
+    value is read directly from defaults
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=0):
+        """Get float from widget.
+
+        Parameters
+        ----------
+        default : float
+            default value for the parameter
+
+        Returns
+        -------
+        float
+            the value in text or default
+
+        """
+        text = self.text()
+        try:
+            text = int(text)
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to int. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+        return text
+
+    def set_value(self, value):
+        self.setText(str(value))
+
+    def connect(self, funct):
+        self.textEdited.connect(funct)
+
+
+class FormStr(QLineEdit):
+    """Subclass QLineEdit for strings.
+
+    value is read directly from defaults
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=''):
+        """Get string from widget."""
+        return self.text()
+
+    def set_value(self, value):
+        self.setText(value)
+
+    def connect(self, funct):
+        self.textEdited.connect(funct)
+
+
+class FormList(QLineEdit):
+    """Subclass QLineEdit for strings.
+
+    value is read directly from defaults
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=None):
+        """Get string from widget."""
+        if default is None:
+            default = []
+        try:
+            text = literal_eval(self.text())
+        except ValueError:
+            text = default
+            self.set_value(text)
+
+        return
+
+    def set_value(self, value):
+        self.setText(str(value))
+
+    def connect(self, funct):
+        self.textEdited.connect(funct)

@@ -19,7 +19,7 @@ from PyQt4.QtGui import (QDockWidget,
                          QVBoxLayout,
                          )
 
-from phypno.widgets.preferences import Config
+from phypno.widgets.preferences import Config, FormInt, FormList
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')
@@ -58,11 +58,17 @@ class ConfigUtils(Config):
 
         box0 = QGroupBox('General')
 
-        self.index['max_recording_history'] = QLineEdit('')
+        self.index['max_recording_history'] = FormInt()
+        self.index['y_distance_presets'] = FormList()  # require restart
+        self.index['y_scale_presets'] = FormList()  # require restart
 
         form_layout = QFormLayout()
         form_layout.addRow('Max History Size',
                            self.index['max_recording_history'])
+        form_layout.addRow('Signal scaling, presets',
+                           self.index['y_scale_presets'])
+        form_layout.addRow('Distance between signals, presets',
+                           self.index['y_distance_presets'])
         box0.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
@@ -144,7 +150,7 @@ def create_menubar(mainwindow):
     submenu_ampl.addAction(actions['Y_less'])
     submenu_ampl.addAction(actions['Y_more'])
     submenu_ampl.addSeparator()
-    for x in sorted(preferences['traces/y_scale_presets'], reverse=True):
+    for x in sorted(mainwindow.config.value['y_scale_presets'], reverse=True):
         act = submenu_ampl.addAction('Set to ' + str(x))
         act.triggered.connect(partial(mainwindow.action_Y_ampl, x))
 
@@ -152,7 +158,7 @@ def create_menubar(mainwindow):
     submenu_dist.addAction(actions['Y_wider'])
     submenu_dist.addAction(actions['Y_tighter'])
     submenu_dist.addSeparator()
-    for x in sorted(preferences['traces/y_distance_presets'], reverse=True):
+    for x in sorted(mainwindow.config.value['y_distance_presets'], reverse=True):
         act = submenu_dist.addAction('Set to ' + str(x))
         act.triggered.connect(partial(mainwindow.action_Y_dist, x))
 

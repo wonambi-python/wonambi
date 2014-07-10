@@ -10,7 +10,6 @@ from subprocess import call
 from PyQt4.QtGui import (QFormLayout,
                          QGroupBox,
                          QLabel,
-                         QLineEdit,
                          QPushButton,
                          QVBoxLayout,
                          QWidget,
@@ -19,8 +18,7 @@ from PyQt4.phonon import Phonon
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
-
-from phypno.widgets.preferences import Config
+from phypno.widgets.preferences import Config, FormInt, FormStr
 
 
 class ConfigVideo(Config):
@@ -37,9 +35,9 @@ class ConfigVideo(Config):
                                'it uses VLC as external window.')
         form_layout = QFormLayout()
 
-        self.index['vlc_exe'] = QLineEdit('')
-        self.index['vlc_width'] = QLineEdit('')
-        self.index['vlc_height'] = QLineEdit('')
+        self.index['vlc_exe'] = FormStr()  # TODO: FormOpenFile
+        self.index['vlc_width'] = FormInt()
+        self.index['vlc_height'] = FormInt()
 
         form_layout = QFormLayout()
         form_layout.addRow('Path to VLC executable', self.index['vlc_exe'])

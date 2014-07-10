@@ -10,16 +10,54 @@ from datetime import timedelta
 from numpy import floor, ceil, asarray, empty
 from PyQt4.QtCore import QPointF, Qt
 from PyQt4.QtGui import (QBrush,
+                         QFormLayout,
                          QGraphicsItem,
                          QGraphicsScene,
                          QGraphicsSimpleTextItem,
                          QGraphicsView,
+                         QGroupBox,
                          QPen,
+                         QVBoxLayout,
                          )
 
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .utils import Path
+
+from phypno.widgets.preferences import Config, FormFloat, FormInt
+
+
+class ConfigTraces(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('traces', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Signals')
+
+        self.index['y_distance'] = FormFloat()
+        self.index['y_scale'] = FormFloat()
+        self.index['label_ratio'] = FormFloat()
+        self.index['n_time_labels'] = FormInt()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Signal scaling',
+                           self.index['y_scale'])
+        form_layout.addRow('Distance between signals',
+                           self.index['y_distance'])
+        form_layout.addRow('Label width ratio',
+                           self.index['label_ratio'])
+        form_layout.addRow('Number of time labels',
+                           self.index['n_time_labels'])
+
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 class Traces(QGraphicsView):
@@ -54,10 +92,8 @@ class Traces(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.config = ConfigTraces(self.display_traces)
 
-        preferences = self.parent.preferences.values
-        self.y_scale = preferences['traces/y_scale']
-        self.y_distance = preferences['traces/y_distance']
         self.y_scrollbar_value = 0
         self.data = None
 
@@ -108,13 +144,13 @@ class Traces(QGraphicsView):
         window_length = self.parent.overview.window_length
 
         time_height = max([x.boundingRect().height() for x in self.idx_time])
-        preferences = self.parent.preferences.values
-        label_width = window_length * float(preferences['traces/label_ratio'])
+        label_width = window_length * self.config.value['label_ratio']
 
         self.scene = QGraphicsScene(window_start - label_width,
                                     0,
                                     window_length + label_width,
-                                    len(self.idx_label) * self.y_distance +
+                                    len(self.idx_label) *
+                                    self.config.value['y_distance'] +
                                     time_height)
 
         self.setScene(self.scene)
@@ -150,8 +186,7 @@ class Traces(QGraphicsView):
         min_time = int(floor(min(self.data.axis['time'][0])))
         max_time = int(ceil(max(self.data.axis['time'][0])))
 
-        preferences = self.parent.preferences.values
-        n_time_labels = int(preferences['traces/n_time_labels'])
+        n_time_labels = self.config.value['n_time_labels']
         step = int((max_time - min_time) / n_time_labels)
 
         self.idx_time = []
@@ -164,19 +199,19 @@ class Traces(QGraphicsView):
             self.idx_time.append(item)
             self.time_pos.append(QPointF(one_time,
                                          len(self.idx_label) *
-                                         self.y_distance))
+                                         self.config.value['y_distance']))
 
     def add_labels(self):
         """Add channel labels on the left."""
         window_start = self.parent.overview.window_start
         window_length = self.parent.overview.window_length
-        preferences = self.parent.preferences.values
-        label_width = window_length * float(preferences['traces/label_ratio'])
+        label_width = window_length * self.config.value['label_ratio']
 
         for row, one_label_item in enumerate(self.idx_label):
             self.scene.addItem(one_label_item)
             one_label_item.setPos(window_start - label_width,
-                                  self.y_distance * row + self.y_distance / 2)
+                                  self.config.value['y_distance'] * row +
+                                  self.config.value['y_distance'] / 2)
 
     def add_time(self):
         """Add time labels at the bottom."""
@@ -190,12 +225,12 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                dat = self.data(trial=0, chan=chan_name) * self.y_scale
+                dat = self.data(trial=0, chan=chan_name) * self.config.value['y_scale']
                 dat *= -1  # flip data, upside down
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, self.y_distance * row + self.y_distance / 2)
+                path.setPos(0, self.config.value['y_distance'] * row + self.config.value['y_distance'] / 2)
                 row += 1
 
     def resizeEvent(self, event):
@@ -237,7 +272,7 @@ class Traces(QGraphicsView):
                                                            bm['time']))
                 item = QGraphicsSimpleTextItem(bm['name'])
                 item.setPos(bm['time'],
-                            len(self.idx_label) * self.y_distance -
+                            len(self.idx_label) * self.config.value['y_distance'] -
                             time_height)
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 item.setPen(QPen(Qt.red))
