@@ -8,15 +8,19 @@ from ast import literal_eval
 
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
+                         QDialogButtonBox,
                          QDialog,
                          QHBoxLayout,
                          QLineEdit,
+                         QListWidget,
+                         QSplitter,
+                         QStackedWidget,
                          QVBoxLayout,
                          QWidget,
                          )
 
-config = QSettings("phypno", "scroll_data")
 
+settings = QSettings("phypno", "scroll_data")
 
 DEFAULTS = {}
 DEFAULTS['detect'] = {'spindle_method': 'UCSD',
@@ -28,12 +32,12 @@ DEFAULTS['overview'] = {'window_start': 0,
                         'timestamp_steps': 60 * 60,
                         'overview_scale': 30,
                         }
-DEFAULTS['spectrum'] = {'x_min': 0,
-                        'x_max': 30,
-                        'x_tick': 10,
-                        'y_min': -5,
-                        'y_max': 5,
-                        'y_tick': 5,
+DEFAULTS['spectrum'] = {'x_min': 0.,
+                        'x_max': 30.,
+                        'x_tick': 10.,
+                        'y_min': -5.,
+                        'y_max': 5.,
+                        'y_tick': 5.,
                         'log': True,
                         }
 DEFAULTS['stages'] = {'scoring_window': 30,
@@ -44,14 +48,14 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'label_ratio': 0.05,
                       }
 DEFAULTS['utils'] = {'window_x': 400,
-                     'window_y': 300,
+                     'window_y': 200,
                      'window_width': 1024,
                      'window_height': 768,
                      'max_recording_history': 20,
-                     'y_distance_presets': [20, 30, 40, 50, 100, 200],
+                     'y_distance_presets': [20., 30., 40., 50., 100., 200.],
                      'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
-                     'window_length_presets': [1, 5, 10, 20, 30, 60],
-                     'read_intervals': 10 * 60,
+                     'window_length_presets': [1., 5., 10., 20., 30., 60.],
+                     'read_intervals': 10 * 60.,
                      'recording_dir': '/home/gio/recordings',
                      }
 DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
@@ -60,129 +64,12 @@ DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      }
 
 
-"""
-
-
-# Read/write default values using QSettings
-for key, value in DEFAULTS.items():
-    type_value = type(value)
-    config_value = config.value(key)
-    if config_value is not None:
-        if type_value is list:
-            DEFAULTS[key] = eval(config_value)
-        else:
-            DEFAULTS[key] = type_value(config_value)
-
-class Preferences(QDialog):
-    \"""Dialog which contains the preferences/settings.
-
-    Attributes
-    ----------
-    parent : instance of QMainWindow
-        The main window.
-    values : dict
-        Values of the preferences in key/value format.
-    idx_edits : dict of instances of QLineEdit
-        Values as QLineEdit for each preference value.
-
-    \"""
-    def __init__(self, parent):
-        lg.debug('make preferences')
-        super().__init__()
-        self.parent = parent
-
-        self.values = DEFAULTS
-
-        self.idx_edits = {}
-
-        self.create_preferences()
-
-    def create_preferences(self):
-        \"""Create the widgets containing the QLineEdit.\"""
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
-        group = {}
-        group_layout = {}
-        widgets = set([x.split('/')[0] for x in DEFAULTS])
-
-        # It creates a QGroupBox with QFormLayout for each widget
-        for one_widget in sorted(widgets):
-            lg.debug('Adding preferences for ' + one_widget + ' widget')
-            group[one_widget] = QGroupBox(one_widget)
-            group_layout[one_widget] = QFormLayout()
-            group[one_widget].setLayout(group_layout[one_widget])
-            layout.addWidget(group[one_widget])
-
-        # It adds row to a widget's QGroupBox
-        for widget_key in sorted(DEFAULTS):
-            one_widget, key = widget_key.split('/')
-            edit = QLineEdit('')
-            group_layout[one_widget].addRow(key, edit)
-            self.idx_edits[widget_key] = edit
-
-        ok_button = QPushButton('OK')
-        ok_button.setAutoDefault(True)
-        ok_button.clicked.connect(self.save_values)
-
-        cancel_button = QPushButton('Cancel')
-        cancel_button.clicked.connect(self.reject)
-
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(ok_button)
-        button_layout.addWidget(cancel_button)
-
-        layout.addLayout(button_layout)
-
-    def update_preferences(self):
-        \"""Call directly display_preferences.
-
-        Notes
-        -----
-        Usually, self.values should be None and values are updated here but in
-        the case of preferences they should be available as soon as the
-        widgets are created.
-
-        \"""
-        self.display_preferences()
-
-    def display_preferences(self):
-        \"""Display the preferences.\"""
-        for widget_key, value in DEFAULTS.items():
-            lg.debug('Setting {} to {}'.format(widget_key, value))
-            self.idx_edits[widget_key].setText(str(value))
-
-    def save_values(self):
-        \"""Save edited values into QSettings file.
-
-        Notes
-        -----
-        TODO: depending on the edit, update the figure.
-
-        \"""
-        for key, one_edit in self.idx_edits.items():
-            text = one_edit.text()
-            if text != self.values[key]:
-                lg.info('Value has been modified: ' +
-                        '{} -> {}'.format(self.values[key], text))
-                self.values[key] = text
-                config.setValue(key, text)
-
-        self.accept()
-"""
-
-from PyQt4.QtGui import QDialogButtonBox, QStackedWidget, QSplitter, QListWidget
-
-class REMOVEPreferences():
-    def __init__(self, parent):
-        self.values = {}  # TODO: remove
-
-
 class Preferences(QDialog):
 
     def __init__(self, parent):
-        super().__init__()
+        super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
+        self.setWindowTitle('Preferences')
 
         self.create_preferences()
 
@@ -247,11 +134,6 @@ class Preferences(QDialog):
             self.reject()
 
 
-    def update_preferences(self):
-        # it should update the single widgets
-        pass
-
-
 class Config(QWidget):
     """You'll need to implement one methods:
         - create_config with the QGroupBox and layouts
@@ -275,8 +157,8 @@ class Config(QWidget):
     def create_values(self, value_names):
         # it should read the preferences
         output = {}
-        for one_value_name in value_names:
-            output[one_value_name] = DEFAULTS[self.widget][one_value_name]
+        for value_name in value_names:
+            output[value_name] = read_settings(self.widget, value_name)
 
         return output
 
@@ -286,12 +168,11 @@ class Config(QWidget):
 
     def get_values(self):
         # GET VALUES FROM THE GUI
-        # TODO: save to preferences
         for value_name, widget in self.index.items():
             self.value[value_name] = widget.get_value()  # TODO: pass defaults
 
-        # call the function from parent widget
-        self.update_widget()
+            setting_name = self.widget + '/' + value_name
+            settings.setValue(setting_name, self.value[value_name])
 
     def set_values(self):
         # SET VALUES TO THE GUI
@@ -305,6 +186,19 @@ class Config(QWidget):
 
     def set_modified(self):
         self.modified = True
+
+
+def read_settings(widget, value_name):
+
+    setting_name = widget + '/' + value_name
+    default_value = DEFAULTS[widget][value_name]
+
+    default_type = type(default_value)
+    if default_type is list:
+        default_type = type(default_value[0])
+
+    val = settings.value(setting_name, default_value, type=default_type)
+    return val
 
 
 class FormBool(QCheckBox):
@@ -434,16 +328,20 @@ class FormList(QLineEdit):
         """Get string from widget."""
         if default is None:
             default = []
+
         try:
             text = literal_eval(self.text())
-            if isinstance(text, list):
-                raise ValueError
+            if not isinstance(text, list):
+                pass
+                # raise ValueError
 
         except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to list. ' +
+                     'Using default ' + str(default))
             text = default
             self.set_value(text)
 
-        return
+        return text
 
     def set_value(self, value):
         self.setText(str(value))

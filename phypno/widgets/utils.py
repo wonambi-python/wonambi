@@ -17,7 +17,7 @@ from PyQt4.QtGui import (QDockWidget,
                          QVBoxLayout,
                          )
 
-from phypno.widgets.preferences import Config, FormInt, FormList, FormStr
+from phypno.widgets.preferences import Config, FormInt, FormList, FormStr, FormFloat
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')
@@ -94,7 +94,7 @@ class ConfigUtils(Config):
         box2.setLayout(form_layout)
 
         box3 = QGroupBox('Download Data')
-        self.index['read_intervals'] = FormInt()
+        self.index['read_intervals'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow('Read intervals (in s)',
@@ -117,7 +117,6 @@ def create_menubar(mainwindow):
 
 
     """
-    preferences = mainwindow.preferences.values
     actions = mainwindow.action
 
     menubar = mainwindow.menuBar()
@@ -227,10 +226,6 @@ def create_menubar(mainwindow):
 
 def create_toolbar(mainwindow):
     """Create the various toolbars, without keeping track of them.
-
-    Notes
-    -----
-    TODO: Keep track of the toolbars, to see if they disappear.
 
     """
     actions = mainwindow.action

@@ -47,7 +47,6 @@ from phypno.widgets import (DockWidget,
                             Spectrum,
                             Traces,
                             Video)
-from phypno.widgets.preferences import REMOVEPreferences
 from phypno.widgets.utils import (ICON, create_menubar, create_toolbar,
                                   keep_recent_recordings, choose_file_or_dir,
                                   ConfigUtils)
@@ -93,8 +92,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.config = ConfigUtils(None)  # TODO: which function should we call here?
-        self.preferences = REMOVEPreferences(self)  # TODO: remove this, use only to raise Preference window
+        self.config = ConfigUtils(lambda: None)  # TODO: which function should we call here?
 
         self.idx_docks = {}
         self.bookmarks = None
@@ -477,7 +475,6 @@ class MainWindow(QMainWindow):
             lg.debug('Setting ' + dockname + ' to visible')
 
     def open_preferences(self):
-        self.settings.update_preferences()
         self.settings.show()
 
     def closeEvent(self, event):
