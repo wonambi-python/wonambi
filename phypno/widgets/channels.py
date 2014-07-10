@@ -147,6 +147,11 @@ class Channels(QWidget):
 
         """
         lg.debug('Updating Channels widget')
+
+        # clean up previous dataset
+        self.groups = [deepcopy(EMPTY_GROUP)]
+        self.current = EMPTY_GROUP['name']
+
         self.chan_name = chan_name
         self.display_channels()
 

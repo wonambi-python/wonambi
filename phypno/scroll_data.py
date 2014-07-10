@@ -209,6 +209,9 @@ class MainWindow(QMainWindow):
         I do not know how to run tests for QFileDialog.
 
         """
+        if self.info.dataset is not None:
+            self.reset_dataset()
+
         if recent:
             filename = recent
         else:
@@ -240,6 +243,24 @@ class MainWindow(QMainWindow):
             self.bookmarks.update_bookmarks(self.info.dataset.header)
         except (KeyError, ValueError):
             lg.info('No notes/bookmarks present in the header of the file')
+
+    def reset_dataset(self):
+        """Remove all the information from previous dataset before loading a
+        new one.
+
+        """
+        # store current dataset
+        max_recording_history = self.config.value['max_recording_history']
+        keep_recent_recordings(max_recording_history, self.info.filename)
+
+        # main
+        if self.traces.scene is not None:
+            self.traces.scene.clear()
+
+        # spectrum
+        self.spectrum.idx_chan.clear()
+        if self.spectrum.scene is not None:
+            self.spectrum.scene.clear()
 
     def action_open_stages(self):
         """Action: open a new file for sleep staging.
