@@ -3,8 +3,8 @@
         - Chan
     - anatomical info (module "anat") with class:
         - Surf
-    - sleep scores (module "scores") with class:
-        - Scores
+    - annotations and sleep scores (module "annotations") with class:
+        - Annotations
 
 Possibly include forward and inverse models.
 
@@ -23,4 +23,4 @@ dataset and the classes below.
 """
 from .chan import Channels
 from .anat import Surf, Freesurfer
-from .scores import Scores
+from .annotations import Annotations, create_empty_annotations

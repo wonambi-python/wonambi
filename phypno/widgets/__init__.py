@@ -91,7 +91,7 @@ from .preferences import Preferences
 from .channels import Channels
 from .info import Info
 from .overview import Overview
-from .notes import Bookmarks, Events, Stages
+from .notes import Notes, Bookmarks, Events
 from .traces import Traces
 from .detect import Detect
 from .spectrum import Spectrum

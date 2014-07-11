@@ -38,7 +38,7 @@ from PyQt4.QtGui import (QAction,
                          )
 # change phypno.widgets into .widgets
 from phypno.widgets import (DockWidget,
-                            Bookmarks, Events, Stages,
+                            Notes, Bookmarks, Events,
                             Channels,
                             Detect,
                             Info,
@@ -51,6 +51,8 @@ from phypno.widgets.utils import (ICON, create_menubar, create_toolbar,
                                   keep_recent_recordings, choose_file_or_dir,
                                   ConfigUtils)
 
+HIDDEN_DOCKS = ['Detect']
+
 
 class MainWindow(QMainWindow):
     """Create an instance of the main window.
@@ -62,11 +64,11 @@ class MainWindow(QMainWindow):
     idx_docks : dict
         pointers to dockwidgets, to show or hide them.
 
+    notes : instance of phypno.widgets.Notes
+
     bookmarks : instance of phypno.widgets.Bookmarks
 
     events : instance of phypno.widgets.Events
-
-    stages : instance of phypno.widgets.Stages
 
     channels : instance of phypno.widgets.Channels
 
@@ -95,9 +97,9 @@ class MainWindow(QMainWindow):
         self.config = ConfigUtils(lambda: None)  # TODO: which function should we call here?
 
         self.idx_docks = {}
+        self.notes = None
         self.bookmarks = None
         self.events = None
-        self.stages = None
         self.channels = None
         self.detect = None
         self.info = None
@@ -387,9 +389,9 @@ class MainWindow(QMainWindow):
         self.channels = Channels(self)
         self.spectrum = Spectrum(self)
         self.overview = Overview(self)
+        self.notes = Notes(self)
         self.bookmarks = Bookmarks(self)
         self.events = Events(self)
-        self.stages = Stages(self)
         self.detect = Detect(self)
         self.video = Video(self)
         self.traces = Traces(self)
@@ -412,6 +414,11 @@ class MainWindow(QMainWindow):
                       'main_area': Qt.RightDockWidgetArea,
                       'extra_area': Qt.LeftDockWidgetArea,
                       },
+                     {'name': 'Annotations',
+                      'widget': self.notes,
+                      'main_area': Qt.LeftDockWidgetArea,
+                      'extra_area': Qt.RightDockWidgetArea,
+                      },
                      {'name': 'Bookmarks',
                       'widget': self.bookmarks,
                       'main_area': Qt.LeftDockWidgetArea,
@@ -419,11 +426,6 @@ class MainWindow(QMainWindow):
                       },
                      {'name': 'Events',
                       'widget': self.events,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Stages',
-                      'widget': self.stages,
                       'main_area': Qt.LeftDockWidgetArea,
                       'extra_area': Qt.RightDockWidgetArea,
                       },
@@ -462,17 +464,21 @@ class MainWindow(QMainWindow):
             self.menu_window.addAction(new_act)
             actions[dock['name']] = new_act
 
+            if dock['name'] in HIDDEN_DOCKS:
+                self.idx_docks[dock['name']].setVisible(False)
+                actions[dock['name']].setChecked(False)
+
         self.tabifyDockWidget(self.idx_docks['Information'],
                               self.idx_docks['Video'])
         self.idx_docks['Information'].raise_()
 
+        self.tabifyDockWidget(self.idx_docks['Annotations'],
+                              self.idx_docks['Bookmarks'])
         self.tabifyDockWidget(self.idx_docks['Bookmarks'],
                               self.idx_docks['Events'])
         self.tabifyDockWidget(self.idx_docks['Events'],
-                              self.idx_docks['Stages'])
-        self.tabifyDockWidget(self.idx_docks['Stages'],
                               self.idx_docks['Detect'])
-        self.idx_docks['Bookmarks'].raise_()
+        self.idx_docks['Annotations'].raise_()
 
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.

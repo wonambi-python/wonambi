@@ -8,8 +8,10 @@ from datetime import timedelta
 from os.path import basename
 
 from PyQt4.QtGui import (QFormLayout,
+                         QGroupBox,
                          QLabel,
                          QPushButton,
+                         QVBoxLayout,
                          QWidget,
                          )
 from .. import Dataset
@@ -46,8 +48,9 @@ class Info(QWidget):
 
     def create_info(self):
         """Create the QFormLayout with all the information."""
-        layout = QFormLayout()
-        self.setLayout(layout)
+        b0 = QGroupBox('Dataset')
+        form = QFormLayout()
+        b0.setLayout(form)
 
         widget = QPushButton('Click here to open a new file')
         widget.clicked.connect(self.parent.action_open_rec)
@@ -57,19 +60,39 @@ class Info(QWidget):
         self.idx_text['n_chan'] = QLabel('')
         self.idx_text['start_time'] = QLabel('')
         self.idx_text['end_time'] = QLabel('')
+
+        form.addRow('Filename:', self.idx_text['filename'])
+        form.addRow('Sampl. Freq:', self.idx_text['s_freq'])
+        form.addRow('N. Channels:', self.idx_text['n_chan'])
+        form.addRow('Start Time: ', self.idx_text['start_time'])
+        form.addRow('End Time: ', self.idx_text['end_time'])
+
+        b1 = QGroupBox('View')
+        form = QFormLayout()
+        b1.setLayout(form)
+
         self.idx_amplitude = QLabel('')
         self.idx_distance = QLabel('')
         self.idx_length = QLabel('')
 
-        layout.addRow('Filename:', self.idx_text['filename'])
-        layout.addRow('Sampl. Freq:', self.idx_text['s_freq'])
-        layout.addRow('N. Channels:', self.idx_text['n_chan'])
-        layout.addRow('Start Time: ', self.idx_text['start_time'])
-        layout.addRow('End Time: ', self.idx_text['end_time'])
+        form.addRow('Amplitude:', self.idx_amplitude)
+        form.addRow('Distance:', self.idx_distance)
+        form.addRow('Length:', self.idx_length)
 
-        layout.addRow('Amplitude:', self.idx_amplitude)
-        layout.addRow('Distance:', self.idx_distance)
-        layout.addRow('Length:', self.idx_length)
+        b2 = QGroupBox('Annotations')
+        form = QFormLayout()
+        b2.setLayout(form)
+
+        self.idx_annotations = QLabel('')
+        self.idx_rater = QLabel('')
+
+        form.addRow('Annotations File:', self.idx_annotations)
+        form.addRow('Rater:', self.idx_rater)
+
+        layout = QVBoxLayout()
+        layout.addWidget(b0)
+        layout.addWidget(b1)
+        layout.addWidget(b2)
 
         self.setLayout(layout)
 
@@ -104,6 +127,12 @@ class Info(QWidget):
 
     def update_traces_info(self):
         """Update information about the size of the traces."""
+        self.idx_amplitude.setText(str(self.parent.traces.config.value['y_scale']))
+        self.idx_distance.setText(str(self.parent.traces.config.value['y_distance']))
+        self.idx_length.setText(str(self.parent.overview.config.value['window_length']))
+
+    def update_annotations(self):
+        """Update information about the annotations."""
         self.idx_amplitude.setText(str(self.parent.traces.config.value['y_scale']))
         self.idx_distance.setText(str(self.parent.traces.config.value['y_distance']))
         self.idx_length.setText(str(self.parent.overview.config.value['window_length']))

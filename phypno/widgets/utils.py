@@ -112,13 +112,10 @@ class ConfigUtils(Config):
 
 
 def create_menubar(mainwindow):
-    """Create the whole menubar, based on actions.
-
-
-
-    """
+    """Create the whole menubar, based on actions."""
     actions = mainwindow.action
 
+    """ ------ FILE ------ """
     menubar = mainwindow.menuBar()
     menu_file = menubar.addMenu('File')
     menu_file.addAction(actions['open_rec'])
@@ -148,7 +145,8 @@ def create_menubar(mainwindow):
     menu_file.addSeparator()
     menu_file.addAction(actions['close_wndw'])
 
-    menu_time = menubar.addMenu('Time Window')
+    """ ------ NAVIGATION ------ """
+    menu_time = menubar.addMenu('Navigation')
     menu_time.addAction(actions['step_prev'])
     menu_time.addAction(actions['step_next'])
     menu_time.addAction(actions['page_prev'])
@@ -173,10 +171,7 @@ def create_menubar(mainwindow):
     act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(mainwindow.action_add_time, 6 * 60 * 60))
 
-    menu_time.addSeparator()
-    submenu_go = menu_time.addMenu('Go to ')
-    submenu_go.addAction('Note')
-
+    """ ------ VIEW ------ """
     menu_view = menubar.addMenu('View')
     submenu_ampl = menu_view.addMenu('Amplitude')
     submenu_ampl.addAction(actions['Y_less'])
@@ -204,18 +199,22 @@ def create_menubar(mainwindow):
         act = submenu_length.addAction('Set to ' + str(x))
         act.triggered.connect(partial(mainwindow.action_X_length, x))
 
-    menu_bookmark = menubar.addMenu('Bookmark')
-    menu_bookmark.addAction('New Bookmark')
-    menu_bookmark.addAction('Edit Bookmark')
-    menu_bookmark.addAction('Delete Bookmark')
+    """ ------ ANNOTATIONS ------ """
+    menu_annot = menubar.addMenu('Annotations')
+    menu_annot.addSeparator()
 
-    menu_event = menubar.addMenu('Event')
-    menu_event.addAction('New Event')
-    menu_event.addAction('Edit Event')
-    menu_event.addAction('Delete Event')
+    submenu_bookmark = menu_annot.addMenu('Bookmark')
+    submenu_bookmark.addAction('New Bookmark')
+    submenu_bookmark.addAction('Edit Bookmark')
+    submenu_bookmark.addAction('Delete Bookmark')
 
-    menu_state = menubar.addMenu('State')
-    menu_state.addAction('Add State')
+    submenu_event = menu_annot.addMenu('Event')
+    submenu_event.addAction('New Event')
+    submenu_event.addAction('Edit Event')
+    submenu_event.addAction('Delete Event')
+
+    submenu_stage = menu_annot.addMenu('Stage')
+    submenu_stage.addAction('Select stage (TODO)')
 
     menu_window = menubar.addMenu('Windows')
     mainwindow.menu_window = menu_window

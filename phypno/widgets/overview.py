@@ -222,8 +222,8 @@ class Overview(QGraphicsView):
 
         self.parent.traces.update_traces()
         self.parent.spectrum.display_spectrum()
-        if self.parent.stages.scores is not None:
-            self.parent.stages.set_combobox_index()
+        if self.parent.notes.scores is not None:
+            self.parent.notes.set_combobox_index()
 
     def mark_bookmarks(self):
         """Mark all the bookmarks.
