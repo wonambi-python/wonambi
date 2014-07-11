@@ -107,11 +107,13 @@ class MainWindow(QMainWindow):
         self.show()
 
     def update_mainwindow(self):
+        """Functions to re-run once settings have been changed."""
         lg.debug('Updating main window')
         self.set_geometry()
         create_menubar(self)
 
     def set_geometry(self):
+        """Simply set the geometry of the main window."""
         self.setGeometry(self.config.value['window_x'],
                          self.config.value['window_y'],
                          self.config.value['window_width'],
@@ -292,6 +294,16 @@ class MainWindow(QMainWindow):
                               endtime=endtime)
             self.overview.mark_downloaded(begtime, endtime)
 
+    def action_show_settings(self):
+        self.config.set_values()
+        self.overview.config.set_values()
+        self.traces.config.set_values()
+        self.spectrum.config.set_values()
+        self.notes.config.set_values()
+        self.detect.config.set_values()
+        self.video.config.set_values()
+        self.settings.show()
+
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.
 
@@ -313,8 +325,26 @@ class MainWindow(QMainWindow):
             actions[dockname].setChecked(True)
             lg.debug('Setting ' + dockname + ' to visible')
 
+    def moveEvent(self, event):
+        """Main window is already resized."""
+        self.config.value['window_x'] = self.geometry().x()
+        self.config.value['window_y'] = self.geometry().y()
+        self.config.value['window_width'] = self.geometry().width()
+        self.config.value['window_height'] = self.geometry().height()
+        self.config.set_values()  # save the values in GUI
+
+    def resizeEvent(self, event):
+        """Main window is already resized."""
+        self.config.value['window_x'] = self.geometry().x()
+        self.config.value['window_y'] = self.geometry().y()
+        self.config.value['window_width'] = self.geometry().width()
+        self.config.value['window_height'] = self.geometry().height()
+        self.config.set_values()  # save the values in GUI
+
     def closeEvent(self, event):
         """save the name of the last open dataset."""
+        self.config.get_values()  # get geometry and store it in preferences
+
         max_recording_history = self.config.value['max_recording_history']
         keep_recent_recordings(max_recording_history, self.info.filename)
         event.accept()

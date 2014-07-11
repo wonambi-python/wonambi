@@ -182,7 +182,7 @@ def create_actions(MAIN):
     """ ------ OPEN SETTINGS ------ """
     actions['open_settings'] = QAction(QIcon(ICON['settings']),
                                        'Settings', MAIN)
-    actions['open_settings'].triggered.connect(MAIN.settings.show)
+    actions['open_settings'].triggered.connect(MAIN.action_show_settings)
 
     """ ------ CLOSE WINDOW ------ """
     actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', MAIN)

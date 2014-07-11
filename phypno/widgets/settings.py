@@ -81,7 +81,14 @@ class Settings(QDialog):
         self.create_settings()
 
     def create_settings(self):
-        """Create the widget, organized in two parts."""
+        """Create the widget, organized in two parts.
+
+        Notes
+        -----
+        When you add widgets in config, remember to update
+        action_show_settings too
+
+        """
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply
                                 | QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
