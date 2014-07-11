@@ -163,7 +163,7 @@ class Notes(QWidget):
         self.idx_stages.setCurrentIndex(STAGE_NAME.index(stage))
 
 
-class Bookmarks(QTableWidget):
+class Bookmarks(QTableWidget):  # maybe MARKER is a better name
     """Keep track of all the bookmarks.
 
     Attributes
