@@ -32,7 +32,7 @@ from PyQt4.QtGui import (QAbstractItemView,
 
 from ..attr import Annotations, create_empty_annotations
 
-from .preferences import Config, FormInt
+from .settings import Config, FormInt
 
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']

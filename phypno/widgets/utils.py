@@ -13,7 +13,7 @@ from PyQt4.QtGui import (QDockWidget,
                          QVBoxLayout,
                          )
 
-from .preferences import Config, FormInt, FormList, FormStr, FormFloat
+from .settings import Config, FormInt, FormList, FormStr, FormFloat
 
 config = QSettings("phypno", "scroll_data")
 

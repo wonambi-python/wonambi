@@ -21,7 +21,7 @@ from PyQt4.QtGui import (QBrush,
                          )
 
 from ..detect import DetectSpindle
-from .preferences import Config, FormStr
+from .settings import Config, FormStr
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)

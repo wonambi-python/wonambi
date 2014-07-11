@@ -18,7 +18,7 @@ from PyQt4.phonon import Phonon
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
-from phypno.widgets.preferences import Config, FormInt, FormStr
+from .settings import Config, FormInt, FormStr
 
 
 class ConfigVideo(Config):

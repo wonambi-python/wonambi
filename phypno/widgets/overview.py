@@ -20,7 +20,7 @@ from PyQt4.QtGui import (QBrush,
                          QVBoxLayout,
                          )
 
-from .preferences import Config, FormInt
+from .settings import Config, FormInt
 
 # bookmark
 # event

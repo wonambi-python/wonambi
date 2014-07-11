@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.config = ConfigUtils(lambda: None)  # TODO: which function should we call here?
+        self.config = ConfigUtils(self.update_mainwindow)
 
         self.idx_docks = {}
         self.notes = None
@@ -93,30 +93,32 @@ class MainWindow(QMainWindow):
         self.spectrum = None
         self.traces = None
         self.video = None
-        self.action = {}
+        self.action = {}  # actions was already taken
         self.menu_window = None
 
+        create_widgets(self)
         create_actions(self)
         create_menubar(self)
         create_toolbar(self)
-        create_widgets(self)
         self.statusBar()
 
+        self.setWindowTitle('Scroll Data')
+        self.set_geometry()
+        self.show()
+
+    def update_mainwindow(self):
+        lg.debug('Updating main window')
+        self.set_geometry()
+        create_menubar(self)
+
+    def set_geometry(self):
         self.setGeometry(self.config.value['window_x'],
                          self.config.value['window_y'],
                          self.config.value['window_width'],
                          self.config.value['window_height'])
-        self.setWindowTitle('Scroll Data')
-        self.show()
 
     def action_open_rec(self, recent=None):
-        """Action: open a new dataset.
-
-        Notes
-        -----
-        I do not know how to run tests for QFileDialog.
-
-        """
+        """Action: open a new dataset."""
         if self.info.dataset is not None:
             self.reset_dataset()
 
@@ -170,14 +172,22 @@ class MainWindow(QMainWindow):
         if self.spectrum.scene is not None:
             self.spectrum.scene.clear()
 
-    def action_open_stages(self):
-        """Action: open a new file for sleep staging.
+    def action_new_annot(self):
+        """Action: open a new file for sleep staging."""
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.AnyFile)
+        try:
+            filename = self.stages.scores.xml_file
+        except AttributeError:
+            filename = splitext(self.info.filename)[0] + '_scores.xml'
+        filename = dialog.getOpenFileName(self, 'Open sleep score file',
+                                          filename)
+        if filename[0] == '':
+            return
+        self.stages.update_stages(filename)
 
-        Notes
-        -----
-        I do not know how to run tests for QFileDialog.
-
-        """
+    def action_load_annot(self):
+        """Action: open a new file for sleep staging."""
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.AnyFile)
         try:
@@ -302,9 +312,6 @@ class MainWindow(QMainWindow):
             dockwidget.raise_()
             actions[dockname].setChecked(True)
             lg.debug('Setting ' + dockname + ' to visible')
-
-    def open_settings(self):
-        self.settings.show()
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
