@@ -28,16 +28,21 @@ lg.setLevel(DEBUG)
 from os.path import dirname, basename, splitext
 
 from numpy import arange
+from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QFileDialog,
                          QMainWindow,
                          )
-# change phypno.widgets into .widgets
+
+settings = QSettings("phypno", "scroll_data")
 
 from phypno.widgets.creation import (create_menubar, create_toolbar,
                                      create_actions, create_widgets)
 from phypno.widgets.utils import (keep_recent_recordings,
                                   choose_file_or_dir,
                                   ConfigUtils)
+
+
+VERSION = 1
 
 
 class MainWindow(QMainWindow):
@@ -104,6 +109,9 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle('Scroll Data')
         self.set_geometry()
+        window_state = settings.value('window/state')
+        if window_state is not None:
+            self.restoreState(window_state, VERSION)
         self.show()
 
     def update_mainwindow(self):
@@ -175,32 +183,36 @@ class MainWindow(QMainWindow):
             self.spectrum.scene.clear()
 
     def action_new_annot(self):
-        """Action: open a new file for sleep staging."""
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.AnyFile)
-        try:
-            filename = self.stages.scores.xml_file
-        except AttributeError:
-            filename = splitext(self.info.filename)[0] + '_scores.xml'
-        filename = dialog.getOpenFileName(self, 'Open sleep score file',
-                                          filename)
-        if filename[0] == '':
+        """Action: create a new file for annotations.
+
+        It should be gray-ed out when no dataset
+        """
+        if self.info.filename is None:
+            self.statusBar().showMessage('No dataset loaded')
             return
-        self.stages.update_stages(filename)
+
+        filename = splitext(self.info.filename)[0] + '_scores.xml'
+        filename = QFileDialog.getSaveFileName(self, 'Create annotation file',
+                                               filename,
+                                               'Annotation File (*.xml)')
+        if filename == '':
+            return
+
+        self.notes.update_notes(filename, True)
 
     def action_load_annot(self):
-        """Action: open a new file for sleep staging."""
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.AnyFile)
-        try:
-            filename = self.stages.scores.xml_file
-        except AttributeError:
+        """Action: load a file for annotations."""
+        if self.info.filename is not None:
             filename = splitext(self.info.filename)[0] + '_scores.xml'
-        filename = dialog.getOpenFileName(self, 'Open sleep score file',
-                                          filename)
-        if filename[0] == '':
+        else:
+            filename = None
+        filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
+                                               filename,
+                                               'Annotation File (*.xml)')
+        if filename == '':
             return
-        self.stages.update_stages(filename)
+
+        self.notes.update_notes(filename, False)
 
     def action_step_prev(self):
         """Go to the previous step."""
@@ -295,6 +307,7 @@ class MainWindow(QMainWindow):
             self.overview.mark_downloaded(begtime, endtime)
 
     def action_show_settings(self):
+        """Open the Setting windows, after updating the values in GUI."""
         self.config.set_values()
         self.overview.config.set_values()
         self.traces.config.set_values()
@@ -347,6 +360,9 @@ class MainWindow(QMainWindow):
 
         max_recording_history = self.config.value['max_recording_history']
         keep_recent_recordings(max_recording_history, self.info.filename)
+
+        settings.setValue('window/state', self.saveState(VERSION))
+
         event.accept()
 
 

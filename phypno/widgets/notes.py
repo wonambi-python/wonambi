@@ -37,8 +37,6 @@ from .settings import Config, FormInt
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
 STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
-DATA_FOLDER = '/eeg/raw/xltek/'
-SCORES_FOLDER = '/doc/scores/'
 
 
 class ConfigNotes(Config):
@@ -64,7 +62,7 @@ class ConfigNotes(Config):
         self.setLayout(main_layout)
 
 
-class Notes(QWidget): # TODO: this SHOULDE ANNOTATION, the main widget
+class Notes(QWidget):
     """Widget that contains information about sleep scoring.
 
     Attributes
@@ -89,36 +87,12 @@ class Notes(QWidget): # TODO: this SHOULDE ANNOTATION, the main widget
         self.parent = parent
         self.config = ConfigNotes(lambda: None)
         self.action = {}
-        self.scores = None
-        self.idx_filename = QPushButton('Click to open sleep scores')
-        self.idx_filename.clicked.connect(self.action_open_predefined_stages)
-        self.idx_rater = QLabel()
-        self.idx_stages = QComboBox()
-        self.idx_stages.activated.connect(self.get_sleepstage)
+        self.notes = None
 
         layout = QFormLayout()
-        layout.addRow('Filename: ', self.idx_filename)
-        layout.addRow('Rater: ', self.idx_rater)
-        layout.addRow('Stage: ', self.idx_stages)
         self.setLayout(layout)
 
-    def action_open_predefined_stages(self):
-        """Try to open the score file automatically.
-
-        It inferes the name of the score file based on the name of the
-        dataset. I don't like this solution, because it's very specific to
-        the organization of the folders on my computer, but it saves me quite
-        some time.
-
-        """
-        filename = splitext(self.parent.info.filename)[0] + '_scores.xml'
-        filename = filename.replace(DATA_FOLDER, SCORES_FOLDER)
-        if exists(filename):
-            self.update_stages(filename)
-        else:
-            self.parent.action_open_stages()
-
-    def update_stages(self, xml_file):
+    def update_notes(self, xml_file, new):
         """Update information about the sleep scoring.
 
         Parameters
@@ -127,13 +101,14 @@ class Notes(QWidget): # TODO: this SHOULDE ANNOTATION, the main widget
             file of the new or existing .xml file
 
         """
-        try:
-            self.scores = Scores(xml_file)
-        except FileNotFoundError:
-            root = self.create_empty_xml()
-            self.scores = Scores(xml_file, root)
-        self.display_stages()
+        if new:
+            create_empty_annotations(xml_file, self.parent.info.dataset)
+            self.notes = Annotations(xml_file)
+        else:
+            self.notes = Annotations(xml_file)
+
         self.create_actions()
+        # self.display_stages()
 
     def display_stages(self):
         """Update the widgets of the sleep scoring."""

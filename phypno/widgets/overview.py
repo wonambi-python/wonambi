@@ -115,7 +115,7 @@ class Overview(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigOverview(self.display_overview)
+        self.config = ConfigOverview(self.display_overview)  # TODO: it should update trace too
 
         self.minimum = None
         self.maximum = None

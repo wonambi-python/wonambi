@@ -130,6 +130,7 @@ def create_widgets(MAIN):
                                                   dock['widget'],
                                                   dock['main_area'] |
                                                   dock['extra_area'])
+        MAIN.idx_docks[dock['name']].setObjectName(dock['name'])  # savestate
         MAIN.addDockWidget(dock['main_area'], MAIN.idx_docks[dock['name']])
         new_act = QAction(QIcon(ICON['widget']), dock['name'], MAIN)
         new_act.setCheckable(True)
@@ -358,9 +359,11 @@ def create_toolbar(MAIN):
     actions = MAIN.action
 
     toolbar = MAIN.addToolBar('File Management')
+    toolbar.setObjectName('File Management')  # for savestate
     toolbar.addAction(actions['open_rec'])
 
     toolbar = MAIN.addToolBar('Scroll')
+    toolbar.setObjectName('Scroll')  # for savestate
     toolbar.addAction(actions['step_prev'])
     toolbar.addAction(actions['step_next'])
     toolbar.addAction(actions['page_prev'])
