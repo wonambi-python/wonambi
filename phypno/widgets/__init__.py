@@ -87,13 +87,3 @@ in display_mywidget. But it's important that all the elements that are
 attributes to self are defined in __init__ even if empty.
 
 """
-from .preferences import Preferences
-from .channels import Channels
-from .info import Info
-from .overview import Overview
-from .notes import Notes, Bookmarks, Events
-from .traces import Traces
-from .detect import Detect
-from .spectrum import Spectrum
-from .utils import DockWidget
-from .video import Video

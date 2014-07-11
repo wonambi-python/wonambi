@@ -9,7 +9,7 @@ if __name__ == '__main__':
     except RuntimeError:
         standalone = False
 
-from logging import getLogger, DEBUG, INFO, StreamHandler, Formatter
+from logging import getLogger, DEBUG, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
@@ -25,33 +25,19 @@ lg.addHandler(handler)
 lg.setLevel(DEBUG)
 
 
-from functools import partial
 from os.path import dirname, basename, splitext
 
 from numpy import arange
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QAction,
-                         QFileDialog,
-                         QIcon,
-                         QKeySequence,
+from PyQt4.QtGui import (QFileDialog,
                          QMainWindow,
                          )
 # change phypno.widgets into .widgets
-from phypno.widgets import (DockWidget,
-                            Notes, Bookmarks, Events,
-                            Channels,
-                            Detect,
-                            Info,
-                            Overview,
-                            Preferences,
-                            Spectrum,
-                            Traces,
-                            Video)
-from phypno.widgets.utils import (ICON, create_menubar, create_toolbar,
-                                  keep_recent_recordings, choose_file_or_dir,
-                                  ConfigUtils)
 
-HIDDEN_DOCKS = ['Detect']
+from phypno.widgets.creation import (create_menubar, create_toolbar,
+                                     create_actions, create_widgets)
+from phypno.widgets.utils import (keep_recent_recordings,
+                                  choose_file_or_dir,
+                                  ConfigUtils)
 
 
 class MainWindow(QMainWindow):
@@ -110,10 +96,10 @@ class MainWindow(QMainWindow):
         self.action = {}
         self.menu_window = None
 
-        self.create_actions()
+        create_actions(self)
         create_menubar(self)
         create_toolbar(self)
-        self.create_widgets()
+        create_widgets(self)
         self.statusBar()
 
         self.setGeometry(self.config.value['window_x'],
@@ -122,86 +108,6 @@ class MainWindow(QMainWindow):
                          self.config.value['window_height'])
         self.setWindowTitle('Scroll Data')
         self.show()
-
-    def create_actions(self):
-        """Create all the possible actions.
-
-        """
-        actions = {}
-        actions['open_rec'] = QAction(QIcon(ICON['open_rec']),
-                                      'Open Recording...', self)
-        actions['open_rec'].setShortcut(QKeySequence.Open)
-        actions['open_rec'].triggered.connect(self.action_open_rec)
-
-        max_recording_history = self.config.value['max_recording_history']
-        recent_recs = keep_recent_recordings(max_recording_history)
-        actions['recent_rec'] = []
-        for one_recent_rec in recent_recs:
-            action_recent = QAction(one_recent_rec, self)
-            action_recent.triggered.connect(partial(self.action_open_rec,
-                                                    one_recent_rec))
-            actions['recent_rec'].append(action_recent)
-
-        actions['open_bookmarks'] = QAction('Open Bookmark File...', self)
-        actions['open_events'] = QAction('Open Events File...', self)
-        actions['open_stages'] = QAction('Open Stages File...', self)
-        actions['open_stages'].triggered.connect(self.action_open_stages)
-
-        actions['open_preferences'] = QAction(QIcon(ICON['preferences']),
-                                              'Preferences', self)
-        actions['open_preferences'].triggered.connect(self.open_preferences)
-        actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', self)
-        actions['close_wndw'].triggered.connect(self.close)
-
-        actions['step_prev'] = QAction(QIcon(ICON['step_prev']),
-                                       'Previous Step', self)
-        actions['step_prev'].setShortcut(QKeySequence.MoveToPreviousChar)
-        actions['step_prev'].triggered.connect(self.action_step_prev)
-
-        actions['step_next'] = QAction(QIcon(ICON['step_next']),
-                                       'Next Step', self)
-        actions['step_next'].setShortcut(QKeySequence.MoveToNextChar)
-        actions['step_next'].triggered.connect(self.action_step_next)
-
-        actions['page_prev'] = QAction(QIcon(ICON['page_prev']),
-                                       'Previous Page', self)
-        actions['page_prev'].setShortcut(QKeySequence.MoveToPreviousPage)
-        actions['page_prev'].triggered.connect(self.action_page_prev)
-
-        actions['page_next'] = QAction(QIcon(ICON['page_next']),
-                                       'Next Page', self)
-        actions['page_next'].setShortcut(QKeySequence.MoveToNextPage)
-        actions['page_next'].triggered.connect(self.action_page_next)
-
-        actions['X_more'] = QAction(QIcon(ICON['zoomprev']),
-                                    'Wider Time Window', self)
-        actions['X_more'].setShortcut(QKeySequence.ZoomIn)
-        actions['X_more'].triggered.connect(self.action_X_more)
-
-        actions['X_less'] = QAction(QIcon(ICON['zoomnext']),
-                                    'Narrower Time Window', self)
-        actions['X_less'].setShortcut(QKeySequence.ZoomOut)
-        actions['X_less'].triggered.connect(self.action_X_less)
-
-        actions['Y_less'] = QAction(QIcon(ICON['zoomin']),
-                                    'Larger Amplitude', self)
-        actions['Y_less'].setShortcut(QKeySequence.MoveToPreviousLine)
-        actions['Y_less'].triggered.connect(self.action_Y_more)
-
-        actions['Y_more'] = QAction(QIcon(ICON['zoomout']),
-                                    'Smaller Amplitude', self)
-        actions['Y_more'].setShortcut(QKeySequence.MoveToNextLine)
-        actions['Y_more'].triggered.connect(self.action_Y_less)
-
-        actions['Y_wider'] = QAction(QIcon(ICON['ydist_more']),
-                                     'Larger Y Distance', self)
-        actions['Y_wider'].triggered.connect(self.action_Y_wider)
-
-        actions['Y_tighter'] = QAction(QIcon(ICON['ydist_less']),
-                                       'Smaller Y Distance', self)
-        actions['Y_tighter'].triggered.connect(self.action_Y_tighter)
-
-        self.action = actions  # actions was already taken
 
     def action_open_rec(self, recent=None):
         """Action: open a new dataset.
@@ -376,110 +282,6 @@ class MainWindow(QMainWindow):
                               endtime=endtime)
             self.overview.mark_downloaded(begtime, endtime)
 
-    def create_widgets(self):
-        """Create all the widgets and dockwidgets.
-
-        Notes
-        -----
-        I tried to be consistent and use lambda for connect, but somehow
-        partial works well while lambda passes always the same argument.
-
-        """
-        self.info = Info(self)
-        self.channels = Channels(self)
-        self.spectrum = Spectrum(self)
-        self.overview = Overview(self)
-        self.notes = Notes(self)
-        self.bookmarks = Bookmarks(self)
-        self.events = Events(self)
-        self.detect = Detect(self)
-        self.video = Video(self)
-        self.traces = Traces(self)
-        self.settings = Preferences(self)
-
-        self.setCentralWidget(self.traces)
-
-        new_docks = [{'name': 'Information',
-                      'widget': self.info,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Channels',
-                      'widget': self.channels,
-                      'main_area': Qt.RightDockWidgetArea,
-                      'extra_area': Qt.LeftDockWidgetArea,
-                      },
-                     {'name': 'Spectrum',
-                      'widget': self.spectrum,
-                      'main_area': Qt.RightDockWidgetArea,
-                      'extra_area': Qt.LeftDockWidgetArea,
-                      },
-                     {'name': 'Annotations',
-                      'widget': self.notes,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Bookmarks',
-                      'widget': self.bookmarks,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Events',
-                      'widget': self.events,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Detect',
-                      'widget': self.detect,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Video',
-                      'widget': self.video,
-                      'main_area': Qt.LeftDockWidgetArea,
-                      'extra_area': Qt.RightDockWidgetArea,
-                      },
-                     {'name': 'Overview',
-                      'widget': self.overview,
-                      'main_area': Qt.BottomDockWidgetArea,
-                      'extra_area': Qt.TopDockWidgetArea,
-                      },
-                     ]
-
-        self.idx_docks = {}
-        actions = self.action
-        for dock in new_docks:
-            self.idx_docks[dock['name']] = DockWidget(self,
-                                                      dock['name'],
-                                                      dock['widget'],
-                                                      dock['main_area'] |
-                                                      dock['extra_area'])
-            self.addDockWidget(dock['main_area'], self.idx_docks[dock['name']])
-            new_act = QAction(QIcon(ICON['widget']), dock['name'], self)
-            new_act.setCheckable(True)
-            new_act.setChecked(True)
-            new_act.triggered.connect(partial(self.toggle_menu_window,
-                                              dock['name'],
-                                              self.idx_docks[dock['name']]))
-            self.menu_window.addAction(new_act)
-            actions[dock['name']] = new_act
-
-            if dock['name'] in HIDDEN_DOCKS:
-                self.idx_docks[dock['name']].setVisible(False)
-                actions[dock['name']].setChecked(False)
-
-        self.tabifyDockWidget(self.idx_docks['Information'],
-                              self.idx_docks['Video'])
-        self.idx_docks['Information'].raise_()
-
-        self.tabifyDockWidget(self.idx_docks['Annotations'],
-                              self.idx_docks['Bookmarks'])
-        self.tabifyDockWidget(self.idx_docks['Bookmarks'],
-                              self.idx_docks['Events'])
-        self.tabifyDockWidget(self.idx_docks['Events'],
-                              self.idx_docks['Detect'])
-        self.idx_docks['Annotations'].raise_()
-
     def toggle_menu_window(self, dockname, dockwidget):
         """Show or hide dockwidgets, and keep track of them.
 
@@ -501,7 +303,7 @@ class MainWindow(QMainWindow):
             actions[dockname].setChecked(True)
             lg.debug('Setting ' + dockname + ' to visible')
 
-    def open_preferences(self):
+    def open_settings(self):
         self.settings.show()
 
     def closeEvent(self, event):

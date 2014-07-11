@@ -133,6 +133,5 @@ class Info(QWidget):
 
     def update_annotations(self):
         """Update information about the annotations."""
-        self.idx_amplitude.setText(str(self.parent.traces.config.value['y_scale']))
-        self.idx_distance.setText(str(self.parent.traces.config.value['y_distance']))
-        self.idx_length.setText(str(self.parent.overview.config.value['window_length']))
+        self.idx_annotations.setText(str(self.parent.traces.config.value['y_scale']))
+        self.idx_rater.setText(str(self.parent.traces.config.value['y_distance']))

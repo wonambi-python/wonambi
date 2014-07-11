@@ -1,4 +1,4 @@
-"""Large and simple widget to indicate settings/preferences.
+"""Large and simple widget to indicate settings/Settings.
 
 """
 from logging import getLogger
@@ -64,8 +64,8 @@ DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      }
 
 
-class Preferences(QDialog):
-    """Window showing the preferences/settings.
+class Settings(QDialog):
+    """Window showing the Settings/settings.
 
     Parameters
     ----------
@@ -77,10 +77,10 @@ class Preferences(QDialog):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
 
-        self.setWindowTitle('Preferences')
-        self.create_preferences()
+        self.setWindowTitle('Settings')
+        self.create_settings()
 
-    def create_preferences(self):
+    def create_settings(self):
         """Create the widget, organized in two parts."""
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply
                                 | QDialogButtonBox.Cancel)
@@ -148,7 +148,7 @@ class Preferences(QDialog):
                 one_config = self.stacked.widget(i_config)
 
                 if one_config.modified:
-                    lg.debug('Preferences for ' + one_config.widget +
+                    lg.debug('Settings for ' + one_config.widget +
                              ' were modified')
                     one_config.get_values()
 
@@ -164,7 +164,7 @@ class Preferences(QDialog):
 
 
 class Config(QWidget):
-    """Base class for widgets used in the Preferences.
+    """Base class for widgets used in the Settings.
 
     Parameters
     ----------
@@ -203,7 +203,7 @@ class Config(QWidget):
         self.update_widget = update_widget
 
     def create_values(self, value_names):
-        """Read original values from the preferences or the defaults.
+        """Read original values from the settings or the defaults.
 
         Parameters
         ----------

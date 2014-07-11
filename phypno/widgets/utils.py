@@ -4,12 +4,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from functools import partial
-from os.path import dirname, join, realpath
-
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QDockWidget,
-                         QIcon,
                          QMessageBox,
                          QPainterPath,
                          QFormLayout,
@@ -19,32 +15,7 @@ from PyQt4.QtGui import (QDockWidget,
 
 from .preferences import Config, FormInt, FormList, FormStr, FormFloat
 
-icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
-                 'oxygen')
-
 config = QSettings("phypno", "scroll_data")
-
-ICON = {
-    'open_rec': join(icon_path, 'document-open.png'),
-    'page_prev': join(icon_path, 'go-previous-view.png'),
-    'page_next': join(icon_path, 'go-next-view.png'),
-    'step_prev': join(icon_path, 'go-previous.png'),
-    'step_next': join(icon_path, 'go-next.png'),
-    'chronometer': join(icon_path, 'chronometer.png'),
-    'up': join(icon_path, 'go-up.png'),
-    'down': join(icon_path, 'go-down.png'),
-    'zoomin': join(icon_path, 'zoom-in.png'),
-    'zoomout': join(icon_path, 'zoom-out.png'),
-    'zoomnext': join(icon_path, 'zoom-next.png'),
-    'zoomprev': join(icon_path, 'zoom-previous.png'),
-    'ydist_more': join(icon_path, 'format-line-spacing-triple.png'),
-    'ydist_less': join(icon_path, 'format-line-spacing-normal.png'),
-    'selchan': join(icon_path, 'mail-mark-task.png'),
-    'download': join(icon_path, 'download.png'),
-    'widget': join(icon_path, 'window-duplicate.png'),
-    'preferences': join(icon_path, 'configure.png'),
-    'quit': join(icon_path, 'window-close.png'),
-    }
 
 
 class ConfigUtils(Config):
@@ -109,142 +80,6 @@ class ConfigUtils(Config):
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
-
-
-def create_menubar(mainwindow):
-    """Create the whole menubar, based on actions."""
-    actions = mainwindow.action
-
-    """ ------ FILE ------ """
-    menubar = mainwindow.menuBar()
-    menu_file = menubar.addMenu('File')
-    menu_file.addAction(actions['open_rec'])
-    submenu_recent = menu_file.addMenu('Recent Recordings')
-    for one_action_recent in actions['recent_rec']:
-        submenu_recent.addAction(one_action_recent)
-
-    menu_download = menu_file.addMenu('Download File')
-    menu_download.setIcon(QIcon(ICON['download']))
-    act = menu_download.addAction('Whole File')
-    act.triggered.connect(mainwindow.action_download)
-    act = menu_download.addAction('30 Minutes')
-    act.triggered.connect(partial(mainwindow.action_download, 30 * 60))
-    act = menu_download.addAction('1 Hour')
-    act.triggered.connect(partial(mainwindow.action_download, 60 * 60))
-    act = menu_download.addAction('3 Hours')
-    act.triggered.connect(partial(mainwindow.action_download, 3 * 60 * 60))
-    act = menu_download.addAction('6 Hours')
-    act.triggered.connect(partial(mainwindow.action_download, 6 * 60 * 60))
-
-    menu_file.addSeparator()
-    menu_file.addAction(actions['open_bookmarks'])
-    menu_file.addAction(actions['open_events'])
-    menu_file.addAction(actions['open_stages'])
-    menu_file.addSeparator()
-    menu_file.addAction(actions['open_preferences'])
-    menu_file.addSeparator()
-    menu_file.addAction(actions['close_wndw'])
-
-    """ ------ NAVIGATION ------ """
-    menu_time = menubar.addMenu('Navigation')
-    menu_time.addAction(actions['step_prev'])
-    menu_time.addAction(actions['step_next'])
-    menu_time.addAction(actions['page_prev'])
-    menu_time.addAction(actions['page_next'])
-    menu_time.addSeparator()  # use icon cronometer
-    act = menu_time.addAction('6 Hours Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, -6 * 60 * 60))
-    act = menu_time.addAction('1 Hour Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, -60 * 60))
-    act = menu_time.addAction('10 Minutes Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, -10 * 60))
-    act = menu_time.addAction('10 Minutes Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, 10 * 60))
-    act = menu_time.addAction('1 Hour Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, 60 * 60))
-    act = menu_time.addAction('6 Hours Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(mainwindow.action_add_time, 6 * 60 * 60))
-
-    """ ------ VIEW ------ """
-    menu_view = menubar.addMenu('View')
-    submenu_ampl = menu_view.addMenu('Amplitude')
-    submenu_ampl.addAction(actions['Y_less'])
-    submenu_ampl.addAction(actions['Y_more'])
-    submenu_ampl.addSeparator()
-    for x in sorted(mainwindow.config.value['y_scale_presets'], reverse=True):
-        act = submenu_ampl.addAction('Set to ' + str(x))
-        act.triggered.connect(partial(mainwindow.action_Y_ampl, x))
-
-    submenu_dist = menu_view.addMenu('Distance Between Traces')
-    submenu_dist.addAction(actions['Y_wider'])
-    submenu_dist.addAction(actions['Y_tighter'])
-    submenu_dist.addSeparator()
-    for x in sorted(mainwindow.config.value['y_distance_presets'],
-                    reverse=True):
-        act = submenu_dist.addAction('Set to ' + str(x))
-        act.triggered.connect(partial(mainwindow.action_Y_dist, x))
-
-    submenu_length = menu_view.addMenu('Window Length')
-    submenu_length.addAction(actions['X_more'])
-    submenu_length.addAction(actions['X_less'])
-    submenu_length.addSeparator()
-    for x in sorted(mainwindow.config.value['window_length_presets'],
-                    reverse=True):
-        act = submenu_length.addAction('Set to ' + str(x))
-        act.triggered.connect(partial(mainwindow.action_X_length, x))
-
-    """ ------ ANNOTATIONS ------ """
-    menu_annot = menubar.addMenu('Annotations')
-    menu_annot.addSeparator()
-
-    submenu_bookmark = menu_annot.addMenu('Bookmark')
-    submenu_bookmark.addAction('New Bookmark')
-    submenu_bookmark.addAction('Edit Bookmark')
-    submenu_bookmark.addAction('Delete Bookmark')
-
-    submenu_event = menu_annot.addMenu('Event')
-    submenu_event.addAction('New Event')
-    submenu_event.addAction('Edit Event')
-    submenu_event.addAction('Delete Event')
-
-    submenu_stage = menu_annot.addMenu('Stage')
-    submenu_stage.addAction('Select stage (TODO)')
-
-    menu_window = menubar.addMenu('Windows')
-    mainwindow.menu_window = menu_window
-
-    menu_about = menubar.addMenu('About')
-    menu_about.addAction('About Phypno')
-
-
-def create_toolbar(mainwindow):
-    """Create the various toolbars, without keeping track of them.
-
-    """
-    actions = mainwindow.action
-
-    toolbar = mainwindow.addToolBar('File Management')
-    toolbar.addAction(actions['open_rec'])
-
-    toolbar = mainwindow.addToolBar('Scroll')
-    toolbar.addAction(actions['step_prev'])
-    toolbar.addAction(actions['step_next'])
-    toolbar.addAction(actions['page_prev'])
-    toolbar.addAction(actions['page_next'])
-    toolbar.addSeparator()
-    toolbar.addAction(actions['X_more'])
-    toolbar.addAction(actions['X_less'])
-    toolbar.addSeparator()
-    toolbar.addAction(actions['Y_less'])
-    toolbar.addAction(actions['Y_more'])
-    toolbar.addAction(actions['Y_wider'])
-    toolbar.addAction(actions['Y_tighter'])
 
 
 class DockWidget(QDockWidget):
