@@ -52,7 +52,7 @@ class Info(QWidget):
         form = QFormLayout()
         b0.setLayout(form)
 
-        widget = QPushButton('Click here to open a new file')
+        widget = QPushButton('Open Recording...')
         widget.clicked.connect(self.parent.action_open_rec)
         widget.setToolTip('Click here to open a new file')
         self.idx_text['filename'] = widget
@@ -79,20 +79,9 @@ class Info(QWidget):
         form.addRow('Distance:', self.idx_distance)
         form.addRow('Length:', self.idx_length)
 
-        b2 = QGroupBox('Annotations')
-        form = QFormLayout()
-        b2.setLayout(form)
-
-        self.idx_annotations = QLabel('')
-        self.idx_rater = QLabel('')
-
-        form.addRow('Annotations File:', self.idx_annotations)
-        form.addRow('Rater:', self.idx_rater)
-
         layout = QVBoxLayout()
         layout.addWidget(b0)
         layout.addWidget(b1)
-        layout.addWidget(b2)
 
         self.setLayout(layout)
 

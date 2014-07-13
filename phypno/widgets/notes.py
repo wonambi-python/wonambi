@@ -20,7 +20,9 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QFormLayout,
                          QGroupBox,
                          QHBoxLayout,
+                         QLabel,
                          QListWidget,
+                         QPushButton,
                          QTableView,
                          QTableWidget,
                          QTableWidgetItem,
@@ -87,10 +89,26 @@ class Notes(QWidget):
         self.action = {}
         self.notes = None
 
-        layout = QFormLayout()
+        self.create_notes()
+
+    def create_notes(self):
+        b0 = QGroupBox('Annotations')
+        form = QFormLayout()
+        b0.setLayout(form)
+
+        self.idx_annotations = QPushButton('Load Annotation File...')
+        self.idx_annotations.clicked.connect(self.update_notes)
+        self.idx_rater = QLabel('')
+
+        form.addRow('Annotations File:', self.idx_annotations)
+        form.addRow('Rater:', self.idx_rater)
+
+        layout = QVBoxLayout()
+        layout.addWidget(b0)
+
         self.setLayout(layout)
 
-    def update_notes(self, xml_file, new):
+    def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.
 
         Parameters
