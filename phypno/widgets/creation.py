@@ -7,6 +7,7 @@ from os.path import dirname, join, realpath
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
+                         QDockWidget,
                          QIcon,
                          QKeySequence,
                          )
@@ -21,7 +22,7 @@ from .detect import Detect
 from .spectrum import Spectrum
 from .video import Video
 
-from .utils import DockWidget, keep_recent_recordings
+from .utils import keep_recent_recordings
 
 HIDDEN_DOCKS = ['Detect']
 
@@ -55,11 +56,10 @@ def create_widgets(MAIN):
 
     Notes
     -----
-    I tried to be consistent and use lambda for connect, but somehow
-    partial works well while lambda passes always the same argument.
+    It creates actions to toggle views of dockwidgets in dockwidgets
 
-    It creates some actions as list inside list_of_docks
     """
+    """ ------ CREATE WIDGETS ------ """
     MAIN.info = Info(MAIN)
     MAIN.channels = Channels(MAIN)
     MAIN.spectrum = Spectrum(MAIN)
@@ -74,6 +74,7 @@ def create_widgets(MAIN):
 
     MAIN.setCentralWidget(MAIN.traces)
 
+    """ ------ LIST DOCKWIDGETS ------ """
     new_docks = [{'name': 'Information',
                   'widget': MAIN.info,
                   'main_area': Qt.LeftDockWidgetArea,
@@ -121,29 +122,26 @@ def create_widgets(MAIN):
                   },
                  ]
 
+    """ ------ CREATE DOCKWIDGETS ------ """
     MAIN.idx_docks = {}
     actions = MAIN.action
-    actions['list_of_docks'] = []
+
+    actions['dockwidgets'] = []
     for dock in new_docks:
-        MAIN.idx_docks[dock['name']] = DockWidget(MAIN,
-                                                  dock['name'],
-                                                  dock['widget'],
-                                                  dock['main_area'] |
-                                                  dock['extra_area'])
-        MAIN.idx_docks[dock['name']].setObjectName(dock['name'])  # savestate
-        MAIN.addDockWidget(dock['main_area'], MAIN.idx_docks[dock['name']])
-        new_act = QAction(QIcon(ICON['widget']), dock['name'], MAIN)
-        new_act.setCheckable(True)
-        new_act.setChecked(True)
-        new_act.triggered.connect(partial(MAIN.toggle_menu_window,
-                                          dock['name'],
-                                          MAIN.idx_docks[dock['name']]))
-        actions['list_of_docks'].append(new_act)
+        dockwidget = QDockWidget(dock['name'], MAIN)
+        dockwidget.setWidget(dock['widget'])
+        dockwidget.setAllowedAreas(dock['main_area'] | dock['extra_area'])
+        dockwidget.setObjectName(dock['name'])  # savestate
 
-        if dock['name'] in HIDDEN_DOCKS:
-            new_act.setChecked(False)
-            MAIN.idx_docks[dock['name']].setVisible(False)
+        MAIN.idx_docks[dock['name']] = dockwidget
+        MAIN.addDockWidget(dock['main_area'], dockwidget)
 
+        dockwidget_action = dockwidget.toggleViewAction()
+        dockwidget_action.setIcon(QIcon(ICON['widget']))
+
+        actions['dockwidgets'].append(dockwidget_action)
+
+    """ ------ ORGANIZE DOCKWIDGETS ------ """
     MAIN.tabifyDockWidget(MAIN.idx_docks['Information'],
                           MAIN.idx_docks['Video'])
     MAIN.idx_docks['Information'].raise_()
@@ -344,8 +342,8 @@ def create_menubar(MAIN):
     submenu_stage.addAction('Select stage (TODO)')
 
     menu_window = menubar.addMenu('Windows')
-    for widget_act in actions['list_of_docks']:
-        menu_window.addAction(widget_act)
+    for dockwidget_act in actions['dockwidgets']:
+        menu_window.addAction(dockwidget_act)
     MAIN.menu_window = menu_window
 
     menu_about = menubar.addMenu('About')

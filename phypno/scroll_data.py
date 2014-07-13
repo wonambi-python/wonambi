@@ -317,7 +317,7 @@ class MainWindow(QMainWindow):
         self.video.config.set_values()
         self.settings.show()
 
-    def toggle_menu_window(self, dockname, dockwidget):
+    def toggle_menu_window(self):
         """Show or hide dockwidgets, and keep track of them.
 
         Parameters
@@ -327,7 +327,9 @@ class MainWindow(QMainWindow):
         dockwidget : instance of DockWidget
 
         """
+        lg.debug('Clicked')
         actions = self.action
+        """
         if dockwidget.isVisible():
             dockwidget.setVisible(False)
             actions[dockname].setChecked(False)
@@ -337,6 +339,7 @@ class MainWindow(QMainWindow):
             dockwidget.raise_()
             actions[dockname].setChecked(True)
             lg.debug('Setting ' + dockname + ' to visible')
+        """
 
     def moveEvent(self, event):
         """Main window is already resized."""

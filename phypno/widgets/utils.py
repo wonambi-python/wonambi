@@ -5,8 +5,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import (QDockWidget,
-                         QMessageBox,
+from PyQt4.QtGui import (QMessageBox,
                          QPainterPath,
                          QFormLayout,
                          QGroupBox,
@@ -80,30 +79,6 @@ class ConfigUtils(Config):
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
-
-
-class DockWidget(QDockWidget):
-    """Simple DockWidget, that, when closes, changes the check on the menu.
-
-    """
-    def __init__(self, parent, name, subwidget, area):
-        super().__init__(name, parent)
-        self.parent = parent
-        self.name = name
-        self.setAllowedAreas(area)
-        self.setWidget(subwidget)
-
-    def closeEvent(self, event):
-        """Override the function, so that it closes and changes the check in
-        the menu.
-
-        Parameters
-        ----------
-        event : unknown
-            we don't care.
-
-        """
-        self.parent.toggle_menu_window(self.name, self)
 
 
 class Path(QPainterPath):
