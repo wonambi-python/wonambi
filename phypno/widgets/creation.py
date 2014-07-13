@@ -28,27 +28,26 @@ HIDDEN_DOCKS = ['Detect']
 
 icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
                  'oxygen')
-ICON = {
-    'open_rec': join(icon_path, 'document-open.png'),
-    'page_prev': join(icon_path, 'go-previous-view.png'),
-    'page_next': join(icon_path, 'go-next-view.png'),
-    'step_prev': join(icon_path, 'go-previous.png'),
-    'step_next': join(icon_path, 'go-next.png'),
-    'chronometer': join(icon_path, 'chronometer.png'),
-    'up': join(icon_path, 'go-up.png'),
-    'down': join(icon_path, 'go-down.png'),
-    'zoomin': join(icon_path, 'zoom-in.png'),
-    'zoomout': join(icon_path, 'zoom-out.png'),
-    'zoomnext': join(icon_path, 'zoom-next.png'),
-    'zoomprev': join(icon_path, 'zoom-previous.png'),
-    'ydist_more': join(icon_path, 'format-line-spacing-triple.png'),
-    'ydist_less': join(icon_path, 'format-line-spacing-normal.png'),
-    'selchan': join(icon_path, 'mail-mark-task.png'),
-    'download': join(icon_path, 'download.png'),
-    'widget': join(icon_path, 'window-duplicate.png'),
-    'settings': join(icon_path, 'configure.png'),
-    'quit': join(icon_path, 'window-close.png'),
-    }
+ICON = {'open_rec': join(icon_path, 'document-open.png'),
+        'page_prev': join(icon_path, 'go-previous-view.png'),
+        'page_next': join(icon_path, 'go-next-view.png'),
+        'step_prev': join(icon_path, 'go-previous.png'),
+        'step_next': join(icon_path, 'go-next.png'),
+        'chronometer': join(icon_path, 'chronometer.png'),
+        'up': join(icon_path, 'go-up.png'),
+        'down': join(icon_path, 'go-down.png'),
+        'zoomin': join(icon_path, 'zoom-in.png'),
+        'zoomout': join(icon_path, 'zoom-out.png'),
+        'zoomnext': join(icon_path, 'zoom-next.png'),
+        'zoomprev': join(icon_path, 'zoom-previous.png'),
+        'ydist_more': join(icon_path, 'format-line-spacing-triple.png'),
+        'ydist_less': join(icon_path, 'format-line-spacing-normal.png'),
+        'selchan': join(icon_path, 'mail-mark-task.png'),
+        'download': join(icon_path, 'download.png'),
+        'widget': join(icon_path, 'window-duplicate.png'),
+        'settings': join(icon_path, 'configure.png'),
+        'quit': join(icon_path, 'window-close.png'),
+        }
 
 
 def create_widgets(MAIN):
