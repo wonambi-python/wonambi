@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
 
     notes : instance of phypno.widgets.Notes
 
-    bookmarks : instance of phypno.widgets.Bookmarks
+    markers : instance of phypno.widgets.Markers
 
     events : instance of phypno.widgets.Events
 
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
 
         self.idx_docks = {}
         self.notes = None
-        self.bookmarks = None
+        self.markers = None
         self.events = None
         self.channels = None
         self.detect = None
@@ -160,9 +160,9 @@ class MainWindow(QMainWindow):
         self.overview.update_overview()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
         try:
-            self.bookmarks.update_bookmarks(self.info.dataset.header)
+            self.markers.update_markers(self.info.dataset.header)
         except (KeyError, ValueError):
-            lg.info('No notes/bookmarks present in the header of the file')
+            lg.info('No notes/markers present in the header of the file')
 
     def reset_dataset(self):
         """Remove all the information from previous dataset before loading a

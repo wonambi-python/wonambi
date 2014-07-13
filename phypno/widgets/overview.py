@@ -1,4 +1,4 @@
-"""Wide widget giving an overview of the bookmarks, events, and sleep scores.
+"""Wide widget giving an overview of the markers, events, and sleep scores.
 
 """
 from logging import getLogger
@@ -22,7 +22,7 @@ from PyQt4.QtGui import (QBrush,
 
 from .settings import Config, FormInt
 
-# bookmark
+# marker
 # event
 # stage
 # available
@@ -43,7 +43,7 @@ STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
-BARS = {'bookmark': {'pos0': 15, 'pos1': 10, 'tip': 'Bookmarks'},
+BARS = {'marker': {'pos0': 15, 'pos1': 10, 'tip': 'Markers'},
         'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
@@ -225,23 +225,23 @@ class Overview(QGraphicsView):
         if self.parent.notes.scores is not None:
             self.parent.notes.set_combobox_index()
 
-    def mark_bookmarks(self):
-        """Mark all the bookmarks.
+    def mark_markers(self):
+        """Mark all the markers.
 
         Notes
         -----
-        Bookmarks at the moment are only marked once, when the file is read.
+        Markers at the moment are only marked once, when the file is read.
         So, we plot them all at the same time. In the future, we might want to
-        add bookmarks, so we need to re-write this function like mark_stage
-        where you only add bookmarks as you need them.
+        add markers, so we need to re-write this function like mark_stage
+        where you only add markers as you need them.
 
         """
-        bookmarks = self.parent.bookmarks.bookmarks
-        for bm in bookmarks:
-            self.scene.addLine(bm['time'], BARS['bookmark']['pos0'],
-                               bm['time'],
-                               BARS['bookmark']['pos0'] +
-                               BARS['bookmark']['pos1'])
+        markers = self.parent.markers.markers
+        for mrk in markers:
+            self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
+                               mrk['time'],
+                               BARS['marker']['pos0'] +
+                               BARS['marker']['pos1'])
 
     def mark_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.

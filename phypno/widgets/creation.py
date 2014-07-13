@@ -16,7 +16,7 @@ from .settings import Settings
 from .channels import Channels
 from .info import Info
 from .overview import Overview
-from .notes import Notes, Bookmarks, Events
+from .notes import Notes, Markers, Events
 from .traces import Traces
 from .detect import Detect
 from .spectrum import Spectrum
@@ -64,7 +64,7 @@ def create_widgets(MAIN):
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.notes = Notes(MAIN)
-    MAIN.bookmarks = Bookmarks(MAIN)
+    MAIN.markers = Markers(MAIN)
     MAIN.events = Events(MAIN)
     MAIN.detect = Detect(MAIN)
     MAIN.video = Video(MAIN)
@@ -94,8 +94,8 @@ def create_widgets(MAIN):
                   'main_area': Qt.LeftDockWidgetArea,
                   'extra_area': Qt.RightDockWidgetArea,
                   },
-                 {'name': 'Bookmarks',
-                  'widget': MAIN.bookmarks,
+                 {'name': 'Markers',
+                  'widget': MAIN.markers,
                   'main_area': Qt.LeftDockWidgetArea,
                   'extra_area': Qt.RightDockWidgetArea,
                   },
@@ -146,8 +146,8 @@ def create_widgets(MAIN):
     MAIN.idx_docks['Information'].raise_()
 
     MAIN.tabifyDockWidget(MAIN.idx_docks['Annotations'],
-                          MAIN.idx_docks['Bookmarks'])
-    MAIN.tabifyDockWidget(MAIN.idx_docks['Bookmarks'],
+                          MAIN.idx_docks['Markers'])
+    MAIN.tabifyDockWidget(MAIN.idx_docks['Markers'],
                           MAIN.idx_docks['Events'])
     MAIN.tabifyDockWidget(MAIN.idx_docks['Events'],
                           MAIN.idx_docks['Detect'])
@@ -327,10 +327,10 @@ def create_menubar(MAIN):
     menu_annot.addAction(actions['load_annot'])
     menu_annot.addSeparator()
 
-    submenu_bookmark = menu_annot.addMenu('Bookmark')
-    submenu_bookmark.addAction('New Bookmark')
-    submenu_bookmark.addAction('Edit Bookmark')
-    submenu_bookmark.addAction('Delete Bookmark')
+    submenu_marker = menu_annot.addMenu('Marker')
+    submenu_marker.addAction('New Marker')
+    submenu_marker.addAction('Edit Marker')
+    submenu_marker.addAction('Delete Marker')
 
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction('New Event')

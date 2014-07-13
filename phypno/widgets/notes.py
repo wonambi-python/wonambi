@@ -1,6 +1,6 @@
-"""Widgets containing notes (such as bookmarks, events, and stages).
+"""Widgets containing notes (such as markers, events, and stages).
 
-  - bookmarks are unique (might have the same text), are not mutually
+  - markers are unique (might have the same text), are not mutually
     exclusive, do not have duration
   - events are not unique, are not mutually exclusive, have variable duration
   - stages are not unique, are mutually exclusive, have fixed duration
@@ -11,18 +11,16 @@ lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
 from functools import partial
-from getpass import getuser
 from math import floor
-from os.path import basename, exists, splitext
+from os.path import basename
 
 
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
-                         QComboBox,
                          QFormLayout,
                          QGroupBox,
-                         QPushButton,
-                         QLabel,
+                         QHBoxLayout,
+                         QListWidget,
                          QTableView,
                          QTableWidget,
                          QTableWidgetItem,
@@ -163,14 +161,14 @@ class Notes(QWidget):
         self.idx_stages.setCurrentIndex(STAGE_NAME.index(stage))
 
 
-class Bookmarks(QTableWidget):  # maybe MARKER is a better name
-    """Keep track of all the bookmarks.
+class Markers(QTableWidget):
+    """Keep track of all the markers.
 
     Attributes
     ----------
     parent : instance of QMainWindow
         the main window.
-    bookmarks : list of dict
+    markers : list of dict
         each dict contains time (in s from beginning of file) and name
 
     """
@@ -178,17 +176,17 @@ class Bookmarks(QTableWidget):  # maybe MARKER is a better name
         super().__init__()
 
         self.parent = parent
-        self.bookmarks = []
+        self.markers = []
 
         self.setColumnCount(2)
         self.setHorizontalHeaderLabels(['Time', 'Text'])
         self.horizontalHeader().setStretchLastSection(True)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.cellDoubleClicked.connect(self.move_to_bookmark)
+        self.cellDoubleClicked.connect(self.move_to_marker)
 
-    def update_bookmarks(self, header):
-        """Update the bookmarks info
+    def update_markers(self, header):
+        """Update the markers info
 
         Parameters
         ----------
@@ -196,35 +194,35 @@ class Bookmarks(QTableWidget):  # maybe MARKER is a better name
             header of the dataset
 
         """
-        bookmarks = []
+        markers = []
         splitted = header['orig']['notes'].split('\n')
-        for bm in splitted:
-            values = bm.split(',')
-            bm_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S')
-            bm_sec = (bm_time - header['start_time']).total_seconds()
+        for mrk in splitted:
+            values = mrk.split(',')
+            mrk_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S')
+            mrk_sec = (mrk_time - header['start_time']).total_seconds()
 
-            bookmarks.append({'time': bm_sec,
-                              'name': ','.join(values[2:])
-                              })
+            markers.append({'time': mrk_sec,
+                            'name': ','.join(values[2:])
+                            })
 
-        self.bookmarks = bookmarks
-        self.display_bookmarks()
+        self.markers = markers
+        self.display_markers()
 
-    def display_bookmarks(self):
-        """Update the table with bookmarks."""
+    def display_markers(self):
+        """Update the table with markers."""
         start_time = self.parent.info.dataset.header['start_time']
 
-        self.setRowCount(len(self.bookmarks))
-        for i, bm in enumerate(self.bookmarks):
+        self.setRowCount(len(self.markers))
+        for i, mrk in enumerate(self.markers):
             abs_time = (start_time +
-                        timedelta(seconds=bm['time'])).strftime('%H:%M:%S')
+                        timedelta(seconds=mrk['time'])).strftime('%H:%M:%S')
             self.setItem(i, 0, QTableWidgetItem(abs_time))
-            self.setItem(i, 1, QTableWidgetItem(bm['name']))
+            self.setItem(i, 1, QTableWidgetItem(mrk['name']))
 
-        self.parent.overview.mark_bookmarks()
+        self.parent.overview.mark_markers()
 
-    def move_to_bookmark(self, row, col):
-        """Move to point in time marked by the bookmark.
+    def move_to_marker(self, row, col):
+        """Move to point in time marked by the marker.
 
         Parameters
         ----------
@@ -234,8 +232,8 @@ class Bookmarks(QTableWidget):  # maybe MARKER is a better name
 
         """
         window_length = self.parent.overview.config.value['window_length']
-        bookmark_time = self.bookmarks[row]['time']
-        window_start = floor(bookmark_time / window_length) * window_length
+        marker_time = self.markers[row]['time']
+        window_start = floor(marker_time / window_length) * window_length
         self.parent.overview.update_position(window_start)
 
 
@@ -248,12 +246,12 @@ class Events(QWidget):
         super().__init__()
 
         self.parent = parent
-        self.idx_stages = QComboBox()
-        self.table = QTableView()
+        self.idx_stages = QListWidget()
+        self.idx_table = QTableView()
 
-        layout = QFormLayout()
-        layout.addRow('Events: ', self.idx_stages)
-        layout.addRow('List: ', self.table)
+        layout = QHBoxLayout()
+        layout.addWidget(self.idx_stages)
+        layout.addWidget(self.idx_table)
         self.setLayout(layout)
 
     def update_events(self):
