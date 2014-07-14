@@ -120,9 +120,16 @@ class Notes(QWidget):
         else:
             self.annot = Annotations(xml_file)
 
-        self.idx_annotations.setText(basename(xml_file))
+        self.parent.create_menubar()
+        self.display_notes()
 
-        self.create_menubar()
+    def display_notes(self):
+        """Display information about scores and raters."""
+        self.idx_annotations.setText(basename(self.annot.xml_file))
+        try:
+            self.idx_rater.setText(self.annot.current_rater)
+        except IndexError:
+            self.idx_rater.setText('')
 
 
 class Markers(QTableWidget):

@@ -32,6 +32,7 @@ from types import MethodType
 from numpy import arange
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QFileDialog,
+                         QInputDialog,
                          QMainWindow,
                          )
 
@@ -326,12 +327,37 @@ class MainWindow(QMainWindow):
 
         self.notes.update_notes(filename, False)
 
-    def action_select_rater(self, rater=None):
+    def action_select_rater(self, rater=False):
+        """
+        First argument, if not specified, is a bool/False:
+        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
 
-        if rater is not None:
-            self.notes.notes.get_rater(rater)
+        """
+        if rater:
+            self.notes.annot.get_rater(rater)
 
+        else:
+            answer = QInputDialog.getText(self, 'New Rater',
+                                          'Enter rater\'s name')
+            if answer[1]:
+                self.notes.annot.add_rater(answer[0])
+                self.create_menubar()  # refresh list ot raters
 
+        self.notes.display_notes()
+
+    def action_delete_rater(self):
+        """
+        First argument, if not specified, is a bool/False:
+        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
+
+        """
+        answer = QInputDialog.getText(self, 'Delete Rater',
+                                      'Enter rater\'s name')
+        if answer[1]:
+            self.notes.annot.remove_rater(answer[0])
+
+        self.notes.display_notes()
+        self.create_menubar()  # refresh list ot raters
 
     def moveEvent(self, event):
         """Main window is already resized."""

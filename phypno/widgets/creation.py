@@ -1,9 +1,11 @@
 """Functions used when creating a new window.
 
 """
+from logging import getLogger
+lg = getLogger(__name__)
+
 from functools import partial
 from os.path import dirname, join, realpath
-
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
@@ -238,6 +240,8 @@ def create_actions(MAIN):
 
     actions['new_rater'] = QAction('New...', MAIN)
     actions['new_rater'].triggered.connect(MAIN.action_select_rater)
+    actions['del_rater'] = QAction('Delete...', MAIN)
+    actions['del_rater'].triggered.connect(MAIN.action_delete_rater)
 
 
 def create_menubar(MAIN):
@@ -333,8 +337,11 @@ def create_menubar(MAIN):
 
     submenu_rater = menu_annot.addMenu('Rater')
     submenu_rater.addAction(actions['new_rater'])
+    submenu_rater.addAction(actions['del_rater'])
+    submenu_rater.addSeparator()
     if MAIN.notes.annot is not None:
         for rater in sorted(MAIN.notes.annot.raters):
+            lg.debug('Adding rater: ' + rater)
             act = submenu_rater.addAction(rater)
             act.triggered.connect(partial(MAIN.action_select_rater, rater))
     menu_annot.addSeparator()

@@ -46,32 +46,13 @@ def create_empty_annotations(xml_file, dataset):
 class Annotations():
     """Class to return nicely formatted information from xml.
 
-    Parameters
-    ----------
-    xml_file : str
-        path to xml file
-    root : instance of xml.etree.ElementTree.Element, optional
-        xml structure with information about sleep staging
-
-    Attributes
-    ----------
-    root : instance of xml.etree.ElementTree.Element
-        xml structure with information about sleep staging
-    xml_file : str
-        path to xml file
-
-    Notes
-    -----
-    If root is not given, xml will be read from file. If both are given, it
-    overwrites filename with root.
-
     """
     def __init__(self, xml_file, rater_name=None):
 
         self.xml_file = xml_file
         self.root = self.load()
         if rater_name is None:
-            self.rater = None
+            self.rater = self.root.find('rater')
         else:
             self.get_rater(rater_name)
 
@@ -92,20 +73,27 @@ class Annotations():
 
     @property
     def current_rater(self):
-        return self.rater.get('name')
+        try:
+            return self.rater.get('name')
+        except AttributeError:
+            raise IndexError('No rater in the annotations')
 
     @property
     def raters(self):
-        return [rater.get('name') for rater in self.root]
+        return [rater.get('name') for rater in self.root.iter('rater')]
 
     def get_rater(self, rater_name):
         # get xml root for one rater
-        self.rater = None  # if it doesn't find it
+        found = False
 
         for rater in self.root.iterfind('rater'):
             if rater.get('name') == rater_name:
                 self.rater = rater
-                return
+                found = True
+
+        if not found:
+            raise KeyError(rater_name + ' not in the list of raters (' +
+                           ', '.join(self.raters) + ')')
 
     def add_rater(self, rater_name):
         if rater_name in self.raters:
@@ -121,7 +109,7 @@ class Annotations():
         self.get_rater(rater_name)
 
         # create subtree
-        SubElement(self.rater, 'bookmarks')
+        SubElement(self.rater, 'markers')
         SubElement(self.rater, 'events')
         SubElement(self.rater, 'stages')
         self.create_epochs()
@@ -130,41 +118,58 @@ class Annotations():
 
     def remove_rater(self, rater_name):
         # remove one rater
-        pass
+        for rater in self.root.iterfind('rater'):
+            if rater.get('name') == rater_name:
 
-    def add_bookmark(self, name, time):
-        bookmarks = self.rater.find('bookmarks')
-        new_bookmark = SubElement(bookmarks, 'bookmark')
-        bookmark_name = SubElement(new_bookmark, 'name')
-        bookmark_name.text = name
-        bookmark_time = SubElement(new_bookmark, 'time')
-        bookmark_time.text = str(time)
+                # here we deal with the current rater
+                if rater is self.rater:
+                    all_raters = self.root.findall('rater')
+                    if len(all_raters) == 1:
+                        self.rater = None
+                    else:
+                        idx = all_raters.index(self.rater)
+                        idx -= 1  # select the previous rater
+                        if idx == -1:
+                            idx = 1  # rater to delete is 0
+                        self.rater = all_raters[idx]
+
+                self.root.remove(rater)
 
         self.save()
 
-    def remove_bookmark(self, name):
+    def add_marker(self, name, time):
+        markers = self.rater.find('markers')
+        new_marker = SubElement(markers, 'marker')
+        marker_name = SubElement(new_marker, 'name')
+        marker_name.text = name
+        marker_time = SubElement(new_marker, 'time')
+        marker_time.text = str(time)
+
+        self.save()
+
+    def remove_marker(self, name):
         # how to remove? Maybe unique ID
         pass
 
-    def get_bookmarks(self, win_interval=None):
-        # get bookmarks inside window
-        bookmarks = self.rater.find('bookmarks')
+    def get_markers(self, win_interval=None):
+        # get markers inside window
+        markers = self.rater.find('markers')
 
-        bm = []
-        for b in bookmarks:
+        mrks = []
+        for m in markers:
 
-            time = float(b.find('time').text)
+            time = float(m.find('time').text)
             if win_interval is None:
                 win_cond = True
             else:
                 win_cond = win_interval[0] <= time < win_interval[1]
 
             if win_cond:
-                one_bm = {'name': b.find('name').text,
-                          'time': time}
-                bm.append(one_bm)
+                one_mrk = {'name': m.find('name').text,
+                           'time': time}
+                mrks.append(one_mrk)
 
-        return bm
+        return mrks
 
     def add_event(self, name, time):
         events = self.rater.find('events')
