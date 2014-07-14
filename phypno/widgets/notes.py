@@ -165,8 +165,8 @@ class Notes(QWidget):
             string with the name of the sleep stage.
 
         """
-        window_start = self.parent.overview.config['window_start']
-        window_length = self.parent.overview.config['window_length']
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
 
         id_window = str(window_start)
         lg.info('User staged ' + id_window + ' as ' + STAGE_NAME[stage_idx])

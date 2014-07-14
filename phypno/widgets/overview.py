@@ -127,9 +127,6 @@ class Overview(QGraphicsView):
 
     def create_overview(self):
         """Define the area of QGraphicsView."""
-        x_scale = 1 / self.config.value['overview_scale']
-        lg.debug('Set scene x-scaling to {}'.format(x_scale))
-        self.scale(x_scale, 1)
         self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
     def update_overview(self):
@@ -138,17 +135,28 @@ class Overview(QGraphicsView):
         maximum = header['n_samples'] / header['s_freq']  # in s
         self.minimum = 0
         self.maximum = maximum
+
+        self.config.value['window_start'] = 0  # the only exception, start at zero
+
         self.display_overview()
 
     def display_overview(self):
         """Updates the widgets, especially based on length of recordings."""
         lg.debug('GraphicsScene is between {}s and {}s'.format(self.minimum,
                                                                self.maximum))
+
+        x_scale = 1 / self.config.value['overview_scale']
+        lg.debug('Set scene x-scaling to {}'.format(x_scale))
+
+        self.scale(1 / self.transform().m11(), 1)  # reset to 1
+        self.scale(x_scale, 1)
+
         self.scene = QGraphicsScene(self.minimum, 0,
                                     self.maximum,
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
+        lg.debug('WINDOW START ' + str(self.config.value['window_start']))
         self.idx_item['current'] = QGraphicsLineItem(self.config.value['window_start'], 0,
                                                      self.config.value['window_start'],
                                                      current_line_height)
@@ -164,7 +172,11 @@ class Overview(QGraphicsView):
         self.add_timestamps()
 
     def add_timestamps(self):
-        """Add timestamps at the bottom of the overview."""
+        """Add timestamps at the bottom of the overview.
+
+        TODO: to improve, don't rely on the hour
+
+        """
         start_time_dataset = self.parent.info.dataset.header['start_time']
         start_time = start_time_dataset + timedelta(seconds=self.minimum)
         first_hour = int(datetime(start_time.year, start_time.month,
