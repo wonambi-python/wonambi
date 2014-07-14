@@ -172,11 +172,6 @@ def create_actions(MAIN):
                                                 one_recent_rec))
         actions['recent_rec'].append(action_recent)
 
-    actions['new_annot'] = QAction('New Annotation File...', MAIN)
-    actions['new_annot'].triggered.connect(MAIN.action_new_annot)
-    actions['load_annot'] = QAction('Load Annotation File...', MAIN)
-    actions['load_annot'].triggered.connect(MAIN.action_load_annot)
-
     """ ------ OPEN SETTINGS ------ """
     actions['open_settings'] = QAction(QIcon(ICON['settings']),
                                        'Settings', MAIN)
@@ -234,6 +229,15 @@ def create_actions(MAIN):
     actions['Y_tighter'] = QAction(QIcon(ICON['ydist_less']),
                                    'Smaller Y Distance', MAIN)
     actions['Y_tighter'].triggered.connect(MAIN.action_Y_tighter)
+
+    """ ------ ANNOTATIONS ------ """
+    actions['new_annot'] = QAction('New Annotation File...', MAIN)
+    actions['new_annot'].triggered.connect(MAIN.action_new_annot)
+    actions['load_annot'] = QAction('Load Annotation File...', MAIN)
+    actions['load_annot'].triggered.connect(MAIN.action_load_annot)
+
+    actions['new_rater'] = QAction('New...', MAIN)
+    actions['new_rater'].triggered.connect(MAIN.action_select_rater)
 
 
 def create_menubar(MAIN):
@@ -325,6 +329,14 @@ def create_menubar(MAIN):
     menu_annot = menubar.addMenu('Annotations')
     menu_annot.addAction(actions['new_annot'])
     menu_annot.addAction(actions['load_annot'])
+    menu_annot.addSeparator()
+
+    submenu_rater = menu_annot.addMenu('Rater')
+    submenu_rater.addAction(actions['new_rater'])
+    if MAIN.notes.annot is not None:
+        for rater in sorted(MAIN.notes.annot.raters):
+            act = submenu_rater.addAction(rater)
+            act.triggered.connect(partial(MAIN.action_select_rater, rater))
     menu_annot.addSeparator()
 
     submenu_marker = menu_annot.addMenu('Marker')

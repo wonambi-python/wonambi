@@ -26,6 +26,8 @@ lg.setLevel(DEBUG)
 
 
 from os.path import dirname, basename, splitext
+from types import MethodType
+
 
 from numpy import arange
 from PyQt4.QtCore import QSettings
@@ -101,10 +103,17 @@ class MainWindow(QMainWindow):
         self.action = {}  # actions was already taken
         self.menu_window = None
 
-        create_widgets(self)
-        create_actions(self)
-        create_menubar(self)
-        create_toolbar(self)
+        # I prefer to have these functions in a separate module, for clarify
+        self.create_widgets = MethodType(create_widgets, self)
+        self.create_actions = MethodType(create_actions, self)
+        self.create_menubar = MethodType(create_menubar, self)
+        self.create_toolbar = MethodType(create_toolbar, self)
+
+        self.create_widgets()
+        self.create_actions()
+        self.create_menubar()
+        self.create_toolbar()
+
         self.statusBar()
 
         self.setWindowTitle('Scroll Data')
@@ -182,37 +191,32 @@ class MainWindow(QMainWindow):
         if self.spectrum.scene is not None:
             self.spectrum.scene.clear()
 
-    def action_new_annot(self):
-        """Action: create a new file for annotations.
+    def action_download(self, length=None):
+        """Start the download of the dataset."""
+        dataset = self.info.dataset
+        if length is None or length > self.overview.maximum:
+            length = self.overview.maximum
 
-        It should be gray-ed out when no dataset
-        """
-        if self.info.filename is None:
-            self.statusBar().showMessage('No dataset loaded')
-            return
+        steps = arange(self.overview.config.value['window_start'],
+                       self.overview.config.value['window_start'] + length,
+                       self.config.value['read_intervals'])
+        one_chan = dataset.header['chan_name'][0]
+        for begtime, endtime in zip(steps[:-1], steps[1:]):
+            dataset.read_data(chan=[one_chan],
+                              begtime=begtime,
+                              endtime=endtime)
+            self.overview.mark_downloaded(begtime, endtime)
 
-        filename = splitext(self.info.filename)[0] + '_scores.xml'
-        filename = QFileDialog.getSaveFileName(self, 'Create annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
-        if filename == '':
-            return
-
-        self.notes.update_notes(filename, True)
-
-    def action_load_annot(self):
-        """Action: load a file for annotations."""
-        if self.info.filename is not None:
-            filename = splitext(self.info.filename)[0] + '_scores.xml'
-        else:
-            filename = None
-        filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
-        if filename == '':
-            return
-
-        self.notes.update_notes(filename, False)
+    def action_show_settings(self):
+        """Open the Setting windows, after updating the values in GUI."""
+        self.config.set_values()
+        self.overview.config.set_values()
+        self.traces.config.set_values()
+        self.spectrum.config.set_values()
+        self.notes.config.set_values()
+        self.detect.config.set_values()
+        self.video.config.set_values()
+        self.settings.show()
 
     def action_step_prev(self):
         """Go to the previous step."""
@@ -290,32 +294,44 @@ class MainWindow(QMainWindow):
         self.traces.config.value['y_distance'] = new_y_distance
         self.traces.display_traces()
 
-    def action_download(self, length=None):
-        """Start the download of the dataset."""
-        dataset = self.info.dataset
-        if length is None or length > self.overview.maximum:
-            length = self.overview.maximum
+    def action_new_annot(self):
+        """Action: create a new file for annotations.
 
-        steps = arange(self.overview.config.value['window_start'],
-                       self.overview.config.value['window_start'] + length,
-                       self.config.value['read_intervals'])
-        one_chan = dataset.header['chan_name'][0]
-        for begtime, endtime in zip(steps[:-1], steps[1:]):
-            dataset.read_data(chan=[one_chan],
-                              begtime=begtime,
-                              endtime=endtime)
-            self.overview.mark_downloaded(begtime, endtime)
+        It should be gray-ed out when no dataset
+        """
+        if self.info.filename is None:
+            self.statusBar().showMessage('No dataset loaded')
+            return
 
-    def action_show_settings(self):
-        """Open the Setting windows, after updating the values in GUI."""
-        self.config.set_values()
-        self.overview.config.set_values()
-        self.traces.config.set_values()
-        self.spectrum.config.set_values()
-        self.notes.config.set_values()
-        self.detect.config.set_values()
-        self.video.config.set_values()
-        self.settings.show()
+        filename = splitext(self.info.filename)[0] + '_scores.xml'
+        filename = QFileDialog.getSaveFileName(self, 'Create annotation file',
+                                               filename,
+                                               'Annotation File (*.xml)')
+        if filename == '':
+            return
+
+        self.notes.update_notes(filename, True)
+
+    def action_load_annot(self):
+        """Action: load a file for annotations."""
+        if self.info.filename is not None:
+            filename = splitext(self.info.filename)[0] + '_scores.xml'
+        else:
+            filename = None
+        filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
+                                               filename,
+                                               'Annotation File (*.xml)')
+        if filename == '':
+            return
+
+        self.notes.update_notes(filename, False)
+
+    def action_select_rater(self, rater=None):
+
+        if rater is not None:
+            self.notes.notes.get_rater(rater)
+
+
 
     def moveEvent(self, event):
         """Main window is already resized."""

@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import timedelta
 
 from numpy import floor, ceil, asarray, empty
-from PyQt4.QtCore import QPointF, Qt
+from PyQt4.QtCore import QPointF
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
                          QGraphicsItem,
@@ -157,9 +157,6 @@ class Traces(QGraphicsView):
         self.add_time()
         self.add_traces()
 
-        if self.parent.bookmarks.bookmarks is not None:
-            self.add_bookmarks()
-
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
         self.parent.info.update_traces_info()
@@ -256,26 +253,6 @@ class Traces(QGraphicsView):
             ratio = self.width() / (self.scene.width() * 1.1)
             self.resetTransform()
             self.scale(ratio, 1)
-
-    def add_bookmarks(self):
-        """Add bookmarks on top of first plot."""
-        bookmarks = self.parent.bookmarks.bookmarks
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
-        window_end = window_start + window_length
-        time_height = max([x.boundingRect().height() for x in self.idx_time])
-
-        for bm in bookmarks:
-            if window_start <= bm['time'] <= window_end:
-                lg.debug('Adding bookmark {} at {}'.format(bm['name'],
-                                                           bm['time']))
-                item = QGraphicsSimpleTextItem(bm['name'])
-                item.setPos(bm['time'],
-                            len(self.idx_label) * self.config.value['y_distance'] -
-                            time_height)
-                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                item.setPen(QPen(Qt.red))
-                self.scene.addItem(item)
 
 
 def _create_data_to_plot(data, chan_groups):

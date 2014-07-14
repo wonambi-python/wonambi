@@ -210,7 +210,8 @@ class Overview(QGraphicsView):
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
             self.config.value['window_start'] = new_position
-            self.idx_item['current'].setPos(self.config.value['window_start'], 0)
+            self.idx_item['current'].setPos(self.config.value['window_start'],
+                                            0)
 
             header = self.parent.info.dataset.header
             current_time = (header['start_time'] +
@@ -218,77 +219,13 @@ class Overview(QGraphicsView):
             msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
             self.parent.statusBar().showMessage(msg)
         else:
-            lg.debug('Updating position at {}'.format(self.config.value['window_start']))
+            lg.debug('Updating position at {}'
+                     ''.format(self.config.value['window_start']))
 
         self.parent.traces.update_traces()
         self.parent.spectrum.display_spectrum()
-        if self.parent.notes.scores is not None:
+        if self.parent.notes.annot is not None:
             self.parent.notes.set_combobox_index()
-
-    def mark_markers(self):
-        """Mark all the markers.
-
-        Notes
-        -----
-        Markers at the moment are only marked once, when the file is read.
-        So, we plot them all at the same time. In the future, we might want to
-        add markers, so we need to re-write this function like mark_stage
-        where you only add markers as you need them.
-
-        """
-        markers = self.parent.markers.markers
-        for mrk in markers:
-            self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
-                               mrk['time'],
-                               BARS['marker']['pos0'] +
-                               BARS['marker']['pos1'])
-
-    def mark_stages(self, start_time, length, stage_name):
-        """Mark stages, only add the new ones.
-
-        Parameters
-        ----------
-        start_time : int
-            start time in s of the epoch being scored.
-        length : int
-           duration in s of the epoch being scored.
-        stage_name : str
-            one of the stages defined in global stages.
-
-        """
-        y_pos = BARS['stage']['pos0']
-
-        # sum of pos0 and pos1 should always be the same, but better be safe
-        print('look for item at x={}, y={}'.format(start_time,
-                                                   y_pos +
-                                                   STAGES[stage_name]['pos0'] +
-                                                   STAGES[stage_name]['pos1']))
-        # the -1 is really important, otherwise we stay on the edge of the rect
-        old_score = self.scene.itemAt(start_time + length / 2,
-                                      y_pos +
-                                      STAGES[stage_name]['pos0'] +
-                                      STAGES[stage_name]['pos1'] - 1)
-
-        # check we are not removing the black border
-        if old_score is not None and old_score.pen() == NoPen:
-            lg.debug('Removing old score at {}'.format(start_time))
-            self.scene.removeItem(old_score)
-
-        lg.debug('Adding score {} at {} s'.format(stage_name, start_time))
-        rect = QGraphicsRectItem(start_time,
-                                 y_pos + STAGES[stage_name]['pos0'],
-                                 length,
-                                 STAGES[stage_name]['pos1'])
-        print('score at x={}-{}, y={}-{}'.format(start_time,
-                                                 start_time + length,
-                                                 y_pos +
-                                                 STAGES[stage_name]['pos0'],
-                                                 y_pos +
-                                                 STAGES[stage_name]['pos0'] +
-                                                 STAGES[stage_name]['pos1']))
-        rect.setPen(NoPen)
-        rect.setBrush(STAGES[stage_name]['color'])
-        self.scene.addItem(rect)
 
     def mark_downloaded(self, start_value, end_value):
         """Set the value of the progress bar.
