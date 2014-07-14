@@ -156,7 +156,6 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        lg.debug('WINDOW START ' + str(self.config.value['window_start']))
         self.idx_item['current'] = QGraphicsLineItem(self.config.value['window_start'], 0,
                                                      self.config.value['window_start'],
                                                      current_line_height)
@@ -170,6 +169,9 @@ class Overview(QGraphicsView):
             self.scene.addItem(self.idx_item[name])
 
         self.add_timestamps()
+
+        if self.parent.notes.annot is not None:
+            self.parent.notes.display_notes()
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview.
@@ -238,6 +240,53 @@ class Overview(QGraphicsView):
         self.parent.spectrum.display_spectrum()
         if self.parent.notes.annot is not None:
             self.parent.notes.set_combobox_index()
+
+    def mark_stages(self, start_time, length, stage_name):
+        """Mark stages, only add the new ones.
+
+        Parameters
+        ----------
+        start_time : int
+            start time in s of the epoch being scored.
+        length : int
+           duration in s of the epoch being scored.
+        stage_name : str
+            one of the stages defined in global stages.
+
+        """
+        y_pos = BARS['stage']['pos0']
+
+        # sum of pos0 and pos1 should always be the same, but better be safe
+        print('look for item at x={}, y={}'.format(start_time,
+                                                   y_pos +
+                                                   STAGES[stage_name]['pos0'] +
+                                                   STAGES[stage_name]['pos1']))
+        # the -1 is really important, otherwise we stay on the edge of the rect
+        old_score = self.scene.itemAt(start_time + length / 2,
+                                      y_pos +
+                                      STAGES[stage_name]['pos0'] +
+                                      STAGES[stage_name]['pos1'] - 1)
+
+        # check we are not removing the black border
+        if old_score is not None and old_score.pen() == NoPen:
+            lg.debug('Removing old score at {}'.format(start_time))
+            self.scene.removeItem(old_score)
+
+        lg.debug('Adding score {} at {} s'.format(stage_name, start_time))
+        rect = QGraphicsRectItem(start_time,
+                                 y_pos + STAGES[stage_name]['pos0'],
+                                 length,
+                                 STAGES[stage_name]['pos1'])
+        print('score at x={}-{}, y={}-{}'.format(start_time,
+                                                 start_time + length,
+                                                 y_pos +
+                                                 STAGES[stage_name]['pos0'],
+                                                 y_pos +
+                                                 STAGES[stage_name]['pos0'] +
+                                                 STAGES[stage_name]['pos1']))
+        rect.setPen(NoPen)
+        rect.setBrush(STAGES[stage_name]['color'])
+        self.scene.addItem(rect)
 
     def mark_downloaded(self, start_value, end_value):
         """Set the value of the progress bar.

@@ -99,6 +99,7 @@ class Notes(QWidget):
         self.idx_event.setCheckable(True)
         self.idx_eventtype = QComboBox(self)
         self.idx_stage = QComboBox(self)
+        self.idx_stage.activated.connect(self.get_sleepstage)
 
         self.idx_annotations = QPushButton('Load Annotation File...')
         self.idx_annotations.clicked.connect(self.parent.action_load_annot)
@@ -156,6 +157,12 @@ class Notes(QWidget):
         except IndexError:
             self.idx_rater.setText('')
 
+        for epoch in self.annot.epochs:
+            self.parent.overview.mark_stages(epoch['start'],
+                                             epoch['end'] -
+                                             epoch['start'],
+                                             epoch['stage'])
+
     def get_sleepstage(self, stage_idx=None):
         """Get the sleep stage, using shortcuts or combobox.
 
@@ -168,20 +175,21 @@ class Notes(QWidget):
         window_start = self.parent.overview.config.value['window_start']
         window_length = self.parent.overview.config.value['window_length']
 
-        id_window = str(window_start)
-        lg.info('User staged ' + id_window + ' as ' + STAGE_NAME[stage_idx])
-        self.scores.set_stage_for_epoch(id_window, STAGE_NAME[stage_idx])
+        lg.info('User staged ' + str(window_start) + ' as ' +
+                STAGE_NAME[stage_idx])
+        self.annot.set_stage_for_epoch(window_start, STAGE_NAME[stage_idx])
         self.set_combobox_index()
-        #self.parent.overview.mark_stages(window_start, window_length,
-        #                                 STAGE_NAME[stage_idx])
+        self.parent.overview.mark_stages(window_start, window_length,
+                                         STAGE_NAME[stage_idx])
         self.parent.action_page_next()
 
     def set_combobox_index(self):
         """Set the current stage in combobox."""
-        window_start = self.parent.overview.config['window_start']
-        stage = self.annot.get_stage_for_epoch(str(window_start))
+        window_start = self.parent.overview.config.value['window_start']
+        stage = self.annot.get_stage_for_epoch(window_start)
         lg.debug('Set combobox at ' + stage)
         self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
+
 
 class Markers(QTableWidget):
     """Visualize markers.
