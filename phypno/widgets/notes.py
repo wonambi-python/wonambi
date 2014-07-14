@@ -9,22 +9,23 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import datetime, timedelta
-from math import floor
+from functools import partial
 from os.path import basename
 
 
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
+                         QComboBox,
                          QFormLayout,
                          QGroupBox,
                          QHBoxLayout,
+                         QIcon,
                          QLabel,
                          QListWidget,
                          QPushButton,
                          QTableView,
                          QTableWidget,
-                         QTableWidgetItem,
+                         QToolButton,
                          QWidget,
                          QVBoxLayout,
                          )
@@ -86,24 +87,43 @@ class Notes(QWidget):
         self.idx_annotations = None
         self.idx_rater = None
 
+        self.idx_event = None
+        self.idx_eventtype = None
+        self.idx_stage = None
+
         self.create_notes()
 
     def create_notes(self):
-        b0 = QGroupBox('Annotations')
-        form = QFormLayout()
-        b0.setLayout(form)
+
+        self.idx_event = QToolButton(self)
+        self.idx_event.setCheckable(True)
+        self.idx_eventtype = QComboBox(self)
+        self.idx_stage = QComboBox(self)
 
         self.idx_annotations = QPushButton('Load Annotation File...')
         self.idx_annotations.clicked.connect(self.parent.action_load_annot)
-        self.idx_rater = QLabel('Rater')
+        self.idx_rater = QLabel('')
 
+        form = QFormLayout()
         form.addRow('Annotations File:', self.idx_annotations)
         form.addRow('Rater:', self.idx_rater)
 
         layout = QVBoxLayout()
-        layout.addWidget(b0)
+        layout.addLayout(form)
 
         self.setLayout(layout)
+
+    def create_staging_actions(self):
+        """Create actions and shortcut to score sleep."""
+        actions = {}
+        for one_stage, one_shortcut in zip(STAGE_NAME, STAGE_SHORTCUT):
+            actions[one_stage] = QAction('Score as ' + one_stage, self.parent)
+            actions[one_stage].setShortcut(one_shortcut)
+            stage_idx = STAGE_NAME.index(one_stage)
+            actions[one_stage].triggered.connect(partial(self.get_sleepstage,
+                                                         stage_idx))
+            self.addAction(actions[one_stage])
+        self.action = actions
 
     def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.
@@ -121,6 +141,11 @@ class Notes(QWidget):
             self.annot = Annotations(xml_file)
 
         self.parent.create_menubar()
+        self.idx_stage.clear()
+        for one_stage in STAGE_NAME:
+            self.idx_stage.addItem(one_stage)
+        self.idx_stage.setCurrentIndex(-1)
+
         self.display_notes()
 
     def display_notes(self):
@@ -131,6 +156,32 @@ class Notes(QWidget):
         except IndexError:
             self.idx_rater.setText('')
 
+    def get_sleepstage(self, stage_idx=None):
+        """Get the sleep stage, using shortcuts or combobox.
+
+        Parameters
+        ----------
+        stage : str
+            string with the name of the sleep stage.
+
+        """
+        window_start = self.parent.overview.config['window_start']
+        window_length = self.parent.overview.config['window_length']
+
+        id_window = str(window_start)
+        lg.info('User staged ' + id_window + ' as ' + STAGE_NAME[stage_idx])
+        self.scores.set_stage_for_epoch(id_window, STAGE_NAME[stage_idx])
+        self.set_combobox_index()
+        #self.parent.overview.mark_stages(window_start, window_length,
+        #                                 STAGE_NAME[stage_idx])
+        self.parent.action_page_next()
+
+    def set_combobox_index(self):
+        """Set the current stage in combobox."""
+        window_start = self.parent.overview.config['window_start']
+        stage = self.annot.get_stage_for_epoch(str(window_start))
+        lg.debug('Set combobox at ' + stage)
+        self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
 
 class Markers(QTableWidget):
     """Visualize markers.
@@ -188,3 +239,6 @@ class Events(QWidget):
 
     def display_events(self):
         pass
+
+
+

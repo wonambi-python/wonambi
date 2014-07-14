@@ -49,6 +49,8 @@ ICON = {'open_rec': join(icon_path, 'document-open.png'),
         'widget': join(icon_path, 'window-duplicate.png'),
         'settings': join(icon_path, 'configure.png'),
         'quit': join(icon_path, 'window-close.png'),
+        'marker': join(icon_path, 'bookmarks-organize.png'),
+        'event': join(icon_path, 'edit-table-cell-merge.png'),
         }
 
 
@@ -243,6 +245,8 @@ def create_actions(MAIN):
     actions['del_rater'] = QAction('Delete...', MAIN)
     actions['del_rater'].triggered.connect(MAIN.action_delete_rater)
 
+    actions['new_marker'] = QAction(QIcon(ICON['marker']), 'New Marker', MAIN)
+
 
 def create_menubar(MAIN):
     """Create the whole menubar, based on actions."""
@@ -348,12 +352,10 @@ def create_menubar(MAIN):
 
     submenu_marker = menu_annot.addMenu('Marker')
     submenu_marker.addAction('New Marker')
-    submenu_marker.addAction('Edit Marker')
     submenu_marker.addAction('Delete Marker')
 
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction('New Event')
-    submenu_event.addAction('Edit Event')
     submenu_event.addAction('Delete Event')
 
     submenu_stage = menu_annot.addMenu('Stage')
@@ -392,3 +394,14 @@ def create_toolbar(MAIN):
     toolbar.addAction(actions['Y_more'])
     toolbar.addAction(actions['Y_wider'])
     toolbar.addAction(actions['Y_tighter'])
+
+    toolbar = MAIN.addToolBar('Annotations')
+    toolbar.setObjectName('Annotations')
+    toolbar.addAction(actions['new_marker'])
+    MAIN.notes.idx_event.setIcon(QIcon(ICON['event']))
+    toolbar.addSeparator()
+    toolbar.addWidget(MAIN.notes.idx_event)
+    toolbar.addWidget(MAIN.notes.idx_eventtype)
+    toolbar.addSeparator()
+    toolbar.addWidget(MAIN.notes.idx_stage)
+

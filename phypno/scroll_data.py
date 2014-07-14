@@ -24,10 +24,8 @@ lg.addHandler(handler)
 
 lg.setLevel(DEBUG)
 
-
 from os.path import dirname, basename, splitext
 from types import MethodType
-
 
 from numpy import arange
 from PyQt4.QtCore import QSettings

@@ -14,6 +14,7 @@ from PyQt4.QtGui import (QMessageBox,
 
 from .settings import Config, FormInt, FormList, FormStr, FormFloat
 
+
 config = QSettings("phypno", "scroll_data")
 
 
@@ -150,3 +151,4 @@ def choose_file_or_dir():
         return 'file'
     else:
         return 'abort'
+
