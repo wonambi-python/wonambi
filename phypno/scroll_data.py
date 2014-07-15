@@ -53,9 +53,6 @@ class MainWindow(QMainWindow):
     ----------
     preferences : instance of phypno.widgets.Preferences
 
-    idx_docks : dict
-        pointers to dockwidgets, to show or hide them.
-
     notes : instance of phypno.widgets.Notes
 
     channels : instance of phypno.widgets.Channels
@@ -84,15 +81,16 @@ class MainWindow(QMainWindow):
 
         self.config = ConfigUtils(self.update_mainwindow)
 
-        self.idx_docks = {}
-        self.notes = None
-        self.channels = None
-        self.detect = None
         self.info = None
-        self.overview = None
+        self.channels = None
         self.spectrum = None
-        self.traces = None
+        self.overview = None
+        self.notes = None
+        self.detect = None
         self.video = None
+        self.traces = None
+        self.settings = None
+
         self.action = {}  # actions was already taken
         self.menu_window = None
 
@@ -109,7 +107,7 @@ class MainWindow(QMainWindow):
 
         self.statusBar()
 
-        self.setWindowTitle('PHYPNO v ' + str(VERSION))
+        self.setWindowTitle('PHYPNO v' + str(VERSION))
         self.set_geometry()
         window_state = settings.value('window/state')
         if window_state is not None:

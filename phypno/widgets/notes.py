@@ -9,9 +9,10 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from functools import partial
-from os.path import basename
 from datetime import timedelta, datetime
+from functools import partial
+from math import floor
+from os.path import basename
 
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
@@ -91,6 +92,7 @@ class Notes(QTabWidget):
         self.idx_stage = None
 
         self.create_notes()
+        self.create_staging_actions()
 
     def create_notes(self):
 
@@ -119,7 +121,7 @@ class Notes(QTabWidget):
         tab1.horizontalHeader().setStretchLastSection(True)
         tab1.setSelectionBehavior(QAbstractItemView.SelectRows)
         tab1.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        # double-click action
+        tab1.cellDoubleClicked.connect(self.go_to_marker)
 
         """ ------ EVENTS ------ """
         tab2 = QWidget()
@@ -242,6 +244,21 @@ class Notes(QTabWidget):
 
         self.parent.traces.mark_markers()
         self.parent.overview.mark_markers()
+
+    def go_to_marker(self, row, col):
+        """Move to point in time marked by the marker.
+
+        Parameters
+        ----------
+        row : QtCore.int
+
+        column : QtCore.int
+
+        """
+        window_length = self.parent.overview.config.value['window_length']
+        marker_time = self.dataset_markers[row]['time']
+        window_start = floor(marker_time / window_length) * window_length
+        self.parent.overview.update_position(window_start)
 
     def get_sleepstage(self, stage_idx=None):
         """Get the sleep stage, using shortcuts or combobox.

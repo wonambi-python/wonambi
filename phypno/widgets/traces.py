@@ -156,8 +156,7 @@ class Traces(QGraphicsView):
         self.add_labels()
         self.add_time()
         self.add_traces()
-        if self.parent.notes.annot is not None:
-            self.mark_markers()
+        self.mark_markers()
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)

@@ -114,7 +114,7 @@ def create_widgets(MAIN):
                  ]
 
     """ ------ CREATE DOCKWIDGETS ------ """
-    MAIN.idx_docks = {}
+    idx_docks = {}
     actions = MAIN.action
 
     actions['dockwidgets'] = []
@@ -124,7 +124,7 @@ def create_widgets(MAIN):
         dockwidget.setAllowedAreas(dock['main_area'] | dock['extra_area'])
         dockwidget.setObjectName(dock['name'])  # savestate
 
-        MAIN.idx_docks[dock['name']] = dockwidget
+        idx_docks[dock['name']] = dockwidget
         MAIN.addDockWidget(dock['main_area'], dockwidget)
 
         dockwidget_action = dockwidget.toggleViewAction()
@@ -133,13 +133,13 @@ def create_widgets(MAIN):
         actions['dockwidgets'].append(dockwidget_action)
 
     """ ------ ORGANIZE DOCKWIDGETS ------ """
-    MAIN.tabifyDockWidget(MAIN.idx_docks['Information'],
-                          MAIN.idx_docks['Video'])
-    MAIN.idx_docks['Information'].raise_()
+    MAIN.tabifyDockWidget(idx_docks['Information'],
+                          idx_docks['Video'])
+    idx_docks['Information'].raise_()
 
-    MAIN.tabifyDockWidget(MAIN.idx_docks['Annotations'],
-                          MAIN.idx_docks['Detect'])
-    MAIN.idx_docks['Annotations'].raise_()
+    MAIN.tabifyDockWidget(idx_docks['Annotations'],
+                          idx_docks['Detect'])
+    idx_docks['Annotations'].raise_()
 
 
 def create_actions(MAIN):
@@ -235,9 +235,10 @@ def create_actions(MAIN):
                                    MAIN)
     actions['new_event'].setCheckable(True)
 
-    marker_group = QActionGroup(MAIN)
-    marker_group.addAction(actions['new_marker'])
-    marker_group.addAction(actions['new_event'])
+    uncheck_new_event = lambda: actions['new_event'].setChecked(False)
+    uncheck_new_marker = lambda: actions['new_marker'].setChecked(False)
+    actions['new_event'].triggered.connect(uncheck_new_marker)
+    actions['new_marker'].triggered.connect(uncheck_new_event)
 
 
 def create_menubar(MAIN):
@@ -351,7 +352,7 @@ def create_menubar(MAIN):
     submenu_event.addAction('Delete Event (TODO)')
 
     submenu_stage = menu_annot.addMenu('Stage')
-    submenu_stage.addAction('Select stage (TODO)')
+    submenu_stage.addActions(MAIN.notes.actions())
 
     menu_window = menubar.addMenu('Windows')
     for dockwidget_act in actions['dockwidgets']:
