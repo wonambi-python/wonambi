@@ -241,6 +241,17 @@ class Overview(QGraphicsView):
         if self.parent.notes.annot is not None:
             self.parent.notes.set_combobox_index()
 
+    def mark_markers(self):
+        """Mark all the markers.
+
+        """
+        markers = self.parent.notes.annot.get_markers()
+        for mrk in markers:
+            self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
+                               mrk['time'],
+                               BARS['marker']['pos0'] +
+                               BARS['marker']['pos1'])
+
     def mark_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
 

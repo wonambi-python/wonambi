@@ -19,13 +19,13 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QFormLayout,
                          QGroupBox,
                          QHBoxLayout,
-                         QIcon,
+                         QInputDialog,
                          QLabel,
                          QListWidget,
                          QPushButton,
                          QTableView,
                          QTableWidget,
-                         QToolButton,
+                         QTabWidget,
                          QWidget,
                          QVBoxLayout,
                          )
@@ -62,7 +62,7 @@ class ConfigNotes(Config):
         self.setLayout(main_layout)
 
 
-class Notes(QWidget):
+class Notes(QTabWidget):
     """Widget that contains information about sleep scoring.
 
     Attributes
@@ -87,6 +87,7 @@ class Notes(QWidget):
         self.idx_annotations = None
         self.idx_rater = None
 
+        self.idx_marker = None
         self.idx_event = None
         self.idx_eventtype = None
         self.idx_stage = None
@@ -95,8 +96,8 @@ class Notes(QWidget):
 
     def create_notes(self):
 
-        self.idx_event = QToolButton(self)
-        self.idx_event.setCheckable(True)
+        """ ------ ANNOTATIONS ------ """
+        tab0 = QWidget()
         self.idx_eventtype = QComboBox(self)
         self.idx_stage = QComboBox(self)
         self.idx_stage.activated.connect(self.get_sleepstage)
@@ -106,13 +107,35 @@ class Notes(QWidget):
         self.idx_rater = QLabel('')
 
         form = QFormLayout()
+        tab0.setLayout(form)
+
         form.addRow('Annotations File:', self.idx_annotations)
         form.addRow('Rater:', self.idx_rater)
 
-        layout = QVBoxLayout()
-        layout.addLayout(form)
+        """ ------ MARKERS ------ """
+        tab1 = QTableWidget()
 
-        self.setLayout(layout)
+        tab1.setColumnCount(2)
+        tab1.setHorizontalHeaderLabels(['Time', 'Text'])
+        tab1.horizontalHeader().setStretchLastSection(True)
+        tab1.setSelectionBehavior(QAbstractItemView.SelectRows)
+        tab1.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        # double-click action
+
+        """ ------ EVENTS ------ """
+        tab2 = QWidget()
+        self.idx_events = QListWidget()
+        self.idx_event_list = QTableView()
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.idx_events)
+        layout.addWidget(self.idx_event_list)
+        tab2.setLayout(layout)
+
+        """ ------ TABS ------ """
+        self.addTab(tab0, 'Info')
+        self.addTab(tab1, 'Markers')
+        self.addTab(tab2, 'Events')
 
     def create_staging_actions(self):
         """Create actions and shortcut to score sleep."""
@@ -150,18 +173,39 @@ class Notes(QWidget):
         self.display_notes()
 
     def display_notes(self):
-        """Display information about scores and raters."""
+        """Display information about scores and raters.
+
+        This function is called by overview.display_overview and it ends up
+        calling the functions in overview. But conceptually it belongs here.
+
+        """
         self.idx_annotations.setText(basename(self.annot.xml_file))
         try:
             self.idx_rater.setText(self.annot.current_rater)
+
+            self.parent.traces.mark_markers()
+            self.parent.overview.mark_markers()
+
+            for epoch in self.annot.epochs:
+                self.parent.overview.mark_stages(epoch['start'],
+                                                 epoch['end'] -
+                                                 epoch['start'],
+                                                 epoch['stage'])
+
         except IndexError:
             self.idx_rater.setText('')
 
-        for epoch in self.annot.epochs:
-            self.parent.overview.mark_stages(epoch['start'],
-                                             epoch['end'] -
-                                             epoch['start'],
-                                             epoch['stage'])
+    def add_marker(self, time):
+
+        answer = QInputDialog.getText(self, 'New Marker',
+                                      'Enter marker\'s name')
+        if answer[1]:
+            name = answer[0]
+            self.annot.add_marker(name, time)
+            lg.info('Added Marker ' + name + 'at ' + str(time))
+
+        self.parent.traces.mark_markers()
+        self.parent.overview.mark_markers()
 
     def get_sleepstage(self, stage_idx=None):
         """Get the sleep stage, using shortcuts or combobox.
@@ -189,64 +233,3 @@ class Notes(QWidget):
         stage = self.annot.get_stage_for_epoch(window_start)
         lg.debug('Set combobox at ' + stage)
         self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
-
-
-class Markers(QTableWidget):
-    """Visualize markers.
-
-    Attributes
-    ----------
-    parent : instance of QMainWindow
-        the main window.
-    markers : list of dict
-        each dict contains time (in s from beginning of file) and name
-
-    """
-    def __init__(self, parent):
-        super().__init__()
-
-        self.parent = parent
-
-        self.setColumnCount(2)
-        self.setHorizontalHeaderLabels(['Time', 'Text'])
-        self.horizontalHeader().setStretchLastSection(True)
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        # TODO: doubleclick
-
-    def update_markers(self, header):
-        """Update the markers info."""
-        self.display_markers()
-
-    def display_markers(self):
-        """Update the table with markers."""
-        pass
-
-
-class Events(QWidget):
-    """
-
-    """
-    def __init__(self, parent):
-        super().__init__()
-
-        self.parent = parent
-        self.idx_stages = QListWidget()
-        self.idx_table = QTableView()
-
-        layout = QHBoxLayout()
-        layout.addWidget(self.idx_stages)
-        layout.addWidget(self.idx_table)
-        self.setLayout(layout)
-
-    def update_events(self):
-        """
-
-        """
-        self.display_events()
-
-    def display_events(self):
-        pass
-
-
-

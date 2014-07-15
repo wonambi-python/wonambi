@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import timedelta
 
 from numpy import floor, ceil, asarray, empty
-from PyQt4.QtCore import QPointF
+from PyQt4.QtCore import QPointF, Qt
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
                          QGraphicsItem,
@@ -156,6 +156,8 @@ class Traces(QGraphicsView):
         self.add_labels()
         self.add_time()
         self.add_traces()
+        if self.parent.notes.annot is not None:
+            self.mark_markers()
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
@@ -228,6 +230,42 @@ class Traces(QGraphicsView):
                 path.setPen(QPen(one_grp['color']))
                 path.setPos(0, self.config.value['y_distance'] * row + self.config.value['y_distance'] / 2)
                 row += 1
+
+    def mark_markers(self):
+        """Add bookmarks on top of first plot."""
+        if self.scene is None:
+            return
+
+        markers = self.parent.notes.annot.get_markers()
+        window_start = self.parent.overview.config.value['window_start']
+        window_length = self.parent.overview.config.value['window_length']
+        window_end = window_start + window_length
+        time_height = max([x.boundingRect().height() for x in self.idx_time])
+
+        for mrk in markers:
+            if window_start <= mrk['time'] <= window_end:
+                lg.debug('Adding bookmark {} at {}'.format(mrk['name'],
+                                                           mrk['time']))
+                item = QGraphicsSimpleTextItem(mrk['name'])
+                item.setPos(mrk['time'],
+                            len(self.idx_label) * self.config.value['y_distance'] -
+                            time_height)
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                item.setPen(QPen(Qt.red))
+                self.scene.addItem(item)
+
+    def mousePressEvent(self, event):
+        """Jump to window when user clicks on overview.
+
+        Parameters
+        ----------
+        event : instance of QtCore.QEvent
+            it contains the position that was clicked.
+
+        """
+        if self.parent.action['new_marker'].isChecked():
+            x_in_scene = self.mapToScene(event.pos()).x()
+            self.parent.notes.add_marker(x_in_scene)
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.

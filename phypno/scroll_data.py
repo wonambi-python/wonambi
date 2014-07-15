@@ -43,7 +43,7 @@ from phypno.widgets.utils import (keep_recent_recordings,
                                   ConfigUtils)
 
 
-VERSION = 1
+VERSION = 9
 
 
 class MainWindow(QMainWindow):
@@ -57,10 +57,6 @@ class MainWindow(QMainWindow):
         pointers to dockwidgets, to show or hide them.
 
     notes : instance of phypno.widgets.Notes
-
-    markers : instance of phypno.widgets.Markers
-
-    events : instance of phypno.widgets.Events
 
     channels : instance of phypno.widgets.Channels
 
@@ -90,8 +86,6 @@ class MainWindow(QMainWindow):
 
         self.idx_docks = {}
         self.notes = None
-        self.markers = None
-        self.events = None
         self.channels = None
         self.detect = None
         self.info = None
@@ -115,7 +109,7 @@ class MainWindow(QMainWindow):
 
         self.statusBar()
 
-        self.setWindowTitle('Scroll Data')
+        self.setWindowTitle('PHYPNO v ' + str(VERSION))
         self.set_geometry()
         window_state = settings.value('window/state')
         if window_state is not None:
@@ -168,7 +162,8 @@ class MainWindow(QMainWindow):
         self.overview.update_overview()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
         try:
-            self.markers.update_markers(self.info.dataset.header)
+            pass
+            # TODO self.markers.update_markers(self.info.dataset.header)
         except (KeyError, ValueError):
             lg.info('No notes/markers present in the header of the file')
 
@@ -389,6 +384,8 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
+    q.action_open_rec('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
 
     if standalone:
         app.exec_()

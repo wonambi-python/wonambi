@@ -9,6 +9,7 @@ from os.path import dirname, join, realpath
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
+                         QActionGroup,
                          QDockWidget,
                          QIcon,
                          QKeySequence,
@@ -18,7 +19,7 @@ from .settings import Settings
 from .channels import Channels
 from .info import Info
 from .overview import Overview
-from .notes import Notes, Markers, Events
+from .notes import Notes
 from .traces import Traces
 from .detect import Detect
 from .spectrum import Spectrum
@@ -68,8 +69,6 @@ def create_widgets(MAIN):
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.notes = Notes(MAIN)
-    MAIN.markers = Markers(MAIN)
-    MAIN.events = Events(MAIN)
     MAIN.detect = Detect(MAIN)
     MAIN.video = Video(MAIN)
     MAIN.traces = Traces(MAIN)
@@ -95,16 +94,6 @@ def create_widgets(MAIN):
                   },
                  {'name': 'Annotations',
                   'widget': MAIN.notes,
-                  'main_area': Qt.LeftDockWidgetArea,
-                  'extra_area': Qt.RightDockWidgetArea,
-                  },
-                 {'name': 'Markers',
-                  'widget': MAIN.markers,
-                  'main_area': Qt.LeftDockWidgetArea,
-                  'extra_area': Qt.RightDockWidgetArea,
-                  },
-                 {'name': 'Events',
-                  'widget': MAIN.events,
                   'main_area': Qt.LeftDockWidgetArea,
                   'extra_area': Qt.RightDockWidgetArea,
                   },
@@ -150,10 +139,6 @@ def create_widgets(MAIN):
     MAIN.idx_docks['Information'].raise_()
 
     MAIN.tabifyDockWidget(MAIN.idx_docks['Annotations'],
-                          MAIN.idx_docks['Markers'])
-    MAIN.tabifyDockWidget(MAIN.idx_docks['Markers'],
-                          MAIN.idx_docks['Events'])
-    MAIN.tabifyDockWidget(MAIN.idx_docks['Events'],
                           MAIN.idx_docks['Detect'])
     MAIN.idx_docks['Annotations'].raise_()
 
@@ -246,6 +231,13 @@ def create_actions(MAIN):
     actions['del_rater'].triggered.connect(MAIN.action_delete_rater)
 
     actions['new_marker'] = QAction(QIcon(ICON['marker']), 'New Marker', MAIN)
+    actions['new_marker'].setCheckable(True)
+    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event', MAIN)
+    actions['new_event'].setCheckable(True)
+
+    marker_group = QActionGroup(MAIN)
+    marker_group.addAction(actions['new_marker'])
+    marker_group.addAction(actions['new_event'])
 
 
 def create_menubar(MAIN):
@@ -351,11 +343,11 @@ def create_menubar(MAIN):
     menu_annot.addSeparator()
 
     submenu_marker = menu_annot.addMenu('Marker')
-    submenu_marker.addAction('New Marker')
+    submenu_marker.addAction(actions['new_marker'])
     submenu_marker.addAction('Delete Marker')
 
     submenu_event = menu_annot.addMenu('Event')
-    submenu_event.addAction('New Event')
+    submenu_marker.addAction(actions['new_event'])
     submenu_event.addAction('Delete Event')
 
     submenu_stage = menu_annot.addMenu('Stage')
@@ -397,11 +389,10 @@ def create_toolbar(MAIN):
 
     toolbar = MAIN.addToolBar('Annotations')
     toolbar.setObjectName('Annotations')
+
     toolbar.addAction(actions['new_marker'])
-    MAIN.notes.idx_event.setIcon(QIcon(ICON['event']))
     toolbar.addSeparator()
-    toolbar.addWidget(MAIN.notes.idx_event)
+    toolbar.addAction(actions['new_event'])
     toolbar.addWidget(MAIN.notes.idx_eventtype)
     toolbar.addSeparator()
     toolbar.addWidget(MAIN.notes.idx_stage)
-
