@@ -232,7 +232,8 @@ def create_actions(MAIN):
 
     actions['new_marker'] = QAction(QIcon(ICON['marker']), 'New Marker', MAIN)
     actions['new_marker'].setCheckable(True)
-    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event', MAIN)
+    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event Type',
+                                   MAIN)
     actions['new_event'].setCheckable(True)
 
     marker_group = QActionGroup(MAIN)
@@ -344,11 +345,11 @@ def create_menubar(MAIN):
 
     submenu_marker = menu_annot.addMenu('Marker')
     submenu_marker.addAction(actions['new_marker'])
-    submenu_marker.addAction('Delete Marker')
+    submenu_marker.addAction('Delete Marker(TODO)')
 
     submenu_event = menu_annot.addMenu('Event')
-    submenu_marker.addAction(actions['new_event'])
-    submenu_event.addAction('Delete Event')
+    submenu_event.addAction(actions['new_event'])
+    submenu_event.addAction('Delete Event (TODO)')
 
     submenu_stage = menu_annot.addMenu('Stage')
     submenu_stage.addAction('Select stage (TODO)')

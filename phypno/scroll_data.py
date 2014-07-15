@@ -162,8 +162,7 @@ class MainWindow(QMainWindow):
         self.overview.update_overview()
         self.channels.update_channels(self.info.dataset.header['chan_name'])
         try:
-            pass
-            # TODO self.markers.update_markers(self.info.dataset.header)
+            self.notes.update_dataset_markers(self.info.dataset.header)
         except (KeyError, ValueError):
             lg.info('No notes/markers present in the header of the file')
 

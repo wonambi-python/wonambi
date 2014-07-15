@@ -236,23 +236,34 @@ class Traces(QGraphicsView):
         if self.scene is None:
             return
 
-        markers = self.parent.notes.annot.get_markers()
         window_start = self.parent.overview.config.value['window_start']
         window_length = self.parent.overview.config.value['window_length']
         window_end = window_start + window_length
         time_height = max([x.boundingRect().height() for x in self.idx_time])
 
-        for mrk in markers:
-            if window_start <= mrk['time'] <= window_end:
-                lg.debug('Adding bookmark {} at {}'.format(mrk['name'],
-                                                           mrk['time']))
-                item = QGraphicsSimpleTextItem(mrk['name'])
-                item.setPos(mrk['time'],
-                            len(self.idx_label) * self.config.value['y_distance'] -
-                            time_height)
-                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                item.setPen(QPen(Qt.red))
-                self.scene.addItem(item)
+        # TODO: don't repeat code twice
+        if self.parent.notes.annot is not None:
+            for mrk in self.parent.notes.annot.get_markers():
+                if window_start <= mrk['time'] <= window_end:
+                    item = QGraphicsSimpleTextItem(mrk['name'])
+                    item.setPos(mrk['time'],
+                                len(self.idx_label) *
+                                self.config.value['y_distance'] -
+                                time_height)
+                    item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                    item.setPen(QPen(Qt.red))
+                    self.scene.addItem(item)
+
+        if self.parent.notes.dataset_markers is not None:
+            for mrk in self.parent.notes.dataset_markers:
+                if window_start <= mrk['time'] <= window_end:
+                    item = QGraphicsSimpleTextItem(mrk['name'])
+                    item.setPos(mrk['time'],
+                                len(self.idx_label) *
+                                self.config.value['y_distance'] -
+                                time_height)
+                    item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                    self.scene.addItem(item)
 
     def mousePressEvent(self, event):
         """Jump to window when user clicks on overview.

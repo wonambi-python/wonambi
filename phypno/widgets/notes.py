@@ -11,7 +11,7 @@ lg = getLogger(__name__)
 
 from functools import partial
 from os.path import basename
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 from PyQt4.QtGui import (QAbstractItemView,
@@ -71,12 +71,7 @@ class Notes(QTabWidget):
     ----------
     parent : instance of QMainWindow
         the main window.
-    scores : instance of Scores
-        information about sleep staging
-    idx_filename : instance of QPushButton
-        push button to open a new file
-    idx_rater : instance of QLabel
-        widget wit the name of the rater
+
 
     """
     def __init__(self, parent):
@@ -85,6 +80,7 @@ class Notes(QTabWidget):
 
         self.config = ConfigNotes(lambda: None)
         self.annot = None
+        self.dataset_markers = None
 
         self.idx_annotations = None
         self.idx_rater = None
@@ -175,6 +171,21 @@ class Notes(QTabWidget):
 
         self.display_notes()
 
+    def update_dataset_markers(self, header):
+        """TODO: specific to Ktlx, check for all the markers/triggers."""
+        markers = []
+        splitted = header['orig']['notes'].split('\n')
+        for mrk in splitted:
+            values = mrk.split(',')
+            mrk_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S')
+            mrk_sec = (mrk_time - header['start_time']).total_seconds()
+
+            markers.append({'time': mrk_sec,
+                            'name': ','.join(values[2:])
+                            })
+        self.dataset_markers = markers
+        self.parent.overview.mark_markers()
+
     def display_notes(self):
         """Display information about scores and raters.
 
@@ -211,7 +222,12 @@ class Notes(QTabWidget):
     def mark_markers(self):
 
         start_time = self.parent.info.dataset.header['start_time']
-        markers = self.annot.get_markers()
+        markers = []
+        if self.annot is not None:
+            # color
+            markers.extend(self.annot.get_markers())
+        if self.dataset_markers is not None:
+            markers.extend(self.dataset_markers)
 
         self.idx_marker.clear()  # TODO: keep selection?
 
