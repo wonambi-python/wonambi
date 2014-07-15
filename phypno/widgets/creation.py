@@ -16,6 +16,7 @@ from PyQt4.QtGui import (QAction,
                          )
 
 from .settings import Settings
+from .utils import keep_recent_recordings
 from .channels import Channels
 from .info import Info
 from .overview import Overview
@@ -24,8 +25,6 @@ from .traces import Traces
 from .detect import Detect
 from .spectrum import Spectrum
 from .video import Video
-
-from .utils import keep_recent_recordings
 
 HIDDEN_DOCKS = ['Detect']
 

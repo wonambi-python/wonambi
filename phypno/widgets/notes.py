@@ -13,7 +13,6 @@ from functools import partial
 from os.path import basename
 from datetime import timedelta, datetime
 
-
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
                          QComboBox,
@@ -35,6 +34,7 @@ from PyQt4.QtGui import (QAbstractItemView,
 from ..attr import Annotations, create_empty_annotations
 
 from .settings import Config, FormInt
+from .utils import short_strings
 
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
@@ -184,7 +184,7 @@ class Notes(QTabWidget):
                             'name': ','.join(values[2:])
                             })
         self.dataset_markers = markers
-        self.parent.overview.mark_markers()
+        self.mark_markers()
 
     def display_notes(self):
         """Display information about scores and raters.
@@ -193,7 +193,8 @@ class Notes(QTabWidget):
         calling the functions in overview. But conceptually it belongs here.
 
         """
-        self.idx_annotations.setText(basename(self.annot.xml_file))
+        short_xml_file = short_strings(basename(self.annot.xml_file))
+        self.idx_annotations.setText(short_xml_file)
         try:
             self.idx_rater.setText(self.annot.current_rater)
 

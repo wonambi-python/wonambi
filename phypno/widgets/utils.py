@@ -4,6 +4,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from math import ceil, floor
+
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QMessageBox,
                          QPainterPath,
@@ -14,6 +16,7 @@ from PyQt4.QtGui import (QMessageBox,
 
 from .settings import Config, FormInt, FormList, FormStr, FormFloat
 
+MAX_LENGTH = 20
 
 config = QSettings("phypno", "scroll_data")
 
@@ -152,3 +155,11 @@ def choose_file_or_dir():
     else:
         return 'abort'
 
+
+def short_strings(s, max_length=MAX_LENGTH):
+    if len(s) > max_length:
+        max_length -= 3  # dots
+        start = ceil(max_length / 2)
+        end = -floor(max_length / 2)
+        s = s[:start] + '...' + s[end:]
+    return s

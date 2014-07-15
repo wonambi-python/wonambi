@@ -15,6 +15,7 @@ from PyQt4.QtGui import (QFormLayout,
                          QWidget,
                          )
 from .. import Dataset
+from .utils import short_strings
 
 
 class Info(QWidget):
@@ -105,7 +106,8 @@ class Info(QWidget):
         header = self.dataset.header
 
         self.parent.setWindowTitle(basename(self.filename))
-        self.idx_text['filename'].setText(basename(self.filename))
+        short_filename = short_strings(basename(self.filename))
+        self.idx_text['filename'].setText(short_filename)
         self.idx_text['s_freq'].setText(str(header['s_freq']))
         self.idx_text['n_chan'].setText(str(len(header['chan_name'])))
         start_time = header['start_time'].strftime('%H:%M:%S')

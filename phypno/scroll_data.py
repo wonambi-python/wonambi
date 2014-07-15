@@ -179,6 +179,12 @@ class MainWindow(QMainWindow):
         if self.traces.scene is not None:
             self.traces.scene.clear()
 
+        # overview
+        if self.overview.scene is not None:
+            self.overview.scene.clear()
+
+        # TODO: channel selection?
+
         # spectrum
         self.spectrum.idx_chan.clear()
         if self.spectrum.scene is not None:
@@ -383,8 +389,6 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    q.action_open_rec('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
 
     if standalone:
         app.exec_()
