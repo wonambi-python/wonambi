@@ -11,6 +11,7 @@ lg = getLogger(__name__)
 
 from functools import partial
 from os.path import basename
+from datetime import timedelta
 
 
 from PyQt4.QtGui import (QAbstractItemView,
@@ -25,6 +26,7 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QPushButton,
                          QTableView,
                          QTableWidget,
+                         QTableWidgetItem,
                          QTabWidget,
                          QWidget,
                          QVBoxLayout,
@@ -89,7 +91,7 @@ class Notes(QTabWidget):
 
         self.idx_marker = None
         self.idx_event = None
-        self.idx_eventtype = None
+        self.idx_event_list = None
         self.idx_stage = None
 
         self.create_notes()
@@ -114,6 +116,7 @@ class Notes(QTabWidget):
 
         """ ------ MARKERS ------ """
         tab1 = QTableWidget()
+        self.idx_marker = tab1
 
         tab1.setColumnCount(2)
         tab1.setHorizontalHeaderLabels(['Time', 'Text'])
@@ -183,8 +186,7 @@ class Notes(QTabWidget):
         try:
             self.idx_rater.setText(self.annot.current_rater)
 
-            self.parent.traces.mark_markers()
-            self.parent.overview.mark_markers()
+            self.mark_markers()
 
             for epoch in self.annot.epochs:
                 self.parent.overview.mark_stages(epoch['start'],
@@ -203,6 +205,23 @@ class Notes(QTabWidget):
             name = answer[0]
             self.annot.add_marker(name, time)
             lg.info('Added Marker ' + name + 'at ' + str(time))
+
+        self.mark_markers()
+
+    def mark_markers(self):
+
+        start_time = self.parent.info.dataset.header['start_time']
+        markers = self.annot.get_markers()
+
+        self.idx_marker.clear()  # TODO: keep selection?
+
+        markers = sorted(markers, key=lambda x: x['time'])
+        self.idx_marker.setRowCount(len(markers))
+        for i, mrk in enumerate(markers):
+            abs_time = (start_time +
+                        timedelta(seconds=mrk['time'])).strftime('%H:%M:%S')
+            self.idx_marker.setItem(i, 0, QTableWidgetItem(abs_time))
+            self.idx_marker.setItem(i, 1, QTableWidgetItem(mrk['name']))
 
         self.parent.traces.mark_markers()
         self.parent.overview.mark_markers()

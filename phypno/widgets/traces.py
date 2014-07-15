@@ -265,7 +265,11 @@ class Traces(QGraphicsView):
         """
         if self.parent.action['new_marker'].isChecked():
             x_in_scene = self.mapToScene(event.pos()).x()
-            self.parent.notes.add_marker(x_in_scene)
+
+            # max resolution = sampling frequency
+            s_freq = self.data.s_freq
+            time = int(x_in_scene * s_freq) / s_freq
+            self.parent.notes.add_marker(time)
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
