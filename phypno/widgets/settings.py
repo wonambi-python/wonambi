@@ -23,6 +23,10 @@ from PyQt4.QtGui import (QCheckBox,
 settings = QSettings("phypno", "scroll_data")
 
 DEFAULTS = {}
+DEFAULTS['channels'] = {'hp': .5,
+                        'lp': 45,
+                        'color': 'black',
+                        }
 DEFAULTS['detect'] = {'spindle_method': 'UCSD',
                       }
 
@@ -100,8 +104,8 @@ class Settings(QDialog):
         page_list.setSpacing(1)
         page_list.currentRowChanged.connect(self.change_widget)
 
-        pages = ['General', 'Overview', 'Signals', 'Spectrum', 'Notes',
-                 'Detection', 'Video']
+        pages = ['General', 'Overview', 'Signals', 'Channels', 'Spectrum',
+                 'Notes', 'Detection', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
@@ -109,6 +113,7 @@ class Settings(QDialog):
         self.stacked.addWidget(self.parent.config)
         self.stacked.addWidget(self.parent.overview.config)
         self.stacked.addWidget(self.parent.traces.config)
+        self.stacked.addWidget(self.parent.channels.config)
         self.stacked.addWidget(self.parent.spectrum.config)
         self.stacked.addWidget(self.parent.notes.config)
         self.stacked.addWidget(self.parent.detect.config)

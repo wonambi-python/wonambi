@@ -4,15 +4,13 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from copy import deepcopy
-
 from PyQt4.QtGui import (QAbstractItemView,
                          QColor,
                          QColorDialog,
-                         QComboBox,
                          QFormLayout,
                          QGridLayout,
-                         QWidget,
+                         QGroupBox,
+                         QHBoxLayout,
                          QInputDialog,
                          QLineEdit,
                          QListWidget,
@@ -20,20 +18,49 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QPushButton,
                          QVBoxLayout,
                          QTabWidget,
-                         QHBoxLayout,
+                         QWidget
                          )
+
+
+from .settings import Config, FormFloat, FormStr
 
 
 EMPTY_FILTER = ('None', '', 'none', '0')
 
 
+class ConfigChannels(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('channels', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Channels')
+
+        self.index['hp'] = FormFloat()
+        self.index['lp'] = FormFloat()
+        self.index['color'] = FormStr()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Default High-Pass Filter', self.index['hp'])
+        form_layout.addRow('Default Low-Pass Filter', self.index['lp'])
+        form_layout.addRow('Default Color', self.index['color'])
+        box0.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
+
+
 class ChannelsGroup(QWidget):
-    def __init__(self, chan_name):  # TODO: pass config for default values
+    def __init__(self, chan_name, config):
         super().__init__()
 
         self.chan_name = chan_name
 
-        self.setProperty('color', QColor('black'))  # default: black lines
+        self.setProperty('color', QColor(config.value['color']))
 
         self.idx_l0 = QListWidget()
         self.idx_l1 = QListWidget()
@@ -41,8 +68,8 @@ class ChannelsGroup(QWidget):
         self.add_channels_to_list(self.idx_l0)
         self.add_channels_to_list(self.idx_l1)
 
-        self.idx_hp = QLineEdit('')
-        self.idx_lp = QLineEdit('')
+        self.idx_hp = QLineEdit(str(config.value['hp']))
+        self.idx_lp = QLineEdit(str(config.value['lp']))
         self.idx_scale = QLineEdit('1')
         self.idx_reref = QPushButton('Average')  # TODO: actually combobox
         self.idx_reref.clicked.connect(self.rereference)
@@ -152,6 +179,7 @@ class Channels(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.config = ConfigChannels(lambda: None)
 
         self.groups = []
         self.chan_name = None
@@ -185,13 +213,12 @@ class Channels(QWidget):
 
     def new_group(self):
         if self.chan_name is None:
-            # self.parent.statusBar().showMessage('No channels loaded')
-            pass
+            self.parent.statusBar().showMessage('No dataset loaded')
         else:
             new_name = QInputDialog.getText(self, 'New Channel Group',
                                             'Enter Name')
             if new_name[1]:
-                group = ChannelsGroup(self.chan_name)
+                group = ChannelsGroup(self.chan_name, self.config)
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
