@@ -6,6 +6,7 @@ lg = getLogger(__name__)
 
 from copy import deepcopy
 
+from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAbstractItemView,
                          QColor,
                          QColorDialog,
@@ -20,6 +21,8 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QListWidgetItem,
                          QPushButton,
                          QVBoxLayout,
+                         QTabWidget,
+                         QHBoxLayout,
                          )
 
 EMPTY_GROUP = {'name': 'General',
@@ -29,6 +32,85 @@ EMPTY_GROUP = {'name': 'General',
                'filter': {'low_cut': None, 'high_cut': None},
                'scale': 1}
 EMPTY_FILTER = ('None', '', 'none', '0')
+
+
+
+class ChannelsGroup(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.idx_l0 = QListWidget()
+        self.idx_l1 = QListWidget()
+
+        self.idx_hp = QLineEdit('')
+        self.idx_lp = QLineEdit('')
+        self.idx_scale = QLineEdit('')
+        self.idx_reref = QPushButton('Reref')  # actually combobox
+        self.idx_reref.clicked.connect(self.rereference)
+
+        l_form = QFormLayout()
+        l_form.addRow('High-Pass', self.idx_hp)
+        l_form.addRow('Low-Pass', self.idx_lp)
+
+        r_form = QFormLayout()
+        r_form.addRow('Scaling', self.idx_scale)
+        r_form.addRow('Reference', self.idx_reref)
+
+        l_layout = QHBoxLayout()
+        l_layout.addWidget(self.idx_l0)
+        l_layout.addWidget(self.idx_l1)
+
+        lr_form = QHBoxLayout()
+        lr_form.addLayout(l_form)
+        lr_form.addLayout(r_form)
+
+        layout = QVBoxLayout()
+        layout.addLayout(l_layout)
+        layout.addLayout(lr_form)
+
+        self.setLayout(layout)
+
+    def rereference(self):
+        pass
+
+
+class Channels(QWidget):
+
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+
+        self.create_channels()
+
+    def create_channels(self):
+
+        add_button = QPushButton('New')
+        add_button.clicked.connect(self.new_group)
+        del_button = QPushButton('Delete')
+        del_button.clicked.connect(self.del_group)
+
+        buttons = QHBoxLayout()
+        buttons.addWidget(add_button)
+        buttons.addWidget(del_button)
+
+        self.tabs = QTabWidget()
+
+        layout = QVBoxLayout()
+        layout.addLayout(buttons)
+        layout.addWidget(self.tabs)
+
+        self.setLayout(layout)
+
+    def new_group(self):
+        group = ChannelsGroup()
+        self.tabs.addTab(group, 'name')
+
+    def del_group(self):
+        idx = self.tabs.currentIndex()
+        self.tabs.removeTab(idx)
+
+q = Channels(None)
+q.show()
 
 
 class Channels(QWidget):
