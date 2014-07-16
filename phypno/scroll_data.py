@@ -43,7 +43,7 @@ from phypno.widgets.utils import (keep_recent_recordings,
                                   ConfigUtils)
 
 
-VERSION = 9
+VERSION = 9.1
 
 
 class MainWindow(QMainWindow):
@@ -176,12 +176,15 @@ class MainWindow(QMainWindow):
         # main
         if self.traces.scene is not None:
             self.traces.scene.clear()
+            self.traces.scene = None
 
         # overview
         if self.overview.scene is not None:
             self.overview.scene.clear()
+            self.overview.scene = None
 
-        # TODO: channel selection?
+        self.notes.reset()
+        self.channels.reset()
 
         # spectrum
         self.spectrum.idx_chan.clear()
@@ -315,9 +318,11 @@ class MainWindow(QMainWindow):
             filename = splitext(self.info.filename)[0] + '_scores.xml'
         else:
             filename = None
+
         filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
                                                filename,
                                                'Annotation File (*.xml)')
+
         if filename == '':
             return
 

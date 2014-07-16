@@ -125,8 +125,7 @@ class Traces(QGraphicsView):
                                  begtime=window_start,
                                  endtime=window_end)
 
-        self.data = _create_data_to_plot(data,
-                                         self.parent.channels.groups)
+        self.data = _create_data_to_plot(data, self.parent.channels.groups)
         self.display_traces()
         self.parent.overview.mark_downloaded(window_start, window_end)
 

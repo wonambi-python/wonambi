@@ -182,7 +182,9 @@ class Channels(QWidget):
         self.config = ConfigChannels(lambda: None)
 
         self.groups = []
-        self.chan_name = None
+        self.chan_name = []
+
+        self.tabs = None
 
         self.create_channels()
 
@@ -222,14 +224,20 @@ class Channels(QWidget):
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
+                self.apply()
+
     def color_group(self):
         group = self.tabs.currentWidget()
         newcolor = QColorDialog.getColor(group.property('color'))
         group.setProperty('color', newcolor)
 
+        self.apply()
+
     def del_group(self):
         idx = self.tabs.currentIndex()
         self.tabs.removeTab(idx)
+
+        self.apply()
 
     def apply(self):
         """Apply changes to the plots."""
@@ -254,3 +262,8 @@ class Channels(QWidget):
 
         """
         self.chan_name = chan_name
+
+    def reset(self):
+        self.chan_name = []
+        self.groups = []
+        self.tabs.clear()

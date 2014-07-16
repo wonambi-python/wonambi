@@ -72,6 +72,19 @@ class Annotations():
             f.write(xml.toxml())
 
     @property
+    def dataset(self):
+        xml_dataset = self.root.find('dataset')
+
+        start_time = datetime.strptime(xml_dataset.find('start_time').text,
+                                       '%Y-%m-%dT%H:%M:%S')
+        output = {'start_time': start_time,
+                  'first_second': int(xml_dataset.find('first_second').text),
+                  'last_second': int(xml_dataset.find('last_second').text)
+                  }
+
+        return output
+
+    @property
     def current_rater(self):
         try:
             return self.rater.get('name')
@@ -272,6 +285,23 @@ class Annotations():
         for epoch in self.epochs:
             if epoch['start'] == epoch_start:
                 return epoch['stage']
+
+    def time_in_stage(self, stage):
+        """Return time (in seconds) in the selected stage.
+
+        Parameters
+        ----------
+        stage : str
+            one of the sleep stages
+
+        Returns
+        -------
+        int
+            time spent in one stage, in seconds.
+
+        """
+        return sum(x['end'] - x['start'] for x in self.epochs
+                   if x['stage'] == stage)
 
     def set_stage_for_epoch(self, epoch_start, stage):
         """Change the stage for one specific epoch.

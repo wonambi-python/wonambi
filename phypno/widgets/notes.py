@@ -85,6 +85,7 @@ class Notes(QTabWidget):
 
         self.idx_annotations = None
         self.idx_rater = None
+        self.idx_stats = None
 
         self.idx_marker = None
         self.idx_event = None
@@ -106,11 +107,23 @@ class Notes(QTabWidget):
         self.idx_annotations.clicked.connect(self.parent.action_load_annot)
         self.idx_rater = QLabel('')
 
-        form = QFormLayout()
-        tab0.setLayout(form)
+        self.idx_stats = QFormLayout()
 
-        form.addRow('Annotations File:', self.idx_annotations)
+        b0 = QGroupBox('Info')
+        form = QFormLayout()
+        b0.setLayout(form)
+
+        form.addRow('File:', self.idx_annotations)
         form.addRow('Rater:', self.idx_rater)
+
+        b1 = QGroupBox('Recap')
+        b1.setLayout(self.idx_stats)
+
+        layout = QVBoxLayout()
+        layout.addWidget(b0)
+        layout.addWidget(b1)
+
+        tab0.setLayout(layout)
 
         """ ------ MARKERS ------ """
         tab1 = QTableWidget()
@@ -134,7 +147,7 @@ class Notes(QTabWidget):
         tab2.setLayout(layout)
 
         """ ------ TABS ------ """
-        self.addTab(tab0, 'Info')
+        self.addTab(tab0, 'Annotations')
         self.addTab(tab1, 'Markers')
         self.addTab(tab2, 'Events')
 
@@ -171,6 +184,9 @@ class Notes(QTabWidget):
             self.idx_stage.addItem(one_stage)
         self.idx_stage.setCurrentIndex(-1)
 
+        for one_stage in STAGE_NAME:
+            self.idx_stats.addRow(one_stage, QLabel(''))
+
         self.display_notes()
 
     def update_dataset_markers(self, header):
@@ -198,6 +214,10 @@ class Notes(QTabWidget):
         short_xml_file = short_strings(basename(self.annot.xml_file))
         self.idx_annotations.setText(short_xml_file)
         try:
+            # if annotations were loaded without dataset
+            if self.parent.overview.scene is None:
+                self.parent.overview.update_overview()
+
             self.idx_rater.setText(self.annot.current_rater)
 
             self.mark_markers()
@@ -208,8 +228,18 @@ class Notes(QTabWidget):
                                                  epoch['start'],
                                                  epoch['stage'])
 
+            self.display_recap()
+
         except IndexError:
             self.idx_rater.setText('')
+
+    def display_recap(self):
+        for i, one_stage in enumerate(STAGE_NAME):
+            second_in_stage = self.annot.time_in_stage(one_stage)
+            time_in_stage = str(timedelta(seconds=second_in_stage))
+
+            label = self.idx_stats.itemAt(i, QFormLayout.FieldRole).widget()
+            label.setText(time_in_stage)
 
     def add_marker(self, time):
 
@@ -224,7 +254,8 @@ class Notes(QTabWidget):
 
     def mark_markers(self):
 
-        start_time = self.parent.info.dataset.header['start_time']
+        start_time = self.parent.overview.start_time
+
         markers = []
         if self.annot is not None:
             # color
@@ -278,6 +309,7 @@ class Notes(QTabWidget):
         self.set_combobox_index()
         self.parent.overview.mark_stages(window_start, window_length,
                                          STAGE_NAME[stage_idx])
+        self.display_recap()
         self.parent.action_page_next()
 
     def set_combobox_index(self):
@@ -286,3 +318,7 @@ class Notes(QTabWidget):
         stage = self.annot.get_stage_for_epoch(window_start)
         lg.debug('Set combobox at ' + stage)
         self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
+
+    def reset(self):
+        self.annot = None
+        self.dataset_markers = None

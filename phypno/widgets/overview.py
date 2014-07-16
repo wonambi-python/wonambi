@@ -119,6 +119,7 @@ class Overview(QGraphicsView):
 
         self.minimum = None
         self.maximum = None
+        self.start_time = None  # datetime, absolute start time
 
         self.scene = None
         self.idx_item = {}
@@ -131,10 +132,20 @@ class Overview(QGraphicsView):
 
     def update_overview(self):
         """Read full duration and update maximum."""
-        header = self.parent.info.dataset.header
-        maximum = header['n_samples'] / header['s_freq']  # in s
-        self.minimum = 0
-        self.maximum = maximum
+        if self.parent.info.dataset is not None:
+            # read from the dataset, if available
+            header = self.parent.info.dataset.header
+            maximum = header['n_samples'] / header['s_freq']  # in s
+            self.minimum = 0
+            self.maximum = maximum
+            self.start_time = self.parent.info.dataset.header['start_time']
+
+        elif self.parent.notes.annot is not None:
+            # read from annotations
+            dataset = self.parent.notes.annot.dataset
+            self.minimum = dataset['first_second']
+            self.maximum = dataset['last_second']
+            self.start_time = dataset['start_time']
 
         self.config.value['window_start'] = 0  # the only exception, start at zero
 
@@ -179,13 +190,12 @@ class Overview(QGraphicsView):
         TODO: to improve, don't rely on the hour
 
         """
-        start_time_dataset = self.parent.info.dataset.header['start_time']
-        start_time = start_time_dataset + timedelta(seconds=self.minimum)
+        start_time = self.start_time + timedelta(seconds=self.minimum)
         first_hour = int(datetime(start_time.year, start_time.month,
                                   start_time.day,
                                   start_time.hour + 1).timestamp())
 
-        end_time = start_time_dataset + timedelta(seconds=self.maximum)
+        end_time = self.start_time + timedelta(seconds=self.maximum)
         last_hour = int(datetime(end_time.year, end_time.month,
                                  end_time.day,
                                  end_time.hour + 1).timestamp())
