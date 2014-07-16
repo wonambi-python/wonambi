@@ -1,8 +1,11 @@
 from . import *
 
-from PySide.QtGui import QApplication
+from PyQt4.QtGui import QApplication
 
 from phypno.scroll_data import MainWindow
+
+data_dir = '/home/gio/tools/phypno/data'
+from os.path import join
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')

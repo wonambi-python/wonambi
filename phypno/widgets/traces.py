@@ -52,8 +52,23 @@ class ConfigTraces(Config):
 
         box0.setLayout(form_layout)
 
+        box1 = QGroupBox('Current Window')
+        self.index['window_start'] = FormInt()
+        self.index['window_length'] = FormInt()
+        self.index['window_step'] = FormInt()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Window start time',
+                           self.index['window_start'])
+        form_layout.addRow('Window length',
+                           self.index['window_length'])
+        form_layout.addRow('Step size',
+                           self.index['window_step'])
+        box1.setLayout(form_layout)
+
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -159,7 +174,7 @@ class Traces(QGraphicsView):
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
-        self.parent.info.update_traces_info()
+        self.parent.info.display_view()
 
     def create_labels(self):
         """Create the channel labels, but don't plot them yet."""

@@ -5,17 +5,24 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import timedelta
-from os.path import basename
+from functools import partial
+from os.path import basename, dirname
 
-from PyQt4.QtGui import (QFormLayout,
+from PyQt4.QtGui import (QAction,
+                         QFormLayout,
                          QGroupBox,
+                         QIcon,
+                         QKeySequence,
                          QLabel,
+                         QFileDialog,
                          QPushButton,
                          QVBoxLayout,
                          QWidget,
                          )
+
 from .. import Dataset
-from .utils import short_strings
+from .utils import (short_strings, ICON, keep_recent_datasets,
+                    choose_file_or_dir)
 
 
 class Info(QWidget):
@@ -29,9 +36,8 @@ class Info(QWidget):
         the full path of the file.
     dataset : instance of phypno.Dataset
         the dataset already read in.
-    idx_text : dict of instances of QLabel/QPushButton
-        Elements where you should setText once dataset is loaded.
 
+    TODO
     """
     def __init__(self, parent):
         super().__init__()
@@ -40,33 +46,69 @@ class Info(QWidget):
         self.filename = None
         self.dataset = None
 
-        self.idx_text = {}
+        # about the recordings
+        self.idx_filename = None
+        self.idx_s_freq = None
+        self.idx_n_chan = None
+        self.idx_start_time = None
+        self.idx_end_time = None
+        # about the visualization
         self.idx_amplitude = None
         self.idx_distance = None
         self.idx_length = None
 
-        self.create_info()
+        self.create()
 
-    def create_info(self):
-        """Create the QFormLayout with all the information."""
+    @property
+    def action(self):
+        """Two actions associated with info/dataset.
+
+            open_dataset : to open a new dataset
+
+            open_recent : to open recent datasets
+
+        """
+        output = {}
+
+        act = QAction(QIcon(ICON['open_rec']), 'Open Dataset...', self)
+        act.setShortcut(QKeySequence.Open)
+        act.triggered.connect(self.open_dataset)
+        output['open_dataset'] = act
+
+        max_dataset_history = self.parent.config.value['max_dataset_history']
+        recent_recs = keep_recent_datasets(max_dataset_history)
+
+        act = []
+        for one_recent_rec in recent_recs:
+            act_recent = QAction(one_recent_rec, self)
+            act_recent.triggered.connect(partial(self.open_dataset,
+                                                 one_recent_rec))
+            act.append(act_recent)
+        output['open_recent'] = act
+
+        return output
+
+    def create(self):
+        """Create the QFormLayout with all the information.
+        """
         b0 = QGroupBox('Dataset')
         form = QFormLayout()
         b0.setLayout(form)
 
-        widget = QPushButton('Open Recording...')
-        widget.clicked.connect(self.parent.action_open_rec)
-        widget.setToolTip('Click here to open a new file')
-        self.idx_text['filename'] = widget
-        self.idx_text['s_freq'] = QLabel('')
-        self.idx_text['n_chan'] = QLabel('')
-        self.idx_text['start_time'] = QLabel('')
-        self.idx_text['end_time'] = QLabel('')
+        open_rec = QPushButton('Open Dataset...')
+        open_rec.clicked.connect(self.open_dataset)
+        open_rec.setToolTip('Click here to open a new recording')
+        self.idx_filename = open_rec
+        self.idx_s_freq = QLabel('')
+        self.idx_n_chan = QLabel('')
+        self.idx_start_time = QLabel('')
+        self.idx_end_time = QLabel('')
 
-        form.addRow('Filename:', self.idx_text['filename'])
-        form.addRow('Sampl. Freq:', self.idx_text['s_freq'])
-        form.addRow('N. Channels:', self.idx_text['n_chan'])
-        form.addRow('Start Time: ', self.idx_text['start_time'])
-        form.addRow('End Time: ', self.idx_text['end_time'])
+        form.addRow('Filename:', self.idx_filename)
+        form.addRow('Sampl. Freq:', self.idx_s_freq)
+        form.addRow('N. Channels:', self.idx_n_chan)
+        form.addRow('Start Time: ', self.idx_start_time)
+        form.addRow('End Time: ', self.idx_end_time)
 
         b1 = QGroupBox('View')
         form = QFormLayout()
@@ -86,7 +128,47 @@ class Info(QWidget):
 
         self.setLayout(layout)
 
-    def update_info(self, filename):
+    def open_dataset(self, recent=None):
+        """Open a new dataset.
+        """
+        if self.dataset is not None:
+            self.parent.reset()
+
+        if recent:
+            filename = recent
+        else:
+            try:
+                dir_name = dirname(self.info.filename)
+            except (AttributeError, TypeError):
+                dir_name = self.parent.config.value['recording_dir']
+
+            file_or_dir = choose_file_or_dir()
+            if file_or_dir == 'dir':
+                filename = QFileDialog.getExistingDirectory(self,
+                                                            'Open directory',
+                                                            dir_name)
+            elif file_or_dir == 'file':
+                filename = QFileDialog.getOpenFileName(self, 'Open file',
+                                                       dir_name)
+            elif file_or_dir == 'abort':
+                return
+
+            if filename == '':
+                return
+
+        self.parent.statusBar().showMessage('Reading dataset: ' +
+                                            basename(filename))
+        self.update(filename)
+        self.parent.statusBar().showMessage('')
+
+        self.parent.overview.update()
+        self.parent.channels.update(self.dataset.header['chan_name'])
+        try:
+            self.parent.notes.update_dataset_markers(self.dataset.header)
+        except (KeyError, ValueError):
+            lg.info('No notes/markers present in the header of the file')
+
+    def update(self, filename):
         """Read dataset from filename.
 
         Parameters
@@ -99,30 +181,46 @@ class Info(QWidget):
         self.filename = filename
         self.dataset = Dataset(filename)
 
-        self.display_info()
+        self.display_dataset()
 
-    def display_info(self):
-        """Update the widget with information about the dataset."""
+    def display_dataset(self):
+        """Update the widget with information about the dataset.
+        """
         header = self.dataset.header
 
         self.parent.setWindowTitle(basename(self.filename))
         short_filename = short_strings(basename(self.filename))
-        self.idx_text['filename'].setText(short_filename)
-        self.idx_text['s_freq'].setText(str(header['s_freq']))
-        self.idx_text['n_chan'].setText(str(len(header['chan_name'])))
+        self.idx_filename.setText(short_filename)
+        self.idx_s_freq.setText(str(header['s_freq']))
+        self.idx_n_chan.setText(str(len(header['chan_name'])))
         start_time = header['start_time'].strftime('%H:%M:%S')
-        self.idx_text['start_time'].setText(start_time)
+        self.idx_start_time.setText(start_time)
         end_time = header['start_time'] + timedelta(seconds=header['n_samples']
                                                     / header['s_freq'])
-        self.idx_text['end_time'].setText(end_time.strftime('%H:%M:%S'))
+        self.idx_end_time.setText(end_time.strftime('%H:%M:%S'))
 
-    def update_traces_info(self):
-        """Update information about the size of the traces."""
-        self.idx_amplitude.setText(str(self.parent.traces.config.value['y_scale']))
-        self.idx_distance.setText(str(self.parent.traces.config.value['y_distance']))
-        self.idx_length.setText(str(self.parent.overview.config.value['window_length']))
+    def display_view(self):
+        """Update information about the size of the traces.
+        """
+        config = self.parent.traces.config
+        self.idx_amplitude.setText(str(config.value['y_scale']))
+        self.idx_distance.setText(str(config.value['y_distance']))
 
-    def update_annotations(self):
-        """Update information about the annotations."""
-        self.idx_annotations.setText(str(self.parent.traces.config.value['y_scale']))
-        self.idx_rater.setText(str(self.parent.traces.config.value['y_distance']))
+        config = self.parent.overview.config
+        self.idx_length.setText(str(config.value['window_length']))
+
+    def reset(self):
+        self.filename = None
+        self.dataset = None
+
+        # about the recordings
+        self.idx_filename.setText('Open Recordings...')
+        self.idx_s_freq.setText('')
+        self.idx_n_chan.setText('')
+        self.idx_start_time.setText('')
+        self.idx_end_time.setText('')
+
+        # about the visualization
+        self.idx_amplitude.setText('')
+        self.idx_distance.setText('')
+        self.idx_length.setText('')

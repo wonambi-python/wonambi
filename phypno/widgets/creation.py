@@ -5,18 +5,16 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 from functools import partial
-from os.path import dirname, join, realpath
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
-                         QActionGroup,
                          QDockWidget,
                          QIcon,
                          QKeySequence,
                          )
 
 from .settings import Settings
-from .utils import keep_recent_recordings
+from .utils import ICON
 from .channels import Channels
 from .info import Info
 from .overview import Overview
@@ -27,31 +25,6 @@ from .spectrum import Spectrum
 from .video import Video
 
 HIDDEN_DOCKS = ['Detect']
-
-icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons',
-                 'oxygen')
-ICON = {'open_rec': join(icon_path, 'document-open.png'),
-        'page_prev': join(icon_path, 'go-previous-view.png'),
-        'page_next': join(icon_path, 'go-next-view.png'),
-        'step_prev': join(icon_path, 'go-previous.png'),
-        'step_next': join(icon_path, 'go-next.png'),
-        'chronometer': join(icon_path, 'chronometer.png'),
-        'up': join(icon_path, 'go-up.png'),
-        'down': join(icon_path, 'go-down.png'),
-        'zoomin': join(icon_path, 'zoom-in.png'),
-        'zoomout': join(icon_path, 'zoom-out.png'),
-        'zoomnext': join(icon_path, 'zoom-next.png'),
-        'zoomprev': join(icon_path, 'zoom-previous.png'),
-        'ydist_more': join(icon_path, 'format-line-spacing-triple.png'),
-        'ydist_less': join(icon_path, 'format-line-spacing-normal.png'),
-        'selchan': join(icon_path, 'mail-mark-task.png'),
-        'download': join(icon_path, 'download.png'),
-        'widget': join(icon_path, 'window-duplicate.png'),
-        'settings': join(icon_path, 'configure.png'),
-        'quit': join(icon_path, 'window-close.png'),
-        'marker': join(icon_path, 'bookmarks-organize.png'),
-        'event': join(icon_path, 'edit-table-cell-merge.png'),
-        }
 
 
 def create_widgets(MAIN):
@@ -145,20 +118,6 @@ def create_widgets(MAIN):
 def create_actions(MAIN):
     """Create all the possible actions."""
     actions = MAIN.action  # actions was already taken
-    """ ------ FILE OPERATIONS ------ """
-    actions['open_rec'] = QAction(QIcon(ICON['open_rec']),
-                                  'Open Recording...', MAIN)
-    actions['open_rec'].setShortcut(QKeySequence.Open)
-    actions['open_rec'].triggered.connect(MAIN.action_open_rec)
-
-    max_recording_history = MAIN.config.value['max_recording_history']
-    recent_recs = keep_recent_recordings(max_recording_history)
-    actions['recent_rec'] = []
-    for one_recent_rec in recent_recs:
-        action_recent = QAction(one_recent_rec, MAIN)
-        action_recent.triggered.connect(partial(MAIN.action_open_rec,
-                                                one_recent_rec))
-        actions['recent_rec'].append(action_recent)
 
     """ ------ OPEN SETTINGS ------ """
     actions['open_settings'] = QAction(QIcon(ICON['settings']),
@@ -231,8 +190,10 @@ def create_actions(MAIN):
 
     actions['new_marker'] = QAction(QIcon(ICON['marker']), 'New Marker', MAIN)
     actions['new_marker'].setCheckable(True)
-    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event Type',
-                                   MAIN)
+    actions['new_event_type'] = QAction(QIcon(ICON['new_event_type']),
+                                        'New Event Type', MAIN)
+    actions['new_event_type'].triggered.connect(MAIN.action_new_event_type)
+    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event', MAIN)
     actions['new_event'].setCheckable(True)
 
     uncheck_new_event = lambda: actions['new_event'].setChecked(False)
@@ -249,10 +210,9 @@ def create_menubar(MAIN):
 
     """ ------ FILE ------ """
     menu_file = menubar.addMenu('File')
-    menu_file.addAction(actions['open_rec'])
-    submenu_recent = menu_file.addMenu('Recent Recordings')
-    for one_action_recent in actions['recent_rec']:
-        submenu_recent.addAction(one_action_recent)
+    # menu_file.addAction(MAIN.info.action['open_dataset'])
+    submenu_recent = menu_file.addMenu('Recent Datasets')
+    # submenu_recent.addActions(MAIN.info.action['open_recent'])
 
     menu_download = menu_file.addMenu('Download File')
     menu_download.setIcon(QIcon(ICON['download']))
@@ -304,7 +264,7 @@ def create_menubar(MAIN):
     submenu_ampl.addAction(actions['Y_less'])
     submenu_ampl.addAction(actions['Y_more'])
     submenu_ampl.addSeparator()
-    for x in sorted(MAIN.config.value['y_scale_presets'], reverse=True):
+    for x in sorted(MAIN.value('y_scale_presets'), reverse=True):
         act = submenu_ampl.addAction('Set to ' + str(x))
         act.triggered.connect(partial(MAIN.action_Y_ampl, x))
 
@@ -312,7 +272,7 @@ def create_menubar(MAIN):
     submenu_dist.addAction(actions['Y_wider'])
     submenu_dist.addAction(actions['Y_tighter'])
     submenu_dist.addSeparator()
-    for x in sorted(MAIN.config.value['y_distance_presets'],
+    for x in sorted(MAIN.value('y_distance_presets'),
                     reverse=True):
         act = submenu_dist.addAction('Set to ' + str(x))
         act.triggered.connect(partial(MAIN.action_Y_dist, x))
@@ -321,7 +281,7 @@ def create_menubar(MAIN):
     submenu_length.addAction(actions['X_more'])
     submenu_length.addAction(actions['X_less'])
     submenu_length.addSeparator()
-    for x in sorted(MAIN.config.value['window_length_presets'],
+    for x in sorted(MAIN.value('window_length_presets'),
                     reverse=True):
         act = submenu_length.addAction('Set to ' + str(x))
         act.triggered.connect(partial(MAIN.action_X_length, x))
@@ -371,7 +331,7 @@ def create_toolbar(MAIN):
 
     toolbar = MAIN.addToolBar('File Management')
     toolbar.setObjectName('File Management')  # for savestate
-    toolbar.addAction(actions['open_rec'])
+    # toolbar.addAction(MAIN.info.action['open_dataset'])
 
     toolbar = MAIN.addToolBar('Scroll')
     toolbar.setObjectName('Scroll')  # for savestate

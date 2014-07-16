@@ -88,8 +88,8 @@ class Notes(QTabWidget):
         self.idx_stats = None
 
         self.idx_marker = None
-        self.idx_event = None
-        self.idx_event_list = None
+        self.idx_eventtype = None  # combobox of eventtype
+        self.idx_eventtype_list = None  # list of event type
         self.idx_stage = None
 
         self.create_notes()
@@ -207,7 +207,7 @@ class Notes(QTabWidget):
     def display_notes(self):
         """Display information about scores and raters.
 
-        This function is called by overview.display_overview and it ends up
+        This function is called by overview.display and it ends up
         calling the functions in overview. But conceptually it belongs here.
 
         """

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+VERSION = 9.1
 
+""" ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
 
 if __name__ == '__main__':
@@ -9,6 +11,7 @@ if __name__ == '__main__':
     except RuntimeError:
         standalone = False
 
+""" ------ KEEP LOG ------ """
 from logging import getLogger, DEBUG, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
@@ -24,7 +27,8 @@ lg.addHandler(handler)
 
 lg.setLevel(DEBUG)
 
-from os.path import dirname, basename, splitext
+""" ------ IMPORT ------ """
+from os.path import splitext
 from types import MethodType
 
 from numpy import arange
@@ -34,16 +38,12 @@ from PyQt4.QtGui import (QFileDialog,
                          QMainWindow,
                          )
 
-settings = QSettings("phypno", "scroll_data")
-
 from phypno.widgets.creation import (create_menubar, create_toolbar,
                                      create_actions, create_widgets)
-from phypno.widgets.utils import (keep_recent_recordings,
-                                  choose_file_or_dir,
-                                  ConfigUtils)
+from phypno.widgets.settings import DEFAULTS
+from phypno.widgets.utils import keep_recent_datasets
 
-
-VERSION = 9.1
+settings = QSettings("phypno", "scroll_data")
 
 
 class MainWindow(QMainWindow):
@@ -51,7 +51,6 @@ class MainWindow(QMainWindow):
 
     Attributes
     ----------
-    preferences : instance of phypno.widgets.Preferences
 
     notes : instance of phypno.widgets.Notes
 
@@ -78,8 +77,6 @@ class MainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__()
-
-        self.config = ConfigUtils(self.update_mainwindow)
 
         self.info = None
         self.channels = None
@@ -122,47 +119,19 @@ class MainWindow(QMainWindow):
 
     def set_geometry(self):
         """Simply set the geometry of the main window."""
-        self.setGeometry(self.config.value['window_x'],
-                         self.config.value['window_y'],
-                         self.config.value['window_width'],
-                         self.config.value['window_height'])
+        self.setGeometry(self.value('window_x'),
+                         self.value('window_y'),
+                         self.value('window_width'),
+                         self.value('window_height'))
 
-    def action_open_rec(self, recent=None):
-        """Action: open a new dataset."""
-        if self.info.dataset is not None:
-            self.reset_dataset()
-
-        if recent:
-            filename = recent
-        else:
-            try:
-                dir_name = dirname(self.info.filename)
-            except (AttributeError, TypeError):
-                dir_name = self.config.value['recording_dir']
-
-            file_or_dir = choose_file_or_dir()
-            if file_or_dir == 'dir':
-                filename = QFileDialog.getExistingDirectory(self,
-                                                            'Open directory',
-                                                            dir_name)
-            elif file_or_dir == 'file':
-                filename = QFileDialog.getOpenFileName(self, 'Open file',
-                                                       dir_name)
-            elif file_or_dir == 'abort':
-                return
-
-            if filename == '':
-                return
-
-        self.statusBar().showMessage('Reading dataset: ' + basename(filename))
-        self.info.update_info(filename)
-        self.statusBar().showMessage('')
-        self.overview.update_overview()
-        self.channels.update_channels(self.info.dataset.header['chan_name'])
-        try:
-            self.notes.update_dataset_markers(self.info.dataset.header)
-        except (KeyError, ValueError):
-            lg.info('No notes/markers present in the header of the file')
+    def value(self, parameter, new_value=None):
+        for widget_name, values in DEFAULTS.items():
+            if parameter in values.keys():
+                widget = getattr(self, widget_name)
+                if new_value is None:
+                    return widget.config.value[parameter]
+                else:
+                    widget.config.value[parameter] = new_value
 
     def reset_dataset(self):
         """Remove all the information from previous dataset before loading a
@@ -170,8 +139,8 @@ class MainWindow(QMainWindow):
 
         """
         # store current dataset
-        max_recording_history = self.config.value['max_recording_history']
-        keep_recent_recordings(max_recording_history, self.info.filename)
+        max_dataset_history = self.value('max_dataset_history')
+        keep_recent_datasets(max_dataset_history, self.info.filename)
 
         # main
         if self.traces.scene is not None:
@@ -183,6 +152,7 @@ class MainWindow(QMainWindow):
             self.overview.scene.clear()
             self.overview.scene = None
 
+        self.info.reset()
         self.notes.reset()
         self.channels.reset()
 
@@ -199,7 +169,7 @@ class MainWindow(QMainWindow):
 
         steps = arange(self.overview.config.value['window_start'],
                        self.overview.config.value['window_start'] + length,
-                       self.config.value['read_intervals'])
+                       self.value('read_intervals'))
         one_chan = dataset.header['chan_name'][0]
         for begtime, endtime in zip(steps[:-1], steps[1:]):
             dataset.read_data(chan=[one_chan],
@@ -208,7 +178,8 @@ class MainWindow(QMainWindow):
             self.overview.mark_downloaded(begtime, endtime)
 
     def action_show_settings(self):
-        """Open the Setting windows, after updating the values in GUI."""
+        """Open the Setting windows, after updating the values in GUI.
+        """
         self.config.set_values()
         self.overview.config.set_values()
         self.traces.config.set_values()
@@ -360,28 +331,34 @@ class MainWindow(QMainWindow):
         self.notes.display_notes()
         self.create_menubar()  # refresh list ot raters
 
+    def action_new_event_type(self):
+        answer = QInputDialog.getText(self, 'New Event Type',
+                                      'Enter new event\'s name')
+        if answer[1]:
+            self.notes.annot.remove_rater(answer[0])
+
     def moveEvent(self, event):
         """Main window is already resized."""
-        self.config.value['window_x'] = self.geometry().x()
-        self.config.value['window_y'] = self.geometry().y()
-        self.config.value['window_width'] = self.geometry().width()
-        self.config.value['window_height'] = self.geometry().height()
-        self.config.set_values()  # save the values in GUI
+        self.value('window_x', self.geometry().x())
+        self.value('window_y', self.geometry().y())
+        self.value('window_width', self.geometry().width())
+        self.value('window_height', self.geometry().height())
+        self.settings.config.set_values()  # save the values in GUI
 
     def resizeEvent(self, event):
         """Main window is already resized."""
-        self.config.value['window_x'] = self.geometry().x()
-        self.config.value['window_y'] = self.geometry().y()
-        self.config.value['window_width'] = self.geometry().width()
-        self.config.value['window_height'] = self.geometry().height()
-        self.config.set_values()  # save the values in GUI
+        self.value('window_x', self.geometry().x())
+        self.value('window_y', self.geometry().y())
+        self.value('window_width', self.geometry().width())
+        self.value('window_height', self.geometry().height())
+        self.settings.config.set_values()  # save the values in GUI
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
-        self.config.get_values()  # get geometry and store it in preferences
+        self.settings.config.get_values()  # get geometry and store it in preferences
 
-        max_recording_history = self.config.value['max_recording_history']
-        keep_recent_recordings(max_recording_history, self.info.filename)
+        max_dataset_history = self.value('max_dataset_history')
+        keep_recent_datasets(max_dataset_history, self.info.filename)
 
         settings.setValue('window/state', self.saveState(VERSION))
 

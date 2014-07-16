@@ -59,21 +59,7 @@ class ConfigOverview(Config):
 
     def create_config(self):
 
-        box0 = QGroupBox('Current Window')
-        self.index['window_start'] = FormInt()
-        self.index['window_length'] = FormInt()
-        self.index['window_step'] = FormInt()
-
-        form_layout = QFormLayout()
-        form_layout.addRow('Window start time',
-                           self.index['window_start'])
-        form_layout.addRow('Window length',
-                           self.index['window_length'])
-        form_layout.addRow('Step size',
-                           self.index['window_step'])
-        box0.setLayout(form_layout)
-
-        box1 = QGroupBox('Overview')
+        box0 = QGroupBox('Overview')
         self.index['timestamp_steps'] = FormInt()
         self.index['overview_scale'] = FormInt()
 
@@ -83,11 +69,10 @@ class ConfigOverview(Config):
         form_layout.addRow('One pixel corresponds to (s)',
                            self.index['overview_scale'])
 
-        box1.setLayout(form_layout)
+        box0.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
-        main_layout.addWidget(box1)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -115,7 +100,7 @@ class Overview(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigOverview(self.display_overview)  # TODO: it should update trace too
+        self.config = ConfigOverview(lambda x: None)
 
         self.minimum = None
         self.maximum = None
@@ -124,13 +109,13 @@ class Overview(QGraphicsView):
         self.scene = None
         self.idx_item = {}
 
-        self.create_overview()
+        self.create()
 
-    def create_overview(self):
+    def create(self):
         """Define the area of QGraphicsView."""
         self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
-    def update_overview(self):
+    def update(self):
         """Read full duration and update maximum."""
         if self.parent.info.dataset is not None:
             # read from the dataset, if available
@@ -147,11 +132,11 @@ class Overview(QGraphicsView):
             self.maximum = dataset['last_second']
             self.start_time = dataset['start_time']
 
-        self.config.value['window_start'] = 0  # the only exception, start at zero
+        self.config.value['window_start'] = 0  # the only value that is reset
 
-        self.display_overview()
+        self.display()
 
-    def display_overview(self):
+    def display(self):
         """Updates the widgets, especially based on length of recordings."""
         lg.debug('GraphicsScene is between {}s and {}s'.format(self.minimum,
                                                                self.maximum))

@@ -10,6 +10,8 @@ from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
                          QDialogButtonBox,
                          QDialog,
+                         QFormLayout,
+                         QGroupBox,
                          QHBoxLayout,
                          QLineEdit,
                          QListWidget,
@@ -22,6 +24,8 @@ from PyQt4.QtGui import (QCheckBox,
 
 settings = QSettings("phypno", "scroll_data")
 
+
+# DO NOT DUPLICATE NAMES
 DEFAULTS = {}
 DEFAULTS['channels'] = {'hp': .5,
                         'lp': 45,
@@ -30,10 +34,7 @@ DEFAULTS['channels'] = {'hp': .5,
 DEFAULTS['detect'] = {'spindle_method': 'UCSD',
                       }
 
-DEFAULTS['overview'] = {'window_start': 0,
-                        'window_length': 30,
-                        'window_step': 5,
-                        'timestamp_steps': 60 * 60,
+DEFAULTS['overview'] = {'timestamp_steps': 60 * 60,
                         'overview_scale': 30,
                         }
 DEFAULTS['spectrum'] = {'x_min': 0.,
@@ -50,12 +51,15 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'y_distance': 50.,
                       'y_scale': 1.,
                       'label_ratio': 0.05,
+                      'window_start': 0,
+                      'window_length': 30,
+                      'window_step': 5,
                       }
-DEFAULTS['utils'] = {'window_x': 400,
+DEFAULTS['settings'] = {'window_x': 400,
                      'window_y': 200,
                      'window_width': 1024,
                      'window_height': 768,
-                     'max_recording_history': 20,
+                     'max_dataset_history': 20,
                      'y_distance_presets': [20., 30., 40., 50., 100., 200.],
                      'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
                      'window_length_presets': [1., 5., 10., 20., 30., 60.],
@@ -80,6 +84,7 @@ class Settings(QDialog):
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
+        self.config = ConfigUtils(self.parent.update_mainwindow)
 
         self.setWindowTitle('Settings')
         self.create_settings()
@@ -110,7 +115,7 @@ class Settings(QDialog):
             page_list.addItem(one_page)
 
         self.stacked = QStackedWidget()
-        self.stacked.addWidget(self.parent.config)
+        self.stacked.addWidget(self.config)
         self.stacked.addWidget(self.parent.overview.config)
         self.stacked.addWidget(self.parent.traces.config)
         self.stacked.addWidget(self.parent.channels.config)
@@ -209,7 +214,6 @@ class Config(QWidget):
         self.value = self.create_values(value_names)
         self.index = self.create_indices(value_names)
 
-        # I'm surprised this works, it calls the overloaded method already
         self.create_config()
         self.set_values()
         self.update_widget = update_widget
@@ -274,6 +278,70 @@ class Config(QWidget):
 
         """
         self.modified = True
+
+
+class ConfigUtils(Config):
+
+    def __init__(self, update_widget):
+        super().__init__('settings', update_widget)
+
+    def create_config(self):
+
+        box0 = QGroupBox('Geometry')
+        self.index['window_x'] = FormInt()
+        self.index['window_y'] = FormInt()
+        self.index['window_width'] = FormInt()
+        self.index['window_height'] = FormInt()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Window X-position', self.index['window_x'])
+        form_layout.addRow('Window Y-position', self.index['window_y'])
+        form_layout.addRow('Window width', self.index['window_width'])
+        form_layout.addRow('Window height', self.index['window_height'])
+
+        box0.setLayout(form_layout)
+
+        box1 = QGroupBox('History')
+        self.index['max_dataset_history'] = FormInt()
+        self.index['recording_dir'] = FormStr()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Max History Size',
+                           self.index['max_dataset_history'])
+        form_layout.addRow('Directory with recordings',
+                           self.index['recording_dir'])
+        box1.setLayout(form_layout)
+
+        box2 = QGroupBox('Default values')
+        self.index['y_distance_presets'] = FormList()  # require restart
+        self.index['y_scale_presets'] = FormList()  # require restart
+        self.index['window_length_presets'] = FormList()  # require restart
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Signal scaling, presets',
+                           self.index['y_scale_presets'])
+        form_layout.addRow('Distance between signals, presets',
+                           self.index['y_distance_presets'])
+        form_layout.addRow('Window length, presets',
+                           self.index['window_length_presets'])
+        box2.setLayout(form_layout)
+
+        box3 = QGroupBox('Download Data')
+        self.index['read_intervals'] = FormFloat()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Read intervals (in s)',
+                           self.index['read_intervals'])
+        box3.setLayout(form_layout)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
+        main_layout.addWidget(box2)
+        main_layout.addWidget(box3)
+        main_layout.addStretch(1)
+
+        self.setLayout(main_layout)
 
 
 def read_settings(widget, value_name):

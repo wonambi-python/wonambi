@@ -252,7 +252,7 @@ class Channels(QWidget):
             one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
-    def update_channels(self, chan_name):
+    def update(self, chan_name):
         """Read the channels and updates the widget.
 
         Parameters
