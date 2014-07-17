@@ -61,21 +61,13 @@ class Info(QWidget):
 
     @property
     def action(self):
-        """Two actions associated with info/dataset.
-
-            open_dataset : to open a new dataset
-
-            open_recent : to open recent datasets
-
-        """
         output = {}
-
         act = QAction(QIcon(ICON['open_rec']), 'Open Dataset...', self)
         act.setShortcut(QKeySequence.Open)
         act.triggered.connect(self.open_dataset)
         output['open_dataset'] = act
 
-        max_dataset_history = self.parent.config.value['max_dataset_history']
+        max_dataset_history = self.parent.value('max_dataset_history')
         recent_recs = keep_recent_datasets(max_dataset_history)
 
         act = []

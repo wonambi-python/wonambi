@@ -125,6 +125,29 @@ class MainWindow(QMainWindow):
                          self.value('window_height'))
 
     def value(self, parameter, new_value=None):
+        """This function is a shortcut for any parameter. Instead of calling
+        the widget, its config and its values, you can call directly the
+        parameter.
+
+        Parameters
+        ----------
+        parameter : str
+            name of the parameter of interest
+        new_value : str or float, optional
+            new value for the parameter
+
+        Returns
+        -------
+        str or float
+            if you didn't specify new_value, it returns the current value.
+
+        Notes
+        -----
+        It's important to maintain an organized dict in DEFAULTS which has to
+        correspond to the values in the widgets, also the name of the widget.
+        DEFAULTS is used like a look-up table.
+
+        """
         for widget_name, values in DEFAULTS.items():
             if parameter in values.keys():
                 widget = getattr(self, widget_name)
@@ -167,8 +190,8 @@ class MainWindow(QMainWindow):
         if length is None or length > self.overview.maximum:
             length = self.overview.maximum
 
-        steps = arange(self.overview.config.value['window_start'],
-                       self.overview.config.value['window_start'] + length,
+        steps = arange(self.value('window_start'),
+                       self.value('window_start') + length,
                        self.value('read_intervals'))
         one_chan = dataset.header['chan_name'][0]
         for begtime, endtime in zip(steps[:-1], steps[1:]):
@@ -180,7 +203,7 @@ class MainWindow(QMainWindow):
     def action_show_settings(self):
         """Open the Setting windows, after updating the values in GUI.
         """
-        self.config.set_values()
+        self.settings.config.set_values()
         self.overview.config.set_values()
         self.traces.config.set_values()
         self.spectrum.config.set_values()
@@ -191,78 +214,76 @@ class MainWindow(QMainWindow):
 
     def action_step_prev(self):
         """Go to the previous step."""
-        window_start = (self.overview.config.value['window_start'] -
-                        self.overview.config.value['window_length'] /
+        window_start = (self.value('window_start') -
+                        self.value('window_length') /
                         self.overview.config.value['window_step'])
         self.overview.update_position(window_start)
 
     def action_step_next(self):
         """Go to the next step."""
-        window_start = (self.overview.config.value['window_start'] +
-                        self.overview.config.value['window_length'] /
-                        self.overview.config.value['window_step'])
+        window_start = (self.value('window_start') +
+                        self.value('window_length') /
+                        self.value('window_step'))
         self.overview.update_position(window_start)
 
     def action_page_prev(self):
         """Go to the previous page."""
-        window_start = (self.overview.config.value['window_start'] -
-                        self.overview.config.value['window_length'])
+        window_start = self.value('window_start') - self.value('window_length')
         self.overview.update_position(window_start)
 
     def action_page_next(self):
         """Go to the next page."""
-        window_start = (self.overview.config.value['window_start'] +
-                        self.overview.config.value['window_length'])
+        window_start = self.value('window_start') + self.value('window_length')
         self.overview.update_position(window_start)
 
     def action_add_time(self, extra_time):
         """Go to the predefined time forward."""
-        window_start = self.overview.config.value['window_start'] + extra_time
+        window_start = self.value('window_start') + extra_time
         self.overview.update_position(window_start)
 
     def action_X_more(self):
         """Zoom in on the x-axis."""
-        self.overview.config.value['window_length'] *= 2
+        self.value('window_length', self.value('window_length') * 2)
         self.overview.update_position()
 
     def action_X_less(self):
         """Zoom out on the x-axis."""
-        self.overview.config.value['window_length'] /= 2
+        self.value('window_length', self.value('window_length') / 2)
         self.overview.update_position()
 
     def action_X_length(self, new_window_length):
         """Use presets for length of the window."""
-        self.overview.config.value['window_length'] = new_window_length
+        self.value('window_length', new_window_length)
         self.overview.update_position()
 
     def action_Y_more(self):
         """Increase the amplitude."""
-        self.traces.config.value['y_scale'] *= 2
+        self.value('y_scale', self.value('y_scale') * 2)
         self.traces.display_traces()
 
     def action_Y_less(self):
         """Decrease the amplitude."""
-        self.traces.config.value['y_scale'] /= 2
+        self.value('y_scale', self.value('y_scale') / 2)
         self.traces.display_traces()
 
     def action_Y_ampl(self, new_y_scale):
         """Make amplitude on Y axis using predefined values"""
-        self.traces.config.value['y_scale'] = new_y_scale
+        self.value('y_scale', new_y_scale)
         self.traces.display_traces()
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
-        self.traces.config.value['y_distance'] *= 1.4
+        self.value('y_distance', self.value('y_distance') * 1.4)
         self.traces.display_traces()
 
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
-        self.traces.config.value['y_distance'] /= 1.4
+        self.value('y_distance', self.value('y_distance') / 1.4)
         self.traces.display_traces()
 
     def action_Y_dist(self, new_y_distance):
         """Use preset values for the distance between lines."""
-        self.traces.config.value['y_distance'] = new_y_distance
+        self.value('y_distance', new_y_distance)
         self.traces.display_traces()
 
     def action_new_annot(self):

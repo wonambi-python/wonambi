@@ -210,9 +210,9 @@ def create_menubar(MAIN):
 
     """ ------ FILE ------ """
     menu_file = menubar.addMenu('File')
-    # menu_file.addAction(MAIN.info.action['open_dataset'])
+    menu_file.addAction(MAIN.info.action['open_dataset'])
     submenu_recent = menu_file.addMenu('Recent Datasets')
-    # submenu_recent.addActions(MAIN.info.action['open_recent'])
+    submenu_recent.addActions(MAIN.info.action['open_recent'])
 
     menu_download = menu_file.addMenu('Download File')
     menu_download.setIcon(QIcon(ICON['download']))
@@ -331,7 +331,7 @@ def create_toolbar(MAIN):
 
     toolbar = MAIN.addToolBar('File Management')
     toolbar.setObjectName('File Management')  # for savestate
-    # toolbar.addAction(MAIN.info.action['open_dataset'])
+    toolbar.addAction(MAIN.info.action['open_dataset'])
 
     toolbar = MAIN.addToolBar('Scroll')
     toolbar.setObjectName('Scroll')  # for savestate
