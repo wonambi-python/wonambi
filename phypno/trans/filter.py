@@ -46,6 +46,11 @@ class Filter:
     low_cut and high_cut should be given as ratio of the Nyquist. But if you
     specify s_freq, then the ratio will be computed automatically.
 
+    Raises
+    ------
+    ValueError
+        if the cutoff frequency is larger than the Nyquist frequency.
+
     """
     def __init__(self, low_cut=None, high_cut=None, order=4, ftype='butter',
                  s_freq=None, Rs=None):
@@ -57,13 +62,25 @@ class Filter:
 
         btype = None
         if low_cut is not None and high_cut is not None:
+            if low_cut > nyquist or high_cut > nyquist:
+                raise ValueError('cutoff has to be less than Nyquist '
+                                 'frequency')
             btype = 'bandpass'
             Wn = (low_cut / nyquist,
                   high_cut / nyquist)
+
         elif low_cut is not None:
+            if low_cut > nyquist:
+                raise ValueError('cutoff has to be less than Nyquist '
+                                 'frequency')
             btype = 'highpass'
             Wn = low_cut / nyquist
+
         elif high_cut is not None:
+            if high_cut > nyquist:
+                raise ValueError('cutoff has to be less than Nyquist '
+                                 'frequency')
+
             btype = 'lowpass'
             Wn = high_cut / nyquist
 
