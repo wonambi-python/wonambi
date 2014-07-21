@@ -154,6 +154,8 @@ class MainWindow(QMainWindow):
                 if new_value is None:
                     return widget.config.value[parameter]
                 else:
+                    lg.debug('setting value {0} of {1} to {2}'
+                             ''.format(parameter, widget_name, new_value))
                     widget.config.value[parameter] = new_value
 
     def reset_dataset(self):
@@ -216,7 +218,7 @@ class MainWindow(QMainWindow):
         """Go to the previous step."""
         window_start = (self.value('window_start') -
                         self.value('window_length') /
-                        self.overview.config.value['window_step'])
+                        self.value('window_step'))
         self.overview.update_position(window_start)
 
     def action_step_next(self):
@@ -376,7 +378,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
-        self.settings.config.get_values()  # get geometry and store it in preferences
+        self.settings.config.get_values()  # store geometry for next use
 
         max_dataset_history = self.value('max_dataset_history')
         keep_recent_datasets(max_dataset_history, self.info.filename)

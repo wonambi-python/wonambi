@@ -132,7 +132,7 @@ class Overview(QGraphicsView):
             self.maximum = dataset['last_second']
             self.start_time = dataset['start_time']
 
-        self.config.value['window_start'] = 0  # the only value that is reset
+        self.parent.value('window_start', 0)  # the only value that is reset
 
         self.display()
 
@@ -141,7 +141,7 @@ class Overview(QGraphicsView):
         lg.debug('GraphicsScene is between {}s and {}s'.format(self.minimum,
                                                                self.maximum))
 
-        x_scale = 1 / self.config.value['overview_scale']
+        x_scale = 1 / self.parent.value('overview_scale')
         lg.debug('Set scene x-scaling to {}'.format(x_scale))
 
         self.scale(1 / self.transform().m11(), 1)  # reset to 1
@@ -152,8 +152,8 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        self.idx_item['current'] = QGraphicsLineItem(self.config.value['window_start'], 0,
-                                                     self.config.value['window_start'],
+        self.idx_item['current'] = QGraphicsLineItem(self.parent.value('window_start'), 0,
+                                                     self.parent.value('window_start'),
                                                      current_line_height)
         self.idx_item['current'].setPen(QPen(Qt.red))
         self.scene.addItem(self.idx_item['current'])
@@ -185,7 +185,7 @@ class Overview(QGraphicsView):
                                  end_time.day,
                                  end_time.hour + 1).timestamp())
 
-        steps = self.config.value['timestamp_steps']
+        steps = self.parent.value('timestamp_steps')
         transform, _ = self.transform().inverted()
 
         for t in range(first_hour, last_hour, steps):
@@ -218,8 +218,8 @@ class Overview(QGraphicsView):
         """
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
-            self.config.value['window_start'] = new_position
-            self.idx_item['current'].setPos(self.config.value['window_start'],
+            self.parent.value('window_start', new_position)
+            self.idx_item['current'].setPos(self.parent.value('window_start'),
                                             0)
 
             header = self.parent.info.dataset.header
@@ -229,7 +229,7 @@ class Overview(QGraphicsView):
             self.parent.statusBar().showMessage(msg)
         else:
             lg.debug('Updating position at {}'
-                     ''.format(self.config.value['window_start']))
+                     ''.format(self.parent.value('window_start')))
 
         self.parent.traces.update_traces()
         self.parent.spectrum.display_spectrum()
@@ -271,11 +271,6 @@ class Overview(QGraphicsView):
         """
         y_pos = BARS['stage']['pos0']
 
-        # sum of pos0 and pos1 should always be the same, but better be safe
-        print('look for item at x={}, y={}'.format(start_time,
-                                                   y_pos +
-                                                   STAGES[stage_name]['pos0'] +
-                                                   STAGES[stage_name]['pos1']))
         # the -1 is really important, otherwise we stay on the edge of the rect
         old_score = self.scene.itemAt(start_time + length / 2,
                                       y_pos +
@@ -287,18 +282,10 @@ class Overview(QGraphicsView):
             lg.debug('Removing old score at {}'.format(start_time))
             self.scene.removeItem(old_score)
 
-        lg.debug('Adding score {} at {} s'.format(stage_name, start_time))
         rect = QGraphicsRectItem(start_time,
                                  y_pos + STAGES[stage_name]['pos0'],
                                  length,
                                  STAGES[stage_name]['pos1'])
-        print('score at x={}-{}, y={}-{}'.format(start_time,
-                                                 start_time + length,
-                                                 y_pos +
-                                                 STAGES[stage_name]['pos0'],
-                                                 y_pos +
-                                                 STAGES[stage_name]['pos0'] +
-                                                 STAGES[stage_name]['pos1']))
         rect.setPen(NoPen)
         rect.setBrush(STAGES[stage_name]['color'])
         self.scene.addItem(rect)
@@ -337,6 +324,6 @@ class Overview(QGraphicsView):
 
         """
         x_in_scene = self.mapToScene(event.pos()).x()
-        window_length = self.config.value['window_length']
+        window_length = self.parent.value('window_length')
         window_start = int(floor(x_in_scene / window_length) * window_length)
         self.update_position(window_start)

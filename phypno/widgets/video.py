@@ -203,8 +203,8 @@ class Video(QWidget):
         """
         d = self.parent.info.dataset
 
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
 
         s_freq = d.header['s_freq']
         orig = d.header['orig']
@@ -257,9 +257,9 @@ class Video(QWidget):
             self.n_video = len(full_mpgfiles) + 1
 
         else:
-            vlc_exe = self.config.value['vlc_exe']
-            vlc_width = self.config.value['vlc_width']
-            vlc_height = self.config.value['vlc_height']
+            vlc_exe = self.parent.value('vlc_exe')
+            vlc_width = self.parent.value('vlc_width')
+            vlc_height = self.parent.value('vlc_height')
 
             vlc_cmd = '"' + vlc_exe + '" '
             vlc_cmd += '--no-video-title '

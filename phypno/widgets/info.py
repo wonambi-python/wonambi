@@ -132,7 +132,7 @@ class Info(QWidget):
             try:
                 dir_name = dirname(self.info.filename)
             except (AttributeError, TypeError):
-                dir_name = self.parent.config.value['recording_dir']
+                dir_name = self.parent.value('recording_dir')
 
             file_or_dir = choose_file_or_dir()
             if file_or_dir == 'dir':
@@ -194,12 +194,9 @@ class Info(QWidget):
     def display_view(self):
         """Update information about the size of the traces.
         """
-        config = self.parent.traces.config
-        self.idx_amplitude.setText(str(config.value['y_scale']))
-        self.idx_distance.setText(str(config.value['y_distance']))
-
-        config = self.parent.overview.config
-        self.idx_length.setText(str(config.value['window_length']))
+        self.idx_amplitude.setText(str(self.parent.value('y_scale')))
+        self.idx_distance.setText(str(self.parent.value('y_distance')))
+        self.idx_length.setText(str(self.parent.value('window_length')))
 
     def reset(self):
         self.filename = None

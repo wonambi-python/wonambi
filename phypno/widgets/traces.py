@@ -124,8 +124,8 @@ class Traces(QGraphicsView):
 
     def update_traces(self):
         """Read and update the data to plot."""
-        window_start = self.parent.overview.config.value['window_start']
-        window_end = window_start + self.parent.overview.config.value['window_length']
+        window_start = self.parent.value('window_start')
+        window_end = window_start + self.parent.value('window_length')
         dataset = self.parent.info.dataset
         groups = self.parent.channels.groups
 
@@ -153,17 +153,17 @@ class Traces(QGraphicsView):
         self.create_labels()
         self.create_time()
 
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
 
         time_height = max([x.boundingRect().height() for x in self.idx_time])
-        label_width = window_length * self.config.value['label_ratio']
+        label_width = window_length * self.parent.value('label_ratio')
 
         self.scene = QGraphicsScene(window_start - label_width,
                                     0,
                                     window_length + label_width,
                                     len(self.idx_label) *
-                                    self.config.value['y_distance'] +
+                                    self.parent.value('y_distance') +
                                     time_height)
 
         self.setScene(self.scene)
@@ -197,7 +197,7 @@ class Traces(QGraphicsView):
         min_time = int(floor(min(self.data.axis['time'][0])))
         max_time = int(ceil(max(self.data.axis['time'][0])))
 
-        n_time_labels = self.config.value['n_time_labels']
+        n_time_labels = self.parent.value('n_time_labels')
         step = int((max_time - min_time) / n_time_labels)
 
         self.idx_time = []
@@ -210,19 +210,19 @@ class Traces(QGraphicsView):
             self.idx_time.append(item)
             self.time_pos.append(QPointF(one_time,
                                          len(self.idx_label) *
-                                         self.config.value['y_distance']))
+                                         self.parent.value('y_distance')))
 
     def add_labels(self):
         """Add channel labels on the left."""
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
-        label_width = window_length * self.config.value['label_ratio']
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
+        label_width = window_length * self.parent.value('label_ratio')
 
         for row, one_label_item in enumerate(self.idx_label):
             self.scene.addItem(one_label_item)
             one_label_item.setPos(window_start - label_width,
-                                  self.config.value['y_distance'] * row +
-                                  self.config.value['y_distance'] / 2)
+                                  self.parent.value('y_distance') * row +
+                                  self.parent.value('y_distance') / 2)
 
     def add_time(self):
         """Add time labels at the bottom."""
@@ -236,12 +236,14 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                dat = self.data(trial=0, chan=chan_name) * self.config.value['y_scale']
+                dat = (self.data(trial=0, chan=chan_name) *
+                       self.parent.value('y_scale'))
                 dat *= -1  # flip data, upside down
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, self.config.value['y_distance'] * row + self.config.value['y_distance'] / 2)
+                path.setPos(0, self.parent.value('y_distance') * row +
+                            self.parent.value('y_distance') / 2)
                 row += 1
 
     def mark_markers(self):
@@ -249,8 +251,8 @@ class Traces(QGraphicsView):
         if self.scene is None:
             return
 
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         time_height = max([x.boundingRect().height() for x in self.idx_time])
 
@@ -261,7 +263,7 @@ class Traces(QGraphicsView):
                     item = QGraphicsSimpleTextItem(mrk['name'])
                     item.setPos(mrk['time'],
                                 len(self.idx_label) *
-                                self.config.value['y_distance'] -
+                                self.parent.value('y_distance') -
                                 time_height)
                     item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                     item.setPen(QPen(Qt.red))
@@ -273,7 +275,7 @@ class Traces(QGraphicsView):
                     item = QGraphicsSimpleTextItem(mrk['name'])
                     item.setPos(mrk['time'],
                                 len(self.idx_label) *
-                                self.config.value['y_distance'] -
+                                self.parent.value('y_distance') -
                                 time_height)
                     item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                     self.scene.addItem(item)
