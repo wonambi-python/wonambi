@@ -388,7 +388,6 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
 
     if standalone:
         app.exec_()

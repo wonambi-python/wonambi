@@ -7,7 +7,7 @@ lg = getLogger(__name__)
 from copy import deepcopy
 from datetime import timedelta
 
-from numpy import abs, argmin, floor, ceil, asarray, empty
+from numpy import abs, argmin, floor, ceil, asarray, empty, max, min, log2, power, pad
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
@@ -29,6 +29,8 @@ from .settings import Config, FormFloat, FormInt
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
+
+MINIMUM_N_SAMPLES = 32  # at least these samples to compute fft
 
 
 class ConfigTraces(Config):
@@ -323,7 +325,6 @@ class Traces(QGraphicsView):
             chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
             self.sel_chan = chan_idx
             self.sel_xy = (xy_scene.x(), xy_scene.y())
-            self.parent.statusBar().showMessage(self.chan[self.sel_chan])
 
     def mouseMoveEvent(self, event):
         """
@@ -354,6 +355,21 @@ class Traces(QGraphicsView):
 
         self.scene.addItem(self.idx_info)
 
+        trial = 0
+        time = self.parent.traces.data.axis['time'][trial]
+        beg_win = min((self.sel_xy[0], xy_scene.x()))
+        end_win = max((self.sel_xy[0], xy_scene.x()))
+        time_of_interest = time[(time >= beg_win) & (time < end_win)]
+        if len(time_of_interest) > MINIMUM_N_SAMPLES:
+            data = self.parent.traces.data(trial=trial,
+                                           chan=self.chan[self.sel_chan],
+                                           time=time_of_interest)
+            n_data = len(data)
+            n_pad = (power(2, ceil(log2(n_data))) - n_data) / 2
+            data = pad(data, (ceil(n_pad), floor(n_pad)), 'constant')
+
+            self.parent.spectrum.display_spectrum(data)
+
     def mouseReleaseEvent(self, event):
 
         self.sel_chan = None
@@ -366,6 +382,9 @@ class Traces(QGraphicsView):
         if self.idx_info is not None:
             self.scene.removeItem(self.idx_info)
         self.idx_info = None
+
+        # restore spectrum
+        self.parent.spectrum.display_spectrum()
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.

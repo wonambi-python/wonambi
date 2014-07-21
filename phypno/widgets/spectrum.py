@@ -4,7 +4,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from numpy import log, ceil, floor
+from numpy import log, ceil, floor, min
 from scipy.signal import welch
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QComboBox,
@@ -130,26 +130,27 @@ class Spectrum(QWidget):
         for chan_name in self.parent.traces.chan:
             self.idx_chan.addItem(chan_name)
 
-    def display_spectrum(self):
+    def display_spectrum(self, data=None):
         """Make graphicsitem for spectrum figure."""
         value = self.config.value
         self.scene.setSceneRect(value['x_min'], value['y_min'],
                                 value['x_max'] - value['x_min'],
                                 value['y_max'] - value['y_min'])
-
-        chan_name = self.idx_chan.currentText()
-        lg.info('Power spectrum for channel ' + chan_name)
-
-        if not chan_name:
-            return
-
         self.scene.clear()
         self.add_grid()
 
-        trial = 0
-        data = self.parent.traces.data(trial=trial, chan=chan_name)
+        if data is None:
+            chan_name = self.idx_chan.currentText()
+            lg.info('Power spectrum for channel ' + chan_name)
+
+            if not chan_name:
+                return
+
+            trial = 0
+            data = self.parent.traces.data(trial=trial, chan=chan_name)
+
         s_freq = self.parent.traces.data.s_freq
-        f, Pxx = welch(data, fs=s_freq, nperseg=s_freq)
+        f, Pxx = welch(data, fs=s_freq, nperseg=min((s_freq, len(data))))
 
         freq_limit = (value['x_min'] <= f) & (f <= value['x_max'])
 
