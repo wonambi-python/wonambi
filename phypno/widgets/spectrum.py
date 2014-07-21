@@ -127,10 +127,8 @@ class Spectrum(QWidget):
 
         """
         self.idx_chan.clear()
-        for one_grp in self.parent.channels.groups:
-            for one_chan in one_grp['chan_to_plot']:
-                chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                self.idx_chan.addItem(chan_name)
+        for chan_name in self.parent.traces.chan:
+            self.idx_chan.addItem(chan_name)
 
     def display_spectrum(self):
         """Make graphicsitem for spectrum figure."""

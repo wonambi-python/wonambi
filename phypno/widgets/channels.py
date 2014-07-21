@@ -182,7 +182,7 @@ class Channels(QWidget):
         self.config = ConfigChannels(lambda: None)
 
         self.groups = []
-        self.chan_name = []
+        self.chan_name = []  # those in the dataset
 
         self.tabs = None
 
@@ -242,8 +242,8 @@ class Channels(QWidget):
     def apply(self):
         """Apply changes to the plots."""
         self.read_group_info()
-        self.parent.spectrum.update_spectrum()
         self.parent.overview.update_position()
+        self.parent.spectrum.update_spectrum()
 
     def read_group_info(self):
         self.groups = []

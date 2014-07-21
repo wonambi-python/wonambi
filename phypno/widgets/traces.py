@@ -7,11 +7,12 @@ lg = getLogger(__name__)
 from copy import deepcopy
 from datetime import timedelta
 
-from numpy import floor, ceil, asarray, empty
-from PyQt4.QtCore import QPointF, Qt
+from numpy import abs, argmin, floor, ceil, asarray, empty
+from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
                          QGraphicsItem,
+                         QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsSimpleTextItem,
                          QGraphicsView,
@@ -24,6 +25,10 @@ from .. import ChanTime
 from ..trans import Montage, Filter
 from .utils import Path
 from .settings import Config, FormFloat, FormInt
+
+
+NoPen = QPen()
+NoPen.setStyle(Qt.NoPen)
 
 
 class ConfigTraces(Config):
@@ -110,10 +115,17 @@ class Traces(QGraphicsView):
 
         self.y_scrollbar_value = 0
         self.data = None
+        self.chan = []
+        self.chan_pos = []  # used later to find out which channel we're using
+        self.chan_scale = []
+        self.sel_chan = None
+        self.sel_xy = (None, None)
 
         self.scene = None
         self.idx_label = []
         self.idx_time = []
+        self.idx_sel = None  # selection
+        self.idx_info = None
         self.time_pos = []
 
         self.create_traces()
@@ -232,18 +244,27 @@ class Traces(QGraphicsView):
 
     def add_traces(self):
         """Add traces based on self.data."""
+        self.chan = []
+        self.chan_pos = []
+        self.chan_scale = []
+
         row = 0
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
+                self.chan.append(chan_name)
+                self.chan_scale.append(one_grp['scale'])
                 dat = (self.data(trial=0, chan=chan_name) *
                        self.parent.value('y_scale'))
                 dat *= -1  # flip data, upside down
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
                 path.setPen(QPen(one_grp['color']))
-                path.setPos(0, self.parent.value('y_distance') * row +
+
+                chan_pos = (self.parent.value('y_distance') * row +
                             self.parent.value('y_distance') / 2)
+                self.chan_pos.append(chan_pos)
+                path.setPos(0, chan_pos)
                 row += 1
 
     def mark_markers(self):
@@ -297,6 +318,55 @@ class Traces(QGraphicsView):
             time = int(x_in_scene * s_freq) / s_freq
             self.parent.notes.add_marker(time)
 
+        else:
+            xy_scene = self.mapToScene(event.pos())
+            chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
+            self.sel_chan = chan_idx
+            self.sel_xy = (xy_scene.x(), xy_scene.y())
+            self.parent.statusBar().showMessage(self.chan[self.sel_chan])
+
+    def mouseMoveEvent(self, event):
+        """
+        """
+        if self.idx_sel is not None:
+            self.scene.removeItem(self.idx_sel)
+
+        xy_scene = self.mapToScene(event.pos())
+        pos = QRectF(self.sel_xy[0], self.sel_xy[1],
+                     xy_scene.x() - self.sel_xy[0],
+                     xy_scene.y() - self.sel_xy[1])
+        self.idx_sel = QGraphicsRectItem(pos.normalized())
+        self.scene.addItem(self.idx_sel)
+
+        if self.idx_info is not None:
+            self.scene.removeItem(self.idx_info)
+
+        duration = '{0:0.2f}s'.format(abs(xy_scene.x() - self.sel_xy[0]))
+
+        # get y-size, based on scaling too
+        y = abs(xy_scene.y() - self.sel_xy[1])
+        scale = self.parent.value('y_scale') * self.chan_scale[self.sel_chan]
+        height = '{0:0.3f}uV'.format(y / scale)
+
+        self.idx_info = TextItem_with_BG()
+        self.idx_info.setText(duration + ' ' + height)
+        self.idx_info.setPos(self.sel_xy[0], self.sel_xy[1])
+
+        self.scene.addItem(self.idx_info)
+
+    def mouseReleaseEvent(self, event):
+
+        self.sel_chan = None
+        self.sel_xy = (None, None)
+
+        if self.idx_sel is not None:
+            self.scene.removeItem(self.idx_sel)
+        self.idx_sel = None
+
+        if self.idx_info is not None:
+            self.scene.removeItem(self.idx_info)
+        self.idx_info = None
+
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
 
@@ -321,6 +391,24 @@ class Traces(QGraphicsView):
             ratio = self.width() / (self.scene.width() * 1.1)
             self.resetTransform()
             self.scale(ratio, 1)
+
+    def reset(self):
+        self.y_scrollbar_value = 0
+        self.data = None
+        self.chan = []
+        self.chan_pos = []
+        self.chan_scale = []
+        self.sel_chan = None
+        self.sel_xy = (None, None)
+
+        if self.scene is not None:
+            self.scene.clear()
+        self.scene = None
+        self.idx_sel = None
+        self.idx_info = None
+        self.idx_label = []
+        self.idx_time = []
+        self.time_pos = []
 
 
 def _create_data_to_plot(data, chan_groups):
@@ -415,3 +503,19 @@ def _select_channels(data, channels):
     data.axis['chan'][0] = asarray(channels)
 
     return data
+
+
+class TextItem_with_BG(QGraphicsSimpleTextItem):
+    """Class to draw text with black background (easier to read).
+
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+        self.setBrush(QBrush(Qt.white))
+
+    def paint(self, painter, option, widget):
+        painter.setBrush(QBrush(Qt.black))
+        painter.drawRect(self.boundingRect())
+        super().paint(painter, option, widget)

@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
                              ''.format(parameter, widget_name, new_value))
                     widget.config.value[parameter] = new_value
 
-    def reset_dataset(self):
+    def reset(self):
         """Remove all the information from previous dataset before loading a
         new one.
 
@@ -167,16 +167,12 @@ class MainWindow(QMainWindow):
         max_dataset_history = self.value('max_dataset_history')
         keep_recent_datasets(max_dataset_history, self.info.filename)
 
-        # main
-        if self.traces.scene is not None:
-            self.traces.scene.clear()
-            self.traces.scene = None
-
         # overview
         if self.overview.scene is not None:
             self.overview.scene.clear()
             self.overview.scene = None
 
+        self.traces.reset()
         self.info.reset()
         self.notes.reset()
         self.channels.reset()
@@ -392,6 +388,7 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
+    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
 
     if standalone:
         app.exec_()
