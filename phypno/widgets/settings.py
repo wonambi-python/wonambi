@@ -10,11 +10,13 @@ from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
                          QDialogButtonBox,
                          QDialog,
+                         QFileDialog,
                          QFormLayout,
                          QGroupBox,
                          QHBoxLayout,
                          QLineEdit,
                          QListWidget,
+                         QPushButton,
                          QSplitter,
                          QStackedWidget,
                          QVBoxLayout,
@@ -56,16 +58,16 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'window_step': 5,
                       }
 DEFAULTS['settings'] = {'window_x': 400,
-                     'window_y': 200,
-                     'window_width': 1024,
-                     'window_height': 768,
-                     'max_dataset_history': 20,
-                     'y_distance_presets': [20., 30., 40., 50., 100., 200.],
-                     'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
-                     'window_length_presets': [1., 5., 10., 20., 30., 60.],
-                     'read_intervals': 10 * 60.,
-                     'recording_dir': '/home/gio/recordings',
-                     }
+                        'window_y': 200,
+                        'window_width': 1024,
+                        'window_height': 768,
+                        'max_dataset_history': 20,
+                        'y_distance_presets': [20., 30., 40., 50., 100., 200.],
+                        'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
+                        'window_length_presets': [1., 5., 10., 20., 30., 60.],
+                        'read_intervals': 10 * 60.,
+                        'recording_dir': '/home/gio/recordings',
+                        }
 DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
                      'vlc_width': 640,
                      'vlc_height': 480,
@@ -313,9 +315,9 @@ class ConfigUtils(Config):
         box1.setLayout(form_layout)
 
         box2 = QGroupBox('Default values')
-        self.index['y_distance_presets'] = FormList()  # require restart
-        self.index['y_scale_presets'] = FormList()  # require restart
-        self.index['window_length_presets'] = FormList()  # require restart
+        self.index['y_distance_presets'] = FormList()
+        self.index['y_scale_presets'] = FormList()
+        self.index['window_length_presets'] = FormList()
 
         form_layout = QFormLayout()
         form_layout.addRow('Signal scaling, presets',
@@ -640,3 +642,70 @@ class FormStr(QLineEdit):
 
         """
         self.textEdited.connect(funct)
+
+
+class FormDir(QPushButton):
+    """Subclass QPushButton for str to have a more consistent API across widgets.
+
+    Notes
+    -----
+    It calls to open the directory three times, but I don't understand why
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=''):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : str
+            not used
+
+        Returns
+        -------
+        str
+            the value in text
+
+        """
+        return self.text()
+
+    def set_value(self, value):
+        """Set value of the string.
+
+        Parameters
+        ----------
+        value : str
+            value for the line edit
+
+        """
+        self.setText(value)
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        Notes
+        -----
+        There is something wrong here. When you run this function, it calls
+        for opening a directory three or four times. This is obviously wrong
+        but I don't understand why this happens three times. Traceback did not
+        help.
+
+        """
+        def get_directory():
+            rec = QFileDialog.getExistingDirectory(self,
+                                                   'Path to Recording'
+                                                   ' Directory')
+            if rec == '':
+                return
+
+            self.setText(rec)
+            funct()
+
+        self.clicked.connect(get_directory)

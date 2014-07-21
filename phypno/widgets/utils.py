@@ -10,12 +10,7 @@ from os.path import dirname, join, realpath
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import (QMessageBox,
                          QPainterPath,
-                         QFormLayout,
-                         QGroupBox,
-                         QVBoxLayout,
                          )
-
-from .settings import Config, FormInt, FormList, FormStr, FormFloat
 
 MAX_LENGTH = 20
 
@@ -128,5 +123,3 @@ def short_strings(s, max_length=MAX_LENGTH):
         end = -floor(max_length / 2)
         s = s[:start] + '...' + s[end:]
     return s
-
-
