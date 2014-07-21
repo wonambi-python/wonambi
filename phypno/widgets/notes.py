@@ -273,6 +273,10 @@ class Notes(QTabWidget):
             self.idx_marker.setItem(i, 0, QTableWidgetItem(abs_time))
             self.idx_marker.setItem(i, 1, QTableWidgetItem(mrk['name']))
 
+        # store information about the time as list (easy to access)
+        marker_time = [mrk['time'] for mrk in markers]
+        self.idx_marker.setProperty('time', marker_time)
+
         self.parent.traces.mark_markers()
         self.parent.overview.mark_markers()
 
@@ -286,8 +290,8 @@ class Notes(QTabWidget):
         column : QtCore.int
 
         """
-        window_length = self.parent.overview.config.value['window_length']
-        marker_time = self.dataset_markers[row]['time']
+        window_length = self.parent.value('window_length')
+        marker_time = self.idx_marker.property('time')[row]
         window_start = floor(marker_time / window_length) * window_length
         self.parent.overview.update_position(window_start)
 
@@ -300,8 +304,8 @@ class Notes(QTabWidget):
             string with the name of the sleep stage.
 
         """
-        window_start = self.parent.overview.config.value['window_start']
-        window_length = self.parent.overview.config.value['window_length']
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
 
         lg.info('User staged ' + str(window_start) + ' as ' +
                 STAGE_NAME[stage_idx])
@@ -314,7 +318,7 @@ class Notes(QTabWidget):
 
     def set_combobox_index(self):
         """Set the current stage in combobox."""
-        window_start = self.parent.overview.config.value['window_start']
+        window_start = self.parent.value('window_start')
         stage = self.annot.get_stage_for_epoch(window_start)
         lg.debug('Set combobox at ' + stage)
         self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
