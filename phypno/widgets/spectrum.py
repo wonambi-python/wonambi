@@ -118,6 +118,8 @@ class Spectrum(QWidget):
         layout.addWidget(self.idx_fig)
         self.setLayout(layout)
 
+        self.resizeEvent(None)
+
     def update_spectrum(self):
         """Add channel names to the combobox.
 
@@ -160,8 +162,6 @@ class Spectrum(QWidget):
             Pxx_to_plot = Pxx[freq_limit]
 
         self.scene.addPath(Path(f[freq_limit], Pxx_to_plot))
-
-        self.resizeEvent(None)
 
     def add_grid(self):
         """Add axis and ticks to figure.

@@ -216,7 +216,7 @@ class Notes(QTabWidget):
         try:
             # if annotations were loaded without dataset
             if self.parent.overview.scene is None:
-                self.parent.overview.update_overview()
+                self.parent.overview.update()
 
             self.idx_rater.setText(self.annot.current_rater)
 

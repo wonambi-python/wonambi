@@ -316,7 +316,10 @@ class MainWindow(QMainWindow):
         if filename == '':
             return
 
-        self.notes.update_notes(filename, False)
+        try:
+            self.notes.update_notes(filename, False)
+        except FileNotFoundError:
+            self.statusBar().showMessage('Annotation file not found')
 
     def action_select_rater(self, rater=False):
         """
