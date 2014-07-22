@@ -181,9 +181,9 @@ class Data:
                 ix_data = ix_(*idx_data)
                 output[cnt][ix_output] = self.data[i][ix_data]
 
-                if len(squeeze_axis) > 0:
-                    output[cnt] = squeeze(output[cnt],
-                                          axis=tuple(squeeze_axis))
+            if len(squeeze_axis) > 0:
+                output[cnt] = squeeze(output[cnt],
+                                      axis=tuple(squeeze_axis))
 
         if squeeze_trial:
             output = output[0]

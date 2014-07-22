@@ -103,6 +103,17 @@ def test_data_select_empty_selection():
     assert isnan(output[0][:]).all()
 
 
+def test_data_select_one_empty_selection():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = create_data(n_trial=10, s_freq=500)
+
+    CHAN = 'chanXX'
+    output = data(chan=CHAN, trial=0)
+    assert output.shape == (data.number_of('time')[0], )
+    assert isnan(output[:]).all()
+
+
 def test_data_conserve_order():
     lg.info('---\nfunction: ' + stack()[0][3])
 
