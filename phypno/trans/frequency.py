@@ -4,7 +4,7 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import empty
+from numpy import arange, empty, where
 from scipy.signal import welch, morlet, fftconvolve
 
 from ..datatype import ChanFreq, ChanTimeFreq
@@ -88,38 +88,50 @@ class TimeFreq:
     ----------
     method : str, optional
         the method to compute the time-frequency representation, such as
-        'morlet' (wavelet using complex morlet window)
-    foi : ndarray or list or tuple
-        vector with frequency of interest
+        'morlet' (wavelet using complex morlet window), 'welch' (compute
+        power spectrum for each window, but it does not average them)
     options : dict
         Options depends on the method.
 
     Notes
     -----
-    For method 'morlet', the following options are specified:
-      - M_in_s : duration of the wavelet in seconds
-      - w : Omega0
+    For method 'morlet', the following options should be specified:
+        foi : ndarray or list or tuple
+            vector with frequency of interest
+        M_in_s : int
+            duration of the wavelet in seconds
+        w : int
+            Omega0
+    For method 'welch', the following options should be specified:
+        duraton : int
+            duration of the window to compute the power spectrum, in s
+        overlap : int
+            amount of overlap between windows
 
     """
-    def __init__(self, method='morlet', foi=None, **options):
-        implemented_methods = ('morlet', )
+    def __init__(self, method='morlet', **options):
+        implemented_methods = ('morlet', 'welch')
 
         if method not in implemented_methods:
             raise ValueError('Method ' + method + ' is not implemented yet.\n'
                              'Currently implemented methods are ' +
                              ', '.join(implemented_methods))
 
-        self.method = method
-        if foi is None:
-            raise ValueError('Specify a value for the frequency of interest')
-        self.foi = foi
-
         if method == 'morlet':
-            default_options = {'M_in_s': 1,
+            default_options = {'foi': None,
+                               'M_in_s': 1,
                                'w': 5,
                                }
-            default_options.update(options)
+        elif method == 'welch':
+            default_options = {'duration': 1,
+                               'overlap': .5,
+                               }
 
+        self.method = method
+        default_options.update(options)
+        for name, value in default_options.items():
+            if value is None:
+                raise ValueError('Specify a value for ' + name)
         self.options = default_options
 
     def __call__(self, data):
@@ -149,35 +161,69 @@ class TimeFreq:
         1737.4662329214384)
 
         """
+        idx_time = data.index_of('time')
+
         timefreq = ChanTimeFreq()
         timefreq.s_freq = data.s_freq
         timefreq.start_time = data.start_time
         timefreq.axis['chan'] = data.axis['chan']
-        timefreq.axis['time'] = data.axis['time']
+        timefreq.axis['time'] = empty(data.number_of('trial'), dtype='O')
         timefreq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
         timefreq.data = empty(data.number_of('trial'), dtype='O')
 
         if self.method == 'morlet':
-            wavelets = _create_morlet(self.foi, data.s_freq, self.options)
+            wavelets = _create_morlet(self.options, data.s_freq)
 
             for i in range(data.number_of('trial')):
                 lg.info('Processing trial # {0: 6}'.format(i))
-                timefreq.axis['freq'][i] = self.foi
+                timefreq.axis['freq'][i] = self.options['foi']
 
                 timefreq.data[i] = empty((data.number_of('chan')[i],
                                           data.number_of('time')[i],
-                                          len(self.foi)),
-                                          dtype='complex')
+                                          len(self.options['foi'])),
+                                         dtype='complex')
                 for i_c, chan in enumerate(data.axis['chan'][i]):
                     dat = data(trial=i, chan=chan)
-                    for i_f, f in enumerate(self.foi):
+                    for i_f, f in enumerate(self.options['foi']):
                         tf = fftconvolve(dat, wavelets[i_f, :], 'same')
                         timefreq.data[i][i_c, :, i_f] = tf
+
+        elif self.method == 'welch':
+
+            for i, trial in enumerate(data):
+                time_in_trl = trial.axis['time'][0]
+                overlap = self.options['overlap'] * self.options['duration']
+                windows = arange(time_in_trl[0], time_in_trl[-1], overlap)
+                windows = windows[1:]  # remove first one
+                timefreq.axis['time'][i] = windows
+
+                n_sel_time = self.options['duration'] * data.s_freq
+                n_freq = n_sel_time / 2 + 1
+
+                timefreq.data[i] = empty((data.number_of('chan')[i],
+                                          len(windows), n_freq))
+
+                for i_win, win_value in enumerate(windows):
+                    # this is necessary to go around the floating point errors
+                    # instead of checking the intervals with >= and <,
+                    # we first find the first point and move from there
+                    time0 = win_value - self.options['duration'] / 2
+                    i_time0 = where(time_in_trl >= time0)[0][0]
+                    i_time1 = i_time0 + n_sel_time
+
+                    x = trial(trial=0, time=time_in_trl[i_time0:i_time1])
+                    f, Pxx = welch(x,
+                                   fs=data.s_freq,
+                                   nperseg=x.shape[idx_time],
+                                   axis=idx_time)
+                    timefreq.data[i][:, i_win, :] = Pxx
+
+                timefreq.axis['freq'][i] = f
 
         return timefreq
 
 
-def _create_morlet(foi, s_freq, options):
+def _create_morlet(options, s_freq):
     """Create morlet wavelets, with scipy.signal doing the actual computation.
 
     Parameters
@@ -201,8 +247,8 @@ def _create_morlet(foi, s_freq, options):
     """
     M = options['M_in_s'] * s_freq
 
-    wavelets = empty((len(foi), M), dtype='complex')
-    for i, f in enumerate(foi):
+    wavelets = empty((len(options['foi']), M), dtype='complex')
+    for i, f in enumerate(options['foi']):
         scaling = _compute_scaling(f, M, options['w'], s_freq)
         wavelets[i, :] = morlet(M, options['w'], scaling)
 

@@ -62,7 +62,7 @@ def test_timefreq_no_foi():
     TimeFreq()
 
 
-def test_timefreq_basic():
+def test_timefreq_morlet():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     FOI = arange(5, 10)
@@ -74,7 +74,7 @@ def test_timefreq_basic():
     assert tf.data[0].shape[1] == data.number_of('time')[0]
     assert tf.data[0].shape[2] == len(FOI)
     x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
-    assert_almost_equal(x[0], (-2044.0612867768023+1949.3118682758034j))
+    assert_almost_equal(x[0], (-2044.0615279587946+1949.3117731755101j))
 
 
 def test_timefreq_example_in_doc():
@@ -85,15 +85,15 @@ def test_timefreq_example_in_doc():
     tf = calc_tf(data)
     make_abs = Math(operator_name='abs')
     tf_abs = make_abs(tf)
-    assert_almost_equal(tf_abs.data[0][0, 0, 0], 1737.4662476482222)
+    assert_almost_equal(tf_abs.data[0][0, 0, 0], 1737.4662219735853)
 
 
 def test_timefreq_sine():
     lg.info('---\nfunction: ' + stack()[0][3])
 
     FREQ = 10
-    data = create_data(n_chan = 1)
-    data.data[0][0,:] = sin(2 * pi * data.axis['time'][0] * FREQ)
+    data = create_data(n_chan=1)
+    data.data[0][0, :] = sin(2 * pi * data.axis['time'][0] * FREQ)
 
     FOI = arange(4, 20)
     calc_tf = TimeFreq(foi=FOI)
@@ -104,3 +104,16 @@ def test_timefreq_sine():
 
     # peak in power spectrum is where the frequency of the sine wave
     assert FOI[x[200, :].argmax()] == FREQ
+
+
+def test_timefreq_welch():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    calc_tf = TimeFreq(method='welch')
+    tf = calc_tf(data)
+
+    assert tf.list_of_axes == ('chan', 'time', 'freq')
+    assert tf.data[0].shape[0] == data.number_of('chan')[0]
+    assert tf.data[0].shape[2] == data.s_freq / 2 + 1
+    x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
+    assert_almost_equal(x[0], 12.79265022277832)

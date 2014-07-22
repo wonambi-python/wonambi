@@ -23,7 +23,7 @@ class Concatenate:
     -----
     If axis is 'trial', it will add one more dimension, and concatenate based
     on it. It will then create a new axis, called 'trial_axis' (not 'trial'
-    because that axis is hard-code).
+    because that axis is hard-coded).
 
     """
     def __init__(self, axis):
