@@ -214,7 +214,7 @@ class Annotations():
 
         self.save()
 
-    def add_event(self, name, time):
+    def add_event(self, name, time, chan=''):
         if name not in self.event_types:
             self.add_event_type(name)
 
@@ -228,17 +228,24 @@ class Annotations():
         event_end = SubElement(new_event, 'event_end')
         event_end.text = str(time[1])
 
+        if isinstance(chan, (tuple, list)):
+            chan = ', '.join(chan)
+        event_chan = SubElement(new_event, 'event_chan')
+        event_chan.text = chan
+
         self.save()
 
-    def remove_event(self, name=None, time=None):
-        """get events inside window.
-
-        Time is obligatory, but keep arguments in this order."""
+    def remove_event(self, name=None, time=None, chan=None):
+        """get events inside window."""
         events = self.rater.find('events')
         if name is not None:
             pattern = "event_type[@type='" + name + "']"
         else:
             pattern = "event_type"
+
+        if chan is not None:
+            if isinstance(chan, (tuple, list)):
+                chan = ', '.join(chan)
 
         for e_type in list(events.iterfind(pattern)):
 
@@ -246,19 +253,34 @@ class Annotations():
 
                 event_start = float(e.find('event_start').text)
                 event_end = float(e.find('event_end').text)
+                event_chan = e.find('chan').text
 
-                if time[0] == event_start and time[1] == event_end:
+                if time is None:
+                    time_cond = True
+                else:
+                    time_cond = time[0] == event_start and time[1] == event_end
+
+                if chan is None:
+                    chan_cond = True
+                else:
+                    chan_cond = event_chan == chan
+
+                if time_cond and chan_cond:
                     e_type.remove(e)
 
         self.save()
 
-    def get_events(self, name=None, time=None):
+    def get_events(self, name=None, time=None, chan=None):
         # get events inside window
         events = self.rater.find('events')
         if name is not None:
             pattern = "event_type[@type='" + name + "']"
         else:
             pattern = "event_type"
+
+        if chan is not None:
+            if isinstance(chan, (tuple, list)):
+                chan = ', '.join(chan)
 
         ev = []
         for e_type in events.iterfind(pattern):
@@ -269,17 +291,23 @@ class Annotations():
 
                 event_start = float(e.find('event_start').text)
                 event_end = float(e.find('event_end').text)
+                event_chan = e.find('chan').text
 
                 if time is None:
-                    win_cond = True
+                    time_cond = True
                 else:
-                    win_cond = (time[0] <= event_end and
-                                time[1] >= event_start)
+                    time_cond = time[0] <= event_end and time[1] >= event_start
 
-                if win_cond:
+                if chan is None:
+                    chan_cond = True
+                else:
+                    chan_cond = event_chan == chan
+
+                if time_cond and chan_cond:
                     one_ev = {'name': event_name,
                               'start': event_start,
                               'end': event_end,
+                              'chan': chan.split(', '),  # always a cell
                               }
                     ev.append(one_ev)
 
