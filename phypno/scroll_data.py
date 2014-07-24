@@ -357,7 +357,15 @@ class MainWindow(QMainWindow):
         answer = QInputDialog.getText(self, 'New Event Type',
                                       'Enter new event\'s name')
         if answer[1]:
-            self.notes.annot.remove_rater(answer[0])
+            pass
+            # self.notes.annot.remove_rater(answer[0])
+
+    def action_del_event_type(self):
+        answer = QInputDialog.getText(self, 'Delete Event Type',
+                                      'Enter event\'s name to delete')
+        if answer[1]:
+            pass
+            # self.notes.annot.remove_rater(answer[0])
 
     def moveEvent(self, event):
         """Main window is already resized."""

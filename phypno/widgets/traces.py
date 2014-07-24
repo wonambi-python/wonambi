@@ -316,7 +316,8 @@ class Traces(QGraphicsView):
             x_in_scene = self.mapToScene(event.pos()).x()
 
             # max resolution = sampling frequency
-            s_freq = self.data.s_freq
+            # in case there is no data
+            s_freq = self.parent.info.dataset.header['s_freq']
             time = int(x_in_scene * s_freq) / s_freq
             self.parent.notes.add_marker(time)
 
