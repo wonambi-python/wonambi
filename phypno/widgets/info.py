@@ -130,7 +130,7 @@ class Info(QWidget):
             filename = recent
         else:
             try:
-                dir_name = dirname(self.info.filename)
+                dir_name = dirname(self.filename)
             except (AttributeError, TypeError):
                 dir_name = self.parent.value('recording_dir')
 
