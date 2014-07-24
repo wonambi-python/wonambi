@@ -324,5 +324,10 @@ class Notes(QTabWidget):
         self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
 
     def reset(self):
+        self.idx_annotations.setText('Load Annotation File...')
+        self.idx_rater.setText('')
+        self.idx_stats = QFormLayout()
+        self.idx_marker.clear()
+
         self.annot = None
         self.dataset_markers = None

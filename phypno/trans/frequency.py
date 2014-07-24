@@ -192,9 +192,15 @@ class TimeFreq:
 
             for i, trial in enumerate(data):
                 time_in_trl = trial.axis['time'][0]
-                overlap = self.options['overlap'] * self.options['duration']
+                half_duration = self.options['duration'] / 2
+                overlap = self.options['overlap'] * half_duration
                 windows = arange(time_in_trl[0], time_in_trl[-1], overlap)
-                windows = windows[1:]  # remove first one
+
+                good_win = (windows - half_duration) > time_in_trl[0]
+                windows = windows[good_win]
+                good_win = (windows + half_duration) < time_in_trl[-1]
+                windows = windows[good_win]
+
                 timefreq.axis['time'][i] = windows
 
                 n_sel_time = self.options['duration'] * data.s_freq
