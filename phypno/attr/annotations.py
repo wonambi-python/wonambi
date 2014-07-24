@@ -184,11 +184,45 @@ class Annotations():
 
         return mrks
 
-    def add_event(self, name, time):
+    @property
+    def event_types(self):
         events = self.rater.find('events')
-        new_event = SubElement(events, 'event')
-        event_name = SubElement(new_event, 'name')
-        event_name.text = name
+        return [x.get('type') for x in events]
+
+    def add_event_type(self, name):
+        if name in self.event_types:
+            lg.info('Event type ' + name + ' exists already.')
+            return
+
+        events = self.rater.find('events')
+        new_event_type = SubElement(events, 'event_type')
+        new_event_type.set('type', name)
+        self.save()
+
+    def remove_event_type(self, name):
+        """Remove event type based on name."""
+
+        if name not in self.event_types:
+            lg.info('Event type ' + name + ' was not found.')
+
+        events = self.rater.find('events')
+
+        # list is necessary so that it does not remove in place
+        for e in list(events):
+            if e.get('type') == name:
+                events.remove(e)
+
+        self.save()
+
+    def add_event(self, name, time):
+        if name not in self.event_types:
+            self.add_event_type(name)
+
+        events = self.rater.find('events')
+        pattern = "event_type[@type='" + name + "']"
+        event_type = events.find(pattern)
+
+        new_event = SubElement(event_type, 'event')
         event_start = SubElement(new_event, 'event_start')
         event_start.text = str(time[0])
         event_end = SubElement(new_event, 'event_end')
@@ -196,37 +230,59 @@ class Annotations():
 
         self.save()
 
-    def remove_event(self, win_interval=None, name=None):
-        # remove events based on window interval and/or name
-        pass
+    def remove_event(self, name=None, time=None):
+        """get events inside window.
 
-    def get_events(self, win_interval=None, name=None):
+        Time is obligatory, but keep arguments in this order."""
+        events = self.rater.find('events')
+        if name is not None:
+            pattern = "event_type[@type='" + name + "']"
+        else:
+            pattern = "event_type"
+
+        for e_type in list(events.iterfind(pattern)):
+
+            for e in e_type:
+
+                event_start = float(e.find('event_start').text)
+                event_end = float(e.find('event_end').text)
+
+                if time[0] == event_start and time[1] == event_end:
+                    e_type.remove(e)
+
+        self.save()
+
+    def get_events(self, name=None, time=None):
         # get events inside window
         events = self.rater.find('events')
+        if name is not None:
+            pattern = "event_type[@type='" + name + "']"
+        else:
+            pattern = "event_type"
+
         ev = []
-        for e in events:
+        for e_type in events.iterfind(pattern):
 
-            event_name = e.find('name').text
-            if name is None:
-                name_cond = True
-            else:
-                name_cond = event_name == name
+            event_name = e_type.get('type')
 
-            event_start = float(e.find('event_start').text)
-            event_end = float(e.find('event_end').text)
-            if win_interval is None:
-                win_cond = True
-            else:
-                win_cond = (win_interval[0] <= event_end and
-                            win_interval[1] >= event_start)
+            for e in e_type:
 
-            if win_cond and name_cond:
+                event_start = float(e.find('event_start').text)
+                event_end = float(e.find('event_end').text)
 
-                one_ev = {'name': event_name,
-                          'start': event_start,
-                          'end': event_end,
-                          }
-                ev.append(one_ev)
+                if time is None:
+                    win_cond = True
+                else:
+                    win_cond = (time[0] <= event_end and
+                                time[1] >= event_start)
+
+                if win_cond:
+                    one_ev = {'name': event_name,
+                              'start': event_start,
+                              'end': event_end,
+                              }
+                    ev.append(one_ev)
+
         return ev
 
     def create_epochs(self, epoch_length=30):
