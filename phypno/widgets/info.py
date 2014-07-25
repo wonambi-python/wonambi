@@ -164,6 +164,7 @@ class Info(QWidget):
 
         self.parent.overview.update()
         self.parent.channels.update(self.dataset.header['chan_name'])
+
         try:
             self.parent.notes.update_dataset_markers(self.dataset.header)
         except (KeyError, ValueError):

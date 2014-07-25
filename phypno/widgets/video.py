@@ -168,6 +168,10 @@ class Video(QWidget):
         video works in an external window.
 
         """
+        if self.parent.info.dataset is None:
+            self.parent.statusBar().showMessage('No Dataset Loaded')
+            return
+
         if 'Start' in self.idx_button.text():
             try:
                 self.update_video()

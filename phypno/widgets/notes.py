@@ -16,6 +16,7 @@ from os.path import basename, splitext
 
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
+                         QColor,
                          QComboBox,
                          QFileDialog,
                          QFormLayout,
@@ -36,7 +37,7 @@ from PyQt4.QtGui import (QAbstractItemView,
 
 from ..attr import Annotations, create_empty_annotations
 
-from .settings import Config, FormInt
+from .settings import Config, FormStr, FormInt
 from .utils import short_strings, ICON
 
 # TODO: this in ConfigNotes
@@ -47,21 +48,40 @@ STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
 class ConfigNotes(Config):
 
     def __init__(self, update_widget):
-        super().__init__('stages', update_widget)
+        super().__init__('notes', update_widget)
 
     def create_config(self):
 
-        box0 = QGroupBox('Stages')
+        box0 = QGroupBox('Markers')
+
+        self.index['dataset_marker_color'] = FormStr()
+        self.index['annot_marker_color'] = FormStr()
+
+        form_layout = QFormLayout()
+        form_layout.addRow('Color of markers in the dataset',
+                           self.index['dataset_marker_color'])
+        form_layout.addRow('Color of markers in annotations',
+                           self.index['annot_marker_color'])
+        box0.setLayout(form_layout)
+
+        box1 = QGroupBox('Events')
+
+        form_layout = QFormLayout()
+        box1.setLayout(form_layout)
+
+        box2 = QGroupBox('Stages')
 
         self.index['scoring_window'] = FormInt()
 
         form_layout = QFormLayout()
         form_layout.addRow('Length of scoring window',
                            self.index['scoring_window'])
-        box0.setLayout(form_layout)
+        box2.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
+        main_layout.addWidget(box1)
+        main_layout.addWidget(box2)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -83,7 +103,7 @@ class Notes(QTabWidget):
 
         self.config = ConfigNotes(lambda: None)
         self.annot = None
-        self.dataset_markers = None
+        self.dataset_markers = None  # shouldn't this be in info?
 
         self.idx_annotations = None
         self.idx_rater = None
@@ -313,28 +333,42 @@ class Notes(QTabWidget):
 
         start_time = self.parent.overview.start_time
 
-        markers = []
-        if self.annot is not None:
-            # color
-            markers.extend(self.annot.get_markers())
-        if self.dataset_markers is not None:
-            markers.extend(self.dataset_markers)
+        annot_markers = []
+        if self.parent.notes.annot is not None:
+            annot_markers = self.parent.notes.annot.get_markers()
 
-        self.idx_marker.clear()  # TODO: keep selection?
+        dataset_markers = []
+        if self.parent.notes.dataset_markers is not None:
+            dataset_markers = self.parent.notes.dataset_markers
 
+        markers = annot_markers + dataset_markers
         markers = sorted(markers, key=lambda x: x['time'])
+
+        self.idx_marker.clear()
         self.idx_marker.setRowCount(len(markers))
+
         for i, mrk in enumerate(markers):
             abs_time = (start_time +
                         timedelta(seconds=mrk['time'])).strftime('%H:%M:%S')
-            self.idx_marker.setItem(i, 0, QTableWidgetItem(abs_time))
-            self.idx_marker.setItem(i, 1, QTableWidgetItem(mrk['name']))
+            item_time = QTableWidgetItem(abs_time)
+            self.idx_marker.setItem(i, 0, item_time)
+
+            item_name = QTableWidgetItem(mrk['name'])
+            self.idx_marker.setItem(i, 1, item_name)
+
+            if mrk in annot_markers:
+                color = self.parent.value('annot_marker_color')
+            if mrk in dataset_markers:
+                color = self.parent.value('dataset_marker_color')
+            item_time.setTextColor(QColor(color))
+            item_name.setTextColor(QColor(color))
 
         # store information about the time as list (easy to access)
         marker_time = [mrk['time'] for mrk in markers]
         self.idx_marker.setProperty('time', marker_time)
 
-        self.parent.traces.display_markers()
+        if self.parent.traces.data is not None:
+            self.parent.traces.display()  # redo the whole figure
         self.parent.overview.display_markers()
 
     def go_to_marker(self, row, col):
@@ -503,7 +537,7 @@ class Notes(QTabWidget):
             self.idx_event_list.setItem(i, 1, QTableWidgetItem(evt['name']))
 
         self.parent.overview.display_events()
-        self.parent.traces.display_events()
+        self.parent.traces.display()
 
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')

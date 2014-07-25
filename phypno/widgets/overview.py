@@ -9,14 +9,15 @@ from datetime import datetime, timedelta
 from numpy import floor
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
-                         QPen,
+                         QColor,
+                         QFormLayout,
+                         QGraphicsItem,
                          QGraphicsLineItem,
                          QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsView,
-                         QGraphicsItem,
-                         QFormLayout,
                          QGroupBox,
+                         QPen,
                          QVBoxLayout,
                          )
 
@@ -230,31 +231,36 @@ class Overview(QGraphicsView):
             lg.debug('Updating position at {}'
                      ''.format(self.parent.value('window_start')))
 
-        self.parent.traces.read_data()
-        self.parent.traces.display()
-        self.parent.spectrum.display_spectrum()
+        if self.parent.info.dataset is not None:
+            self.parent.traces.read_data()
+            self.parent.traces.display()
+            self.parent.spectrum.display_spectrum()
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
 
     def display_markers(self):
-        """Mark all the markers, from annotations or from the dataset.
-
-        """
+        """Mark all the markers, from annotations or from the dataset. """
+        annot_markers = []
         if self.parent.notes.annot is not None:
-            markers = self.parent.notes.annot.get_markers()
-            for mrk in markers:
-                l = self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
-                                       mrk['time'],
-                                       BARS['marker']['pos0'] +
-                                       BARS['marker']['pos1'])
-                l.setPen(QPen(Qt.red))  # TODO: options
+            annot_markers = self.parent.notes.annot.get_markers()
 
+        dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
-            for mrk in self.parent.notes.dataset_markers:
-                self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
+            dataset_markers = self.parent.notes.dataset_markers
+
+        markers = annot_markers + dataset_markers
+
+        for mrk in markers:
+            l = self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
                                    mrk['time'],
                                    BARS['marker']['pos0'] +
                                    BARS['marker']['pos1'])
+
+            if mrk in annot_markers:
+                color = self.parent.value('annot_marker_color')
+            if mrk in dataset_markers:
+                color = self.parent.value('dataset_marker_color')
+            l.setPen(QPen(QColor(color)))
 
     def display_events(self):
         """Mark all the events, from annotations. """

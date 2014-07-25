@@ -47,8 +47,10 @@ DEFAULTS['spectrum'] = {'x_min': 0.,
                         'y_tick': 5.,
                         'log': True,
                         }
-DEFAULTS['stages'] = {'scoring_window': 30,
-                      }
+DEFAULTS['notes'] = {'dataset_marker_color': 'black',
+                     'annot_marker_color': 'red',
+                     'scoring_window': 30,
+                     }
 DEFAULTS['traces'] = {'n_time_labels': 3,
                       'y_distance': 50.,
                       'y_scale': 1.,

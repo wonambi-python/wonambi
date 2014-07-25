@@ -11,6 +11,7 @@ from numpy import (abs, argmin, asarray, ceil, empty, floor, max, min, log2,
                    pad, power)
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QBrush,
+                         QColor,
                          QFormLayout,
                          QGraphicsItem,
                          QGraphicsRectItem,
@@ -121,6 +122,10 @@ class Traces(QGraphicsView):
     idx_info : instance of QGraphicsSimpleTextItem
         the rectangle showing the selection
 
+    Notes
+    -----
+    TODO: maybe create an empty scene to add markers
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -141,8 +146,6 @@ class Traces(QGraphicsView):
         self.idx_time = []
         self.idx_sel = None
         self.idx_info = None
-
-        # TODO: maybe create an empty scene to add markers
 
     def read_data(self):
         """Read the data to plot."""
@@ -166,6 +169,9 @@ class Traces(QGraphicsView):
 
     def display(self):
         """Display the recordings."""
+        if self.data is None:
+            return
+
         if self.scene is not None:
             self.y_scrollbar_value = self.verticalScrollBar().value()
             self.scene.clear()
@@ -178,13 +184,13 @@ class Traces(QGraphicsView):
 
         time_height = max([x.boundingRect().height() for x in self.idx_time])
         label_width = window_length * self.parent.value('label_ratio')
+        scene_height = (len(self.idx_label) * self.parent.value('y_distance') +
+                        time_height)
 
         self.scene = QGraphicsScene(window_start - label_width,
                                     0,
                                     window_length + label_width,
-                                    len(self.idx_label) *
-                                    self.parent.value('y_distance') +
-                                    time_height)
+                                    scene_height)
 
         self.setScene(self.scene)
         self.add_labels()
@@ -198,7 +204,13 @@ class Traces(QGraphicsView):
         self.parent.info.display_view()
 
     def create_labels(self):
-        """Create the channel labels, but don't plot them yet."""
+        """Create the channel labels, but don't plot them yet.
+
+        Notes
+        -----
+        It's necessary to have the width of the labels, so that we can adjust
+        the main scene.
+        """
         self.idx_label = []
         for one_grp in self.parent.channels.groups:
             for one_label in one_grp['chan_to_plot']:
@@ -212,8 +224,10 @@ class Traces(QGraphicsView):
 
         Notes
         -----
-        Not very robust, because it uses seconds as integers.
+        It's necessary to have the height of the time labels, so that we can
+        adjust the main scene.
 
+        Not very robust, because it uses seconds as integers.
         """
         min_time = int(floor(min(self.data.axis['time'][0])))
         max_time = int(ceil(max(self.data.axis['time'][0])))
@@ -260,9 +274,11 @@ class Traces(QGraphicsView):
         row = 0
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
+
+                # channel name
                 chan_name = one_chan + ' (' + one_grp['name'] + ')'
-                self.chan.append(chan_name)
-                self.chan_scale.append(one_grp['scale'])
+
+                # trace
                 dat = (self.data(trial=0, chan=chan_name) *
                        self.parent.value('y_scale'))
                 dat *= -1  # flip data, upside down
@@ -270,57 +286,74 @@ class Traces(QGraphicsView):
                                                dat))
                 path.setPen(QPen(one_grp['color']))
 
+                # adjust position
                 chan_pos = (self.parent.value('y_distance') * row +
                             self.parent.value('y_distance') / 2)
-                self.chan_pos.append(chan_pos)
                 path.setPos(0, chan_pos)
                 row += 1
 
-    def display_markers(self):
-        """Add bookmarks on top of first plot."""
-        if self.scene is None:
-            return
+                self.chan.append(chan_name)
+                self.chan_scale.append(one_grp['scale'])
+                self.chan_pos.append(chan_pos)
 
+    def display_markers(self):
+        """Add markers on top of first plot.
+
+        Notes
+        -----
+        This function should be called by traces.display only, even when we
+        only add markers. It's because sometimes we delete markers.
+
+        There are two approaches: either we redo the whole figure or we
+        keep track of the markers and we delete only those. Here we go for the
+        first approach.
+        """
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         time_height = max([x.boundingRect().height() for x in self.idx_time])
 
-        # TODO: don't repeat code twice
+        annot_markers = []
         if self.parent.notes.annot is not None:
-            for mrk in self.parent.notes.annot.get_markers():
-                if window_start <= mrk['time'] <= window_end:
-                    item = QGraphicsSimpleTextItem(mrk['name'])
-                    item.setPos(mrk['time'],
-                                len(self.idx_label) *
-                                self.parent.value('y_distance') -
-                                time_height)
-                    item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                    item.setPen(QPen(Qt.red))
-                    self.scene.addItem(item)
+            annot_markers = self.parent.notes.annot.get_markers()
 
+        dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
-            for mrk in self.parent.notes.dataset_markers:
-                if window_start <= mrk['time'] <= window_end:
-                    item = QGraphicsSimpleTextItem(mrk['name'])
-                    item.setPos(mrk['time'],
-                                len(self.idx_label) *
-                                self.parent.value('y_distance') -
-                                time_height)
-                    item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                    self.scene.addItem(item)
+            dataset_markers = self.parent.notes.dataset_markers
+
+        markers = annot_markers + dataset_markers
+
+        for mrk in markers:
+            if window_start <= mrk['time'] <= window_end:
+
+                item = QGraphicsSimpleTextItem(mrk['name'])
+                item.setPos(mrk['time'],
+                            len(self.idx_label) *
+                            self.parent.value('y_distance') -
+                            time_height)
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                self.scene.addItem(item)
+
+                if mrk in annot_markers:
+                    color = self.parent.value('annot_marker_color')
+                if mrk in dataset_markers:
+                    color = self.parent.value('dataset_marker_color')
+                item.setBrush(QBrush(QColor(color)))
 
     def display_events(self):
-        """Add events on top of first plot."""
-        if self.scene is None:
-            return
+        """Add events on top of first plot.
 
+        Notes
+        -----
+        This function should be called by traces.display only, even when we
+        only add events. It's because sometimes we delete events.
+
+        """
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         time_height = max([x.boundingRect().height() for x in self.idx_time])
 
-        # TODO: don't repeat code twice
         if self.parent.notes.annot is not None:
 
             events = self.parent.notes.annot.get_events(time=(window_start,
