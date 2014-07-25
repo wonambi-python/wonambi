@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-VERSION = 9.1
+VERSION = 9.2
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
@@ -28,15 +28,11 @@ lg.addHandler(handler)
 lg.setLevel(DEBUG)
 
 """ ------ IMPORT ------ """
-from os.path import splitext
 from types import MethodType
 
 from numpy import arange
 from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import (QFileDialog,
-                         QInputDialog,
-                         QMainWindow,
-                         )
+from PyQt4.QtGui import QMainWindow
 
 from phypno.widgets.creation import (create_menubar, create_toolbar,
                                      create_actions, create_widgets)
@@ -48,31 +44,6 @@ settings = QSettings("phypno", "scroll_data")
 
 class MainWindow(QMainWindow):
     """Create an instance of the main window.
-
-    Attributes
-    ----------
-
-    notes : instance of phypno.widgets.Notes
-
-    channels : instance of phypno.widgets.Channels
-
-    detect : instance of phypno.widgets.Detect
-
-    info : instance of phypno.widgets.Info
-
-    overview : instance of phypno.widgets.Overview
-
-    spectrum : instance of phypno.widgets.Spectrum
-
-    traces : instance of phypno.widgets.Traces
-
-    video : instance of phypno.widgets.Video
-
-    action : dict
-        names of all the actions to perform
-
-    menu_window : instance of menuBar.menu
-        menu about the windows (to know which ones are shown or hidden)
 
     """
     def __init__(self):
@@ -284,87 +255,6 @@ class MainWindow(QMainWindow):
         self.value('y_distance', new_y_distance)
         self.traces.display_traces()
 
-    def action_new_annot(self):
-        """Action: create a new file for annotations.
-
-        It should be gray-ed out when no dataset
-        """
-        if self.info.filename is None:
-            self.statusBar().showMessage('No dataset loaded')
-            return
-
-        filename = splitext(self.info.filename)[0] + '_scores.xml'
-        filename = QFileDialog.getSaveFileName(self, 'Create annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
-        if filename == '':
-            return
-
-        self.notes.update_notes(filename, True)
-
-    def action_load_annot(self):
-        """Action: load a file for annotations."""
-        if self.info.filename is not None:
-            filename = splitext(self.info.filename)[0] + '_scores.xml'
-        else:
-            filename = None
-
-        filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
-
-        if filename == '':
-            return
-
-        try:
-            self.notes.update_notes(filename, False)
-        except FileNotFoundError:
-            self.statusBar().showMessage('Annotation file not found')
-
-    def action_select_rater(self, rater=False):
-        """
-        First argument, if not specified, is a bool/False:
-        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
-
-        """
-        if rater:
-            self.notes.annot.get_rater(rater)
-
-        else:
-            answer = QInputDialog.getText(self, 'New Rater',
-                                          'Enter rater\'s name')
-            if answer[1]:
-                self.notes.annot.add_rater(answer[0])
-                self.create_menubar()  # refresh list ot raters
-
-        self.notes.display_notes()
-
-    def action_delete_rater(self):
-        """
-        First argument, if not specified, is a bool/False:
-        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
-
-        """
-        answer = QInputDialog.getText(self, 'Delete Rater',
-                                      'Enter rater\'s name')
-        if answer[1]:
-            self.notes.annot.remove_rater(answer[0])
-
-        self.notes.display_notes()
-        self.create_menubar()  # refresh list ot raters
-
-    def action_new_event_type(self):
-        answer = QInputDialog.getText(self, 'New Event Type',
-                                      'Enter new event\'s name')
-        if answer[1]:
-            self.notes.annot.add_event_type(answer[0])
-
-    def action_del_event_type(self):
-        answer = QInputDialog.getText(self, 'Delete Event Type',
-                                      'Enter event\'s name to delete')
-        if answer[1]:
-            self.notes.annot.remove_event_type(answer[0])
-
     def moveEvent(self, event):
         """Main window is already resized."""
         self.value('window_x', self.geometry().x())
@@ -397,6 +287,8 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
+    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
 
     if standalone:
         app.exec_()

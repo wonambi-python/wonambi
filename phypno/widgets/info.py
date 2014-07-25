@@ -58,10 +58,19 @@ class Info(QWidget):
         self.idx_length = None
 
         self.create()
+        self.create_action()
 
-    @property
-    def action(self):
+    def create_action(self):
+        """I don't know if this should be a function or a property.
+
+        The good thing about the property is that it is updated every time you
+        run it (for example, if you change some parameters in the settings).
+        The main drawback is that you cannot reference back to the QAction, as
+        it creates new ones every time.
+
+        """
         output = {}
+
         act = QAction(QIcon(ICON['open_rec']), 'Open Dataset...', self)
         act.setShortcut(QKeySequence.Open)
         act.triggered.connect(self.open_dataset)
@@ -78,7 +87,7 @@ class Info(QWidget):
             act.append(act_recent)
         output['open_recent'] = act
 
-        return output
+        self.action = output
 
     def create(self):
         """Create the QFormLayout with all the information.

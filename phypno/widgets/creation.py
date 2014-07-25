@@ -36,15 +36,15 @@ def create_widgets(MAIN):
 
     """
     """ ------ CREATE WIDGETS ------ """
-    MAIN.info = Info(MAIN)
-    MAIN.channels = Channels(MAIN)
-    MAIN.spectrum = Spectrum(MAIN)
-    MAIN.overview = Overview(MAIN)
-    MAIN.notes = Notes(MAIN)
     MAIN.detect = Detect(MAIN)
     MAIN.video = Video(MAIN)
+    MAIN.notes = Notes(MAIN)
+    MAIN.spectrum = Spectrum(MAIN)
+    MAIN.channels = Channels(MAIN)
     MAIN.traces = Traces(MAIN)
+    MAIN.overview = Overview(MAIN)
     MAIN.settings = Settings(MAIN)
+    MAIN.info = Info(MAIN)  # this has to be the last, it depeds on settings
 
     MAIN.setCentralWidget(MAIN.traces)
 
@@ -177,32 +177,6 @@ def create_actions(MAIN):
                                    'Smaller Y Distance', MAIN)
     actions['Y_tighter'].triggered.connect(MAIN.action_Y_tighter)
 
-    """ ------ ANNOTATIONS ------ """
-    actions['new_annot'] = QAction('New Annotation File...', MAIN)
-    actions['new_annot'].triggered.connect(MAIN.action_new_annot)
-    actions['load_annot'] = QAction('Load Annotation File...', MAIN)
-    actions['load_annot'].triggered.connect(MAIN.action_load_annot)
-
-    actions['new_rater'] = QAction('New...', MAIN)
-    actions['new_rater'].triggered.connect(MAIN.action_select_rater)
-    actions['del_rater'] = QAction('Delete...', MAIN)
-    actions['del_rater'].triggered.connect(MAIN.action_delete_rater)
-
-    actions['new_marker'] = QAction(QIcon(ICON['marker']), 'New Marker', MAIN)
-    actions['new_marker'].setCheckable(True)
-    actions['new_event_type'] = QAction(QIcon(ICON['new_event_type']),
-                                        'New Event Type', MAIN)
-    actions['new_event_type'].triggered.connect(MAIN.action_new_event_type)
-    actions['del_event_type'] = QAction('Delete Event Type', MAIN)
-    actions['del_event_type'].triggered.connect(MAIN.action_del_event_type)
-    actions['new_event'] = QAction(QIcon(ICON['event']), 'New Event', MAIN)
-    actions['new_event'].setCheckable(True)
-
-    uncheck_new_event = lambda: actions['new_event'].setChecked(False)
-    uncheck_new_marker = lambda: actions['new_marker'].setChecked(False)
-    actions['new_event'].triggered.connect(uncheck_new_marker)
-    actions['new_marker'].triggered.connect(uncheck_new_event)
-
 
 def create_menubar(MAIN):
     """Create the whole menubar, based on actions."""
@@ -289,6 +263,8 @@ def create_menubar(MAIN):
         act.triggered.connect(partial(MAIN.action_X_length, x))
 
     """ ------ ANNOTATIONS ------ """
+    actions = MAIN.notes.action
+
     menu_annot = menubar.addMenu('Annotations')
     menu_annot.addAction(actions['new_annot'])
     menu_annot.addAction(actions['load_annot'])
@@ -302,7 +278,7 @@ def create_menubar(MAIN):
         for rater in sorted(MAIN.notes.annot.raters):
             lg.debug('Adding rater: ' + rater)
             act = submenu_rater.addAction(rater)
-            act.triggered.connect(partial(MAIN.action_select_rater, rater))
+            act.triggered.connect(partial(MAIN.notes.select_rater, rater))
     menu_annot.addSeparator()
 
     submenu_marker = menu_annot.addMenu('Marker')
@@ -310,11 +286,15 @@ def create_menubar(MAIN):
     submenu_marker.addAction('Delete Marker(TODO)')
 
     submenu_event = menu_annot.addMenu('Event')
-    submenu_event.addAction(actions['new_event_type'])
-    submenu_event.addAction(actions['del_event_type'])
+    submenu_event.addAction(actions['new_eventtype'])
+    submenu_event.addAction(actions['del_eventtype'])
 
+    # these are the real QActions attached to notes
     submenu_stage = menu_annot.addMenu('Stage')
     submenu_stage.addActions(MAIN.notes.actions())
+
+    """ ------ ANNOTATIONS ------ """
+    actions = MAIN.action
 
     menu_window = menubar.addMenu('Windows')
     for dockwidget_act in actions['dockwidgets']:
@@ -349,6 +329,9 @@ def create_toolbar(MAIN):
     toolbar.addAction(actions['Y_more'])
     toolbar.addAction(actions['Y_wider'])
     toolbar.addAction(actions['Y_tighter'])
+
+    """ ------ ANNOTATIONS ------ """
+    actions = MAIN.notes.action
 
     toolbar = MAIN.addToolBar('Annotations')
     toolbar.setObjectName('Annotations')

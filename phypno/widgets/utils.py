@@ -37,9 +37,8 @@ ICON = {'open_rec': join(icon_path, 'document-open.png'),
         'quit': join(icon_path, 'window-close.png'),
         'marker': join(icon_path, 'bookmarks-organize.png'),
         'event': join(icon_path, 'edit-table-cell-merge.png'),
-        'new_event_type': join(icon_path,
-                               'edit-table-insert-column-right.png'),
-        'del_event_type': join(icon_path, 'edit-table-delete-column.png'),
+        'new_eventtype': join(icon_path, 'edit-table-insert-column-right.png'),
+        'del_eventtype': join(icon_path, 'edit-table-delete-column.png'),
         }
 
 config = QSettings("phypno", "scroll_data")

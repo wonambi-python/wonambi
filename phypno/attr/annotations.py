@@ -253,7 +253,7 @@ class Annotations():
 
                 event_start = float(e.find('event_start').text)
                 event_end = float(e.find('event_end').text)
-                event_chan = e.find('chan').text
+                event_chan = e.find('event_chan').text
 
                 if time is None:
                     time_cond = True
@@ -291,7 +291,9 @@ class Annotations():
 
                 event_start = float(e.find('event_start').text)
                 event_end = float(e.find('event_end').text)
-                event_chan = e.find('chan').text
+                event_chan = e.find('event_chan').text
+                if event_chan is None:  # xml doesn't store empty string
+                    event_chan = ''
 
                 if time is None:
                     time_cond = True
@@ -307,7 +309,7 @@ class Annotations():
                     one_ev = {'name': event_name,
                               'start': event_start,
                               'end': event_end,
-                              'chan': chan.split(', '),  # always a cell
+                              'chan': event_chan.split(', '),  # always a cell
                               }
                     ev.append(one_ev)
 

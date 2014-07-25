@@ -222,8 +222,7 @@ class Overview(QGraphicsView):
             self.idx_item['current'].setPos(self.parent.value('window_start'),
                                             0)
 
-            header = self.parent.info.dataset.header
-            current_time = (header['start_time'] +
+            current_time = (self.start_time +
                             timedelta(seconds=new_position))
             msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
             self.parent.statusBar().showMessage(msg)
@@ -234,9 +233,9 @@ class Overview(QGraphicsView):
         self.parent.traces.update_traces()
         self.parent.spectrum.display_spectrum()
         if self.parent.notes.annot is not None:
-            self.parent.notes.set_combobox_index()
+            self.parent.notes.set_stage_index()
 
-    def mark_markers(self):
+    def display_markers(self):
         """Mark all the markers, from annotations or from the dataset.
 
         """
@@ -256,7 +255,26 @@ class Overview(QGraphicsView):
                                    BARS['marker']['pos0'] +
                                    BARS['marker']['pos1'])
 
-    def mark_stages(self, start_time, length, stage_name):
+    def display_events(self):
+        """Mark all the events, from annotations. """
+        # if event is too short, it does not appear in overview
+        overview_scale = self.parent.value('overview_scale')
+
+        if self.parent.notes.annot is not None:
+            events = self.parent.notes.annot.get_events()
+            for evt in events:
+                length = evt['end'] - evt['start']
+                if length < overview_scale:
+                    length = overview_scale
+                rect = QGraphicsRectItem(evt['start'],
+                                         BARS['event']['pos0'],
+                                         length,
+                                         BARS['event']['pos1'])
+                rect.setPen(NoPen)
+                rect.setBrush(QBrush(Qt.black))  # TODO: depend on events
+                self.scene.addItem(rect)
+
+    def display_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
 
         Parameters

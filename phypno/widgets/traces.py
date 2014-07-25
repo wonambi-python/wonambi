@@ -129,6 +129,7 @@ class Traces(QGraphicsView):
         self.idx_sel = None  # selection
         self.idx_info = None
         self.time_pos = []
+        self.idx_events = []  # events
 
         self.create_traces()
 
@@ -184,7 +185,8 @@ class Traces(QGraphicsView):
         self.add_labels()
         self.add_time()
         self.add_traces()
-        self.mark_markers()
+        self.display_markers()
+        self.display_events()
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
@@ -269,7 +271,7 @@ class Traces(QGraphicsView):
                 path.setPos(0, chan_pos)
                 row += 1
 
-    def mark_markers(self):
+    def display_markers(self):
         """Add bookmarks on top of first plot."""
         if self.scene is None:
             return
@@ -303,6 +305,30 @@ class Traces(QGraphicsView):
                     item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                     self.scene.addItem(item)
 
+    def display_events(self):
+        """Add events on top of first plot."""
+        if self.scene is None:
+            return
+
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
+        window_end = window_start + window_length
+        time_height = max([x.boundingRect().height() for x in self.idx_time])
+
+        # TODO: don't repeat code twice
+        if self.parent.notes.annot is not None:
+
+            events = self.parent.notes.annot.get_events(time=(window_start,
+                                                              window_end))
+            for evt in events:
+                rect = QGraphicsRectItem(evt['start'],
+                                         0,
+                                         evt['end'] - evt['start'],
+                                         time_height)
+                rect.setPen(NoPen)
+                rect.setBrush(QBrush(Qt.cyan))  # TODO: depend on events
+                self.scene.addItem(rect)
+
     def mousePressEvent(self, event):
         """Jump to window when user clicks on overview.
 
@@ -312,7 +338,7 @@ class Traces(QGraphicsView):
             it contains the position that was clicked.
 
         """
-        if self.parent.action['new_marker'].isChecked():
+        if self.parent.notes.action['new_marker'].isChecked():
             x_in_scene = self.mapToScene(event.pos()).x()
 
             # max resolution = sampling frequency
@@ -322,6 +348,7 @@ class Traces(QGraphicsView):
             self.parent.notes.add_marker(time)
 
         else:
+            """the same info is used by action['new_event'].isChecked():"""
             xy_scene = self.mapToScene(event.pos())
             chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
             self.sel_chan = chan_idx
@@ -332,6 +359,20 @@ class Traces(QGraphicsView):
         """
         if self.idx_sel is not None:
             self.scene.removeItem(self.idx_sel)
+
+        if self.parent.notes.action['new_event'].isChecked():
+            xy_scene = self.mapToScene(event.pos())
+            time_height = max([x.boundingRect().height() for x in self.idx_time])
+            pos = QRectF(self.sel_xy[0],
+                         0,
+                         xy_scene.x() - self.sel_xy[0],
+                         time_height)
+            self.idx_sel = QGraphicsRectItem(pos.normalized())
+            self.idx_sel.setPen(NoPen)
+            self.idx_sel.setBrush(QBrush(Qt.cyan))
+
+            self.scene.addItem(self.idx_sel)
+            return
 
         xy_scene = self.mapToScene(event.pos())
         pos = QRectF(self.sel_xy[0], self.sel_xy[1],
@@ -373,19 +414,34 @@ class Traces(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
 
-        self.sel_chan = None
-        self.sel_xy = (None, None)
+        if self.parent.notes.action['new_event'].isChecked():
+            x_in_scene = self.mapToScene(event.pos()).x()
 
-        if self.idx_sel is not None:
-            self.scene.removeItem(self.idx_sel)
-        self.idx_sel = None
+            eventtype = self.parent.notes.idx_eventtype.currentText()
+            # max resolution = sampling frequency
+            # in case there is no data
+            s_freq = self.parent.info.dataset.header['s_freq']
+            at_s_freq = lambda x: int(x * s_freq) / s_freq
+            start = at_s_freq(self.sel_xy[0])
+            end = at_s_freq(x_in_scene)
+            time = (start, end)
+            self.parent.notes.add_event(eventtype, time)
 
-        if self.idx_info is not None:
-            self.scene.removeItem(self.idx_info)
-        self.idx_info = None
+        else:
 
-        # restore spectrum
-        self.parent.spectrum.display_spectrum()
+            self.sel_chan = None
+            self.sel_xy = (None, None)
+
+            if self.idx_sel is not None:
+                self.scene.removeItem(self.idx_sel)
+            self.idx_sel = None
+
+            if self.idx_info is not None:
+                self.scene.removeItem(self.idx_info)
+            self.idx_info = None
+
+            # restore spectrum
+            self.parent.spectrum.display_spectrum()
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
