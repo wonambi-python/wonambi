@@ -139,10 +139,27 @@ class ChannelsGroup(QWidget):
         self.highlight_channels(self.idx_l1, chan_to_plot)
 
     def get_info(self):
+        """Get the information about the channel groups.
+
+        Returns
+        -------
+        dict
+            information about this channel group
+
+        Notes
+        -----
+        The items in selectedItems() are ordered based on the user's selection
+        (which appears pretty random). It's more consistent to use the same
+        order of the main channel list. That's why the additional for-loop
+        is necessary. We don't care about the order of the reference channels.
+
+        """
         selectedItems = self.idx_l0.selectedItems()
+        selected_chan = [x.text() for x in selectedItems]
         chan_to_plot = []
-        for selected in selectedItems:
-            chan_to_plot.append(selected.text())
+        for chan in self.chan_name:
+            if chan in selected_chan:
+                chan_to_plot.append(chan)
 
         selectedItems = self.idx_l1.selectedItems()
         ref_chan = []

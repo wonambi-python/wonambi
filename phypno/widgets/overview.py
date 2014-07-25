@@ -230,7 +230,8 @@ class Overview(QGraphicsView):
             lg.debug('Updating position at {}'
                      ''.format(self.parent.value('window_start')))
 
-        self.parent.traces.update_traces()
+        self.parent.traces.read_data()
+        self.parent.traces.display()
         self.parent.spectrum.display_spectrum()
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()

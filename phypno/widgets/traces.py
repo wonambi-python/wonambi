@@ -7,7 +7,8 @@ lg = getLogger(__name__)
 from copy import deepcopy
 from datetime import timedelta
 
-from numpy import abs, argmin, floor, ceil, asarray, empty, max, min, log2, power, pad
+from numpy import (abs, argmin, asarray, ceil, empty, floor, max, min, log2,
+                   pad, power)
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
@@ -30,7 +31,7 @@ from .settings import Config, FormFloat, FormInt
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
 
-MINIMUM_N_SAMPLES = 32  # at least these samples to compute fft
+MINIMUM_N_SAMPLES = 32  # at least this number of samples to compute fft
 
 
 class ConfigTraces(Config):
@@ -88,57 +89,63 @@ class Traces(QGraphicsView):
     ----------
     parent : instance of QMainWindow
         the main window.
-    y_scale: int or float
-        multiply value by this scaling factor.
-    y_distance : int or float
-        distance between traces.
+    config : instance of ConfigTraces
+        settings for this widget
+
     y_scrollbar_value : int
         position of the vertical scrollbar
     data : instance of ChanTime
         filtered and reref'ed data
+
+    chan : list of str
+        list of channels (labels and channel group)
+    chan_pos : list of int
+        y-position of each channel (based on value at 0)
+    chan_scale : list of float
+        scaling factor for each channel
+    time_pos : list of QPointF
+        we need to keep track of the position of time label during creation
+    sel_chan : int
+        index of self.chan of the first selected channel
+    sel_xy : tuple of 2 floats
+        x and y position of the first selected point
+
     scene : instance of QGraphicsScene
         the main scene.
     idx_label : list of instance of QGraphicsSimpleTextItem
         the channel labels on the y-axis
     idx_time : list of instance of QGraphicsSimpleTextItem
         the time labels on the x-axis
-    time_pos : list of position of time
-        we need to keep track of the position of y-label during creation
-
-    Notes
-    -----
-    It doesn't handle NaN at the beginning, but actually well at the end.
+    idx_sel : instance of QGraphicsRectItem
+        the rectangle showing the selection (both for selection and event)
+    idx_info : instance of QGraphicsSimpleTextItem
+        the rectangle showing the selection
 
     """
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigTraces(self.display_traces)
+        self.config = ConfigTraces(self.display)
 
         self.y_scrollbar_value = 0
         self.data = None
         self.chan = []
         self.chan_pos = []  # used later to find out which channel we're using
         self.chan_scale = []
+        self.time_pos = []
         self.sel_chan = None
         self.sel_xy = (None, None)
 
         self.scene = None
         self.idx_label = []
         self.idx_time = []
-        self.idx_sel = None  # selection
+        self.idx_sel = None
         self.idx_info = None
-        self.time_pos = []
-        self.idx_events = []  # events
 
-        self.create_traces()
+        # TODO: maybe create an empty scene to add markers
 
-    def create_traces(self):
-        """Create empty scene."""
-        pass
-
-    def update_traces(self):
-        """Read and update the data to plot."""
+    def read_data(self):
+        """Read the data to plot."""
         window_start = self.parent.value('window_start')
         window_end = window_start + self.parent.value('window_length')
         dataset = self.parent.info.dataset
@@ -146,8 +153,7 @@ class Traces(QGraphicsView):
 
         chan_to_read = []
         for one_grp in groups:
-            chan_to_read.extend(one_grp['chan_to_plot'] +
-                                one_grp['ref_chan'])
+            chan_to_read.extend(one_grp['chan_to_plot'] + one_grp['ref_chan'])
 
         if not chan_to_read:
             return
@@ -156,10 +162,9 @@ class Traces(QGraphicsView):
                                  endtime=window_end)
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
-        self.display_traces()
         self.parent.overview.mark_downloaded(window_start, window_end)
 
-    def display_traces(self):
+    def display(self):
         """Display the recordings."""
         if self.scene is not None:
             self.y_scrollbar_value = self.verticalScrollBar().value()
@@ -359,6 +364,7 @@ class Traces(QGraphicsView):
         """
         if self.idx_sel is not None:
             self.scene.removeItem(self.idx_sel)
+            self.idx_sel = None
 
         if self.parent.notes.action['new_event'].isChecked():
             xy_scene = self.mapToScene(event.pos())

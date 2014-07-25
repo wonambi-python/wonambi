@@ -228,32 +228,32 @@ class MainWindow(QMainWindow):
     def action_Y_more(self):
         """Increase the amplitude."""
         self.value('y_scale', self.value('y_scale') * 2)
-        self.traces.display_traces()
+        self.traces.display()
 
     def action_Y_less(self):
         """Decrease the amplitude."""
         self.value('y_scale', self.value('y_scale') / 2)
-        self.traces.display_traces()
+        self.traces.display()
 
     def action_Y_ampl(self, new_y_scale):
         """Make amplitude on Y axis using predefined values"""
         self.value('y_scale', new_y_scale)
-        self.traces.display_traces()
+        self.traces.display()
 
     def action_Y_wider(self):
         """Increase the distance of the lines."""
         self.value('y_distance', self.value('y_distance') * 1.4)
-        self.traces.display_traces()
+        self.traces.display()
 
     def action_Y_tighter(self):
         """Decrease the distance of the lines."""
         self.value('y_distance', self.value('y_distance') / 1.4)
-        self.traces.display_traces()
+        self.traces.display()
 
     def action_Y_dist(self, new_y_distance):
         """Use preset values for the distance between lines."""
         self.value('y_distance', new_y_distance)
-        self.traces.display_traces()
+        self.traces.display()
 
     def moveEvent(self, event):
         """Main window is already resized."""
