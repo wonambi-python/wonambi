@@ -93,6 +93,7 @@ class Spectrum(QWidget):
 
         self.config = ConfigSpectrum(self.display_window)
 
+        self.selected_chan = None
         self.idx_chan = None
         self.idx_fig = None
         self.scene = None
@@ -120,17 +121,22 @@ class Spectrum(QWidget):
 
         self.resizeEvent(None)
 
+    def show_channame(self, chan_name):
+        self.selected_chan = self.idx_chan.currentIndex()
+
+        self.idx_chan.clear()
+        self.idx_chan.addItem(chan_name)
+        self.idx_chan.setCurrentIndex(0)
+
     def update(self):
-        """Add channel names to the combobox.
-
-        This function is called when the channels are chosen. But it doesn't
-        display the power spectrum yet, because that can only happen after
-        the recordings have been read.
-
-        """
+        """Add channel names to the combobox."""
         self.idx_chan.clear()
         for chan_name in self.parent.traces.chan:
             self.idx_chan.addItem(chan_name)
+
+        if self.selected_chan is not None:
+            self.idx_chan.setCurrentIndex(self.selected_chan)
+            self.selected_chan = None
 
         self.display_window()
 

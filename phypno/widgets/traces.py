@@ -400,6 +400,9 @@ class Traces(QGraphicsView):
             self.sel_chan = chan_idx
             self.sel_xy = (xy_scene.x(), xy_scene.y())
 
+            channame = self.chan[self.sel_chan] + ' in selected window'
+            self.parent.spectrum.show_channame(channame)
+
     def mouseMoveEvent(self, event):
         """
         """
@@ -488,7 +491,7 @@ class Traces(QGraphicsView):
             self.idx_info = None
 
             # restore spectrum
-            self.parent.spectrum.display_window()
+            self.parent.spectrum.update()
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
