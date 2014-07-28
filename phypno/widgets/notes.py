@@ -432,7 +432,7 @@ class Notes(QTabWidget):
         if filename == '':
             return
 
-        self.notes.update_notes(filename, True)
+        self.update_notes(filename, True)
 
     def load_annot(self):
         """Action: load a file for annotations."""
