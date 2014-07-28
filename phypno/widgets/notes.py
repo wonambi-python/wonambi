@@ -399,14 +399,24 @@ class Notes(QTabWidget):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
 
-        lg.info('User staged ' + str(window_start) + ' as ' +
-                STAGE_NAME[stage_idx])
-        self.annot.set_stage_for_epoch(window_start, STAGE_NAME[stage_idx])
-        self.set_stage_index()
-        self.parent.overview.display_stages(window_start, window_length,
-                                            STAGE_NAME[stage_idx])
-        self.display_stats()
-        self.parent.action_page_next()
+        try:
+            self.annot.set_stage_for_epoch(window_start,
+                                           STAGE_NAME[stage_idx])
+
+        except KeyError:
+            self.parent.statusBar().showMessage('The start of the window does '
+                                                'not correspond to any epoch '
+                                                'in sleep scoring file')
+
+        else:
+            lg.info('User staged ' + str(window_start) + ' as ' +
+                    STAGE_NAME[stage_idx])
+
+            self.set_stage_index()
+            self.parent.overview.display_stages(window_start, window_length,
+                                                STAGE_NAME[stage_idx])
+            self.display_stats()
+            self.parent.action_page_next()
 
     def set_stage_index(self):
         """Set the current stage in combobox."""
