@@ -41,8 +41,9 @@ from .settings import Config, FormStr, FormInt
 from .utils import short_strings, ICON
 
 # TODO: this in ConfigNotes
-STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3', 'Unknown']
-STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0']
+STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3',
+              'Undefined', 'Unknown']
+STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0', '']
 
 
 class ConfigNotes(Config):

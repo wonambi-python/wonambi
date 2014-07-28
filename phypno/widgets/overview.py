@@ -36,11 +36,12 @@ NoBrush = QBrush()
 NoBrush.setStyle(Qt.NoBrush)
 
 STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
-          'Movement': {'pos0': 5, 'pos1': 25, 'color': Qt.gray},
+          'Movement': {'pos0': 5, 'pos1': 25, 'color': Qt.darkGray},
           'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
           'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
           'NREM3': {'pos0': 25, 'pos1': 5, 'color': Qt.darkBlue},
+          'Undefined': {'pos0': 0, 'pos1': 30, 'color': Qt.gray},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
