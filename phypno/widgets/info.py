@@ -159,7 +159,13 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
-        self.update(filename)
+        try:
+            self.update(filename)
+        except FileNotFoundError:
+            self.parent.statusBar().showMessage('File ' + basename(filename) +
+                                                ' cannot be read')
+            return
+
         self.parent.statusBar().showMessage('')
 
         self.parent.overview.update()

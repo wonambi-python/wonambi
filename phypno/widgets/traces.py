@@ -368,7 +368,7 @@ class Traces(QGraphicsView):
                 self.scene.addItem(rect)
 
     def mousePressEvent(self, event):
-        """Jump to window when user clicks on overview.
+        """Create a marker or start selection
 
         Parameters
         ----------
@@ -379,10 +379,15 @@ class Traces(QGraphicsView):
         if self.parent.notes.action['new_marker'].isChecked():
             x_in_scene = self.mapToScene(event.pos()).x()
 
-            # max resolution = sampling frequency
-            # in case there is no data
-            s_freq = self.parent.info.dataset.header['s_freq']
-            time = int(x_in_scene * s_freq) / s_freq
+            if self.parent.info.dataset is not None:
+                # max resolution = sampling frequency
+                s_freq = self.parent.info.dataset.header['s_freq']
+                time = round(x_in_scene * s_freq) / s_freq
+
+            else:
+                # create marker at the beginning of the window
+                time = self.parent.value('window_start')
+
             self.parent.notes.add_marker(time)
 
         else:
@@ -460,7 +465,7 @@ class Traces(QGraphicsView):
             # max resolution = sampling frequency
             # in case there is no data
             s_freq = self.parent.info.dataset.header['s_freq']
-            at_s_freq = lambda x: int(x * s_freq) / s_freq
+            at_s_freq = lambda x: round(x * s_freq) / s_freq
             start = at_s_freq(self.sel_xy[0])
             end = at_s_freq(x_in_scene)
             time = (start, end)
