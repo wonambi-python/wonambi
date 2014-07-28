@@ -359,9 +359,12 @@ class Traces(QGraphicsView):
             events = self.parent.notes.annot.get_events(time=(window_start,
                                                               window_end))
             for evt in events:
-                rect = QGraphicsRectItem(evt['start'],
+                evt_start = max((evt['start'], window_start))
+                evt_end = min((evt['end'], window_end))
+
+                rect = QGraphicsRectItem(evt_start,
                                          0,
-                                         evt['end'] - evt['start'],
+                                         evt_end - evt_start,
                                          time_height)
                 rect.setPen(NoPen)
                 rect.setBrush(QBrush(Qt.cyan))  # TODO: depend on events

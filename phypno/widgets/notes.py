@@ -411,8 +411,10 @@ class Notes(QTabWidget):
         """Set the current stage in combobox."""
         window_start = self.parent.value('window_start')
         stage = self.annot.get_stage_for_epoch(window_start)
-        lg.debug('Set combobox at ' + stage)
-        self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
+        if stage is None:
+            self.idx_stage.setCurrentIndex(-1)
+        else:
+            self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
 
     def new_annot(self):
         """Action: create a new file for annotations.
