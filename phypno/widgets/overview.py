@@ -153,17 +153,20 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        self.idx_item['current'] = QGraphicsLineItem(self.parent.value('window_start'), 0,
-                                                     self.parent.value('window_start'),
-                                                     current_line_height)
-        self.idx_item['current'].setPen(QPen(Qt.red))
-        self.scene.addItem(self.idx_item['current'])
+        item = QGraphicsLineItem(self.parent.value('window_start'),
+                                 0,
+                                 self.parent.value('window_start'),
+                                 current_line_height)
+        item.setPen(QPen(Qt.red))
+        self.scene.addItem(item)
+        self.idx_item['current'] = item
 
         for name, pos in BARS.items():
-            self.idx_item[name] = QGraphicsRectItem(self.minimum, pos['pos0'],
-                                                    self.maximum, pos['pos1'])
-            self.idx_item[name].setToolTip(pos['tip'])
-            self.scene.addItem(self.idx_item[name])
+            item = QGraphicsRectItem(self.minimum, pos['pos0'],
+                                     self.maximum, pos['pos1'])
+            item.setToolTip(pos['tip'])
+            self.scene.addItem(item)
+            self.idx_item[name] = item
 
         self.add_timestamps()
 
@@ -234,7 +237,7 @@ class Overview(QGraphicsView):
         if self.parent.info.dataset is not None:
             self.parent.traces.read_data()
             self.parent.traces.display()
-            self.parent.spectrum.display_spectrum()
+            self.parent.spectrum.display_window()
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
 

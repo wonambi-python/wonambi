@@ -260,7 +260,7 @@ class Channels(QWidget):
         """Apply changes to the plots."""
         self.read_group_info()
         self.parent.overview.update_position()
-        self.parent.spectrum.update_spectrum()
+        self.parent.spectrum.update()
 
     def read_group_info(self):
         self.groups = []

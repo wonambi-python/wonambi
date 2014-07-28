@@ -454,7 +454,7 @@ class Traces(QGraphicsView):
             n_pad = (power(2, ceil(log2(n_data))) - n_data) / 2
             data = pad(data, (ceil(n_pad), floor(n_pad)), 'constant')
 
-            self.parent.spectrum.display_spectrum(data)
+            self.parent.spectrum.display(data)
 
     def mouseReleaseEvent(self, event):
 
@@ -485,7 +485,7 @@ class Traces(QGraphicsView):
             self.idx_info = None
 
             # restore spectrum
-            self.parent.spectrum.display_spectrum()
+            self.parent.spectrum.display_window()
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.

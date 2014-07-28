@@ -91,18 +91,18 @@ class Spectrum(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.config = ConfigSpectrum(self.display_spectrum)
+        self.config = ConfigSpectrum(self.display)
 
         self.idx_chan = None
         self.idx_fig = None
         self.scene = None
 
-        self.create_spectrum()
+        self.create()
 
-    def create_spectrum(self):
+    def create(self):
         """Create empty scene for power spectrum."""
         self.idx_chan = QComboBox()
-        self.idx_chan.activated.connect(self.display_spectrum)
+        self.idx_chan.activated.connect(self.display_window)
 
         self.idx_fig = QGraphicsView(self)
         self.idx_fig.scale(1, -1)
@@ -120,7 +120,7 @@ class Spectrum(QWidget):
 
         self.resizeEvent(None)
 
-    def update_spectrum(self):
+    def update(self):
         """Add channel names to the combobox.
 
         This function is called when the channels are chosen. But it doesn't
@@ -132,24 +132,42 @@ class Spectrum(QWidget):
         for chan_name in self.parent.traces.chan:
             self.idx_chan.addItem(chan_name)
 
-    def display_spectrum(self, data=None):
-        """Make graphicsitem for spectrum figure."""
+    def display_window(self):
+        """Read the channel name from QComboBox and plot its spectrum.
+
+        This function is necessary it reads the data and it sends it to
+        self.display. When the user selects a smaller chunk of data from the
+        visible traces, then we don't need to call this function.
+        """
+        chan_name = self.idx_chan.currentText()
+        lg.info('Power spectrum for channel ' + chan_name)
+
+        if not chan_name:
+            return
+
+        trial = 0
+        data = self.parent.traces.data(trial=trial, chan=chan_name)
+        self.display(data)
+
+    def display(self, data):
+        """Make graphicsitem for spectrum figure.
+
+        Parameters
+        ----------
+        data : ndarray
+            1D vector containing the data only
+
+        This function can be called by self.display_window (which reads the
+        data for the selected channel) or by the mouse-events functions in
+        traces (which read chunks of data from the user-made selection).
+        """
         value = self.config.value
         self.scene.setSceneRect(value['x_min'], value['y_min'],
                                 value['x_max'] - value['x_min'],
                                 value['y_max'] - value['y_min'])
         self.scene.clear()
         self.add_grid()
-
-        if data is None:
-            chan_name = self.idx_chan.currentText()
-            lg.info('Power spectrum for channel ' + chan_name)
-
-            if not chan_name:
-                return
-
-            trial = 0
-            data = self.parent.traces.data(trial=trial, chan=chan_name)
+        self.resizeEvent(None)
 
         s_freq = self.parent.traces.data.s_freq
         f, Pxx = welch(data, fs=s_freq, nperseg=min((s_freq, len(data))))
@@ -215,6 +233,7 @@ class Spectrum(QWidget):
             not important
 
         """
+        lg.debug('resize spectrum')
         value = self.config.value
         self.idx_fig.fitInView(value['x_min'],
                                value['y_min'],
