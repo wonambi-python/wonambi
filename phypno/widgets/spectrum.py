@@ -91,7 +91,7 @@ class Spectrum(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.config = ConfigSpectrum(self.display)
+        self.config = ConfigSpectrum(self.display_window)
 
         self.idx_chan = None
         self.idx_fig = None
@@ -132,6 +132,8 @@ class Spectrum(QWidget):
         for chan_name in self.parent.traces.chan:
             self.idx_chan.addItem(chan_name)
 
+        self.display_window()
+
     def display_window(self):
         """Read the channel name from QComboBox and plot its spectrum.
 
@@ -142,12 +144,12 @@ class Spectrum(QWidget):
         chan_name = self.idx_chan.currentText()
         lg.info('Power spectrum for channel ' + chan_name)
 
-        if not chan_name:
-            return
-
-        trial = 0
-        data = self.parent.traces.data(trial=trial, chan=chan_name)
-        self.display(data)
+        if chan_name:
+            trial = 0
+            data = self.parent.traces.data(trial=trial, chan=chan_name)
+            self.display(data)
+        else:
+            self.scene.clear()
 
     def display(self, data):
         """Make graphicsitem for spectrum figure.
@@ -233,7 +235,6 @@ class Spectrum(QWidget):
             not important
 
         """
-        lg.debug('resize spectrum')
         value = self.config.value
         self.idx_fig.fitInView(value['x_min'],
                                value['y_min'],

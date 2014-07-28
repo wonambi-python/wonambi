@@ -238,6 +238,7 @@ class Overview(QGraphicsView):
             self.parent.traces.read_data()
             self.parent.traces.display()
             self.parent.spectrum.display_window()
+
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
 
