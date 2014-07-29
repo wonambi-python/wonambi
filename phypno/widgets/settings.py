@@ -58,6 +58,10 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'window_start': 0,
                       'window_length': 30,
                       'window_step': 5,
+                      'grid_border': True,
+                      'grid_x': True,
+                      'grid_xtick': 1,  # in seconds
+                      'grid_y': False,
                       }
 DEFAULTS['settings'] = {'window_x': 400,
                         'window_y': 200,

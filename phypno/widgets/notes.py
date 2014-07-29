@@ -502,7 +502,7 @@ class Notes(QTabWidget):
         answer = QInputDialog.getText(self, 'Delete Event Type',
                                       'Enter event\'s name to delete')
         if answer[1]:
-            self.annot.remove_eventtype(answer[0])
+            self.annot.remove_event_type(answer[0])
             self.display_eventtype()
 
     def display_eventtype(self):

@@ -26,7 +26,7 @@ from PyQt4.QtGui import (QBrush,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .utils import Path
-from .settings import Config, FormFloat, FormInt
+from .settings import Config, FormFloat, FormInt, FormBool
 
 
 NoPen = QPen()
@@ -50,6 +50,7 @@ class ConfigTraces(Config):
         self.index['n_time_labels'] = FormInt()
 
         form_layout = QFormLayout()
+        box0.setLayout(form_layout)
         form_layout.addRow('Signal scaling',
                            self.index['y_scale'])
         form_layout.addRow('Distance between signals',
@@ -59,25 +60,38 @@ class ConfigTraces(Config):
         form_layout.addRow('Number of time labels',
                            self.index['n_time_labels'])
 
-        box0.setLayout(form_layout)
+        box1 = QGroupBox('Grid')
 
-        box1 = QGroupBox('Current Window')
+        self.index['grid_border'] = FormBool('Border')
+        self.index['grid_x'] = FormBool('Grid on time axis')
+        self.index['grid_xtick'] = FormFloat()
+        self.index['grid_y'] = FormBool('Grid on voltage axis')
+
+        form_layout = QFormLayout()
+        box1.setLayout(form_layout)
+        form_layout.addRow(self.index['grid_border'])
+        form_layout.addRow(self.index['grid_x'])
+        form_layout.addRow('Tick every (s)', self.index['grid_xtick'])
+        form_layout.addRow(self.index['grid_y'])
+
+        box2 = QGroupBox('Current Window')
         self.index['window_start'] = FormInt()
         self.index['window_length'] = FormInt()
         self.index['window_step'] = FormInt()
 
         form_layout = QFormLayout()
+        box2.setLayout(form_layout)
         form_layout.addRow('Window start time',
                            self.index['window_start'])
         form_layout.addRow('Window length',
                            self.index['window_length'])
         form_layout.addRow('Step size',
                            self.index['window_step'])
-        box1.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
         main_layout.addWidget(box1)
+        main_layout.addWidget(box2)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
@@ -400,13 +414,15 @@ class Traces(QGraphicsView):
             self.sel_chan = chan_idx
             self.sel_xy = (xy_scene.x(), xy_scene.y())
 
-            channame = self.chan[self.sel_chan] + ' in selected window'
-            self.parent.spectrum.show_channame(channame)
+            if not self.parent.notes.action['new_event'].isChecked():
+                channame = self.chan[self.sel_chan] + ' in selected window'
+                self.parent.spectrum.show_channame(channame)
 
     def mouseMoveEvent(self, event):
         """
         """
-        if self.idx_sel is not None:
+        # lg.debug('IDX_SEL: ' + str(self.idx_sel))
+        if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
 
@@ -417,11 +433,11 @@ class Traces(QGraphicsView):
                          0,
                          xy_scene.x() - self.sel_xy[0],
                          time_height)
-            self.idx_sel = QGraphicsRectItem(pos.normalized())
-            self.idx_sel.setPen(NoPen)
-            self.idx_sel.setBrush(QBrush(Qt.cyan))
-
+            item = QGraphicsRectItem(pos.normalized())
+            item.setPen(NoPen)
+            item.setBrush(QBrush(Qt.cyan))
             self.scene.addItem(self.idx_sel)
+            self.idx_sel = item
             return
 
         xy_scene = self.mapToScene(event.pos())
@@ -431,7 +447,7 @@ class Traces(QGraphicsView):
         self.idx_sel = QGraphicsRectItem(pos.normalized())
         self.scene.addItem(self.idx_sel)
 
-        if self.idx_info is not None:
+        if self.idx_info in self.scene.items():
             self.scene.removeItem(self.idx_info)
 
         duration = '{0:0.2f}s'.format(abs(xy_scene.x() - self.sel_xy[0]))
@@ -441,11 +457,11 @@ class Traces(QGraphicsView):
         scale = self.parent.value('y_scale') * self.chan_scale[self.sel_chan]
         height = '{0:0.3f}uV'.format(y / scale)
 
-        self.idx_info = TextItem_with_BG()
-        self.idx_info.setText(duration + ' ' + height)
-        self.idx_info.setPos(self.sel_xy[0], self.sel_xy[1])
-
-        self.scene.addItem(self.idx_info)
+        item = TextItem_with_BG()
+        item.setText(duration + ' ' + height)
+        item.setPos(self.sel_xy[0], self.sel_xy[1])
+        self.scene.addItem(item)
+        self.idx_info = item
 
         trial = 0
         time = self.parent.traces.data.axis['time'][trial]
@@ -477,21 +493,22 @@ class Traces(QGraphicsView):
             time = (start, end)
             self.parent.notes.add_event(eventtype, time)
 
-        else:
+        else:  # normal selection
 
-            self.sel_chan = None
-            self.sel_xy = (None, None)
-
-            if self.idx_sel is not None:
-                self.scene.removeItem(self.idx_sel)
-            self.idx_sel = None
-
-            if self.idx_info is not None:
+            if self.idx_info in self.scene.items():
                 self.scene.removeItem(self.idx_info)
             self.idx_info = None
 
             # restore spectrum
             self.parent.spectrum.update()
+
+        # general garbage collection
+        self.sel_chan = None
+        self.sel_xy = (None, None)
+
+        if self.idx_sel in self.scene.items():
+            self.scene.removeItem(self.idx_sel)
+            self.idx_sel = None
 
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
