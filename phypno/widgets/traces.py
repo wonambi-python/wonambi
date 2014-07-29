@@ -366,7 +366,7 @@ class Traces(QGraphicsView):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
-        time_height = max([x.boundingRect().height() for x in self.idx_time])
+        y_distance = self.parent.value('y_distance')
 
         if self.parent.notes.annot is not None:
 
@@ -379,9 +379,10 @@ class Traces(QGraphicsView):
                 rect = QGraphicsRectItem(evt_start,
                                          0,
                                          evt_end - evt_start,
-                                         time_height)
+                                         len(self.idx_label) * y_distance)
                 rect.setPen(NoPen)
                 rect.setBrush(QBrush(Qt.cyan))  # TODO: depend on events
+                rect.setZValue(-10)
                 self.scene.addItem(rect)
 
     def mousePressEvent(self, event):
@@ -428,15 +429,16 @@ class Traces(QGraphicsView):
 
         if self.parent.notes.action['new_event'].isChecked():
             xy_scene = self.mapToScene(event.pos())
-            time_height = max([x.boundingRect().height() for x in self.idx_time])
+            y_distance = self.parent.value('y_distance')
             pos = QRectF(self.sel_xy[0],
                          0,
                          xy_scene.x() - self.sel_xy[0],
-                         time_height)
+                         len(self.idx_label) * y_distance)
             item = QGraphicsRectItem(pos.normalized())
             item.setPen(NoPen)
             item.setBrush(QBrush(Qt.cyan))
-            self.scene.addItem(self.idx_sel)
+            item.setZValue(-10)
+            self.scene.addItem(item)
             self.idx_sel = item
             return
 
