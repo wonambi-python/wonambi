@@ -166,6 +166,8 @@ class Notes(QTabWidget):
         self.idx_eventtype_list.itemSelectionChanged.connect(self.display_events)
         tab_events = QTableWidget()
         self.idx_event_list = tab_events
+        delete_row = QPushButton('Delete Event')
+        delete_row.clicked.connect(self.delete_row)
 
         tab_events.setColumnCount(2)
         tab_events.setHorizontalHeaderLabels(['Time', 'Event Type'])
@@ -174,15 +176,27 @@ class Notes(QTabWidget):
         tab_events.setEditTriggers(QAbstractItemView.NoEditTriggers)
         # tab_events.cellDoubleClicked.connect(self.go_to_marker)
 
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         layout.addWidget(self.idx_eventtype_list)
-        layout.addWidget(self.idx_event_list)
+        layout.addWidget(self.idx_event_list, stretch=1)
+        layout.addWidget(delete_row)
         tab2.setLayout(layout)
 
         """ ------ TABS ------ """
         self.addTab(tab0, 'Annotations')
         self.addTab(tab1, 'Markers')
         self.addTab(tab2, 'Events')
+
+    def delete_row(self):
+        sel_model = self.idx_event_list.selectionModel()
+        for row in sel_model.selectedRows():
+            i = row.row()
+            start = self.idx_event_list.property('start')[i]
+            end = self.idx_event_list.property('end')[i]
+            name = self.idx_event_list.item(i, 1).text()
+            self.annot.remove_event(name=name, time=(start, end))
+
+        self.display_events()
 
     def create_action(self):
         output = {}
@@ -548,6 +562,9 @@ class Notes(QTabWidget):
             # chan_name = ', '.join(evt['chan'])
             self.idx_event_list.setItem(i, 0, QTableWidgetItem(abs_time))
             self.idx_event_list.setItem(i, 1, QTableWidgetItem(evt['name']))
+
+        self.idx_event_list.setProperty('start', [x['start'] for x in events])
+        self.idx_event_list.setProperty('end', [x['end'] for x in events])
 
         self.parent.overview.display_events()
         self.parent.traces.display()

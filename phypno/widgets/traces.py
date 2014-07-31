@@ -419,6 +419,23 @@ class Traces(QGraphicsView):
                 channame = self.chan[self.sel_chan] + ' in selected window'
                 self.parent.spectrum.show_channame(channame)
 
+    def mouseDoubleClickEvent(self, event):
+        """Delete an event when clicking on it."""
+        if self.parent.notes.action['new_event'].isChecked():
+            xy_scene = self.mapToScene(event.pos())
+            clicked_time = xy_scene.x()
+            eventtype = self.parent.notes.idx_eventtype.currentText()
+            events = self.parent.notes.annot.get_events(name=eventtype,
+                                                        time=(clicked_time,
+                                                              clicked_time))
+
+            for evt in events:
+                self.parent.notes.annot.remove_event(name=evt['name'],
+                                                     time=(evt['start'],
+                                                           evt['end']))
+
+            self.parent.notes.display_events()
+
     def mouseMoveEvent(self, event):
         """
         """
@@ -485,15 +502,17 @@ class Traces(QGraphicsView):
         if self.parent.notes.action['new_event'].isChecked():
             x_in_scene = self.mapToScene(event.pos()).x()
 
-            eventtype = self.parent.notes.idx_eventtype.currentText()
-            # max resolution = sampling frequency
-            # in case there is no data
-            s_freq = self.parent.info.dataset.header['s_freq']
-            at_s_freq = lambda x: round(x * s_freq) / s_freq
-            start = at_s_freq(self.sel_xy[0])
-            end = at_s_freq(x_in_scene)
-            time = (start, end)
-            self.parent.notes.add_event(eventtype, time)
+            # it can happen that selection is empty (f.e. double-click)
+            if self.sel_xy[0] is not None:
+                eventtype = self.parent.notes.idx_eventtype.currentText()
+                # max resolution = sampling frequency
+                # in case there is no data
+                s_freq = self.parent.info.dataset.header['s_freq']
+                at_s_freq = lambda x: round(x * s_freq) / s_freq
+                start = at_s_freq(self.sel_xy[0])
+                end = at_s_freq(x_in_scene)
+                time = (start, end)
+                self.parent.notes.add_event(eventtype, time)
 
         else:  # normal selection
 
