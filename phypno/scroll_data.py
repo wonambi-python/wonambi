@@ -73,25 +73,20 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
 
         self.statusBar()
-
         self.setWindowTitle('PHYPNO v' + str(VERSION))
-        self.set_geometry()
+
+        window_geometry = settings.value('window/geometry')
+        if window_geometry is not None:
+            self.restoreGeometry(window_geometry)
         window_state = settings.value('window/state')
         if window_state is not None:
             self.restoreState(window_state, VERSION)
+
         self.show()
 
     def update(self):
         """Functions to re-run once settings have been changed."""
-        self.set_geometry()
         self.create_menubar()
-
-    def set_geometry(self):
-        """Simply set the geometry of the main window."""
-        self.setGeometry(self.value('window_x'),
-                         self.value('window_y'),
-                         self.value('window_width'),
-                         self.value('window_height'))
 
     def value(self, parameter, new_value=None):
         """This function is a shortcut for any parameter. Instead of calling
@@ -176,22 +171,6 @@ class MainWindow(QMainWindow):
 
         self.settings.show()
 
-    def moveEvent(self, event):
-        """Main window is already resized."""
-        self.value('window_x', self.geometry().x())
-        self.value('window_y', self.geometry().y())
-        self.value('window_width', self.geometry().width())
-        self.value('window_height', self.geometry().height())
-        self.settings.config.put_values()  # save the values in GUI
-
-    def resizeEvent(self, event):
-        """Main window is already resized."""
-        self.value('window_x', self.geometry().x())
-        self.value('window_y', self.geometry().y())
-        self.value('window_width', self.geometry().width())
-        self.value('window_height', self.geometry().height())
-        self.settings.config.put_values()  # save the values in GUI
-
     def closeEvent(self, event):
         """save the name of the last open dataset."""
         self.settings.config.get_values()  # store geometry for next use
@@ -199,6 +178,7 @@ class MainWindow(QMainWindow):
         max_dataset_history = self.value('max_dataset_history')
         keep_recent_datasets(max_dataset_history, self.info.filename)
 
+        settings.setValue('window/geometry', self.saveGeometry())
         settings.setValue('window/state', self.saveState(VERSION))
 
         event.accept()

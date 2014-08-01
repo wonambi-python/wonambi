@@ -60,11 +60,7 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'grid_xtick': 1,  # in seconds
                       'grid_y': False,
                       }
-DEFAULTS['settings'] = {'window_x': 400,
-                        'window_y': 200,
-                        'window_width': 1024,
-                        'window_height': 768,
-                        'max_dataset_history': 20,
+DEFAULTS['settings'] = {'max_dataset_history': 20,
                         'y_distance_presets': [20., 30., 40., 50., 100., 200.],
                         'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
                         'window_length_presets': [1., 5., 10., 20., 30., 60.],
@@ -291,20 +287,6 @@ class ConfigUtils(Config):
 
     def create_config(self):
 
-        box0 = QGroupBox('Geometry')
-        self.index['window_x'] = FormInt()
-        self.index['window_y'] = FormInt()
-        self.index['window_width'] = FormInt()
-        self.index['window_height'] = FormInt()
-
-        form_layout = QFormLayout()
-        form_layout.addRow('Window X-position', self.index['window_x'])
-        form_layout.addRow('Window Y-position', self.index['window_y'])
-        form_layout.addRow('Window width', self.index['window_width'])
-        form_layout.addRow('Window height', self.index['window_height'])
-
-        box0.setLayout(form_layout)
-
         box1 = QGroupBox('History')
         self.index['max_dataset_history'] = FormInt()
         self.index['recording_dir'] = FormStr()
@@ -339,7 +321,6 @@ class ConfigUtils(Config):
         box3.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
-        main_layout.addWidget(box0)
         main_layout.addWidget(box1)
         main_layout.addWidget(box2)
         main_layout.addWidget(box3)
