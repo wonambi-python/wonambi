@@ -464,7 +464,7 @@ class Notes(QTabWidget):
         if self.parent.info.filename is not None:
             filename = splitext(self.parent.info.filename)[0] + '_scores.xml'
         else:
-            filename = '/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml'  # TODO
+            filename = None
 
         filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
                                                filename,

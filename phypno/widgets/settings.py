@@ -32,6 +32,7 @@ DEFAULTS = {}
 DEFAULTS['channels'] = {'hp': .5,
                         'lp': 45,
                         'color': 'black',
+                        'scale': 1,
                         }
 DEFAULTS['detect'] = {'spindle_method': 'UCSD',
                       }

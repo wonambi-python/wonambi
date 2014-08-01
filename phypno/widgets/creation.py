@@ -234,6 +234,11 @@ def create_menubar(MAIN):
     act.setIcon(QIcon(ICON['chronometer']))
     act.triggered.connect(partial(MAIN.action_add_time, 6 * 60 * 60))
 
+    """ ------ CHANNELS ------ """
+    menu_time = menubar.addMenu('Channels')
+    menu_time.addAction(MAIN.channels.action['load_channels'])
+    menu_time.addAction(MAIN.channels.action['save_channels'])
+
     """ ------ VIEW ------ """
     menu_view = menubar.addMenu('View')
     submenu_ampl = menu_view.addMenu('Amplitude')

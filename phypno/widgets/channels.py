@@ -4,9 +4,15 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
+from copy import deepcopy
+from json import dump, load
+from os.path import splitext
+
 from PyQt4.QtGui import (QAbstractItemView,
+                         QAction,
                          QColor,
                          QColorDialog,
+                         QFileDialog,
                          QFormLayout,
                          QGridLayout,
                          QGroupBox,
@@ -40,11 +46,13 @@ class ConfigChannels(Config):
         self.index['hp'] = FormFloat()
         self.index['lp'] = FormFloat()
         self.index['color'] = FormStr()
+        self.index['scale'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow('Default High-Pass Filter', self.index['hp'])
         form_layout.addRow('Default Low-Pass Filter', self.index['lp'])
         form_layout.addRow('Default Color', self.index['color'])
+        form_layout.addRow('Default Scale', self.index['scale'])
         box0.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
@@ -55,12 +63,15 @@ class ConfigChannels(Config):
 
 
 class ChannelsGroup(QWidget):
-    def __init__(self, chan_name, config):
+    """Use config_value instead of config, because it's easier to pass dict
+    when loading channels montage.
+    """
+    def __init__(self, chan_name, config_value):
         super().__init__()
 
         self.chan_name = chan_name
 
-        self.setProperty('color', QColor(config.value['color']))
+        self.setProperty('color', QColor(config_value['color']))
 
         self.idx_l0 = QListWidget()
         self.idx_l1 = QListWidget()
@@ -68,9 +79,9 @@ class ChannelsGroup(QWidget):
         self.add_channels_to_list(self.idx_l0)
         self.add_channels_to_list(self.idx_l1)
 
-        self.idx_hp = QLineEdit(str(config.value['hp']))
-        self.idx_lp = QLineEdit(str(config.value['lp']))
-        self.idx_scale = QLineEdit('1')
+        self.idx_hp = QLineEdit(str(config_value['hp']))
+        self.idx_lp = QLineEdit(str(config_value['lp']))
+        self.idx_scale = QLineEdit(str(config_value['scale']))
         self.idx_reref = QPushButton('Average')  # TODO: actually combobox
         self.idx_reref.clicked.connect(self.rereference)
 
@@ -183,7 +194,8 @@ class ChannelsGroup(QWidget):
         group_info = {'name': '',  # not present in widget
                       'chan_to_plot': chan_to_plot,
                       'ref_chan': ref_chan,
-                      'filter': {'low_cut': low_cut, 'high_cut': high_cut},
+                      'hp': low_cut,
+                      'lp': high_cut,
                       'scale': float(scale),
                       'color': self.property('color')
                       }
@@ -204,6 +216,7 @@ class Channels(QWidget):
         self.tabs = None
 
         self.create_channels()
+        self.create_action()
 
     def create_channels(self):
 
@@ -230,6 +243,67 @@ class Channels(QWidget):
 
         self.setLayout(layout)
 
+    def create_action(self):
+        output = {}
+
+        act = QAction('Load Channels Montage...', self)
+        act.triggered.connect(self.load_channels)
+        output['load_channels'] = act
+
+        act = QAction('Save Channels Montage...', self)
+        act.triggered.connect(self.save_channels)
+        output['save_channels'] = act
+
+        self.action = output
+
+    def load_channels(self):
+        if self.parent.info.filename is not None:
+            filename = (splitext(self.parent.info.filename)[0] +
+                        '_channels.json')
+        else:
+            filename = None
+
+        filename = QFileDialog.getOpenFileName(self, 'Open Channels Montage',
+                                               filename,
+                                               'Channels File (*.json)')
+        if filename == '':
+            return
+
+        with open(filename, 'r') as outfile:
+            groups = load(outfile)
+
+        for one_grp in groups:
+            group = ChannelsGroup(self.chan_name,
+                                  one_grp)  # filters, scale, color
+            group.highlight_channels(group.idx_l0, one_grp['chan_to_plot'])
+            group.highlight_channels(group.idx_l1, one_grp['ref_chan'])
+
+            self.tabs.addTab(group, one_grp['name'])
+
+        self.apply()
+
+    def save_channels(self):
+        self.read_group_info()
+
+        if self.parent.info.filename is not None:
+            filename = (splitext(self.parent.info.filename)[0] +
+                        '_channels.json')
+        else:
+            filename = None
+
+        filename = QFileDialog.getSaveFileName(self, 'Save Channels Montage',
+                                               filename,
+                                               'Channels File (*.json)')
+        if filename == '':
+            return
+
+        groups = deepcopy(self.groups)
+        for one_grp in groups:
+            one_grp['color'] = one_grp['color'].rgba()
+
+        with open(filename, 'w') as outfile:
+            dump(groups, outfile, indent=' ')
+
     def new_group(self):
         if self.chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
@@ -237,7 +311,7 @@ class Channels(QWidget):
             new_name = QInputDialog.getText(self, 'New Channel Group',
                                             'Enter Name')
             if new_name[1]:
-                group = ChannelsGroup(self.chan_name, self.config)
+                group = ChannelsGroup(self.chan_name, self.config.value)
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 

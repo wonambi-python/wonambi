@@ -615,13 +615,13 @@ def _create_data_to_plot(data, chan_groups):
         mont = Montage(ref_chan=one_grp['ref_chan'])
         data1 = mont(sel_data)
 
-        if one_grp['filter']['low_cut'] is not None:
-            hpfilt = Filter(low_cut=one_grp['filter']['low_cut'],
+        if one_grp['hp'] is not None:
+            hpfilt = Filter(low_cut=one_grp['hp'],
                             s_freq=data.s_freq)
             data1 = hpfilt(data1)
 
-        if one_grp['filter']['high_cut'] is not None:
-            lpfilt = Filter(high_cut=one_grp['filter']['high_cut'],
+        if one_grp['lp'] is not None:
+            lpfilt = Filter(high_cut=one_grp['lp'],
                             s_freq=data.s_freq)
             data1 = lpfilt(data1)
 

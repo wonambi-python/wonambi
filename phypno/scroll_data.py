@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-VERSION = 9.2
+VERSION = 9.4
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
@@ -287,8 +287,8 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
+    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
 
     if standalone:
         app.exec_()
