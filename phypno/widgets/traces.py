@@ -6,11 +6,13 @@ lg = getLogger(__name__)
 
 from copy import deepcopy
 from datetime import timedelta
+from functools import partial
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, max, min,
                    log2, pad, power)
 from PyQt4.QtCore import QPointF, Qt, QRectF
-from PyQt4.QtGui import (QBrush,
+from PyQt4.QtGui import (QAction,
+                         QBrush,
                          QColor,
                          QFormLayout,
                          QGraphicsItem,
@@ -19,6 +21,8 @@ from PyQt4.QtGui import (QBrush,
                          QGraphicsSimpleTextItem,
                          QGraphicsView,
                          QGroupBox,
+                         QIcon,
+                         QKeySequence,
                          QPen,
                          QVBoxLayout,
                          )
@@ -26,7 +30,7 @@ from PyQt4.QtGui import (QBrush,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
-from .utils import Path
+from .utils import Path, ICON
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -157,6 +161,85 @@ class Traces(QGraphicsView):
         self.idx_time = []
         self.idx_sel = None
         self.idx_info = None
+
+        self.create_action()
+
+    def create_action(self):
+        actions = {}
+
+        act = QAction(QIcon(ICON['step_prev']), 'Previous Step', self)
+        act.setShortcut(QKeySequence.MoveToPreviousChar)
+        act.triggered.connect(self.step_prev)
+        actions['step_prev'] = act
+
+        act = QAction(QIcon(ICON['step_next']), 'Next Step', self)
+        act.setShortcut(QKeySequence.MoveToNextChar)
+        act.triggered.connect(self.step_next)
+        actions['step_next'] = act
+
+        act = QAction(QIcon(ICON['page_prev']), 'Previous Page', self)
+        act.setShortcut(QKeySequence.MoveToPreviousPage)
+        act.triggered.connect(self.page_prev)
+        actions['page_prev'] = act
+
+        act = QAction(QIcon(ICON['page_next']), 'Next Page', self)
+        act.setShortcut(QKeySequence.MoveToNextPage)
+        act.triggered.connect(self.page_next)
+        actions['page_next'] = act
+
+        act = QAction(QIcon(ICON['zoomprev']), 'Wider Time Window', self)
+        act.setShortcut(QKeySequence.ZoomIn)
+        act.triggered.connect(self.X_more)
+        actions['X_more'] = act
+
+        act = QAction(QIcon(ICON['zoomnext']), 'Narrower Time Window', self)
+        act.setShortcut(QKeySequence.ZoomOut)
+        act.triggered.connect(self.X_less)
+        actions['X_less'] = act
+
+        act = QAction(QIcon(ICON['zoomin']), 'Larger Amplitude', self)
+        act.setShortcut(QKeySequence.MoveToPreviousLine)
+        act.triggered.connect(self.Y_more)
+        actions['Y_less'] = act
+
+        act = QAction(QIcon(ICON['zoomout']), 'Smaller Amplitude', self)
+        act.setShortcut(QKeySequence.MoveToNextLine)
+        act.triggered.connect(self.Y_less)
+        actions['Y_more'] = act
+
+        act = QAction(QIcon(ICON['ydist_more']), 'Larger Y Distance', self)
+        act.triggered.connect(self.Y_wider)
+        actions['Y_wider'] = act
+
+        act = QAction(QIcon(ICON['ydist_less']), 'Smaller Y Distance', self)
+        act.triggered.connect(self.Y_tighter)
+        actions['Y_tighter'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '6 Hours Earlier', self)
+        act.triggered.connect(partial(self.add_time, -6 * 60 * 60))
+        actions['addtime_-6h'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '1 Hour Earlier', self)
+        act.triggered.connect(partial(self.add_time, -60 * 60))
+        actions['addtime_-1h'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '10 Minutes Earlier', self)
+        act.triggered.connect(partial(self.add_time, -10 * 60))
+        actions['addtime_-10min'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '10 Minutes Later', self)
+        act.triggered.connect(partial(self.add_time, 10 * 60))
+        actions['addtime_10min'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '1 Hour Later', self)
+        act.triggered.connect(partial(self.add_time, 60 * 60))
+        actions['addtime_1h'] = act
+
+        act = QAction(QIcon(ICON['chronometer']), '6 Hours Later', self)
+        act.triggered.connect(partial(self.add_time, 6 * 60 * 60))
+        actions['addtime_6h'] = act
+
+        self.action = actions
 
     def read_data(self):
         """Read the data to plot."""

@@ -197,44 +197,44 @@ class Notes(QTabWidget):
         self.display_events()
 
     def create_action(self):
-        output = {}
+        actions = {}
 
         act = QAction('New Annotation File...', self)
         act.triggered.connect(self.new_annot)
-        output['new_annot'] = act
+        actions['new_annot'] = act
 
         act = QAction('Load Annotation File...', self)
         act.triggered.connect(self.load_annot)
-        output['load_annot'] = act
+        actions['load_annot'] = act
 
         act = QAction('New...', self)
         act.triggered.connect(self.new_rater)
-        output['new_rater'] = act
+        actions['new_rater'] = act
 
         act = QAction('Delete...', self)
         act.triggered.connect(self.delete_rater)
-        output['del_rater'] = act
+        actions['del_rater'] = act
 
         act = QAction(QIcon(ICON['marker']), 'New Marker', self)
         act.setCheckable(True)
-        output['new_marker'] = act
+        actions['new_marker'] = act
 
         act = QAction(QIcon(ICON['new_eventtype']), 'New Event Type', self)
         act.triggered.connect(self.new_eventtype)
-        output['new_eventtype'] = act
+        actions['new_eventtype'] = act
 
         act = QAction(QIcon(ICON['del_eventtype']), 'Delete Event Type', self)
         act.triggered.connect(self.delete_eventtype)
-        output['del_eventtype'] = act
+        actions['del_eventtype'] = act
 
         act = QAction(QIcon(ICON['event']), 'New Event', self)
         act.setCheckable(True)
-        output['new_event'] = act
+        actions['new_event'] = act
 
-        uncheck_new_event = lambda: output['new_event'].setChecked(False)
-        uncheck_new_marker = lambda: output['new_marker'].setChecked(False)
-        output['new_event'].triggered.connect(uncheck_new_marker)
-        output['new_marker'].triggered.connect(uncheck_new_event)
+        uncheck_new_event = lambda: actions['new_event'].setChecked(False)
+        uncheck_new_marker = lambda: actions['new_marker'].setChecked(False)
+        actions['new_event'].triggered.connect(uncheck_new_marker)
+        actions['new_marker'].triggered.connect(uncheck_new_event)
 
         act = {}
         for one_stage, one_shortcut in zip(STAGE_NAME, STAGE_SHORTCUT):
@@ -245,9 +245,9 @@ class Notes(QTabWidget):
                                                      stage_idx))
             self.addAction(act[one_stage])
 
-        output['stages'] = act
+        actions['stages'] = act
 
-        self.action = output
+        self.action = actions
 
     def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.

@@ -10,7 +10,6 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
                          QDockWidget,
                          QIcon,
-                         QKeySequence,
                          )
 
 from .settings import Settings  # has to be first
@@ -112,55 +111,6 @@ def create_actions(MAIN):
     actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', MAIN)
     actions['close_wndw'].triggered.connect(MAIN.close)
 
-    """ ------ VIEW ------ """
-    actions['step_prev'] = QAction(QIcon(ICON['step_prev']),
-                                   'Previous Step', MAIN)
-    actions['step_prev'].setShortcut(QKeySequence.MoveToPreviousChar)
-    actions['step_prev'].triggered.connect(MAIN.traces.step_prev)
-
-    actions['step_next'] = QAction(QIcon(ICON['step_next']),
-                                   'Next Step', MAIN)
-    actions['step_next'].setShortcut(QKeySequence.MoveToNextChar)
-    actions['step_next'].triggered.connect(MAIN.traces.step_next)
-
-    actions['page_prev'] = QAction(QIcon(ICON['page_prev']),
-                                   'Previous Page', MAIN)
-    actions['page_prev'].setShortcut(QKeySequence.MoveToPreviousPage)
-    actions['page_prev'].triggered.connect(MAIN.traces.page_prev)
-
-    actions['page_next'] = QAction(QIcon(ICON['page_next']),
-                                   'Next Page', MAIN)
-    actions['page_next'].setShortcut(QKeySequence.MoveToNextPage)
-    actions['page_next'].triggered.connect(MAIN.traces.page_next)
-
-    actions['X_more'] = QAction(QIcon(ICON['zoomprev']),
-                                'Wider Time Window', MAIN)
-    actions['X_more'].setShortcut(QKeySequence.ZoomIn)
-    actions['X_more'].triggered.connect(MAIN.traces.X_more)
-
-    actions['X_less'] = QAction(QIcon(ICON['zoomnext']),
-                                'Narrower Time Window', MAIN)
-    actions['X_less'].setShortcut(QKeySequence.ZoomOut)
-    actions['X_less'].triggered.connect(MAIN.traces.X_less)
-
-    actions['Y_less'] = QAction(QIcon(ICON['zoomin']),
-                                'Larger Amplitude', MAIN)
-    actions['Y_less'].setShortcut(QKeySequence.MoveToPreviousLine)
-    actions['Y_less'].triggered.connect(MAIN.traces.Y_more)
-
-    actions['Y_more'] = QAction(QIcon(ICON['zoomout']),
-                                'Smaller Amplitude', MAIN)
-    actions['Y_more'].setShortcut(QKeySequence.MoveToNextLine)
-    actions['Y_more'].triggered.connect(MAIN.traces.Y_less)
-
-    actions['Y_wider'] = QAction(QIcon(ICON['ydist_more']),
-                                 'Larger Y Distance', MAIN)
-    actions['Y_wider'].triggered.connect(MAIN.traces.Y_wider)
-
-    actions['Y_tighter'] = QAction(QIcon(ICON['ydist_less']),
-                                   'Smaller Y Distance', MAIN)
-    actions['Y_tighter'].triggered.connect(MAIN.traces.Y_tighter)
-
 
 def create_menubar(MAIN):
     """Create the whole menubar, based on actions."""
@@ -192,38 +142,32 @@ def create_menubar(MAIN):
     menu_file.addSeparator()
     menu_file.addAction(actions['close_wndw'])
 
+    """ ------ CHANNELS ------ """
+    actions = MAIN.channels.action
+    menu_time = menubar.addMenu('Channels')
+    menu_time.addAction(actions['load_channels'])
+    menu_time.addAction(actions['save_channels'])
+
     """ ------ NAVIGATION ------ """
+    actions = MAIN.traces.action
+
     menu_time = menubar.addMenu('Navigation')
     menu_time.addAction(actions['step_prev'])
     menu_time.addAction(actions['step_next'])
     menu_time.addAction(actions['page_prev'])
     menu_time.addAction(actions['page_next'])
-    menu_time.addSeparator()  # use icon cronometer
-    act = menu_time.addAction('6 Hours Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, -6 * 60 * 60))
-    act = menu_time.addAction('1 Hour Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, -60 * 60))
-    act = menu_time.addAction('10 Minutes Earlier')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, -10 * 60))
-    act = menu_time.addAction('10 Minutes Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, 10 * 60))
-    act = menu_time.addAction('1 Hour Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, 60 * 60))
-    act = menu_time.addAction('6 Hours Later')
-    act.setIcon(QIcon(ICON['chronometer']))
-    act.triggered.connect(partial(MAIN.traces.add_time, 6 * 60 * 60))
+    menu_time.addSeparator()
+    menu_time.addAction(actions['addtime_-6h'])
+    menu_time.addAction(actions['addtime_-1h'])
+    menu_time.addAction(actions['addtime_-10min'])
+    menu_time.addAction(actions['addtime_10min'])
+    menu_time.addAction(actions['addtime_1h'])
+    menu_time.addAction(actions['addtime_6h'])
 
-    """ ------ CHANNELS ------ """
-    menu_time = menubar.addMenu('Channels')
-    menu_time.addAction(MAIN.channels.action['load_channels'])
-    menu_time.addAction(MAIN.channels.action['save_channels'])
 
     """ ------ VIEW ------ """
+    actions = MAIN.traces.action
+
     menu_view = menubar.addMenu('View')
     submenu_ampl = menu_view.addMenu('Amplitude')
     submenu_ampl.addAction(actions['Y_less'])
@@ -307,6 +251,9 @@ def create_toolbar(MAIN):
     toolbar.addSeparator()
     toolbar.addAction(MAIN.notes.action['new_annot'])
     toolbar.addAction(MAIN.notes.action['load_annot'])
+
+    """ ------ SCROLL ------ """
+    actions = MAIN.traces.action
 
     toolbar = MAIN.addToolBar('Scroll')
     toolbar.setObjectName('Scroll')  # for savestate

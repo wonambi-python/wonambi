@@ -173,8 +173,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
-        self.settings.config.get_values()  # store geometry for next use
-
         max_dataset_history = self.value('max_dataset_history')
         keep_recent_datasets(max_dataset_history, self.info.filename)
 
