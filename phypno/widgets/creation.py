@@ -25,7 +25,7 @@ from .video import Video
 
 def create_widgets(MAIN):
     """Create all the widgets and dockwidgets. It also creates actions to
-    toggle views of dockwidgets in dockwidgets
+    toggle views of dockwidgets in dockwidgets.
     """
 
     """ ------ CREATE WIDGETS ------ """
@@ -103,9 +103,9 @@ def create_actions(MAIN):
     actions = MAIN.action  # actions was already taken
 
     """ ------ OPEN SETTINGS ------ """
-    actions['open_settings'] = QAction(QIcon(ICON['settings']),
-                                       'Settings', MAIN)
-    actions['open_settings'].triggered.connect(MAIN.action_show_settings)
+    actions['open_settings'] = QAction(QIcon(ICON['settings']), 'Settings',
+                                       MAIN)
+    actions['open_settings'].triggered.connect(MAIN.show_settings)
 
     """ ------ CLOSE WINDOW ------ """
     actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', MAIN)
@@ -164,7 +164,6 @@ def create_menubar(MAIN):
     menu_time.addAction(actions['addtime_1h'])
     menu_time.addAction(actions['addtime_6h'])
 
-
     """ ------ VIEW ------ """
     actions = MAIN.traces.action
 
@@ -209,7 +208,6 @@ def create_menubar(MAIN):
     submenu_rater.addSeparator()
     if MAIN.notes.annot is not None:
         for rater in sorted(MAIN.notes.annot.raters):
-            lg.debug('Adding rater: ' + rater)
             act = submenu_rater.addAction(rater)
             act.triggered.connect(partial(MAIN.notes.select_rater, rater))
     menu_annot.addSeparator()

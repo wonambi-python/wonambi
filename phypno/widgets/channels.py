@@ -17,7 +17,6 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QGridLayout,
                          QGroupBox,
                          QHBoxLayout,
-                         QIcon,
                          QInputDialog,
                          QLineEdit,
                          QListWidget,
@@ -36,12 +35,11 @@ EMPTY_FILTER = ('', 'no', 'NAN', 'nan', 'None', 'none', '0')
 
 
 class ConfigChannels(Config):
-
+    """Widget with preferences in Settings window for Channels."""
     def __init__(self, update_widget):
         super().__init__('channels', update_widget)
 
     def create_config(self):
-
         box0 = QGroupBox('Channels')
 
         self.index['hp'] = FormFloat()

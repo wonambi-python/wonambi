@@ -483,8 +483,10 @@ class Traces(QGraphicsView):
                                          0,
                                          evt_end - evt_start,
                                          len(self.idx_label) * y_distance)
+
+                color = _convert_name_to_color(evt['name'])
+                rect.setBrush(QBrush(color))
                 rect.setPen(NoPen)
-                rect.setBrush(QBrush(Qt.cyan))  # TODO: depend on events
                 rect.setZValue(-10)
                 self.scene.addItem(rect)
 
@@ -634,7 +636,9 @@ class Traces(QGraphicsView):
                          len(self.idx_label) * y_distance)
             item = QGraphicsRectItem(pos.normalized())
             item.setPen(NoPen)
-            item.setBrush(QBrush(Qt.cyan))
+            eventtype = self.parent.notes.idx_eventtype.currentText()
+            color = _convert_name_to_color(eventtype, True)
+            item.setBrush(QBrush(color))
             item.setZValue(-10)
             self.scene.addItem(item)
             self.idx_sel = item
@@ -864,3 +868,41 @@ class TextItem_with_BG(QGraphicsSimpleTextItem):
         painter.setBrush(QBrush(Qt.black))
         painter.drawRect(self.boundingRect())
         super().paint(painter, option, widget)
+
+
+def _convert_name_to_color(s, selection=False):
+    """Convert any string to an RGB color.
+
+    Parameters
+    ----------
+    s : str
+        string to convert
+    selection : bool, optional
+        if an event is being selected, it's lighter
+
+    Returns
+    -------
+    instance of QColor
+        one of the possible color
+
+    Notes
+    -----
+    It takes any string and converts it to RGB color. The same string always
+    returns the same color. The numbers are a bit arbitrary but not completely.
+    h is the baseline color (keep it high to have brighter colors). There
+    should be a difference between selection on or off (roughly 50). Make sure
+    that the max module + h is less than 256 (RGB limit).
+
+    The number you multiply ord for is necessary to differentiate the letters
+    (otherwise 'r' and 's' are too close to each other).
+    """
+    if selection:
+        h = 150
+    else:
+        h = 100
+
+    v = [5 * ord(x) for x in s]
+    sum_mod = lambda x: sum(x) % 100
+    color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,
+                   sum_mod(v[2::3]) + h)
+    return color

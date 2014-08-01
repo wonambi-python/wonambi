@@ -95,9 +95,7 @@ class Settings(QDialog):
 
         Notes
         -----
-        When you add widgets in config, remember to update
-        action_show_settings too
-
+        When you add widgets in config, remember to update show_settings too
         """
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply
                                 | QDialogButtonBox.Cancel)
@@ -287,7 +285,7 @@ class ConfigUtils(Config):
 
     def create_config(self):
 
-        box1 = QGroupBox('History')
+        box0 = QGroupBox('History')
         self.index['max_dataset_history'] = FormInt()
         self.index['recording_dir'] = FormStr()
 
@@ -296,9 +294,9 @@ class ConfigUtils(Config):
                            self.index['max_dataset_history'])
         form_layout.addRow('Directory with recordings',
                            self.index['recording_dir'])
-        box1.setLayout(form_layout)
+        box0.setLayout(form_layout)
 
-        box2 = QGroupBox('Default values')
+        box1 = QGroupBox('Default values')
         self.index['y_distance_presets'] = FormList()
         self.index['y_scale_presets'] = FormList()
         self.index['window_length_presets'] = FormList()
@@ -310,20 +308,20 @@ class ConfigUtils(Config):
                            self.index['y_distance_presets'])
         form_layout.addRow('Window length, presets',
                            self.index['window_length_presets'])
-        box2.setLayout(form_layout)
+        box1.setLayout(form_layout)
 
-        box3 = QGroupBox('Download Data')
+        box2 = QGroupBox('Download Data')
         self.index['read_intervals'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow('Read intervals (in s)',
                            self.index['read_intervals'])
-        box3.setLayout(form_layout)
+        box2.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
+        main_layout.addWidget(box0)
         main_layout.addWidget(box1)
         main_layout.addWidget(box2)
-        main_layout.addWidget(box3)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)

@@ -30,8 +30,8 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QTableWidget,
                          QTableWidgetItem,
                          QTabWidget,
-                         QWidget,
                          QVBoxLayout,
+                         QWidget,
                          )
 
 from ..attr import Annotations, create_empty_annotations

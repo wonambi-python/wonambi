@@ -160,7 +160,7 @@ class MainWindow(QMainWindow):
                               endtime=endtime)
             self.overview.mark_downloaded(begtime, endtime)
 
-    def action_show_settings(self):
+    def show_settings(self):
         """Open the Setting windows, after updating the values in GUI. """
         self.notes.config.put_values()
         self.overview.config.put_values()
