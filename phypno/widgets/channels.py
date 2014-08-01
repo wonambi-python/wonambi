@@ -12,13 +12,13 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
                          QColor,
                          QColorDialog,
+                         QDoubleSpinBox,
                          QFileDialog,
                          QFormLayout,
                          QGridLayout,
                          QGroupBox,
                          QHBoxLayout,
                          QInputDialog,
-                         QLineEdit,
                          QListWidget,
                          QListWidgetItem,
                          QPushButton,
@@ -29,9 +29,6 @@ from PyQt4.QtGui import (QAbstractItemView,
 
 
 from .settings import Config, FormFloat, FormStr
-
-
-EMPTY_FILTER = ('', 'no', 'NAN', 'nan', 'None', 'none', '0')
 
 
 class ConfigChannels(Config):
@@ -62,7 +59,36 @@ class ConfigChannels(Config):
 
 
 class ChannelsGroup(QWidget):
-    """Use config_value instead of config, because it's easier to pass dict
+    """Tab inside the Channels widget.
+
+    Attributes
+    ----------
+    chan_name : list of str
+        list of all the channels in the dataset
+
+    idx_l0 : QListWidget
+        list with the channels to plot
+    idx_l1 : QListWidget
+        list with the channels to use as reference
+    idx_hp : QDoubleSpinBox
+        spin box to indicate the high-pass filter
+    idx_lp : QDoubleSpinBox
+        spin box to indicate the low-pass filter
+    idx_scale : QDoubleSpinBox
+        spin_box to indicate the group-specific scaling
+    idx_reref : QPushButton
+        it triggers a selection of reference channels equal to the channels to
+        plot.
+    idx_color : QColor
+        color of the traces beloning to this channel group (it could be a
+        property of QWidget)
+
+    Notes
+    -----
+    TODO: re-referencing should be more flexible, by allowing other types of
+    referencing.
+
+    Use config_value instead of config, because it's easier to pass dict
     when loading channels montage.
     """
     def __init__(self, chan_name, config_value):
@@ -70,19 +96,32 @@ class ChannelsGroup(QWidget):
 
         self.chan_name = chan_name
 
-        self.setProperty('color', QColor(config_value['color']))
-
         self.idx_l0 = QListWidget()
         self.idx_l1 = QListWidget()
 
         self.add_channels_to_list(self.idx_l0)
         self.add_channels_to_list(self.idx_l1)
 
-        self.idx_hp = QLineEdit(str(config_value['hp']))
-        self.idx_lp = QLineEdit(str(config_value['lp']))
-        self.idx_scale = QLineEdit(str(config_value['scale']))
-        self.idx_reref = QPushButton('Average')  # TODO: actually combobox
+        self.idx_hp = QDoubleSpinBox()
+        self.idx_hp.setValue(config_value['hp'])
+        self.idx_hp.setSuffix(' Hz')
+        self.idx_hp.setDecimals(1)
+        self.idx_hp.setToolTip('0 means no filter')
+
+        self.idx_lp = QDoubleSpinBox()
+        self.idx_lp.setValue(config_value['lp'])
+        self.idx_lp.setSuffix(' Hz')
+        self.idx_lp.setDecimals(1)
+        self.idx_lp.setToolTip('0 means no filter')
+
+        self.idx_scale = QDoubleSpinBox()
+        self.idx_scale.setValue(config_value['scale'])
+        self.idx_scale.setSuffix('x')
+
+        self.idx_reref = QPushButton('Average')
         self.idx_reref.clicked.connect(self.rereference)
+
+        self.idx_color = QColor(config_value['color'])
 
         l_form = QFormLayout()
         l_form.addRow('High-Pass', self.idx_hp)
@@ -113,12 +152,10 @@ class ChannelsGroup(QWidget):
         ----------
         l : instance of QListWidget
             one of the two lists (chan_to_plot or ref_chan)
-
         """
         l.clear()
 
-        ExtendedSelection = QAbstractItemView.SelectionMode(3)
-        l.setSelectionMode(ExtendedSelection)
+        l.setSelectionMode(QAbstractItemView.ExtendedSelection)
         for chan in self.chan_name:
             item = QListWidgetItem(chan)
             l.addItem(item)
@@ -130,7 +167,6 @@ class ChannelsGroup(QWidget):
         ----------
         selected_chan : list of str
             channels to indicate as selected.
-
         """
         for row in range(l.count()):
             item = l.item(row)
@@ -140,7 +176,8 @@ class ChannelsGroup(QWidget):
                 item.setSelected(False)
 
     def rereference(self):
-        #TODO: only reference to average
+        """Automatically highlight channels to use as reference, based on
+        selected channels."""
         selectedItems = self.idx_l0.selectedItems()
 
         chan_to_plot = []
@@ -162,7 +199,6 @@ class ChannelsGroup(QWidget):
         (which appears pretty random). It's more consistent to use the same
         order of the main channel list. That's why the additional for-loop
         is necessary. We don't care about the order of the reference channels.
-
         """
         selectedItems = self.idx_l0.selectedItems()
         selected_chan = [x.text() for x in selectedItems]
@@ -176,19 +212,19 @@ class ChannelsGroup(QWidget):
         for selected in selectedItems:
             ref_chan.append(selected.text())
 
-        hp = self.idx_hp.text()
-        if hp in EMPTY_FILTER:
+        hp = self.idx_hp.value()
+        if hp == 0:
             low_cut = None
         else:
-            low_cut = float(hp)
+            low_cut = hp
 
-        lp = self.idx_lp.text()
-        if lp in EMPTY_FILTER:
+        lp = self.idx_lp.value()
+        if lp == 0:
             high_cut = None
         else:
-            high_cut = float(lp)
+            high_cut = lp
 
-        scale = self.idx_scale.text()
+        scale = self.idx_scale.value()
 
         group_info = {'name': '',  # not present in widget
                       'chan_to_plot': chan_to_plot,
@@ -196,14 +232,30 @@ class ChannelsGroup(QWidget):
                       'hp': low_cut,
                       'lp': high_cut,
                       'scale': float(scale),
-                      'color': self.property('color')
+                      'color': self.idx_color
                       }
 
         return group_info
 
 
 class Channels(QWidget):
+    """Widget with information about channel groups.
 
+    Attributes
+    ----------
+    parent : QMainWindow
+        the main window
+    config : ConfigChannels
+        preferences for this widget
+
+    groups : list of dict
+        each dict contains information about one channel group
+    chan_name : list of str
+        list of all the channels in the dataset
+
+    tabs : QTabWidget
+        Widget that contains the tabs with channel groups
+    """
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -321,8 +373,8 @@ class Channels(QWidget):
 
     def color_group(self):
         group = self.tabs.currentWidget()
-        newcolor = QColorDialog.getColor(group.property('color'))
-        group.setProperty('color', newcolor)
+        newcolor = QColorDialog.getColor(group.idx_color)
+        group.idx_color = newcolor
 
         self.apply()
 
