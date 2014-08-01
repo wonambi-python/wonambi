@@ -7,8 +7,8 @@ lg = getLogger(__name__)
 from copy import deepcopy
 from datetime import timedelta
 
-from numpy import (abs, argmin, asarray, ceil, empty, floor, max, min, log2,
-                   pad, power)
+from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, max, min,
+                   log2, pad, power)
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QBrush,
                          QColor,
@@ -62,14 +62,12 @@ class ConfigTraces(Config):
 
         box1 = QGroupBox('Grid')
 
-        self.index['grid_border'] = FormBool('Border')
         self.index['grid_x'] = FormBool('Grid on time axis')
         self.index['grid_xtick'] = FormFloat()
         self.index['grid_y'] = FormBool('Grid on voltage axis')
 
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
-        form_layout.addRow(self.index['grid_border'])
         form_layout.addRow(self.index['grid_x'])
         form_layout.addRow('Tick every (s)', self.index['grid_xtick'])
         form_layout.addRow(self.index['grid_y'])
@@ -210,6 +208,7 @@ class Traces(QGraphicsView):
         self.add_labels()
         self.add_time()
         self.add_traces()
+        self.display_grid()
         self.display_markers()
         self.display_events()
 
@@ -309,6 +308,28 @@ class Traces(QGraphicsView):
                 self.chan.append(chan_name)
                 self.chan_scale.append(one_grp['scale'])
                 self.chan_pos.append(chan_pos)
+
+    def display_grid(self):
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
+        window_end = window_start + window_length
+
+        if self.parent.value('grid_x'):
+            x_tick = self.parent.value('grid_xtick')
+            x_ticks = arange(window_start, window_end + x_tick, x_tick)
+            for x in x_ticks:
+                x_pos = [x, x]
+                y_pos = [0,
+                         self.parent.value('y_distance') * len(self.idx_label)]
+                path = self.scene.addPath(Path(x_pos, y_pos))
+                path.setPen(QPen(Qt.DotLine))
+
+        if self.parent.value('grid_y'):
+            for one_label_item in self.idx_label:
+                x_pos = [window_start, window_end]
+                y_pos = [one_label_item.y(), one_label_item.y()]
+                path = self.scene.addPath(Path(x_pos, y_pos))
+                path.setPen(QPen(Qt.DotLine))
 
     def display_markers(self):
         """Add markers on top of first plot.

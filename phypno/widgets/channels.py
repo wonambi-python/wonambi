@@ -257,6 +257,7 @@ class Channels(QWidget):
         self.action = output
 
     def load_channels(self):
+        """
         if self.parent.info.filename is not None:
             filename = (splitext(self.parent.info.filename)[0] +
                         '_channels.json')
@@ -268,6 +269,8 @@ class Channels(QWidget):
                                                'Channels File (*.json)')
         if filename == '':
             return
+        """
+        filename = '/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json'
 
         with open(filename, 'r') as outfile:
             groups = load(outfile)
