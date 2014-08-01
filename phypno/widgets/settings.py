@@ -34,9 +34,6 @@ DEFAULTS['channels'] = {'hp': .5,
                         'color': 'black',
                         'scale': 1,
                         }
-DEFAULTS['detect'] = {'spindle_method': 'UCSD',
-                      }
-
 DEFAULTS['overview'] = {'timestamp_steps': 60 * 60,
                         'overview_scale': 30,
                         }
@@ -92,7 +89,7 @@ class Settings(QDialog):
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
-        self.config = ConfigUtils(self.parent.update_mainwindow)
+        self.config = ConfigUtils(self.parent.update)
 
         self.setWindowTitle('Settings')
         self.create_settings()
@@ -118,7 +115,7 @@ class Settings(QDialog):
         page_list.currentRowChanged.connect(self.change_widget)
 
         pages = ['General', 'Overview', 'Signals', 'Channels', 'Spectrum',
-                 'Notes', 'Detection', 'Video']
+                 'Notes', 'Video']
         for one_page in pages:
             page_list.addItem(one_page)
 
@@ -129,7 +126,6 @@ class Settings(QDialog):
         self.stacked.addWidget(self.parent.channels.config)
         self.stacked.addWidget(self.parent.spectrum.config)
         self.stacked.addWidget(self.parent.notes.config)
-        self.stacked.addWidget(self.parent.detect.config)
         self.stacked.addWidget(self.parent.video.config)
 
         hsplitter = QSplitter()
@@ -223,7 +219,7 @@ class Config(QWidget):
         self.index = self.create_indices(value_names)
 
         self.create_config()
-        self.set_values()
+        self.put_values()
         self.update_widget = update_widget
 
     def create_values(self, value_names):
@@ -260,8 +256,8 @@ class Config(QWidget):
             setting_name = self.widget + '/' + value_name
             settings.setValue(setting_name, self.value[value_name])
 
-    def set_values(self):
-        """Set values to the GUI.
+    def put_values(self):
+        """Put values to the GUI.
 
         Notes
         -----

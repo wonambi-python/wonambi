@@ -23,10 +23,6 @@ from PyQt4.QtGui import (QBrush,
 
 from .settings import Config, FormInt
 
-# marker
-# event
-# stage
-# available
 current_line_height = 10
 
 NoPen = QPen()
@@ -357,3 +353,8 @@ class Overview(QGraphicsView):
         window_length = self.parent.value('window_length')
         window_start = int(floor(x_in_scene / window_length) * window_length)
         self.update_position(window_start)
+
+    def reset(self):
+        if self.overview.scene is not None:
+            self.overview.scene.clear()
+        self.overview.scene = None

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-VERSION = 9.6
+VERSION = 10
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
@@ -54,7 +54,6 @@ class MainWindow(QMainWindow):
         self.spectrum = None
         self.overview = None
         self.notes = None
-        self.detect = None
         self.video = None
         self.traces = None
         self.settings = None
@@ -82,11 +81,10 @@ class MainWindow(QMainWindow):
             self.restoreState(window_state, VERSION)
         self.show()
 
-    def update_mainwindow(self):
+    def update(self):
         """Functions to re-run once settings have been changed."""
-        lg.debug('Updating main window')
         self.set_geometry()
-        create_menubar(self)
+        self.create_menubar()
 
     def set_geometry(self):
         """Simply set the geometry of the main window."""
@@ -131,30 +129,28 @@ class MainWindow(QMainWindow):
 
     def reset(self):
         """Remove all the information from previous dataset before loading a
-        new one.
+        new dataset."""
 
-        """
         # store current dataset
         max_dataset_history = self.value('max_dataset_history')
         keep_recent_datasets(max_dataset_history, self.info.filename)
 
-        # overview
-        if self.overview.scene is not None:
-            self.overview.scene.clear()
-            self.overview.scene = None
-
-        self.traces.reset()
+        # reset all the widgets
+        self.channels.reset()
         self.info.reset()
         self.notes.reset()
-        self.channels.reset()
-
-        # spectrum
-        self.spectrum.idx_chan.clear()
-        if self.spectrum.scene is not None:
-            self.spectrum.scene.clear()
+        self.overview.reset()
+        self.spectrum.reset()
+        self.traces.reset()
 
     def action_download(self, length=None):
-        """Start the download of the dataset."""
+        """Check if the dataset is available.
+
+        Parameters
+        ----------
+        length : int, optional
+            amount of data to download, in seconds
+        """
         dataset = self.info.dataset
         if length is None or length > self.overview.maximum:
             length = self.overview.maximum
@@ -170,90 +166,15 @@ class MainWindow(QMainWindow):
             self.overview.mark_downloaded(begtime, endtime)
 
     def action_show_settings(self):
-        """Open the Setting windows, after updating the values in GUI.
-        """
-        self.settings.config.set_values()
-        self.overview.config.set_values()
-        self.traces.config.set_values()
-        self.spectrum.config.set_values()
-        self.notes.config.set_values()
-        self.detect.config.set_values()
-        self.video.config.set_values()
+        """Open the Setting windows, after updating the values in GUI. """
+        self.notes.config.put_values()
+        self.overview.config.put_values()
+        self.settings.config.put_values()
+        self.spectrum.config.put_values()
+        self.traces.config.put_values()
+        self.video.config.put_values()
+
         self.settings.show()
-
-    def action_step_prev(self):
-        """Go to the previous step."""
-        window_start = (self.value('window_start') -
-                        self.value('window_length') /
-                        self.value('window_step'))
-        self.overview.update_position(window_start)
-
-    def action_step_next(self):
-        """Go to the next step."""
-        window_start = (self.value('window_start') +
-                        self.value('window_length') /
-                        self.value('window_step'))
-        self.overview.update_position(window_start)
-
-    def action_page_prev(self):
-        """Go to the previous page."""
-        window_start = self.value('window_start') - self.value('window_length')
-        self.overview.update_position(window_start)
-
-    def action_page_next(self):
-        """Go to the next page."""
-        window_start = self.value('window_start') + self.value('window_length')
-        self.overview.update_position(window_start)
-
-    def action_add_time(self, extra_time):
-        """Go to the predefined time forward."""
-        window_start = self.value('window_start') + extra_time
-        self.overview.update_position(window_start)
-
-    def action_X_more(self):
-        """Zoom in on the x-axis."""
-        self.value('window_length', self.value('window_length') * 2)
-        self.overview.update_position()
-
-    def action_X_less(self):
-        """Zoom out on the x-axis."""
-        self.value('window_length', self.value('window_length') / 2)
-        self.overview.update_position()
-
-    def action_X_length(self, new_window_length):
-        """Use presets for length of the window."""
-        self.value('window_length', new_window_length)
-        self.overview.update_position()
-
-    def action_Y_more(self):
-        """Increase the amplitude."""
-        self.value('y_scale', self.value('y_scale') * 2)
-        self.traces.display()
-
-    def action_Y_less(self):
-        """Decrease the amplitude."""
-        self.value('y_scale', self.value('y_scale') / 2)
-        self.traces.display()
-
-    def action_Y_ampl(self, new_y_scale):
-        """Make amplitude on Y axis using predefined values"""
-        self.value('y_scale', new_y_scale)
-        self.traces.display()
-
-    def action_Y_wider(self):
-        """Increase the distance of the lines."""
-        self.value('y_distance', self.value('y_distance') * 1.4)
-        self.traces.display()
-
-    def action_Y_tighter(self):
-        """Decrease the distance of the lines."""
-        self.value('y_distance', self.value('y_distance') / 1.4)
-        self.traces.display()
-
-    def action_Y_dist(self, new_y_distance):
-        """Use preset values for the distance between lines."""
-        self.value('y_distance', new_y_distance)
-        self.traces.display()
 
     def moveEvent(self, event):
         """Main window is already resized."""
@@ -261,7 +182,7 @@ class MainWindow(QMainWindow):
         self.value('window_y', self.geometry().y())
         self.value('window_width', self.geometry().width())
         self.value('window_height', self.geometry().height())
-        self.settings.config.set_values()  # save the values in GUI
+        self.settings.config.put_values()  # save the values in GUI
 
     def resizeEvent(self, event):
         """Main window is already resized."""
@@ -269,7 +190,7 @@ class MainWindow(QMainWindow):
         self.value('window_y', self.geometry().y())
         self.value('window_width', self.geometry().width())
         self.value('window_height', self.geometry().height())
-        self.settings.config.set_values()  # save the values in GUI
+        self.settings.config.put_values()  # save the values in GUI
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
@@ -287,9 +208,9 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
-    # q.channels.load_channels()
+    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
+    q.channels.load_channels()
 
     if standalone:
         app.exec_()

@@ -21,7 +21,6 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QFileDialog,
                          QFormLayout,
                          QGroupBox,
-                         QHBoxLayout,
                          QIcon,
                          QInputDialog,
                          QLabel,
@@ -36,7 +35,6 @@ from PyQt4.QtGui import (QAbstractItemView,
                          )
 
 from ..attr import Annotations, create_empty_annotations
-
 from .settings import Config, FormStr, FormInt
 from .utils import short_strings, ICON
 

@@ -17,6 +17,7 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QGridLayout,
                          QGroupBox,
                          QHBoxLayout,
+                         QIcon,
                          QInputDialog,
                          QLineEdit,
                          QListWidget,
@@ -31,7 +32,7 @@ from PyQt4.QtGui import (QAbstractItemView,
 from .settings import Config, FormFloat, FormStr
 
 
-EMPTY_FILTER = ('None', '', 'none', '0')
+EMPTY_FILTER = ('', 'no', 'NAN', 'nan', 'None', 'none', '0')
 
 
 class ConfigChannels(Config):

@@ -25,9 +25,8 @@ from PyQt4.QtGui import (QBrush,
 
 from .. import ChanTime
 from ..trans import Montage, Filter
-from .utils import Path
 from .settings import Config, FormFloat, FormInt, FormBool
-
+from .utils import Path
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -206,7 +205,7 @@ class Traces(QGraphicsView):
 
         self.setScene(self.scene)
         self.add_labels()
-        self.add_time()
+        self.add_time_labels()
         self.add_traces()
         self.display_grid()
         self.display_markers()
@@ -272,7 +271,7 @@ class Traces(QGraphicsView):
                                   self.parent.value('y_distance') * row +
                                   self.parent.value('y_distance') / 2)
 
-    def add_time(self):
+    def add_time_labels(self):
         """Add time labels at the bottom."""
         for text, pos in zip(self.idx_time, self.time_pos):
             self.scene.addItem(text)
@@ -405,6 +404,84 @@ class Traces(QGraphicsView):
                 rect.setBrush(QBrush(Qt.cyan))  # TODO: depend on events
                 rect.setZValue(-10)
                 self.scene.addItem(rect)
+
+    def step_prev(self):
+        """Go to the previous step."""
+        window_start = (self.parent.value('window_start') -
+                        self.parent.value('window_length') /
+                        self.parent.value('window_step'))
+        self.parent.overview.update_position(window_start)
+
+    def step_next(self):
+        """Go to the next step."""
+        window_start = (self.parent.value('window_start') +
+                        self.parent.value('window_length') /
+                        self.parent.value('window_step'))
+        self.parent.overview.update_position(window_start)
+
+    def page_prev(self):
+        """Go to the previous page."""
+        window_start = (self.parent.value('window_start') -
+                        self.parent.value('window_length'))
+        self.parent.overview.update_position(window_start)
+
+    def page_next(self):
+        """Go to the next page."""
+        window_start = (self.parent.value('window_start')
+                        + self.parent.value('window_length'))
+        self.parent.overview.update_position(window_start)
+
+    def add_time(self, extra_time):
+        """Go to the predefined time forward."""
+        window_start = self.parent.value('window_start') + extra_time
+        self.parent.overview.update_position(window_start)
+
+    def X_more(self):
+        """Zoom in on the x-axis."""
+        self.parent.value('window_length',
+                          self.parent.value('window_length') * 2)
+        self.parent.overview.update_position()
+
+    def X_less(self):
+        """Zoom out on the x-axis."""
+        self.parent.value('window_length',
+                          self.parent.value('window_length') / 2)
+        self.parent.overview.update_position()
+
+    def X_length(self, new_window_length):
+        """Use presets for length of the window."""
+        self.parent.value('window_length', new_window_length)
+        self.parent.overview.update_position()
+
+    def Y_more(self):
+        """Increase the amplitude."""
+        self.parent.value('y_scale', self.parent.value('y_scale') * 2)
+        self.parent.traces.display()
+
+    def Y_less(self):
+        """Decrease the amplitude."""
+        self.parent.value('y_scale', self.parent.value('y_scale') / 2)
+        self.parent.traces.display()
+
+    def Y_ampl(self, new_y_scale):
+        """Make amplitude on Y axis using predefined values"""
+        self.parent.value('y_scale', new_y_scale)
+        self.parent.traces.display()
+
+    def Y_wider(self):
+        """Increase the distance of the lines."""
+        self.parent.value('y_distance', self.parent.value('y_distance') * 1.4)
+        self.parent.traces.display()
+
+    def Y_tighter(self):
+        """Decrease the distance of the lines."""
+        self.parent.value('y_distance', self.parent.value('y_distance') / 1.4)
+        self.parent.traces.display()
+
+    def Y_dist(self, new_y_distance):
+        """Use preset values for the distance between lines."""
+        self.parent.value('y_distance', new_y_distance)
+        self.parent.traces.display()
 
     def mousePressEvent(self, event):
         """Create a marker or start selection

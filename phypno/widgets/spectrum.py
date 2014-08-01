@@ -246,3 +246,10 @@ class Spectrum(QWidget):
                                value['y_min'],
                                value['x_max'] - value['x_min'],
                                value['y_max'] - value['y_min'])
+
+    def reset(self):
+        """Reset widget as new"""
+        self.spectrum.idx_chan.clear()
+        if self.spectrum.scene is not None:
+            self.spectrum.scene.clear()
+        self.spectrum.scene = None
