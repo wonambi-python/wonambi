@@ -248,6 +248,8 @@ class Channels(QWidget):
     config : ConfigChannels
         preferences for this widget
 
+    filename : path to file
+        file with the channel groups
     groups : list of dict
         each dict contains information about one channel group
     chan_name : list of str
@@ -261,16 +263,17 @@ class Channels(QWidget):
         self.parent = parent
         self.config = ConfigChannels(lambda: None)
 
+        self.filename = None
         self.groups = []
         self.chan_name = []  # those in the dataset
 
         self.tabs = None
 
-        self.create_channels()
+        self.create()
         self.create_action()
 
-    def create_channels(self):
-
+    def create(self):
+        """Create Channels Widget"""
         add_button = QPushButton('New')
         add_button.clicked.connect(self.new_group)
         color_button = QPushButton('Color')
@@ -295,21 +298,24 @@ class Channels(QWidget):
         self.setLayout(layout)
 
     def create_action(self):
-        output = {}
+        """Create actions related to channel selection."""
+        actions = {}
 
         act = QAction('Load Channels Montage...', self)
         act.triggered.connect(self.load_channels)
-        output['load_channels'] = act
+        actions['load_channels'] = act
 
         act = QAction('Save Channels Montage...', self)
         act.triggered.connect(self.save_channels)
-        output['save_channels'] = act
+        actions['save_channels'] = act
 
-        self.action = output
+        self.action = actions
 
     def load_channels(self):
-        """
-        if self.parent.info.filename is not None:
+        """Load channel groups from file. """
+        if self.filename is not None:
+            filename = self.filename
+        elif self.parent.info.filename is not None:
             filename = (splitext(self.parent.info.filename)[0] +
                         '_channels.json')
         else:
@@ -320,26 +326,26 @@ class Channels(QWidget):
                                                'Channels File (*.json)')
         if filename == '':
             return
-        """
-        filename = '/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json'
 
+        self.filename = filename
         with open(filename, 'r') as outfile:
             groups = load(outfile)
 
         for one_grp in groups:
-            group = ChannelsGroup(self.chan_name,
-                                  one_grp)  # filters, scale, color
+            group = ChannelsGroup(self.chan_name, one_grp)
             group.highlight_channels(group.idx_l0, one_grp['chan_to_plot'])
             group.highlight_channels(group.idx_l1, one_grp['ref_chan'])
-
             self.tabs.addTab(group, one_grp['name'])
 
         self.apply()
 
     def save_channels(self):
+        """Save channel groups to file."""
         self.read_group_info()
 
-        if self.parent.info.filename is not None:
+        if self.filename is not None:
+            filename = self.filename
+        elif self.parent.info.filename is not None:
             filename = (splitext(self.parent.info.filename)[0] +
                         '_channels.json')
         else:
@@ -351,6 +357,8 @@ class Channels(QWidget):
         if filename == '':
             return
 
+        self.filename = filename
+
         groups = deepcopy(self.groups)
         for one_grp in groups:
             one_grp['color'] = one_grp['color'].rgba()
@@ -359,8 +367,16 @@ class Channels(QWidget):
             dump(groups, outfile, indent=' ')
 
     def new_group(self):
+        """Create a new channel group.
+
+        Notes
+        -----
+        It's not necessary to call self.apply()
+
+        """
         if self.chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
+
         else:
             new_name = QInputDialog.getText(self, 'New Channel Group',
                                             'Enter Name')
@@ -369,9 +385,8 @@ class Channels(QWidget):
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
-                self.apply()
-
     def color_group(self):
+        """Change the color of the group."""
         group = self.tabs.currentWidget()
         newcolor = QColorDialog.getColor(group.idx_color)
         group.idx_color = newcolor
@@ -379,6 +394,7 @@ class Channels(QWidget):
         self.apply()
 
     def del_group(self):
+        """Delete current group."""
         idx = self.tabs.currentIndex()
         self.tabs.removeTab(idx)
 
