@@ -98,7 +98,7 @@ class Overview(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigOverview(lambda x: None)
+        self.config = ConfigOverview(self.display)
 
         self.minimum = None
         self.maximum = None

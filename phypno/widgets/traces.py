@@ -16,6 +16,7 @@ from PyQt4.QtGui import (QAction,
                          QColor,
                          QFormLayout,
                          QGraphicsItem,
+                         QGraphicsLineItem,
                          QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsSimpleTextItem,
@@ -30,7 +31,7 @@ from PyQt4.QtGui import (QAction,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
-from .utils import Path, ICON
+from .utils import ICON, Path, TextItem_with_BG
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -428,14 +429,15 @@ class Traces(QGraphicsView):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
-        time_height = max([x.boundingRect().height() for x in self.idx_time])
 
         annot_markers = []
-        if self.parent.notes.annot is not None:
+        if (self.parent.notes.annot is not None and
+           self.parent.value('annot_marker_show')):
             annot_markers = self.parent.notes.annot.get_markers()
 
         dataset_markers = []
-        if self.parent.notes.dataset_markers is not None:
+        if (self.parent.notes.dataset_markers is not None and
+           self.parent.value('dataset_marker_show')):
             dataset_markers = self.parent.notes.dataset_markers
 
         markers = annot_markers + dataset_markers
@@ -443,19 +445,30 @@ class Traces(QGraphicsView):
         for mrk in markers:
             if window_start <= mrk['time'] <= window_end:
 
-                item = QGraphicsSimpleTextItem(mrk['name'])
-                item.setPos(mrk['time'],
-                            len(self.idx_label) *
-                            self.parent.value('y_distance') -
-                            time_height)
-                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                self.scene.addItem(item)
-
                 if mrk in annot_markers:
                     color = self.parent.value('annot_marker_color')
                 if mrk in dataset_markers:
                     color = self.parent.value('dataset_marker_color')
-                item.setBrush(QBrush(QColor(color)))
+
+                item = QGraphicsLineItem(mrk['time'], 0, mrk['time'],
+                                         len(self.idx_label) *
+                                         self.parent.value('y_distance'))
+                pen = QPen()
+                pen.setColor(QColor(color))
+                line_width = self.parent.value('marker_linewidth')
+                pen.setWidthF(line_width / self.transform().m11())
+                item.setPen(pen)
+                item.setZValue(-8)
+                self.scene.addItem(item)
+
+                item = TextItem_with_BG(color)
+                item.setText(mrk['name'])
+                item.setPos(mrk['time'],
+                            len(self.idx_label) *
+                            self.parent.value('y_distance'))
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                item.setRotation(-90)
+                self.scene.addItem(item)
 
     def display_events(self):
         """Add events on top of first plot.
@@ -852,22 +865,6 @@ def _select_channels(data, channels):
     data.axis['chan'][0] = asarray(channels)
 
     return data
-
-
-class TextItem_with_BG(QGraphicsSimpleTextItem):
-    """Class to draw text with black background (easier to read).
-
-    """
-    def __init__(self):
-        super().__init__()
-
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-        self.setBrush(QBrush(Qt.white))
-
-    def paint(self, painter, option, widget):
-        painter.setBrush(QBrush(Qt.black))
-        painter.drawRect(self.boundingRect())
-        super().paint(painter, option, widget)
 
 
 def _convert_name_to_color(s, selection=False):

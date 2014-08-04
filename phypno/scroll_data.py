@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-VERSION = 10
+VERSION = 10.2
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication

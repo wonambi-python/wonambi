@@ -35,7 +35,7 @@ from PyQt4.QtGui import (QAbstractItemView,
                          )
 
 from ..attr import Annotations, create_empty_annotations
-from .settings import Config, FormStr, FormInt
+from .settings import Config, FormStr, FormInt, FormFloat, FormBool
 from .utils import short_strings, ICON
 
 # TODO: this in ConfigNotes
@@ -53,14 +53,24 @@ class ConfigNotes(Config):
 
         box0 = QGroupBox('Markers')
 
+        self.index['dataset_marker_show'] = FormBool('Display Markers in '
+                                                     'dataset')
         self.index['dataset_marker_color'] = FormStr()
+        self.index['annot_marker_show'] = FormBool('Display Markers in '
+                                                   'annotations')
         self.index['annot_marker_color'] = FormStr()
+        self.index['marker_linewidth'] = FormFloat()
 
         form_layout = QFormLayout()
+        form_layout.addRow(self.index['dataset_marker_show'])
         form_layout.addRow('Color of markers in the dataset',
                            self.index['dataset_marker_color'])
+        form_layout.addRow(self.index['annot_marker_show'])
         form_layout.addRow('Color of markers in annotations',
                            self.index['annot_marker_color'])
+        form_layout.addRow('Width of the markers',
+                           self.index['marker_linewidth'])
+
         box0.setLayout(form_layout)
 
         box1 = QGroupBox('Events')
@@ -100,7 +110,7 @@ class Notes(QTabWidget):
         super().__init__()
         self.parent = parent
 
-        self.config = ConfigNotes(lambda: None)
+        self.config = ConfigNotes(self.update_settings)
         self.annot = None
         self.dataset_markers = None  # shouldn't this be in info?
 
@@ -249,6 +259,10 @@ class Notes(QTabWidget):
 
         self.action = actions
 
+    def update_settings(self):
+        self.display_markers()
+        self.parent.overview.display()
+
     def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.
 
@@ -364,7 +378,6 @@ class Notes(QTabWidget):
                         timedelta(seconds=mrk['time'])).strftime('%H:%M:%S')
             item_time = QTableWidgetItem(abs_time)
             self.idx_marker.setItem(i, 0, item_time)
-
             item_name = QTableWidgetItem(mrk['name'])
             self.idx_marker.setItem(i, 1, item_name)
 

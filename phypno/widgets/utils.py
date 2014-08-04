@@ -7,10 +7,15 @@ lg = getLogger(__name__)
 from math import ceil, floor
 from os.path import dirname, join, realpath
 
-from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import (QMessageBox,
+from PyQt4.QtCore import QSettings, Qt
+from PyQt4.QtGui import (QBrush,
+                         QColor,
+                         QGraphicsItem,
+                         QGraphicsSimpleTextItem,
+                         QMessageBox,
                          QPainterPath,
                          )
+
 
 MAX_LENGTH = 20
 
@@ -53,6 +58,24 @@ class Path(QPainterPath):
         self.moveTo(x[0], y[0])
         for i_x, i_y in zip(x, y):
             self.lineTo(i_x, i_y)
+
+
+class TextItem_with_BG(QGraphicsSimpleTextItem):
+    """Class to draw text with black background (easier to read).
+
+    """
+    def __init__(self, bg_color='black'):
+        super().__init__()
+
+        self.bg_color = bg_color
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+        self.setBrush(QBrush(Qt.white))
+
+    def paint(self, painter, option, widget):
+        bg_color = QColor(self.bg_color)
+        painter.setBrush(QBrush(bg_color))
+        painter.drawRect(self.boundingRect())
+        super().paint(painter, option, widget)
 
 
 def keep_recent_datasets(max_dataset_history, new_dataset=None):
