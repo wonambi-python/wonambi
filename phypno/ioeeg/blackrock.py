@@ -163,9 +163,9 @@ def _read_neuralsg(filename):
         hdr['SamplingLabel'] = _str(f.read(16).decode('utf-8'))
         hdr['TimeRes'] = 30000
         hdr['SamplingFreq'] = int(hdr['TimeRes'] / unpack('<I', f.read(4))[0])
-        n_chan = unpack('I', f.read(4))[0]
+        n_chan = unpack('<I', f.read(4))[0]
         hdr['ChannelCount'] = n_chan
-        hdr['ChannelID'] = unpack('I' * n_chan, f.read(4 * n_chan))
+        hdr['ChannelID'] = unpack('<I' * n_chan, f.read(4 * n_chan))
 
         BOData = f.tell()
         f.seek(0, SEEK_END)
@@ -228,36 +228,36 @@ def _read_neuralcd(filename):
             elec['Type'] = ExtHdr[i0:i1].decode('utf-8')
             assert elec['Type'] == 'CC'
             i0, i1 = i1, i1 + 2
-            elec['ElectrodeID'] = unpack('H', ExtHdr[i0:i1])[0]
+            elec['ElectrodeID'] = unpack('<H', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 16
             elec['Label'] = _str(ExtHdr[i0:i1].decode('utf-8'))
             i0, i1 = i1, i1 + 1
-            elec['ConnectorBank'] = chr(unpack('B', ExtHdr[i0:i1])[0] +
+            elec['ConnectorBank'] = chr(unpack('<B', ExtHdr[i0:i1])[0] +
                                         ord('A') - 1)
             i0, i1 = i1, i1 + 1
-            elec['ConnectorPin'] = unpack('B', ExtHdr[i0:i1])[0]
+            elec['ConnectorPin'] = unpack('<B', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['MinDigiValue'] = unpack('h', ExtHdr[i0:i1])[0]
+            elec['MinDigiValue'] = unpack('<h', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['MaxDigiValue'] = unpack('h', ExtHdr[i0:i1])[0]
+            elec['MaxDigiValue'] = unpack('<h', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['MinAnalogValue'] = unpack('h', ExtHdr[i0:i1])[0]
+            elec['MinAnalogValue'] = unpack('<h', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['MaxAnalogValue'] = unpack('h', ExtHdr[i0:i1])[0]
+            elec['MaxAnalogValue'] = unpack('<h', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 16
             elec['AnalogUnits'] = _str(ExtHdr[i0:i1].decode('utf-8'))
             i0, i1 = i1, i1 + 4
-            elec['HighFreqCorner'] = unpack('I', ExtHdr[i0:i1])[0]
+            elec['HighFreqCorner'] = unpack('<I', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 4
-            elec['HighFreqOrder'] = unpack('I', ExtHdr[i0:i1])[0]
+            elec['HighFreqOrder'] = unpack('<I', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['HighFilterType'] = unpack('H', ExtHdr[i0:i1])[0]
+            elec['HighFilterType'] = unpack('<H', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 4
-            elec['LowFreqCorner'] = unpack('I', ExtHdr[i0:i1])[0]
+            elec['LowFreqCorner'] = unpack('<I', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 4
-            elec['LowFreqOrder'] = unpack('I', ExtHdr[i0:i1])[0]
+            elec['LowFreqOrder'] = unpack('<I', ExtHdr[i0:i1])[0]
             i0, i1 = i1, i1 + 2
-            elec['LowFilterType'] = unpack('H', ExtHdr[i0:i1])[0]
+            elec['LowFilterType'] = unpack('<H', ExtHdr[i0:i1])[0]
             ElectrodesInfo.append(elec)
 
         hdr['ElectrodesInfo'] = ElectrodesInfo
@@ -278,12 +278,12 @@ def _read_neuralcd(filename):
 
         while f.tell() < EOF:
 
-            if f.tell() < EOF and unpack('B', f.read(1))[0] != 1:
+            if f.tell() < EOF and unpack('<B', f.read(1))[0] != 1:
                 hdr['DataPoints'] = int((EOF - BOData) / (n_chan * 2))
                 break
 
-            Timestamp = unpack('I', f.read(4))[0]
-            DataPoints = unpack('I', f.read(4))[0]
+            Timestamp = unpack('<I', f.read(4))[0]
+            DataPoints = unpack('<I', f.read(4))[0]
             BOData = f.tell()
             f.seek(DataPoints * n_chan * 2, SEEK_CUR)
             EOData = f.tell()
@@ -336,15 +336,15 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
         filespec = unpack('bb', BasicHdr[i0:i1])
         hdr['FileSpec'] = str(filespec[0]) + '.' + str(filespec[1])
         i0, i1 = i1, i1 + 2
-        hdr['Flags'] = unpack('H', BasicHdr[i0:i1])[0]
+        hdr['Flags'] = unpack('<H', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 4
-        hdr['HeaderOffset'] = unpack('I', BasicHdr[i0:i1])[0]
+        hdr['HeaderOffset'] = unpack('<I', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 4
-        hdr['PacketBytes'] = unpack('I', BasicHdr[i0:i1])[0]
+        hdr['PacketBytes'] = unpack('<I', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 4
-        hdr['TimeRes'] = unpack('I', BasicHdr[i0:i1])[0]
+        hdr['TimeRes'] = unpack('<I', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 4
-        hdr['SampleRes'] = unpack('I', BasicHdr[i0:i1])[0]
+        hdr['SampleRes'] = unpack('<I', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 16
         time = unpack('<' + 'H' * 8, BasicHdr[i0:i1])
         hdr['DateTimeRaw'] = time
@@ -356,13 +356,13 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
         hdr['Comment'] = _str(BasicHdr[i0:i1].decode('utf-8',
                                                      errors='replace'))
         i0, i1 = i1, i1 + 4
-        countExtHeader = unpack('I', BasicHdr[i0:i1])[0]
+        countExtHeader = unpack('<I', BasicHdr[i0:i1])[0]
 
         # you can read subject name from sif
 
         # Check data duration
         f.seek(-hdr['PacketBytes'], SEEK_END)
-        hdr['DataDuration'] = unpack('I', f.read(4))[0]
+        hdr['DataDuration'] = unpack('<I', f.read(4))[0]
         hdr['DataDurationSec'] = hdr['DataDuration'] / hdr['SampleRes']
 
         # Read the Extended Header
@@ -379,13 +379,13 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
             if PacketID == 'NEUEVWAV':
                 elec = {}
                 i0, i1 = i1, i1 + 2
-                elec['ElectrodeID'] = unpack('H', ExtendedHeader[i0:i1])[0]
+                elec['ElectrodeID'] = unpack('<H', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 1
                 elec['ConnectorBank'] = chr(ExtendedHeader[i0] + 64)
                 i0, i1 = i1, i1 + 1
                 elec['ConnectorPin'] = ExtendedHeader[i0]
                 i0, i1 = i1, i1 + 2
-                df = unpack('h', ExtendedHeader[i0:i1])[0]
+                df = unpack('<h', ExtendedHeader[i0:i1])[0]
                 # This is a workaround for the DigitalFactor overflow
                 if df == 21516:
                     elec['DigitalFactor'] = 152592.547
@@ -393,11 +393,11 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
                     elec['DigitalFactor'] = df
 
                 i0, i1 = i1, i1 + 2
-                elec['EnergyThreshold'] = unpack('H', ExtendedHeader[i0:i1])[0]
+                elec['EnergyThreshold'] = unpack('<H', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 2
-                elec['HighThreshold'] = unpack('h', ExtendedHeader[i0:i1])[0]
+                elec['HighThreshold'] = unpack('<h', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 2
-                elec['LowThreshold'] = unpack('h', ExtendedHeader[i0:i1])[0]
+                elec['LowThreshold'] = unpack('<h', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 1
                 elec['Units'] = ExtendedHeader[i0]
                 i0, i1 = i1, i1 + 1
@@ -406,26 +406,26 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
 
             elif PacketID == 'NEUEVLBL':
                 i0, i1 = i1, i1 + 2
-                ElectrodeID = unpack('H', ExtendedHeader[i0:i1])[0] - 1
+                ElectrodeID = unpack('<H', ExtendedHeader[i0:i1])[0] - 1
                 s = _str(ExtendedHeader[i1:].decode('utf-8'))
                 ElectrodesInfo[ElectrodeID]['ElectrodeLabel'] = s
 
             elif PacketID == 'NEUEVFLT':
                 elec = {}
                 i0, i1 = i1, i1 + 2
-                ElectrodeID = unpack('H', ExtendedHeader[i0:i1])[0] - 1
+                ElectrodeID = unpack('<H', ExtendedHeader[i0:i1])[0] - 1
                 i0, i1 = i1, i1 + 4
-                elec['HighFreqCorner'] = unpack('I', ExtendedHeader[i0:i1])[0]
+                elec['HighFreqCorner'] = unpack('<I', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 4
-                elec['HighFreqOrder'] = unpack('I', ExtendedHeader[i0:i1])[0]
+                elec['HighFreqOrder'] = unpack('<I', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 2
-                elec['HighFilterType'] = unpack('H', ExtendedHeader[i0:i1])[0]
+                elec['HighFilterType'] = unpack('<H', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 4
-                elec['LowFreqCorner'] = unpack('I', ExtendedHeader[i0:i1])[0]
+                elec['LowFreqCorner'] = unpack('<I', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 4
-                elec['LowFreqOrder'] = unpack('I', ExtendedHeader[i0:i1])[0]
+                elec['LowFreqOrder'] = unpack('<I', ExtendedHeader[i0:i1])[0]
                 i0, i1 = i1, i1 + 2
-                elec['LowFilterType'] = unpack('H', ExtendedHeader[i0:i1])[0]
+                elec['LowFilterType'] = unpack('<H', ExtendedHeader[i0:i1])[0]
                 ElectrodesInfo[ElectrodeID].update(elec)
 
             elif PacketID == 'DIGLABEL':
