@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
@@ -20,8 +20,15 @@ class BlackRock:
     def __init__(self, filename):
         self.filename = filename
 
-    def return_hdr(self):
+    def return_hdr(self, trigger_bits=8, trigger_zero=False):
         """Return the header for further use.
+
+        Parameters
+        ----------
+        trigger_bits : int, optional
+            8 or 16, read the triggers as one or two bytes
+        trigger_zero : bool, optional
+            read the trigger zero or not
 
         Returns
         -------
@@ -42,16 +49,19 @@ class BlackRock:
         -----
         BOData and factor
 
+        What is the difference between NEURALCD and NEURALSG?
+
         """
         with open(self.filename, 'rb') as f:
             file_header = f.read(8)
 
         if file_header == b'NEURALEV':
-            orig = _read_neuralev(self.filename)[0]
+            orig = _read_neuralev(self.filename, trigger_bits=trigger_bits,
+                                  trigger_zero=trigger_zero)[0]
 
             s_freq = orig['SampleRes']
             n_samples = orig['DataDuration']
-            chan_name = ['dummy', ]  # TODO: digital channels?
+            chan_name = []  # TODO: digital channels here instead of notes
 
         elif file_header == b'NEURALCD':
             orig = _read_neuralcd(self.filename)
@@ -64,18 +74,28 @@ class BlackRock:
             self.BOData = orig['BOData']
             self.factor = _convert_factor(orig['ElectrodesInfo'])
 
+            nev_file = splitext(self.filename)[0] + '.nev'
+            try:
+                nev_orig = _read_neuralev(nev_file, trigger_bits=trigger_bits,
+                                          trigger_zero=trigger_zero)[0]
+            except FileNotFoundError:
+                pass
+
+            else:
+                nev_orig.update(orig)  # precedence to orig
+                orig = nev_orig
+
         elif file_header == b'NEURALSG':
             orig = _read_neuralsg(self.filename)
-
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
-
-            # make up names
-            chan_name = ['chan{0:04d}'.format(x) for x in orig['ChannelID']]
 
             # we need these two items to read the data
             self.BOData = orig['BOData']
             self.factor = 0.25 * ones(len(orig['ChannelID']))
+
+            # make up names
+            chan_name = ['chan{0:04d}'.format(x) for x in orig['ChannelID']]
 
         subj_id = str()
         start_time = orig['DateTime']
@@ -102,7 +122,7 @@ class BlackRock:
         """
         ext = splitext(self.filename)[1]
         if ext == '.nev':
-            raise NotImplementedError('You cannot read for NEV yet')
+            raise TypeError('NEV contains only header info, not data')
 
         data = _read_nsx(self.filename, self.BOData, self.factor,
                          begsam, endsam)
@@ -274,13 +294,17 @@ def _read_neuralcd(filename):
     return hdr
 
 
-def _read_neuralev(filename):
+def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
     """Read some information from NEV
 
     Parameters
     ----------
     filename : str
         path to NEV file
+    trigger_bits : int, optional
+        8 or 16, read the triggers as one or two bytes
+    trigger_zero : bool, optional
+        read the trigger zero or not
 
     Returns
     -------
@@ -297,8 +321,8 @@ def _read_neuralev(filename):
     The conversion to DateTime in openNEV.m is not correct. They add a value of
     2 to the day. Instead, they should add it to the index of the weekday
 
-    TODO: It does NOT return Data, which contains the digital triggers.
-
+    It returns triggers as strings (format of EDFBrowser), but it does not read
+    the othe types of events (waveforms, videos, etc).
     """
     hdr = {}
     with open(filename, 'rb') as f:
@@ -407,6 +431,7 @@ def _read_neuralev(filename):
             elif PacketID == 'DIGLABEL':
                 # TODO: the order is not taken into account and probably wrong!
                 iolabel = {}
+
                 iolabel['mode'] = ExtendedHeader[24] + 1
                 s = _str(ExtendedHeader[8:25].decode('utf-8'))
                 iolabel['label'] = s
@@ -415,7 +440,54 @@ def _read_neuralev(filename):
             else:
                 raise NotImplementedError(PacketID + ' not implemented yet')
 
-    hdr['ChannelID'] = [x['ElectrodeID'] for x in ElectrodesInfo]
+        hdr['ChannelID'] = [x['ElectrodeID'] for x in ElectrodesInfo]
+
+        fExtendedHeader = f.tell()
+        fData = f.seek(0, SEEK_END)
+        countDataPacket = int((fData - fExtendedHeader) / hdr['PacketBytes'])
+
+        if countDataPacket:
+
+            f.seek(fExtendedHeader)
+            x = f.read(countDataPacket * hdr['PacketBytes'])
+
+            DigiValues = []
+            for j in range(countDataPacket):
+                i = j * hdr['PacketBytes']
+
+                if trigger_bits == 16:
+                    tempDigiVals = unpack('<H', x[8 + i:10 + i])[0]
+                else:
+                    tempDigiVals = unpack('<H', x[8 + i:9 + i] + b'\x00')[0]
+
+                val = {'timestamp': unpack('<I', x[0 + i:4 + i])[0],
+                       'packetID': unpack('<H', x[4 + i:6 + i])[0],
+                       'tempClassOrReason': unpack('<B', x[6 + i:7 + i])[0],
+                       'tempDigiVals': tempDigiVals}
+
+                if tempDigiVals != 0 or False:
+                    DigiValues.append(val)
+
+            digserPacketID = 0
+            not_serialdigital = [x for x in DigiValues
+                                 if not x['packetID'] == digserPacketID]
+
+            if not_serialdigital:
+                raise NotImplementedError('Code not implemented to read ' +
+                                          'PacketID ' +
+                                          not_serialdigital[0]['packetID'])
+
+            # convert to notes
+            s_all = []
+            for val in DigiValues:
+                time = hdr['DateTime'] + timedelta(seconds=val['timestamp'] /
+                                                   hdr['SampleRes'])
+                s = (datetime.strftime(time, '%Y-%m-%dT%H:%M:%S.%f') + ',' +
+                     '0' + ',' +  # zero duration
+                     str(val['tempDigiVals']))
+                s_all.append(s)
+
+            hdr['notes'] = '\n'.join(s_all)
 
     return hdr, ElectrodesInfo, IOLabels
 

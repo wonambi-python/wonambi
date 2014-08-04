@@ -277,13 +277,12 @@ class Notes(QTabWidget):
 
     def update_dataset_markers(self, header):
         """called by info.open_dataset
-
-        TODO: specific to Ktlx, check for all the markers/triggers."""
+        """
         markers = []
         splitted = header['orig']['notes'].split('\n')
         for mrk in splitted:
             values = mrk.split(',')
-            mrk_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S')
+            mrk_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S.%f')
             mrk_sec = (mrk_time - header['start_time']).total_seconds()
 
             markers.append({'time': mrk_sec,

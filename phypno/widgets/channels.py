@@ -311,6 +311,64 @@ class Channels(QWidget):
 
         self.action = actions
 
+    def update(self, chan_name):
+        """Read the channels and updates the widget.
+
+        Parameters
+        ----------
+        chan_name : list of str
+            list of channels, to choose from.
+
+        """
+        self.chan_name = chan_name
+
+    def new_group(self):
+        """Create a new channel group.
+
+        Notes
+        -----
+        It's not necessary to call self.apply()
+
+        """
+        if self.chan_name is None:
+            self.parent.statusBar().showMessage('No dataset loaded')
+
+        else:
+            new_name = QInputDialog.getText(self, 'New Channel Group',
+                                            'Enter Name')
+            if new_name[1]:
+                group = ChannelsGroup(self.chan_name, self.config.value)
+                self.tabs.addTab(group, new_name[0])
+                self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
+
+    def color_group(self):
+        """Change the color of the group."""
+        group = self.tabs.currentWidget()
+        newcolor = QColorDialog.getColor(group.idx_color)
+        group.idx_color = newcolor
+
+        self.apply()
+
+    def del_group(self):
+        """Delete current group."""
+        idx = self.tabs.currentIndex()
+        self.tabs.removeTab(idx)
+
+        self.apply()
+
+    def apply(self):
+        """Apply changes to the plots."""
+        self.read_group_info()
+        self.parent.overview.update_position()
+        self.parent.spectrum.update()
+
+    def read_group_info(self):
+        self.groups = []
+        for i in range(self.tabs.count()):
+            one_group = self.tabs.widget(i).get_info()
+            one_group['name'] = self.tabs.tabText(i)
+            self.groups.append(one_group)
+
     def load_channels(self):
         """Load channel groups from file. """
         if self.filename is not None:
@@ -366,65 +424,10 @@ class Channels(QWidget):
         with open(filename, 'w') as outfile:
             dump(groups, outfile, indent=' ')
 
-    def new_group(self):
-        """Create a new channel group.
-
-        Notes
-        -----
-        It's not necessary to call self.apply()
-
-        """
-        if self.chan_name is None:
-            self.parent.statusBar().showMessage('No dataset loaded')
-
-        else:
-            new_name = QInputDialog.getText(self, 'New Channel Group',
-                                            'Enter Name')
-            if new_name[1]:
-                group = ChannelsGroup(self.chan_name, self.config.value)
-                self.tabs.addTab(group, new_name[0])
-                self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
-
-    def color_group(self):
-        """Change the color of the group."""
-        group = self.tabs.currentWidget()
-        newcolor = QColorDialog.getColor(group.idx_color)
-        group.idx_color = newcolor
-
-        self.apply()
-
-    def del_group(self):
-        """Delete current group."""
-        idx = self.tabs.currentIndex()
-        self.tabs.removeTab(idx)
-
-        self.apply()
-
-    def apply(self):
-        """Apply changes to the plots."""
-        self.read_group_info()
-        self.parent.overview.update_position()
-        self.parent.spectrum.update()
-
-    def read_group_info(self):
-        self.groups = []
-        for i in range(self.tabs.count()):
-            one_group = self.tabs.widget(i).get_info()
-            one_group['name'] = self.tabs.tabText(i)
-            self.groups.append(one_group)
-
-    def update(self, chan_name):
-        """Read the channels and updates the widget.
-
-        Parameters
-        ----------
-        chan_name : list of str
-            list of channels, to choose from.
-
-        """
-        self.chan_name = chan_name
-
     def reset(self):
+        """Reset all the information of this widget."""
+        self.filename = None
         self.chan_name = []
         self.groups = []
+
         self.tabs.clear()

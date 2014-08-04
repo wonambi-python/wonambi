@@ -171,10 +171,10 @@ class Info(QWidget):
         self.parent.overview.update()
         self.parent.channels.update(self.dataset.header['chan_name'])
 
-        try:
-            self.parent.notes.update_dataset_markers(self.dataset.header)
-        except (KeyError, ValueError):
-            lg.info('No notes/markers present in the header of the file')
+        # try:
+        self.parent.notes.update_dataset_markers(self.dataset.header)
+        # except (KeyError, ValueError):
+        #    lg.info('No notes/markers present in the header of the file')
 
     def update(self, filename):
         """Read dataset from filename.

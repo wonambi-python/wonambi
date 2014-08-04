@@ -980,7 +980,7 @@ class Ktlx():
 
         s = []
         for time, name, note in zip(note_time, note_name, note_note):
-            s.append(datetime.strftime(time, '%Y-%m-%dT%H:%M:%S') +
+            s.append(datetime.strftime(time, '%Y-%m-%dT%H:%M:%S.%f') +
                      ',' + '0' + ',' +  # zero duration
                      note + ' (' + name + ')')
 
