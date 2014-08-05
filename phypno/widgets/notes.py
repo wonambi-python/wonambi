@@ -440,7 +440,7 @@ class Notes(QTabWidget):
             self.parent.overview.display_stages(window_start, window_length,
                                                 STAGE_NAME[stage_idx])
             self.display_stats()
-            self.parent.action_page_next()
+            self.parent.traces.page_next()
 
     def set_stage_index(self):
         """Set the current stage in combobox."""
