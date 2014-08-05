@@ -32,7 +32,7 @@ from types import MethodType
 
 from numpy import arange
 from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import QMainWindow
+from PyQt4.QtGui import QMainWindow, QMessageBox
 
 from phypno.widgets.creation import (create_menubar, create_toolbar,
                                      create_actions, create_widgets)
@@ -170,6 +170,32 @@ class MainWindow(QMainWindow):
         self.video.config.put_values()
 
         self.settings.show()
+
+    def about(self):
+        s = ('<b>PHYPNO Version {version}</b><br />'
+             '<p>You can download the latest version at '
+             '<a href="https://github.com/gpiantoni/phypno">'
+             'https://github.com/gpiantoni/phypno</a>.'
+             '</p><p>'
+             'Copyright &copy; 2013-2014 '
+             '<a href="http://www.gpiantoni.com">Gio Piantoni</a>'
+             '</p><p>'
+             'This program is free software: you can redistribute it '
+             'and/or modify it under the terms of the GNU General Public '
+             'License as published by the Free Software Foundation, either '
+             'version 3 of the License, or (at your option) any later version.'
+             '</p><p>'
+             'This program is distributed in the hope that it will be useful, '
+             'but WITHOUT ANY WARRANTY; without even the implied warranty of '
+             'MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the '
+             'GNU General Public License for more details.'
+             '</p><p>'
+             'You should have received a copy of the GNU General Public '
+             'License along with this program.  If not, see '
+             '<a href="http://www.gnu.org/licenses/">'
+             'http://www.gnu.org/licenses/</a>.'
+             '</p>')
+        QMessageBox.about(self, 'PHYPNO', s.format(version=VERSION))
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""

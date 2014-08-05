@@ -10,6 +10,7 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAction,
                          QDockWidget,
                          QIcon,
+                         QMessageBox,
                          )
 
 from .settings import Settings  # has to be first
@@ -110,6 +111,13 @@ def create_actions(MAIN):
     """ ------ CLOSE WINDOW ------ """
     actions['close_wndw'] = QAction(QIcon(ICON['quit']), 'Quit', MAIN)
     actions['close_wndw'].triggered.connect(MAIN.close)
+
+    """ ------ ABOUT ------ """
+    actions['about'] = QAction('About PHYPNO', MAIN)
+    actions['about'].triggered.connect(MAIN.about)
+
+    actions['aboutqt'] = QAction('About Qt', MAIN)
+    actions['aboutqt'].triggered.connect(lambda: QMessageBox.aboutQt(MAIN))
 
 
 def create_menubar(MAIN):
@@ -233,7 +241,8 @@ def create_menubar(MAIN):
     MAIN.menu_window = menu_window
 
     menu_about = menubar.addMenu('About')
-    menu_about.addAction('About Phypno')
+    menu_about.addAction(actions['about'])
+    menu_about.addAction(actions['aboutqt'])
 
 
 def create_toolbar(MAIN):
