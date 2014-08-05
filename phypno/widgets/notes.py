@@ -497,7 +497,8 @@ class Notes(QTabWidget):
         answer = QInputDialog.getText(self, 'New Rater',
                                       'Enter rater\'s name')
         if answer[1]:
-            self.annot.add_rater(answer[0])
+            self.annot.add_rater(answer[0],
+                                 self.parent.value('scoring_window'))
             self.display_notes()
             self.parent.create_menubar()  # refresh list ot raters
 

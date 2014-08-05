@@ -108,7 +108,7 @@ class Annotations():
             raise KeyError(rater_name + ' not in the list of raters (' +
                            ', '.join(self.raters) + ')')
 
-    def add_rater(self, rater_name):
+    def add_rater(self, rater_name, epoch_length=30):
         if rater_name in self.raters:
             lg.warning('rater ' + rater_name + ' already exists, selecting it')
             self.get_rater(rater_name)
@@ -125,7 +125,7 @@ class Annotations():
         SubElement(self.rater, 'markers')
         SubElement(self.rater, 'events')
         SubElement(self.rater, 'stages')
-        self.create_epochs()
+        self.create_epochs(epoch_length=epoch_length)
 
         self.save()
 
