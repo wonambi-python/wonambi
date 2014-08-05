@@ -1,9 +1,12 @@
+from logging import getLogger
+lg = getLogger(__name__)
+
 from datetime import datetime, timedelta
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
-from numpy import fromfile, reshape, asarray, expand_dims, ones
+from numpy import fromfile, reshape, asarray, expand_dims, ones, empty, NaN
 
 from ..utils.timezone import Eastern, utc
 
@@ -72,6 +75,7 @@ class BlackRock:
 
             # we need these two items to read the data
             self.BOData = orig['BOData']
+            self.n_samples = n_samples
             self.factor = _convert_factor(orig['ElectrodesInfo'])
 
             nev_file = splitext(self.filename)[0] + '.nev'
@@ -92,6 +96,7 @@ class BlackRock:
 
             # we need these two items to read the data
             self.BOData = orig['BOData']
+            self.DataPoints = n_samples
             self.factor = 0.25 * ones(len(orig['ChannelID']))
 
             # make up names
@@ -124,28 +129,51 @@ class BlackRock:
         if ext == '.nev':
             raise TypeError('NEV contains only header info, not data')
 
-        data = _read_nsx(self.filename, self.BOData, self.factor,
-                         begsam, endsam)
+        data = _read_nsx(self.filename, self.BOData, self.n_samples,
+                         self.factor, begsam, endsam)
 
         return data[chan, :]
 
 
-def _read_nsx(filename, BOData, factor, begsam, endsam):
+def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
     """
 
+    Notes
+    -----
     Common to NEURALCD and NEURALSG
 
+    It returns NaN if you select an interval outside of the data
     """
     n_chan = factor.shape[0]
 
+    dat = empty((n_chan, endsam - begsam))
+    dat.fill(NaN)
+
     with open(filename, 'rb') as f:
+
+        if begsam < 0:
+            begshift = 0 - begsam
+            endshift = endsam - begsam
+            begsam = 0
+        else:
+            begshift = 0
+            endshift = endsam
+
+        if endsam > DataPoints:
+            endshift = DataPoints - endshift
+            endsam = DataPoints
+        else:
+            endshift = endshift
 
         f.seek(BOData, SEEK_SET)
         f.seek(n_chan * 2 * begsam, SEEK_CUR)
 
         n_sam = endsam - begsam
-        dat = fromfile(f, 'int16', n_chan * n_sam)
-        dat = reshape(dat, (n_chan, n_sam), order='F')
+        if n_sam < 0:
+            n_sam = 0
+        dat_in_file = fromfile(f, 'int16', n_chan * n_sam)
+        dat[:, begshift:endshift] = reshape(dat_in_file, (n_chan, n_sam),
+                                            order='F')
 
     return expand_dims(factor, 1) * dat
 
@@ -473,9 +501,8 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
                                  if not x['packetID'] == digserPacketID]
 
             if not_serialdigital:
-                raise NotImplementedError('Code not implemented to read ' +
-                                          'PacketID ' +
-                                          not_serialdigital[0]['packetID'])
+                lg.debug('Code not implemented to read PacketID ' +
+                         str(not_serialdigital[0]['packetID']))
 
             # convert to notes
             s_all = []
