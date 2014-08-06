@@ -69,9 +69,10 @@ common format (fiff, fieldtrip, eeglab) in python3, then if necessary use
 python2 as script using biosig for all the other formats.
 
 """
-from .edf import Edf  # write_edf
-from .ktlx import Ktlx  # write_ktlx
-from .blackrock import BlackRock  # write_ktlx
+from .edf import Edf
+from .ktlx import Ktlx
+from .blackrock import BlackRock
+from .egimff import EgiMff
 # from .fiff import Fiff, write_fiff
 # from .fieldtrip import Fieldtrip, write_fieldtrip
 # from .eeglab import Eeglab, write_eeglab

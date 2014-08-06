@@ -9,7 +9,7 @@ from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -68,6 +68,9 @@ def detect_format(filename):
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
             recformat = Ktlx
+        elif (glob(join(filename, 'info.xml')) and
+              glob(join(filename, 'subject.xml'))):
+            recformat = EgiMff
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
