@@ -1,3 +1,50 @@
+
+from struct import unpack
+
+
+version = unpack('<I', x[:4])[0]
+hdr_size = unpack('<I', x[4:8])[0]
+data_size = unpack('<I', x[8:12])[0]
+n_signals = unpack('<I', x[12:16])[0]
+
+offset = []
+for j in range(n_signals):
+    i0 = j * 4 + 16
+    i1 = i0 + 4
+    offset.append(unpack('<I', x[i0:i1])[0])
+
+i = n_signals * 4 + 16
+
+depth = []
+freq = []
+for j in range(n_signals):
+    i0 = j * 4 + i
+    i1 = i0 + 1
+    i2 = i0 + 4
+    depth.append(unpack('<B', x[i0:i1])[0])
+    freq.append(unpack('<I', x[i1:i2] + b'\x00')[0])
+
+i = 2 * n_signals * 4 + 16
+opt_hdr_size = unpack('<I', x[i:i + 4])[0]
+i += 4
+opt_hdr_type = unpack('<I', x[i:i + 4])[0]
+if opt_hdr_type == 1:
+    i += 4
+    n_blocks = unpack('<Q', x[i:i + 8])[0]
+    i += 8
+    n_smp = unpack('<Q', x[i:i + 8])[0]
+    i += 8
+    n_signals_opt = unpack('<I', x[i:i + 4])[0]
+    i += 4
+
+
+
+unpack('<' + 'i' * 20, x[hdr_size:hdr_size + 4 * 20])
+
+
+
+
+
 class EgiMff:
     """Basic class to read the data.
 
