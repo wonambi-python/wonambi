@@ -1,5 +1,18 @@
 """Wide widget giving an overview of the markers, events, and sleep scores.
 
+xml_file = '/home/gio/recordings/MG60/doc/scores/MG60_eeg_xltek_sessA_d05_08_50_49_scores.xml'
+
+from re import sub
+
+with open(xml_file, 'r') as f:
+    s = f.read()
+s1 = sub('<marker><name>(.*?)</name><time>(.*?)</time></marker>',
+         '<marker><marker_name>\g<1></marker_name><marker_start>\g<2></marker_start><marker_end>\g<2></marker_end><marker_chan/></marker>',
+         s)
+with open(xml_file, 'w') as f:
+    f.write(s1)
+
+
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -247,6 +260,8 @@ class Overview(QGraphicsView):
         annot_markers = []
         if self.parent.notes.annot is not None:
             annot_markers = self.parent.notes.annot.get_markers()
+            for mrk in annot_markers:  # TEMPORARY WORKAROUND
+                mrk['time'] = mrk['start']
 
         dataset_markers = []
         if self.parent.notes.dataset_markers is not None:

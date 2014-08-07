@@ -434,6 +434,8 @@ class Traces(QGraphicsView):
         if (self.parent.notes.annot is not None and
            self.parent.value('annot_marker_show')):
             annot_markers = self.parent.notes.annot.get_markers()
+            for mrk in annot_markers:  # TEMPORARY WORKAROUND
+                mrk['time'] = mrk['start']
 
         dataset_markers = []
         if (self.parent.notes.dataset_markers is not None and
