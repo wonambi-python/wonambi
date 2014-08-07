@@ -130,6 +130,9 @@ class Overview(QGraphicsView):
             self.maximum = dataset['last_second']
             self.start_time = dataset['start_time']
 
+        # make it time-zone unaware
+        self.start_time = self.start_time.replace(tzinfo=None)
+
         self.parent.value('window_start', 0)  # the only value that is reset
 
         self.display()
@@ -177,14 +180,14 @@ class Overview(QGraphicsView):
 
         """
         start_time = self.start_time + timedelta(seconds=self.minimum)
-        first_hour = int(datetime(start_time.year, start_time.month,
-                                  start_time.day,
-                                  start_time.hour + 1).timestamp())
+        first_hour = int((start_time.replace(minute=0, second=0,
+                                             microsecond=0) +
+                          timedelta(hours=1)).timestamp())
 
         end_time = self.start_time + timedelta(seconds=self.maximum)
-        last_hour = int(datetime(end_time.year, end_time.month,
-                                 end_time.day,
-                                 end_time.hour + 1).timestamp())
+        last_hour = int((end_time.replace(minute=0, second=0,
+                                          microsecond=0) +
+                         timedelta(hours=1)).timestamp())
 
         steps = self.parent.value('timestamp_steps')
         transform, _ = self.transform().inverted()
