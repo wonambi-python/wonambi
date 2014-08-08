@@ -1,6 +1,6 @@
 """Module to keep track of the user-made annotations and sleep scoring.
 
-xml_file = '/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml'
+xml_file = '/home/gio/recordings/MG68/doc/scores/MG68_eeg_xltek_sessA_d01_08_36_57_scores.xml'
 
 from re import sub
 

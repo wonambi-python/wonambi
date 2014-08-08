@@ -22,6 +22,7 @@ from PyQt4.QtGui import (QBrush,
                          )
 
 from .settings import Config, FormInt
+from .utils import convert_name_to_color
 
 current_line_height = 10
 
@@ -282,7 +283,8 @@ class Overview(QGraphicsView):
                                          length,
                                          BARS['event']['pos1'])
                 rect.setPen(NoPen)
-                rect.setBrush(QBrush(Qt.black))  # TODO: depend on events
+                color = convert_name_to_color(evt['name'])
+                rect.setBrush(QBrush(color))
                 self.scene.addItem(rect)
 
     def display_stages(self, start_time, length, stage_name):

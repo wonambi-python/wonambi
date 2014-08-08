@@ -146,3 +146,36 @@ def short_strings(s, max_length=MAX_LENGTH):
         end = -floor(max_length / 2)
         s = s[:start] + '...' + s[end:]
     return s
+
+
+def convert_name_to_color(s):
+    """Convert any string to an RGB color.
+
+    Parameters
+    ----------
+    s : str
+        string to convert
+    selection : bool, optional
+        if an event is being selected, it's lighter
+
+    Returns
+    -------
+    instance of QColor
+        one of the possible color
+
+    Notes
+    -----
+    It takes any string and converts it to RGB color. The same string always
+    returns the same color. The numbers are a bit arbitrary but not completely.
+    h is the baseline color (keep it high to have brighter colors). Make sure
+    that the max module + h is less than 256 (RGB limit).
+
+    The number you multiply ord for is necessary to differentiate the letters
+    (otherwise 'r' and 's' are too close to each other).
+    """
+    h = 100
+    v = [5 * ord(x) for x in s]
+    sum_mod = lambda x: sum(x) % 100
+    color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,
+                   sum_mod(v[2::3]) + h)
+    return color

@@ -30,7 +30,7 @@ from PyQt4.QtGui import (QAction,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
-from .utils import ICON, Path, TextItem_with_BG
+from .utils import convert_name_to_color, ICON, Path, TextItem_with_BG
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -456,7 +456,7 @@ class Traces(QGraphicsView):
                 if mrk in annot_markers:
                     color = QColor(self.parent.value('annot_marker_color'))
                 if mrk in events:
-                    color = _convert_name_to_color(mrk['name'])
+                    color = convert_name_to_color(mrk['name'])
 
                 item = QGraphicsRectItem(mrk_start, 0,
                                          mrk_end - mrk_start,
@@ -600,7 +600,7 @@ class Traces(QGraphicsView):
 
             elif chk_event:
                 eventtype = self.parent.notes.idx_eventtype.currentText()
-                color = _convert_name_to_color(eventtype)
+                color = convert_name_to_color(eventtype)
 
             item.setBrush(QBrush(color.lighter(150)))
             item.setZValue(-10)
@@ -832,36 +832,3 @@ def _select_channels(data, channels):
     data.axis['chan'][0] = asarray(channels)
 
     return data
-
-
-def _convert_name_to_color(s):
-    """Convert any string to an RGB color.
-
-    Parameters
-    ----------
-    s : str
-        string to convert
-    selection : bool, optional
-        if an event is being selected, it's lighter
-
-    Returns
-    -------
-    instance of QColor
-        one of the possible color
-
-    Notes
-    -----
-    It takes any string and converts it to RGB color. The same string always
-    returns the same color. The numbers are a bit arbitrary but not completely.
-    h is the baseline color (keep it high to have brighter colors). Make sure
-    that the max module + h is less than 256 (RGB limit).
-
-    The number you multiply ord for is necessary to differentiate the letters
-    (otherwise 'r' and 's' are too close to each other).
-    """
-    h = 100
-    v = [5 * ord(x) for x in s]
-    sum_mod = lambda x: sum(x) % 100
-    color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,
-                   sum_mod(v[2::3]) + h)
-    return color
