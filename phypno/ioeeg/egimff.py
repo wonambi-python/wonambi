@@ -143,6 +143,10 @@ class EgiMff:
 
         return data
 
+    def return_markers(self):
+        """"""
+        return []
+
 
 def _read_block(filename, block_hdr, i):
 

@@ -1,7 +1,8 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import datetime, timedelta
+from copy import deepcopy
+from datetime import datetime
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
@@ -22,8 +23,12 @@ class BlackRock:
     """
     def __init__(self, filename):
         self.filename = filename
+        self.markers = []
+        self.BOData = None
+        self.n_samples = None
+        self.factor = None
 
-    def return_hdr(self, trigger_bits=8, trigger_zero=False):
+    def return_hdr(self):
         """Return the header for further use.
 
         Parameters
@@ -59,8 +64,7 @@ class BlackRock:
             file_header = f.read(8)
 
         if file_header == b'NEURALEV':
-            orig = _read_neuralev(self.filename, trigger_bits=trigger_bits,
-                                  trigger_zero=trigger_zero)[0]
+            orig = _read_neuralev(self.filename)[0]
 
             s_freq = orig['SampleRes']
             n_samples = orig['DataDuration']
@@ -80,12 +84,12 @@ class BlackRock:
 
             nev_file = splitext(self.filename)[0] + '.nev'
             try:
-                nev_orig = _read_neuralev(nev_file, trigger_bits=trigger_bits,
-                                          trigger_zero=trigger_zero)[0]
+                nev_orig, markers = _read_neuralev(nev_file)[:2]
             except FileNotFoundError:
                 pass
 
             else:
+                self.markers = markers
                 nev_orig.update(orig)  # precedence to orig
                 orig = nev_orig
 
@@ -133,6 +137,28 @@ class BlackRock:
                          self.factor, begsam, endsam)
 
         return data[chan, :]
+
+    def return_markers(self, trigger_bits=8, trigger_zero=True):
+        """We always read triggers as 16bit, but we convert them to 8 here
+        if requested.
+
+        """
+        markers = deepcopy(self.markers)
+        if trigger_bits == 8:
+            to8 = lambda x: str(int(x) - (256 ** 2 - 256))
+            for m in markers:
+                m['name'] = to8(m['name'])
+
+        if trigger_zero:
+            no_zero = (i for i, m in enumerate(markers) if m['name'] != '0')
+
+            markers_no_zero = []
+            for i in no_zero:
+                if (i + 1) < len(markers) and markers[i + 1]['name'] == '0':
+                    markers[i]['end'] = markers[i + 1]['start']
+                markers_no_zero.append(markers[i])
+
+        return markers_no_zero
 
 
 def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
@@ -338,11 +364,6 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
     -------
     MetaTags : list of dict
         which corresponds to MetaTags of openNEV
-    ElectrodesInfo : list of dict
-        which corresponds to ElectrodesInfo of openNEV
-    IOLabels : list of dict
-        which corresponds to IOLabels of openNEV, however our version is not
-        ordered, but you need to check Mode
 
     Notes
     -----
@@ -504,19 +525,17 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
                 lg.debug('Code not implemented to read PacketID ' +
                          str(not_serialdigital[0]['packetID']))
 
-            # convert to notes
-            s_all = []
+            # convert to markers
+            markers = []
             for val in DigiValues:
-                time = hdr['DateTime'] + timedelta(seconds=val['timestamp'] /
-                                                   hdr['SampleRes'])
-                s = (datetime.strftime(time, '%Y-%m-%dT%H:%M:%S.%f') + ',' +
-                     '0' + ',' +  # zero duration
-                     str(val['tempDigiVals']))
-                s_all.append(s)
+                m = {'name': str(val['tempDigiVals']),
+                     'start': val['timestamp'] / hdr['SampleRes'],
+                     'end': val['timestamp'] / hdr['SampleRes'],
+                     'chan': [''],
+                     }
+                markers.append(m)
 
-            hdr['notes'] = '\n'.join(s_all)
-
-    return hdr, ElectrodesInfo, IOLabels
+    return hdr, markers
 
 
 def _str(t_in):
