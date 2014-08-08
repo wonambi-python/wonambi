@@ -42,8 +42,8 @@ STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
-BARS = {'marker': {'pos0': 15, 'pos1': 10, 'tip': 'Markers'},
-        'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},
+BARS = {'dataset': {'pos0': 15, 'pos1': 10, 'tip': 'Dataset'},
+        'annot': {'pos0': 30, 'pos1': 10, 'tip': 'Annotations'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
@@ -256,15 +256,17 @@ class Overview(QGraphicsView):
         markers = annot_markers + dataset_markers
 
         for mrk in markers:
-            l = self.scene.addLine(mrk['start'], BARS['marker']['pos0'],
-                                   mrk['end'],
-                                   BARS['marker']['pos0'] +
-                                   BARS['marker']['pos1'])
+            if mrk in dataset_markers:
+                pos0 = BARS['dataset']['pos0']
+                pos1 = BARS['dataset']['pos1']
+                color = self.parent.value('dataset_marker_color')
 
             if mrk in annot_markers:
+                pos0 = BARS['annot']['pos0']
+                pos1 = BARS['annot']['pos1']
                 color = self.parent.value('annot_marker_color')
-            if mrk in dataset_markers:
-                color = self.parent.value('dataset_marker_color')
+
+            l = self.scene.addLine(mrk['start'], pos0, mrk['end'], pos0 + pos1)
             l.setPen(QPen(QColor(color)))
 
     def display_events(self):
@@ -279,12 +281,13 @@ class Overview(QGraphicsView):
                 if length < overview_scale:
                     length = overview_scale
                 rect = QGraphicsRectItem(evt['start'],
-                                         BARS['event']['pos0'],
+                                         BARS['annot']['pos0'],
                                          length,
-                                         BARS['event']['pos1'])
+                                         BARS['annot']['pos1'])
                 rect.setPen(NoPen)
                 color = convert_name_to_color(evt['name'])
                 rect.setBrush(QBrush(color))
+                rect.setZValue(-5)
                 self.scene.addItem(rect)
 
     def display_stages(self, start_time, length, stage_name):
