@@ -16,7 +16,6 @@ from PyQt4.QtGui import (QAction,
                          QColor,
                          QFormLayout,
                          QGraphicsItem,
-                         QGraphicsLineItem,
                          QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsSimpleTextItem,
@@ -292,8 +291,7 @@ class Traces(QGraphicsView):
         self.add_time_labels()
         self.add_traces()
         self.display_grid()
-        self.display_markers()
-        self.display_events()
+        self.display_notes()
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
@@ -414,7 +412,7 @@ class Traces(QGraphicsView):
                 path = self.scene.addPath(Path(x_pos, y_pos))
                 path.setPen(QPen(Qt.DotLine))
 
-    def display_markers(self):
+    def display_notes(self):
         """Add markers on top of first plot.
 
         Notes
@@ -429,81 +427,53 @@ class Traces(QGraphicsView):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
+        y_distance = self.parent.value('y_distance')
 
         annot_markers = []
-        if (self.parent.notes.annot is not None and
-           self.parent.value('annot_marker_show')):
-            annot_markers = self.parent.notes.annot.get_markers()
-            for mrk in annot_markers:  # TEMPORARY WORKAROUND
-                mrk['time'] = mrk['start']
-
+        events = []
         dataset_markers = []
-        if (self.parent.notes.dataset_markers is not None and
-           self.parent.value('dataset_marker_show')):
-            dataset_markers = self.parent.notes.dataset_markers
+        if self.parent.notes.dataset_markers is not None:
+            if self.parent.value('dataset_marker_show'):
+                dataset_markers = self.parent.notes.dataset_markers
 
-        markers = annot_markers + dataset_markers
+        if self.parent.notes.annot is not None:
+            if self.parent.value('annot_marker_show'):
+                annot_markers = self.parent.notes.annot.get_markers()
+
+            if self.parent.value('annot_marker_show'):
+                events = self.parent.notes.annot.get_events(time=(window_start,
+                                                                  window_end))
+        markers = dataset_markers + annot_markers + events
 
         for mrk in markers:
-            if window_start <= mrk['time'] <= window_end:
+            if window_start <= mrk['end'] and window_end >= mrk['start']:
 
-                if mrk in annot_markers:
-                    color = self.parent.value('annot_marker_color')
+                mrk_start = max((mrk['start'], window_start))
+                mrk_end = min((mrk['end'], window_end))
+
                 if mrk in dataset_markers:
-                    color = self.parent.value('dataset_marker_color')
+                    color = QColor(self.parent.value('dataset_marker_color'))
+                if mrk in annot_markers:
+                    color = QColor(self.parent.value('annot_marker_color'))
+                if mrk in events:
+                    color = _convert_name_to_color(mrk['name'])
 
-                item = QGraphicsLineItem(mrk['time'], 0, mrk['time'],
-                                         len(self.idx_label) *
-                                         self.parent.value('y_distance'))
-                pen = QPen()
-                pen.setColor(QColor(color))
-                line_width = self.parent.value('marker_linewidth')
-                pen.setWidthF(line_width / self.transform().m11())
-                item.setPen(pen)
+                item = QGraphicsRectItem(mrk_start, 0,
+                                         mrk_end - mrk_start,
+                                         len(self.idx_label) * y_distance)
+                item.setPen(NoPen)
+                item.setBrush(color)
                 item.setZValue(-8)
                 self.scene.addItem(item)
 
-                item = TextItem_with_BG(color)
+                item = TextItem_with_BG(color.darker(200))
                 item.setText(mrk['name'])
-                item.setPos(mrk['time'],
+                item.setPos(mrk['start'],
                             len(self.idx_label) *
                             self.parent.value('y_distance'))
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 item.setRotation(-90)
                 self.scene.addItem(item)
-
-    def display_events(self):
-        """Add events on top of first plot.
-
-        Notes
-        -----
-        This function should be called by traces.display only, even when we
-        only add events. It's because sometimes we delete events.
-
-        """
-        window_start = self.parent.value('window_start')
-        window_length = self.parent.value('window_length')
-        window_end = window_start + window_length
-        y_distance = self.parent.value('y_distance')
-
-        if self.parent.notes.annot is not None:
-
-            events = self.parent.notes.annot.get_events(time=(window_start,
-                                                              window_end))
-            for evt in events:
-                evt_start = max((evt['start'], window_start))
-                evt_end = min((evt['end'], window_end))
-
-                rect = QGraphicsRectItem(evt_start,
-                                         0,
-                                         evt_end - evt_start,
-                                         len(self.idx_label) * y_distance)
-
-                color = _convert_name_to_color(evt['name'])
-                rect.setBrush(QBrush(color))
-                rect.setPen(NoPen)
-                rect.setZValue(-10)
-                self.scene.addItem(rect)
 
     def step_prev(self):
         """Go to the previous step."""
@@ -592,47 +562,17 @@ class Traces(QGraphicsView):
             it contains the position that was clicked.
 
         """
-        if self.parent.notes.action['new_marker'].isChecked():
-            x_in_scene = self.mapToScene(event.pos()).x()
+        xy_scene = self.mapToScene(event.pos())
+        chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
+        self.sel_chan = chan_idx
+        self.sel_xy = (xy_scene.x(), xy_scene.y())
 
-            if self.parent.info.dataset is not None:
-                # max resolution = sampling frequency
-                s_freq = self.parent.info.dataset.header['s_freq']
-                time = round(x_in_scene * s_freq) / s_freq
+        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_event = self.parent.notes.action['new_event'].isChecked()
 
-            else:
-                # create marker at the beginning of the window
-                time = self.parent.value('window_start')
-
-            self.parent.notes.add_marker(time)
-
-        else:
-            """the same info is used by action['new_event'].isChecked():"""
-            xy_scene = self.mapToScene(event.pos())
-            chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
-            self.sel_chan = chan_idx
-            self.sel_xy = (xy_scene.x(), xy_scene.y())
-
-            if not self.parent.notes.action['new_event'].isChecked():
-                channame = self.chan[self.sel_chan] + ' in selected window'
-                self.parent.spectrum.show_channame(channame)
-
-    def mouseDoubleClickEvent(self, event):
-        """Delete an event when clicking on it."""
-        if self.parent.notes.action['new_event'].isChecked():
-            xy_scene = self.mapToScene(event.pos())
-            clicked_time = xy_scene.x()
-            eventtype = self.parent.notes.idx_eventtype.currentText()
-            events = self.parent.notes.annot.get_events(name=eventtype,
-                                                        time=(clicked_time,
-                                                              clicked_time))
-
-            for evt in events:
-                self.parent.notes.annot.remove_event(name=evt['name'],
-                                                     time=(evt['start'],
-                                                           evt['end']))
-
-            self.parent.notes.display_events()
+        if not (chk_marker or chk_event):
+            channame = self.chan[self.sel_chan] + ' in selected window'
+            self.parent.spectrum.show_channame(channame)
 
     def mouseMoveEvent(self, event):
         """
@@ -642,7 +582,10 @@ class Traces(QGraphicsView):
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
 
-        if self.parent.notes.action['new_event'].isChecked():
+        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_event = self.parent.notes.action['new_event'].isChecked()
+
+        if chk_marker or chk_event:
             xy_scene = self.mapToScene(event.pos())
             y_distance = self.parent.value('y_distance')
             pos = QRectF(self.sel_xy[0],
@@ -651,9 +594,15 @@ class Traces(QGraphicsView):
                          len(self.idx_label) * y_distance)
             item = QGraphicsRectItem(pos.normalized())
             item.setPen(NoPen)
-            eventtype = self.parent.notes.idx_eventtype.currentText()
-            color = _convert_name_to_color(eventtype, True)
-            item.setBrush(QBrush(color))
+
+            if chk_marker:
+                color = QColor(self.parent.value('annot_marker_color'))
+
+            elif chk_event:
+                eventtype = self.parent.notes.idx_eventtype.currentText()
+                color = _convert_name_to_color(eventtype)
+
+            item.setBrush(QBrush(color.lighter(150)))
             item.setZValue(-10)
             self.scene.addItem(item)
             self.idx_sel = item
@@ -699,20 +648,33 @@ class Traces(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
 
-        if self.parent.notes.action['new_event'].isChecked():
+        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_event = self.parent.notes.action['new_event'].isChecked()
+
+        if chk_marker or chk_event:
+
             x_in_scene = self.mapToScene(event.pos()).x()
 
             # it can happen that selection is empty (f.e. double-click)
             if self.sel_xy[0] is not None:
-                eventtype = self.parent.notes.idx_eventtype.currentText()
                 # max resolution = sampling frequency
                 # in case there is no data
                 s_freq = self.parent.info.dataset.header['s_freq']
                 at_s_freq = lambda x: round(x * s_freq) / s_freq
                 start = at_s_freq(self.sel_xy[0])
                 end = at_s_freq(x_in_scene)
-                time = (start, end)
-                self.parent.notes.add_event(eventtype, time)
+
+                if start <= end:
+                    time = (start, end)
+                else:
+                    time = (end, start)
+
+                if chk_marker:
+                    self.parent.notes.add_marker(time)
+
+                elif chk_event:
+                    eventtype = self.parent.notes.idx_eventtype.currentText()
+                    self.parent.notes.add_event(eventtype, time)
 
         else:  # normal selection
 
@@ -869,7 +831,7 @@ def _select_channels(data, channels):
     return data
 
 
-def _convert_name_to_color(s, selection=False):
+def _convert_name_to_color(s):
     """Convert any string to an RGB color.
 
     Parameters
@@ -888,18 +850,13 @@ def _convert_name_to_color(s, selection=False):
     -----
     It takes any string and converts it to RGB color. The same string always
     returns the same color. The numbers are a bit arbitrary but not completely.
-    h is the baseline color (keep it high to have brighter colors). There
-    should be a difference between selection on or off (roughly 50). Make sure
+    h is the baseline color (keep it high to have brighter colors). Make sure
     that the max module + h is less than 256 (RGB limit).
 
     The number you multiply ord for is necessary to differentiate the letters
     (otherwise 'r' and 's' are too close to each other).
     """
-    if selection:
-        h = 150
-    else:
-        h = 100
-
+    h = 100
     v = [5 * ord(x) for x in s]
     sum_mod = lambda x: sum(x) % 100
     color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,

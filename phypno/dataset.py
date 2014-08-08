@@ -159,6 +159,10 @@ class Dataset:
         hdr['orig'] = output[5]
         self.header = hdr
 
+    def read_markers(self):
+        """Return the markers."""
+        return self.dataset.return_markers()
+
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None):
         """Read the data and creates a ChanTime instance

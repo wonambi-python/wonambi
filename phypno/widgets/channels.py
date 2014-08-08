@@ -369,21 +369,24 @@ class Channels(QWidget):
             one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
-    def load_channels(self):
+    def load_channels(self, debug_filename=None):
         """Load channel groups from file. """
-        if self.filename is not None:
-            filename = self.filename
-        elif self.parent.info.filename is not None:
-            filename = (splitext(self.parent.info.filename)[0] +
-                        '_channels.json')
-        else:
-            filename = None
+        if debug_filename is None:
+            if self.filename is not None:
+                filename = self.filename
+            elif self.parent.info.filename is not None:
+                filename = (splitext(self.parent.info.filename)[0] +
+                            '_channels.json')
+            else:
+                filename = None
 
-        filename = QFileDialog.getOpenFileName(self, 'Open Channels Montage',
-                                               filename,
-                                               'Channels File (*.json)')
-        if filename == '':
-            return
+            filename = QFileDialog.getOpenFileName(self, 'Open Channels Montage',
+                                                   filename,
+                                                   'Channels File (*.json)')
+            if filename == '':
+                return
+        else:
+            filename = debug_filename
 
         self.filename = filename
         with open(filename, 'r') as outfile:

@@ -1,4 +1,18 @@
-"""Module to keep track of the user-made annotations and sleep scoring."""
+"""Module to keep track of the user-made annotations and sleep scoring.
+
+xml_file = '/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml'
+
+from re import sub
+
+with open(xml_file, 'r') as f:
+    s = f.read()
+s1 = sub('<marker><name>(.*?)</name><time>(.*?)</time></marker>',
+         '<marker><marker_name>\g<1></marker_name><marker_start>\g<2></marker_start><marker_end>\g<2></marker_end><marker_chan/></marker>',
+         s)
+with open(xml_file, 'w') as f:
+    f.write(s1)
+
+"""
 from logging import getLogger
 lg = getLogger(__name__)
 

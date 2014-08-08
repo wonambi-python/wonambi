@@ -61,6 +61,28 @@ class IOEEG:
         data = rand(10, 100)
         return data[chan, begsam:endsam]
 
+    def return_markers(self):
+        \"""Return all the markers (also called triggers or events).
+
+        Returns
+        -------
+        list of dict
+            where each dict contains 'name' as str, 'start' and 'end' as float
+            in seconds from the start of the recordings, and 'chan' as list of
+            str with the channels involved (if not of relevance, it's None).
+
+        Raises
+        ------
+        FileNotFoundError
+            when it cannot read the events for some reason (don't use other
+            exceptions).
+        \"""
+        markers = [{'name': 'one_trigger',
+                    'start': 10,
+                    'end': 15,  # duration of 5s
+                    'chan': ['chan1', 'chan2'],  # or None
+                    }]
+        return markers
 
 Biosig has a very large library of tools to read various formats. I think it's
 best to use it in general. However, it has bindings only for Python2 and running

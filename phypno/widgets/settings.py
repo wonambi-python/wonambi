@@ -49,7 +49,7 @@ DEFAULTS['notes'] = {'dataset_marker_show': True,
                      'dataset_marker_color': 'darkBlue',
                      'annot_marker_show': True,
                      'annot_marker_color': 'darkMagenta',
-                     'marker_linewidth': 3,
+                     'annot_event_show': True,
                      'scoring_window': 30,
                      }
 DEFAULTS['traces'] = {'n_time_labels': 3,
