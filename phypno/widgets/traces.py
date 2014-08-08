@@ -461,7 +461,7 @@ class Traces(QGraphicsView):
                 item = QGraphicsRectItem(mrk_start, 0,
                                          mrk_end - mrk_start,
                                          len(self.idx_label) * y_distance)
-                item.setPen(NoPen)
+                item.setPen(color)
                 item.setBrush(color)
                 item.setZValue(-8)
                 self.scene.addItem(item)
@@ -663,6 +663,9 @@ class Traces(QGraphicsView):
                 at_s_freq = lambda x: round(x * s_freq) / s_freq
                 start = at_s_freq(self.sel_xy[0])
                 end = at_s_freq(x_in_scene)
+
+                if abs(end - start) < self.parent.value('min_marker_dur'):
+                    end = start
 
                 if start <= end:
                     time = (start, end)

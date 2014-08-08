@@ -50,6 +50,7 @@ DEFAULTS['notes'] = {'dataset_marker_show': True,
                      'annot_marker_show': True,
                      'annot_marker_color': 'darkMagenta',
                      'annot_event_show': True,
+                     'min_marker_dur': .1,
                      'scoring_window': 30,
                      }
 DEFAULTS['traces'] = {'n_time_labels': 3,

@@ -59,8 +59,9 @@ class ConfigNotes(Config):
         self.index['annot_marker_show'] = FormBool('Display Markers in '
                                                    'annotations')
         self.index['annot_marker_color'] = FormStr()
-        self.index['annot_event_show'] = FormBool('Display Evemts in '
+        self.index['annot_event_show'] = FormBool('Display Events in '
                                                   'annotations')
+        self.index['min_marker_dur'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow(self.index['dataset_marker_show'])
@@ -70,6 +71,9 @@ class ConfigNotes(Config):
         form_layout.addRow('Color of markers in annotations',
                            self.index['annot_marker_color'])
         form_layout.addRow(self.index['annot_event_show'])
+        form_layout.addRow('Below this duration, markers and events have no'
+                           'duration',
+                           self.index['min_marker_dur'])
 
         box0.setLayout(form_layout)
 
