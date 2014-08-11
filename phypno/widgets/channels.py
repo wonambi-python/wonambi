@@ -371,7 +371,7 @@ class Channels(QWidget):
 
     def load_channels(self, debug_filename=None):
         """Load channel groups from file. """
-        if debug_filename is None:
+        if not debug_filename:
             if self.filename is not None:
                 filename = self.filename
             elif self.parent.info.filename is not None:

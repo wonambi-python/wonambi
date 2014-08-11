@@ -248,21 +248,23 @@ class Overview(QGraphicsView):
         item.setPos(self.parent.value('window_start'), 0)
         item.setPen(QPen(Qt.lightGray))
         item.setBrush(QBrush(Qt.lightGray))
-        item.setZValue(-5)
+        item.setZValue(-10)
         self.scene.addItem(item)
         self.idx_current = item
 
     def display_markers(self):
         """Mark all the markers, from annotations or from the dataset. """
-        annot_markers = []
-        if self.parent.notes.annot is not None:
-            annot_markers = self.parent.notes.annot.get_markers()
-
         dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
             dataset_markers = self.parent.notes.dataset_markers
 
-        markers = annot_markers + dataset_markers
+        annot_markers = []
+        events = []
+        if self.parent.notes.annot is not None:
+            annot_markers = self.parent.notes.annot.get_markers()
+            events = self.parent.notes.annot.get_events()
+
+        markers = dataset_markers + annot_markers + events
 
         for mrk in markers:
             if mrk in dataset_markers:
@@ -275,29 +277,18 @@ class Overview(QGraphicsView):
                 pos1 = BARS['annot']['pos1']
                 color = self.parent.value('annot_marker_color')
 
-            l = self.scene.addLine(mrk['start'], pos0, mrk['end'], pos0 + pos1)
-            l.setPen(QPen(QColor(color)))
+            if mrk in events:
+                pos0 = BARS['annot']['pos0']
+                pos1 = BARS['annot']['pos1']
+                color = convert_name_to_color(mrk['name'])
 
-    def display_events(self):
-        """Mark all the events, from annotations. """
-        # if event is too short, it does not appear in overview
-        overview_scale = self.parent.value('overview_scale')
+            rect = QGraphicsRectItem(mrk['start'], pos0,
+                                     mrk['end'] - mrk['start'], pos1)
 
-        if self.parent.notes.annot is not None:
-            events = self.parent.notes.annot.get_events()
-            for evt in events:
-                length = evt['end'] - evt['start']
-                if length < overview_scale:
-                    length = overview_scale
-                rect = QGraphicsRectItem(evt['start'],
-                                         BARS['annot']['pos0'],
-                                         length,
-                                         BARS['annot']['pos1'])
-                rect.setPen(NoPen)
-                color = convert_name_to_color(evt['name'])
-                rect.setBrush(QBrush(color))
-                rect.setZValue(-5)
-                self.scene.addItem(rect)
+            rect.setPen(QPen(color))
+            rect.setBrush(QBrush(color))
+            rect.setZValue(-5)
+            self.scene.addItem(rect)
 
     def display_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.

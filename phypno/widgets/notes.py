@@ -570,7 +570,7 @@ class Notes(QTabWidget):
         self.idx_event_list.setProperty('start', [x['start'] for x in events])
         self.idx_event_list.setProperty('end', [x['end'] for x in events])
 
-        self.parent.overview.display_events()
+        self.parent.overview.display_markers()
         self.parent.traces.display()
 
     def reset(self):
