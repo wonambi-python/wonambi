@@ -12,7 +12,6 @@ from PyQt4.QtGui import (QBrush,
                          QColor,
                          QFormLayout,
                          QGraphicsItem,
-                         QGraphicsLineItem,
                          QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsView,
@@ -23,8 +22,6 @@ from PyQt4.QtGui import (QBrush,
 
 from .settings import Config, FormInt
 from .utils import convert_name_to_color
-
-current_line_height = 10
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -47,6 +44,7 @@ BARS = {'dataset': {'pos0': 15, 'pos1': 10, 'tip': 'Dataset'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
+CURR = {'pos0': 0, 'pos1': 90}
 TIME_HEIGHT = 92
 TOTAL_HEIGHT = 100
 
@@ -92,9 +90,10 @@ class Overview(QGraphicsView):
         maximum length of the window (in s).
     scene : instance of QGraphicsScene
         to keep track of the objects.
+    idx_current : QGraphicsRectItem
+        instance of the current time window
     idx_item : dict of RectItem, SimpleText
-        all the items in the scene
-
+        all the items in the scene (TODO: get rid of this)
     """
     def __init__(self, parent):
         super().__init__()
@@ -106,6 +105,7 @@ class Overview(QGraphicsView):
         self.start_time = None  # datetime, absolute start time
 
         self.scene = None
+        self.idx_current = None  # QGraphicsRectItem
         self.idx_item = {}
 
         self.create()
@@ -154,13 +154,7 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        item = QGraphicsLineItem(self.parent.value('window_start'),
-                                 0,
-                                 self.parent.value('window_start'),
-                                 current_line_height)
-        item.setPen(QPen(Qt.red))
-        self.scene.addItem(item)
-        self.idx_item['current'] = item
+        self.display_current()
 
         for name, pos in BARS.items():
             item = QGraphicsRectItem(self.minimum, pos['pos0'],
@@ -224,8 +218,7 @@ class Overview(QGraphicsView):
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
             self.parent.value('window_start', new_position)
-            self.idx_item['current'].setPos(self.parent.value('window_start'),
-                                            0)
+            self.idx_current.setPos(new_position, 0)
 
             current_time = (self.start_time +
                             timedelta(seconds=new_position))
@@ -242,6 +235,22 @@ class Overview(QGraphicsView):
 
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
+
+    def display_current(self):
+        if self.idx_current in self.scene.items():
+            self.scene.removeItem(self.idx_current)
+
+        item = QGraphicsRectItem(0,
+                                 CURR['pos0'],
+                                 self.parent.value('window_length'),
+                                 CURR['pos1'])
+        # it's necessary to create rect first, and then move it
+        item.setPos(self.parent.value('window_start'), 0)
+        item.setPen(QPen(Qt.lightGray))
+        item.setBrush(QBrush(Qt.lightGray))
+        item.setZValue(-5)
+        self.scene.addItem(item)
+        self.idx_current = item
 
     def display_markers(self):
         """Mark all the markers, from annotations or from the dataset. """

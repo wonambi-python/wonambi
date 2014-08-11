@@ -510,17 +510,20 @@ class Traces(QGraphicsView):
         """Zoom in on the x-axis."""
         self.parent.value('window_length',
                           self.parent.value('window_length') * 2)
+        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def X_less(self):
         """Zoom out on the x-axis."""
         self.parent.value('window_length',
                           self.parent.value('window_length') / 2)
+        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def X_length(self, new_window_length):
         """Use presets for length of the window."""
         self.parent.value('window_length', new_window_length)
+        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def Y_more(self):
