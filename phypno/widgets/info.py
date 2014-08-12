@@ -224,11 +224,11 @@ class Info(QWidget):
         self.idx_filename.setText(short_filename)
         self.idx_s_freq.setText(str(header['s_freq']))
         self.idx_n_chan.setText(str(len(header['chan_name'])))
-        start_time = header['start_time'].strftime('%H:%M:%S')
+        start_time = header['start_time'].strftime('%b-%d %H:%M:%S')
         self.idx_start_time.setText(start_time)
         end_time = header['start_time'] + timedelta(seconds=header['n_samples']
                                                     / header['s_freq'])
-        self.idx_end_time.setText(end_time.strftime('%H:%M:%S'))
+        self.idx_end_time.setText(end_time.strftime('%b-%d %H:%M:%S'))
 
     def display_view(self):
         """Update information about the size of the traces.
