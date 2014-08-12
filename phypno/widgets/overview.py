@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from numpy import floor
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
-                         QColor,
                          QFormLayout,
                          QGraphicsItem,
                          QGraphicsRectItem,
@@ -164,9 +163,7 @@ class Overview(QGraphicsView):
             self.idx_item[name] = item
 
         self.add_timestamps()
-
-        if self.parent.notes.annot is not None:
-            self.parent.notes.display_notes()
+        self.parent.notes.display_notes()
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview.

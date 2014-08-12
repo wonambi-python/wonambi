@@ -191,13 +191,13 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('')
 
-        self.parent.overview.update()
-        self.parent.channels.update(self.dataset.header['chan_name'])
-
         try:
             self.parent.notes.update_dataset_markers()
         except FileNotFoundError:
             lg.info('No notes/markers present in the header of the file')
+
+        self.parent.overview.update()
+        self.parent.channels.update(self.dataset.header['chan_name'])
 
     def update(self, filename):
         """Read dataset from filename.
