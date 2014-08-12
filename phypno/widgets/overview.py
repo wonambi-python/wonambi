@@ -355,6 +355,6 @@ class Overview(QGraphicsView):
         self.update_position(window_start)
 
     def reset(self):
-        if self.overview.scene is not None:
-            self.overview.scene.clear()
-        self.overview.scene = None
+        if self.scene is not None:
+            self.scene.clear()
+        self.scene = None
