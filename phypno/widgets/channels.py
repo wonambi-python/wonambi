@@ -372,8 +372,13 @@ class Channels(QWidget):
     def apply(self):
         """Apply changes to the plots."""
         self.read_group_info()
-        self.parent.overview.update_position()
-        self.parent.spectrum.update()
+
+        if self.groups:
+            self.parent.overview.update_position()
+            self.parent.spectrum.update()
+        else:
+            self.parent.traces.reset()
+            self.parent.spectrum.reset()
 
     def read_group_info(self):
         self.groups = []
@@ -393,7 +398,8 @@ class Channels(QWidget):
             else:
                 filename = None
 
-            filename = QFileDialog.getOpenFileName(self, 'Open Channels Montage',
+            filename = QFileDialog.getOpenFileName(self,
+                                                   'Open Channels Montage',
                                                    filename,
                                                    'Channels File (*.json)')
             if filename == '':
@@ -405,8 +411,9 @@ class Channels(QWidget):
         with open(filename, 'r') as outfile:
             groups = load(outfile)
 
+        s_freq = self.parent.info.dataset.header['s_freq']
         for one_grp in groups:
-            group = ChannelsGroup(self.chan_name, one_grp)
+            group = ChannelsGroup(self.chan_name, one_grp, s_freq)
             group.highlight_channels(group.idx_l0, one_grp['chan_to_plot'])
             group.highlight_channels(group.idx_l1, one_grp['ref_chan'])
             self.tabs.addTab(group, one_grp['name'])
