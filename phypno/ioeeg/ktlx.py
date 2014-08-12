@@ -933,49 +933,55 @@ class Ktlx():
         if not exists(ent_file):
             ent_file = join(self.filename, self._basename + '.ent.old')
 
-        ent_notes = _read_ent(ent_file)
-        allnote = []
-        for n in ent_notes:
-            try:
-                n['value'].keys()
-                allnote.append(n['value'])
-            except AttributeError:
-                lg.debug('Note of length {} was not '
-                         'converted to dict'.format(n['length']))
+        try:
+            ent_notes = _read_ent(ent_file)
 
-        s_freq = self._hdr['erd']['sample_freq']
-        pcname = '0CFEBE72-DA20-4b3a-A8AC-CDD41BFE2F0D'
-        note_time = []
-        note_name = []
-        note_note = []
-        for n in allnote:
-            if n['Text'] == 'Analyzed Data Note':
-                continue
-            if not n['Text']:
-                continue
-            if 'User' not in n['Data'].keys():
-                continue
-            user1 = n['Data']['User'] == 'Persyst'
-            user2 = n['Data']['User'] == 'eeg'
-            user3 = n['Data']['User'] == pcname
-            user4 = n['Data']['User'] == 'XLSpike - Intracranial'
-            user5 = n['Data']['User'] == 'XLEvent - Intracranial'
-            if user1 or user2 or user3 or user4 or user5:
-                continue
-            if len(n['Data']['User']) == 0:
-                note_name.append('-unknown-')
-            else:
-                note_name.append(n['Data']['User'].split()[0])
-            note_time.append(n['Stamp'] / s_freq)
-            note_note.append(n['Text'])
+        except FileNotFoundError:
+            markers = []
 
-        markers = []
-        for time, name, note in zip(note_time, note_name, note_note):
-            m = {'name': note + ' (' + name + ')',
-                 'start': time,
-                 'end': time,
-                 'chan': None,
-                 }
-            markers.append(m)
+        else:
+            allnote = []
+            for n in ent_notes:
+                try:
+                    n['value'].keys()
+                    allnote.append(n['value'])
+                except AttributeError:
+                    lg.debug('Note of length {} was not '
+                             'converted to dict'.format(n['length']))
+
+            s_freq = self._hdr['erd']['sample_freq']
+            pcname = '0CFEBE72-DA20-4b3a-A8AC-CDD41BFE2F0D'
+            note_time = []
+            note_name = []
+            note_note = []
+            for n in allnote:
+                if n['Text'] == 'Analyzed Data Note':
+                    continue
+                if not n['Text']:
+                    continue
+                if 'User' not in n['Data'].keys():
+                    continue
+                user1 = n['Data']['User'] == 'Persyst'
+                user2 = n['Data']['User'] == 'eeg'
+                user3 = n['Data']['User'] == pcname
+                user4 = n['Data']['User'] == 'XLSpike - Intracranial'
+                user5 = n['Data']['User'] == 'XLEvent - Intracranial'
+                if user1 or user2 or user3 or user4 or user5:
+                    continue
+                if len(n['Data']['User']) == 0:
+                    note_name.append('-unknown-')
+                else:
+                    note_name.append(n['Data']['User'].split()[0])
+                note_time.append(n['Stamp'] / s_freq)
+                note_note.append(n['Text'])
+
+            markers = []
+            for time, name, note in zip(note_time, note_name, note_note):
+                m = {'name': note + ' (' + name + ')',
+                     'start': time,
+                     'end': time,
+                     'chan': None,
+                     }
+                markers.append(m)
 
         return markers

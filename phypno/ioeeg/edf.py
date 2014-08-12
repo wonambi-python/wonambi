@@ -64,7 +64,7 @@ class Edf:
             (hour, minute, sec) = [int(x) for x in findall('(\d+)',
                                    f.read(8).decode('utf-8'))]
             hdr['start_time'] = datetime(year + 2000, month, day, hour, minute,
-                sec)
+                                         sec)
 
             # misc
             hdr['header_n_bytes'] = int(f.read(8))
@@ -78,17 +78,17 @@ class Edf:
             hdr['label'] = [f.read(16).decode('utf-8').strip() for n in
                             channels]
             hdr['transducer'] = [f.read(80).decode('utf-8').strip()
-                                    for n in channels]
+                                 for n in channels]
             hdr['physical_dim'] = [f.read(8).decode('utf-8').strip() for n in
-                                    channels]
+                                   channels]
             hdr['physical_min'] = asarray([float(f.read(8))
-                                            for n in channels])
+                                           for n in channels])
             hdr['physical_max'] = asarray([float(f.read(8))
-                                            for n in channels])
+                                           for n in channels])
             hdr['digital_min'] = asarray([float(f.read(8)) for n in channels])
             hdr['digital_max'] = asarray([float(f.read(8)) for n in channels])
             hdr['prefiltering'] = [f.read(80).decode('utf-8').strip()
-                                    for n in channels]
+                                   for n in channels]
             hdr['n_samples_per_record'] = [int(f.read(8)) for n in channels]
             f.seek(32 * nchannels, 1)  # reserved
 
@@ -120,10 +120,10 @@ class Edf:
         start_time = self.hdr['start_time']
         _assert_all_the_same(self.hdr['n_samples_per_record'])
         s_freq = (self.hdr['n_samples_per_record'][0] /
-            self.hdr['record_length'])
+                  self.hdr['record_length'])
         chan_name = self.hdr['label']
         n_samples = (self.hdr['n_samples_per_record'][0] *
-            self.hdr['n_records'])
+                     self.hdr['n_records'])
 
         return subj_id, start_time, s_freq, chan_name, n_samples, self.hdr
 
