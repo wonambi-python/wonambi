@@ -207,7 +207,7 @@ class Dataset:
 
         if chan is None:
             chan = self.header['chan_name']
-        if not isinstance(chan, list):
+        if not (isinstance(chan, list) or isinstance(chan, tuple)):
             raise TypeError('Parameter "chan" should be a list')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 

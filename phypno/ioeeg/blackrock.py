@@ -495,6 +495,7 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
         fData = f.seek(0, SEEK_END)
         countDataPacket = int((fData - fExtendedHeader) / hdr['PacketBytes'])
 
+        markers = []
         if countDataPacket:
 
             f.seek(fExtendedHeader)
@@ -526,7 +527,6 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
                          str(not_serialdigital[0]['packetID']))
 
             # convert to markers
-            markers = []
             for val in DigiValues:
                 m = {'name': str(val['tempDigiVals']),
                      'start': val['timestamp'] / hdr['SampleRes'],

@@ -192,7 +192,7 @@ class Info(QWidget):
         self.parent.statusBar().showMessage('')
 
         try:
-            self.parent.notes.update_dataset_markers()
+            self.parent.notes.dataset_markers = self.dataset.read_markers()
         except FileNotFoundError:
             lg.info('No notes/markers present in the header of the file')
 

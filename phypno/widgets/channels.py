@@ -61,6 +61,15 @@ class ConfigChannels(Config):
 class ChannelsGroup(QWidget):
     """Tab inside the Channels widget.
 
+    Parameters
+    ----------
+    chan_name : list of str
+        list of all the channels in the dataset
+    config_value : dict
+        default values for the channels
+    s_freq : int
+        sampling frequency (to define max of filter)
+
     Attributes
     ----------
     chan_name : list of str
@@ -91,7 +100,7 @@ class ChannelsGroup(QWidget):
     Use config_value instead of config, because it's easier to pass dict
     when loading channels montage.
     """
-    def __init__(self, chan_name, config_value):
+    def __init__(self, chan_name, config_value, s_freq):
         super().__init__()
 
         self.chan_name = chan_name
@@ -106,12 +115,14 @@ class ChannelsGroup(QWidget):
         self.idx_hp.setValue(config_value['hp'])
         self.idx_hp.setSuffix(' Hz')
         self.idx_hp.setDecimals(1)
+        self.idx_hp.setMaximum(s_freq / 2)
         self.idx_hp.setToolTip('0 means no filter')
 
         self.idx_lp = QDoubleSpinBox()
         self.idx_lp.setValue(config_value['lp'])
         self.idx_lp.setSuffix(' Hz')
         self.idx_lp.setDecimals(1)
+        self.idx_lp.setMaximum(s_freq / 2)
         self.idx_lp.setToolTip('0 means no filter')
 
         self.idx_scale = QDoubleSpinBox()
@@ -337,7 +348,9 @@ class Channels(QWidget):
             new_name = QInputDialog.getText(self, 'New Channel Group',
                                             'Enter Name')
             if new_name[1]:
-                group = ChannelsGroup(self.chan_name, self.config.value)
+                s_freq = self.parent.info.dataset.header['s_freq']
+                group = ChannelsGroup(self.chan_name, self.config.value,
+                                      s_freq)
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 

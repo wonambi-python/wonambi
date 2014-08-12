@@ -293,11 +293,6 @@ class Notes(QTabWidget):
 
         self.display_notes()
 
-    def update_dataset_markers(self):
-        """called by info.open_dataset
-        """
-        self.dataset_markers = self.parent.info.dataset.read_markers()
-
     def display_notes(self):
         """Display information about scores and raters.
 
@@ -308,26 +303,22 @@ class Notes(QTabWidget):
         if self.annot is not None:
             short_xml_file = short_strings(basename(self.annot.xml_file))
             self.idx_annotations.setText(short_xml_file)
-            try:
-                # if annotations were loaded without dataset
-                if self.parent.overview.scene is None:
-                    self.parent.overview.update()
+            # if annotations were loaded without dataset
+            if self.parent.overview.scene is None:
+                self.parent.overview.update()
 
-                self.idx_rater.setText(self.annot.current_rater)
+            self.idx_rater.setText(self.annot.current_rater)
 
-                self.display_markers()
-                self.display_eventtype()
+            self.display_eventtype()
 
-                for epoch in self.annot.epochs:
-                    self.parent.overview.display_stages(epoch['start'],
-                                                        epoch['end'] -
-                                                        epoch['start'],
-                                                        epoch['stage'])
+            for epoch in self.annot.epochs:
+                self.parent.overview.display_stages(epoch['start'],
+                                                    epoch['end'] -
+                                                    epoch['start'],
+                                                    epoch['stage'])
+            self.display_stats()
 
-                self.display_stats()
-
-            except IndexError:
-                self.idx_rater.setText('')
+        self.display_markers()
 
     def display_stats(self):
         """Display summary statistics about duration in each stage."""
@@ -355,11 +346,13 @@ class Notes(QTabWidget):
 
         annot_markers = []
         if self.parent.notes.annot is not None:
-            annot_markers = self.parent.notes.annot.get_markers()
+            if self.parent.value('annot_marker_show'):
+                annot_markers = self.parent.notes.annot.get_markers()
 
         dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
-            dataset_markers = self.parent.notes.dataset_markers
+            if self.parent.value('dataset_marker_show'):
+                dataset_markers = self.parent.notes.dataset_markers
 
         markers = annot_markers + dataset_markers
         markers = sorted(markers, key=lambda x: x['start'])

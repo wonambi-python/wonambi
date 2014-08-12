@@ -10,7 +10,6 @@ from functools import partial
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, max, min,
                    linspace, log2, pad, power)
-from scipy.signal import decimate
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QAction,
                          QBrush,
@@ -264,11 +263,11 @@ class Traces(QGraphicsView):
 
         max_s_freq = self.parent.value('max_s_freq')
         if data.s_freq > max_s_freq:
-            TRIAL = 0
             q = int(data.s_freq / max_s_freq)
-            lg.debug('Decimate q ' + str(q))
-            data.data[TRIAL] = decimate(data.data[TRIAL], q, axis=1)
-            data.axis['time'][TRIAL] = decimate(data.axis['time'][TRIAL], q)
+            lg.debug('Decimate (no low-pass filter) at ' + str(q))
+
+            data.data[0] = data.data[0][:, slice(None, None, q)]
+            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
