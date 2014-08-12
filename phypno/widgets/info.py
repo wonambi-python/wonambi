@@ -1,6 +1,4 @@
-"""Widget with general information about the dataset.
-
-"""
+"""Widget with general information about the dataset."""
 from logging import getLogger
 lg = getLogger(__name__)
 
@@ -37,7 +35,24 @@ class Info(QWidget):
     dataset : instance of phypno.Dataset
         the dataset already read in.
 
-    TODO
+    idx_filename : QPushButton
+        button to select dataset / show current dataset
+    idx_s_freq : QLabel
+        show sampling frequency
+    idx_n_chan : QLabel
+        show number of channels
+    idx_start_time : QLabel
+        show start time of the dataset
+    idx_end_time : QLabel
+        show end time of the dataset
+
+    idx_amplitude : QLabel
+        show current amplitude
+    idx_distance : QLabel
+        show current distance between traces
+    idx_length : QLabel
+        show length of the time window
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -60,38 +75,8 @@ class Info(QWidget):
         self.create()
         self.create_action()
 
-    def create_action(self):
-        """I don't know if this should be a function or a property.
-
-        The good thing about the property is that it is updated every time you
-        run it (for example, if you change some parameters in the settings).
-        The main drawback is that you cannot reference back to the QAction, as
-        it creates new ones every time.
-
-        """
-        output = {}
-
-        act = QAction(QIcon(ICON['open_rec']), 'Open Dataset...', self)
-        act.setShortcut(QKeySequence.Open)
-        act.triggered.connect(self.open_dataset)
-        output['open_dataset'] = act
-
-        max_dataset_history = self.parent.value('max_dataset_history')
-        recent_recs = keep_recent_datasets(max_dataset_history)
-
-        act = []
-        for one_recent_rec in recent_recs:
-            act_recent = QAction(one_recent_rec, self)
-            act_recent.triggered.connect(partial(self.open_dataset,
-                                                 one_recent_rec))
-            act.append(act_recent)
-        output['open_recent'] = act
-
-        self.action = output
-
     def create(self):
-        """Create the QFormLayout with all the information.
-        """
+        """Create the widget layout with all the information."""
         b0 = QGroupBox('Dataset')
         form = QFormLayout()
         b0.setLayout(form)
@@ -129,8 +114,46 @@ class Info(QWidget):
 
         self.setLayout(layout)
 
+    def create_action(self):
+        """Create actions associated with this widget.
+
+        Notes
+        -----
+        I think that this should be a function or a property.
+
+        The good thing about the property is that it is updated every time you
+        run it (for example, if you change some parameters in the settings).
+        The main drawback is that you cannot reference back to the QAction, as
+        it creates new ones every time.
+        """
+        output = {}
+
+        act = QAction(QIcon(ICON['open_rec']), 'Open Dataset...', self)
+        act.setShortcut(QKeySequence.Open)
+        act.triggered.connect(self.open_dataset)
+        output['open_dataset'] = act
+
+        max_dataset_history = self.parent.value('max_dataset_history')
+        recent_recs = keep_recent_datasets(max_dataset_history)
+
+        act = []
+        for one_recent_rec in recent_recs:
+            act_recent = QAction(one_recent_rec, self)
+            act_recent.triggered.connect(partial(self.open_dataset,
+                                                 one_recent_rec))
+            act.append(act_recent)
+        output['open_recent'] = act
+
+        self.action = output
+
     def open_dataset(self, recent=None):
         """Open a new dataset.
+
+        Parameters
+        ----------
+        recent : path to file
+            one of the recent datasets to read
+
         """
         if self.dataset is not None:
             self.parent.reset()
@@ -168,13 +191,13 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('')
 
+        try:
+            self.parent.notes.dataset_markers = self.dataset.read_markers()
+        except FileNotFoundError:
+            lg.info('No notes/markers present in the header of the file')
+
         self.parent.overview.update()
         self.parent.channels.update(self.dataset.header['chan_name'])
-
-        # try:
-        self.parent.notes.update_dataset_markers(self.dataset.header)
-        # except (KeyError, ValueError):
-        #    lg.info('No notes/markers present in the header of the file')
 
     def update(self, filename):
         """Read dataset from filename.
@@ -201,11 +224,11 @@ class Info(QWidget):
         self.idx_filename.setText(short_filename)
         self.idx_s_freq.setText(str(header['s_freq']))
         self.idx_n_chan.setText(str(len(header['chan_name'])))
-        start_time = header['start_time'].strftime('%H:%M:%S')
+        start_time = header['start_time'].strftime('%b-%d %H:%M:%S')
         self.idx_start_time.setText(start_time)
         end_time = header['start_time'] + timedelta(seconds=header['n_samples']
                                                     / header['s_freq'])
-        self.idx_end_time.setText(end_time.strftime('%H:%M:%S'))
+        self.idx_end_time.setText(end_time.strftime('%b-%d %H:%M:%S'))
 
     def display_view(self):
         """Update information about the size of the traces.

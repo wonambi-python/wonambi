@@ -9,10 +9,8 @@ from datetime import datetime, timedelta
 from numpy import floor
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
-                         QColor,
                          QFormLayout,
                          QGraphicsItem,
-                         QGraphicsLineItem,
                          QGraphicsRectItem,
                          QGraphicsScene,
                          QGraphicsView,
@@ -22,8 +20,7 @@ from PyQt4.QtGui import (QBrush,
                          )
 
 from .settings import Config, FormInt
-
-current_line_height = 10
+from .utils import convert_name_to_color
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -41,11 +38,12 @@ STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
-BARS = {'marker': {'pos0': 15, 'pos1': 10, 'tip': 'Markers'},
-        'event': {'pos0': 30, 'pos1': 10, 'tip': 'Events'},
+BARS = {'dataset': {'pos0': 15, 'pos1': 10, 'tip': 'Dataset'},
+        'annot': {'pos0': 30, 'pos1': 10, 'tip': 'Annotations'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
+CURR = {'pos0': 0, 'pos1': 90}
 TIME_HEIGHT = 92
 TOTAL_HEIGHT = 100
 
@@ -91,9 +89,10 @@ class Overview(QGraphicsView):
         maximum length of the window (in s).
     scene : instance of QGraphicsScene
         to keep track of the objects.
+    idx_current : QGraphicsRectItem
+        instance of the current time window
     idx_item : dict of RectItem, SimpleText
-        all the items in the scene
-
+        all the items in the scene (TODO: get rid of this)
     """
     def __init__(self, parent):
         super().__init__()
@@ -105,6 +104,7 @@ class Overview(QGraphicsView):
         self.start_time = None  # datetime, absolute start time
 
         self.scene = None
+        self.idx_current = None  # QGraphicsRectItem
         self.idx_item = {}
 
         self.create()
@@ -130,6 +130,9 @@ class Overview(QGraphicsView):
             self.maximum = dataset['last_second']
             self.start_time = dataset['start_time']
 
+        # make it time-zone unaware
+        self.start_time = self.start_time.replace(tzinfo=None)
+
         self.parent.value('window_start', 0)  # the only value that is reset
 
         self.display()
@@ -150,13 +153,7 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
-        item = QGraphicsLineItem(self.parent.value('window_start'),
-                                 0,
-                                 self.parent.value('window_start'),
-                                 current_line_height)
-        item.setPen(QPen(Qt.red))
-        self.scene.addItem(item)
-        self.idx_item['current'] = item
+        self.display_current()
 
         for name, pos in BARS.items():
             item = QGraphicsRectItem(self.minimum, pos['pos0'],
@@ -166,9 +163,7 @@ class Overview(QGraphicsView):
             self.idx_item[name] = item
 
         self.add_timestamps()
-
-        if self.parent.notes.annot is not None:
-            self.parent.notes.display_notes()
+        self.parent.notes.display_notes()
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview.
@@ -177,14 +172,14 @@ class Overview(QGraphicsView):
 
         """
         start_time = self.start_time + timedelta(seconds=self.minimum)
-        first_hour = int(datetime(start_time.year, start_time.month,
-                                  start_time.day,
-                                  start_time.hour + 1).timestamp())
+        first_hour = int((start_time.replace(minute=0, second=0,
+                                             microsecond=0) +
+                          timedelta(hours=1)).timestamp())
 
         end_time = self.start_time + timedelta(seconds=self.maximum)
-        last_hour = int(datetime(end_time.year, end_time.month,
-                                 end_time.day,
-                                 end_time.hour + 1).timestamp())
+        last_hour = int((end_time.replace(minute=0, second=0,
+                                          microsecond=0) +
+                         timedelta(hours=1)).timestamp())
 
         steps = self.parent.value('timestamp_steps')
         transform, _ = self.transform().inverted()
@@ -220,8 +215,7 @@ class Overview(QGraphicsView):
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
             self.parent.value('window_start', new_position)
-            self.idx_item['current'].setPos(self.parent.value('window_start'),
-                                            0)
+            self.idx_current.setPos(new_position, 0)
 
             current_time = (self.start_time +
                             timedelta(seconds=new_position))
@@ -239,48 +233,62 @@ class Overview(QGraphicsView):
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
 
+    def display_current(self):
+        if self.idx_current in self.scene.items():
+            self.scene.removeItem(self.idx_current)
+
+        item = QGraphicsRectItem(0,
+                                 CURR['pos0'],
+                                 self.parent.value('window_length'),
+                                 CURR['pos1'])
+        # it's necessary to create rect first, and then move it
+        item.setPos(self.parent.value('window_start'), 0)
+        item.setPen(QPen(Qt.lightGray))
+        item.setBrush(QBrush(Qt.lightGray))
+        item.setZValue(-10)
+        self.scene.addItem(item)
+        self.idx_current = item
+
     def display_markers(self):
         """Mark all the markers, from annotations or from the dataset. """
-        annot_markers = []
-        if self.parent.notes.annot is not None:
-            annot_markers = self.parent.notes.annot.get_markers()
-
         dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
-            dataset_markers = self.parent.notes.dataset_markers
+            if self.parent.value('dataset_marker_show'):
+                dataset_markers = self.parent.notes.dataset_markers
 
-        markers = annot_markers + dataset_markers
+        annot_markers = []
+        events = []
+        if self.parent.notes.annot is not None:
+            if self.parent.value('annot_marker_show'):
+                annot_markers = self.parent.notes.annot.get_markers()
+            if self.parent.value('annot_event_show'):
+                events = self.parent.notes.annot.get_events()
+
+        markers = dataset_markers + annot_markers + events
 
         for mrk in markers:
-            l = self.scene.addLine(mrk['time'], BARS['marker']['pos0'],
-                                   mrk['time'],
-                                   BARS['marker']['pos0'] +
-                                   BARS['marker']['pos1'])
+            if mrk in dataset_markers:
+                pos0 = BARS['dataset']['pos0']
+                pos1 = BARS['dataset']['pos1']
+                color = self.parent.value('dataset_marker_color')
 
             if mrk in annot_markers:
+                pos0 = BARS['annot']['pos0']
+                pos1 = BARS['annot']['pos1']
                 color = self.parent.value('annot_marker_color')
-            if mrk in dataset_markers:
-                color = self.parent.value('dataset_marker_color')
-            l.setPen(QPen(QColor(color)))
 
-    def display_events(self):
-        """Mark all the events, from annotations. """
-        # if event is too short, it does not appear in overview
-        overview_scale = self.parent.value('overview_scale')
+            if mrk in events:
+                pos0 = BARS['annot']['pos0']
+                pos1 = BARS['annot']['pos1']
+                color = convert_name_to_color(mrk['name'])
 
-        if self.parent.notes.annot is not None:
-            events = self.parent.notes.annot.get_events()
-            for evt in events:
-                length = evt['end'] - evt['start']
-                if length < overview_scale:
-                    length = overview_scale
-                rect = QGraphicsRectItem(evt['start'],
-                                         BARS['event']['pos0'],
-                                         length,
-                                         BARS['event']['pos1'])
-                rect.setPen(NoPen)
-                rect.setBrush(QBrush(Qt.black))  # TODO: depend on events
-                self.scene.addItem(rect)
+            rect = QGraphicsRectItem(mrk['start'], pos0,
+                                     mrk['end'] - mrk['start'], pos1)
+
+            rect.setPen(QPen(color))
+            rect.setBrush(QBrush(color))
+            rect.setZValue(-5)
+            self.scene.addItem(rect)
 
     def display_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.

@@ -80,7 +80,8 @@ def get_erd(sample, all_beg, all_end):
 def get_date_idx(time_of_interest, start_time, end_time):
     idx = None
     for i in range(len(start_time)):
-        if time_of_interest >= start_time[i] and time_of_interest <= end_time[i]:
+        if (time_of_interest >= start_time[i] and
+            time_of_interest <= end_time[i]):
             idx = i
             break
 
@@ -731,8 +732,7 @@ def _read_hdr_file(ktlx_file):
         if hdr['file_schema'] >= 8:
             hdr['shorted'] = unpack('<' + 'h' * 1024, f.read(2048))[:n_chan]
             hdr['frequency_factor'] = unpack('<' + 'h' * 1024,
-							     f.read(2048))[:n_chan]
-
+                                             f.read(2048))[:n_chan]
     return hdr
 
 
@@ -912,11 +912,6 @@ class Ktlx():
                     break
 
         try:
-            orig['notes'] = self._read_notes()
-        except FileNotFoundError:
-            orig['notes'] = 'could not find .ent file'
-
-        try:
             vtc_file = join(self.filename, self._basename + '.vtc')
             orig['vtc'] = _read_vtc(vtc_file)
         except FileNotFoundError:
@@ -930,11 +925,9 @@ class Ktlx():
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
-    def _read_notes(self):
+    def return_markers(self):
         """Reads the notes of the Ktlx recordings.
 
-        However, this function formats the note already in the EDFBrowser
-        format. Maybe the format should be more general.
         """
         ent_file = join(self.filename, self._basename + '.ent')
         if not exists(ent_file):
@@ -951,7 +944,6 @@ class Ktlx():
                          'converted to dict'.format(n['length']))
 
         s_freq = self._hdr['erd']['sample_freq']
-        start_time = self._hdr['erd']['creation_time']
         pcname = '0CFEBE72-DA20-4b3a-A8AC-CDD41BFE2F0D'
         note_time = []
         note_name = []
@@ -974,14 +966,16 @@ class Ktlx():
                 note_name.append('-unknown-')
             else:
                 note_name.append(n['Data']['User'].split()[0])
-            note_time.append(start_time +
-                             timedelta(seconds=n['Stamp'] / s_freq))
+            note_time.append(n['Stamp'] / s_freq)
             note_note.append(n['Text'])
 
-        s = []
+        markers = []
         for time, name, note in zip(note_time, note_name, note_note):
-            s.append(datetime.strftime(time, '%Y-%m-%dT%H:%M:%S.%f') +
-                     ',' + '0' + ',' +  # zero duration
-                     note + ' (' + name + ')')
+            m = {'name': note + ' (' + name + ')',
+                 'start': time,
+                 'end': time,
+                 'chan': None,
+                 }
+            markers.append(m)
 
-        return '\n'.join(s)
+        return markers

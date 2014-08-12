@@ -1,9 +1,16 @@
-"""Module to keep track of the score.
+"""Module to keep track of the user-made annotations and sleep scoring.
 
-There is nothing in this module that can create a xml score file. That's
-because the only way to create a score is by scoring the data, visually. Once
-you have the score file, you can work with it programmatically with this
-module.
+xml_file = '/home/gio/recordings/MG68/doc/scores/MG68_eeg_xltek_sessA_d01_08_36_57_scores.xml'
+
+from re import sub
+
+with open(xml_file, 'r') as f:
+    s = f.read()
+s1 = sub('<marker><name>(.*?)</name><time>(.*?)</time></marker>',
+         '<marker><marker_name>\g<1></marker_name><marker_start>\g<2></marker_start><marker_end>\g<2></marker_end><marker_chan/></marker>',
+         s)
+with open(xml_file, 'w') as f:
+    f.write(s1)
 
 """
 from logging import getLogger
@@ -16,10 +23,23 @@ from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
 
+def parse_iso_datetime(date):
+    try:
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f")
+
+
 def create_empty_annotations(xml_file, dataset):
-    """Create an empty annotation file."""
+    """Create an empty annotation file.
+
+    Notes
+    -----
+    Dates are made time-zone unaware.
+
+    """
     root = Element('annotations')
-    root.set('version', '3')
+    root.set('version', '4')
 
     info = SubElement(root, 'dataset')
     x = SubElement(info, 'filename')
@@ -27,7 +47,8 @@ def create_empty_annotations(xml_file, dataset):
     x = SubElement(info, 'path')  # not to be relied on
     x.text = dataset.filename
     x = SubElement(info, 'start_time')
-    x.text = dataset.header['start_time'].isoformat()
+    start_time = dataset.header['start_time'].replace(tzinfo=None)
+    x.text = start_time.isoformat()
 
     first_sec = 0
     last_sec = int(dataset.header['n_samples'] /
@@ -75,8 +96,8 @@ class Annotations():
     def dataset(self):
         xml_dataset = self.root.find('dataset')
 
-        start_time = datetime.strptime(xml_dataset.find('start_time').text,
-                                       '%Y-%m-%dT%H:%M:%S')
+        start_time = parse_iso_datetime(xml_dataset.find('start_time').text)
+
         output = {'start_time': start_time,
                   'first_second': int(xml_dataset.find('first_second').text),
                   'last_second': int(xml_dataset.find('last_second').text)
@@ -150,46 +171,129 @@ class Annotations():
 
         self.save()
 
-    def add_marker(self, name, time):
-        markers = self.rater.find('markers')
+    def add_marker(self, name, time, chan=''):
+        """
+        Raises
+        ------
+        IndexError
+            When there is no selected rater
+        """
+        try:
+            markers = self.rater.find('markers')
+        except AttributeError:
+            raise IndexError('You need to have at least one rater')
         new_marker = SubElement(markers, 'marker')
-        marker_name = SubElement(new_marker, 'name')
+        marker_name = SubElement(new_marker, 'marker_name')
         marker_name.text = name
-        marker_time = SubElement(new_marker, 'time')
-        marker_time.text = str(time)
+        marker_time = SubElement(new_marker, 'marker_start')
+        marker_time.text = str(time[0])
+        marker_time = SubElement(new_marker, 'marker_end')
+        marker_time.text = str(time[1])
+
+        if isinstance(chan, (tuple, list)):
+            chan = ', '.join(chan)
+        event_chan = SubElement(new_marker, 'marker_chan')
+        event_chan.text = chan
 
         self.save()
 
-    def remove_marker(self, name):
-        # how to remove? Maybe unique ID
-        pass
-
-    def get_markers(self, win_interval=None):
-        # get markers inside window
+    def remove_marker(self, name=None, time=None, chan=None):
+        """if you call it without arguments, it removes ALL the markers."""
         markers = self.rater.find('markers')
+
+        for m in markers:
+
+            marker_name = m.find('marker_name').text
+            marker_start = float(m.find('marker_start').text)
+            marker_end = float(m.find('marker_end').text)
+            marker_chan = m.find('marker_chan').text
+            if marker_chan is None:  # xml doesn't store empty string
+                marker_chan = ''
+
+            if name is None:
+                name_cond = True
+            else:
+                name_cond = marker_name == name
+
+            if time is None:
+                time_cond = True
+            else:
+                time_cond = time[0] <= marker_end and time[1] >= marker_start
+
+            if chan is None:
+                chan_cond = True
+            else:
+                chan_cond = marker_chan == chan
+
+            if name_cond and time_cond and chan_cond:
+                markers.remove(m)
+
+        self.save()
+
+    def get_markers(self, time=None, chan=None):
+        """
+        Raises
+        ------
+        IndexError
+            When there is no selected rater
+        """
+        # get markers inside window
+        try:
+            markers = self.rater.find('markers')
+        except AttributeError:
+            raise IndexError('You need to have at least one rater')
 
         mrks = []
         for m in markers:
 
-            time = float(m.find('time').text)
-            if win_interval is None:
-                win_cond = True
-            else:
-                win_cond = win_interval[0] <= time < win_interval[1]
+            marker_start = float(m.find('marker_start').text)
+            marker_end = float(m.find('marker_end').text)
+            marker_chan = m.find('marker_chan').text
+            if marker_chan is None:  # xml doesn't store empty string
+                marker_chan = ''
 
-            if win_cond:
-                one_mrk = {'name': m.find('name').text,
-                           'time': time}
+            if time is None:
+                time_cond = True
+            else:
+                time_cond = time[0] <= marker_end and time[1] >= marker_start
+
+            if chan is None:
+                chan_cond = True
+            else:
+                chan_cond = marker_chan == chan
+
+            if time_cond and chan_cond:
+                one_mrk = {'name': m.find('marker_name').text,
+                           'start': marker_start,
+                           'end': marker_end,
+                           'chan': marker_chan.split(', '),  # always a list
+                           }
                 mrks.append(one_mrk)
 
         return mrks
 
     @property
     def event_types(self):
-        events = self.rater.find('events')
+        """
+        Raises
+        ------
+        IndexError
+            When there is no selected rater
+        """
+        try:
+            events = self.rater.find('events')
+        except AttributeError:
+            raise IndexError('You need to have at least one rater')
+
         return [x.get('type') for x in events]
 
     def add_event_type(self, name):
+        """
+        Raises
+        ------
+        IndexError
+            When there is no selected rater
+        """
         if name in self.event_types:
             lg.info('Event type ' + name + ' exists already.')
             return
@@ -215,6 +319,12 @@ class Annotations():
         self.save()
 
     def add_event(self, name, time, chan=''):
+        """
+        Raises
+        ------
+        IndexError
+            When there is no rater / epochs at all
+        """
         if name not in self.event_types:
             self.add_event_type(name)
 
@@ -271,6 +381,12 @@ class Annotations():
         self.save()
 
     def get_events(self, name=None, time=None, chan=None):
+        """
+        Raises
+        ------
+        IndexError
+            When there is no rater / epochs at all
+        """
         # get events inside window
         events = self.rater.find('events')
         if name is not None:
@@ -309,7 +425,7 @@ class Annotations():
                     one_ev = {'name': event_name,
                               'start': event_start,
                               'end': event_end,
-                              'chan': event_chan.split(', '),  # always a cell
+                              'chan': event_chan.split(', '),  # always a list
                               }
                     ev.append(one_ev)
 
@@ -345,7 +461,14 @@ class Annotations():
             If you specify stages_of_interest, only epochs belonging to those
             stages will be included (can be an empty list).
 
+        Raises
+        ------
+        IndexError
+            When there is no rater / epochs at all
         """
+        if self.rater is None:
+            raise IndexError('You need to have at least one rater')
+
         for one_epoch in self.rater.iterfind('stages/epoch'):
             epoch = {'start': int(one_epoch.find('epoch_start').text),
                      'end': int(one_epoch.find('epoch_end').text),
@@ -403,8 +526,12 @@ class Annotations():
         ------
         KeyError
             When the id_epoch is not in the list of epochs.
-
+        IndexError
+            When there is no rater / epochs at all
         """
+        if self.rater is None:
+            raise IndexError('You need to have at least one rater')
+
         for one_epoch in self.rater.iterfind('stages/epoch'):
             if int(one_epoch.find('epoch_start').text) == epoch_start:
                 one_epoch.find('stage').text = stage

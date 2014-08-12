@@ -9,7 +9,7 @@ from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -68,6 +68,9 @@ def detect_format(filename):
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
             recformat = Ktlx
+        elif (glob(join(filename, 'info.xml')) and
+              glob(join(filename, 'subject.xml'))):
+            recformat = EgiMff
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
@@ -156,6 +159,10 @@ class Dataset:
         hdr['orig'] = output[5]
         self.header = hdr
 
+    def read_markers(self):
+        """Return the markers."""
+        return self.dataset.return_markers()
+
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None):
         """Read the data and creates a ChanTime instance
@@ -200,7 +207,7 @@ class Dataset:
 
         if chan is None:
             chan = self.header['chan_name']
-        if not isinstance(chan, list):
+        if not (isinstance(chan, list) or isinstance(chan, tuple)):
             raise TypeError('Parameter "chan" should be a list')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 

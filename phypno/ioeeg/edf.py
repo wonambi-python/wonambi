@@ -228,3 +228,7 @@ class Edf:
             dat[i, :] = (d - dig_min[i_chan]) * gain[i_chan] + phys_min[i_chan]
 
         return dat
+
+    def return_markers(self):
+        """"""
+        return []

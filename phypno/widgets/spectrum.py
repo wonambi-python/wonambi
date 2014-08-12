@@ -249,7 +249,7 @@ class Spectrum(QWidget):
 
     def reset(self):
         """Reset widget as new"""
-        self.spectrum.idx_chan.clear()
-        if self.spectrum.scene is not None:
-            self.spectrum.scene.clear()
-        self.spectrum.scene = None
+        self.idx_chan.clear()
+        if self.scene is not None:
+            self.scene.clear()
+        self.scene = None

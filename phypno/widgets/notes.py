@@ -1,7 +1,7 @@
 """Widgets containing notes (such as markers, events, and stages).
 
   - markers are unique (might have the same text), are not mutually
-    exclusive, do not have duration
+    exclusive, have variable duration
   - events are not unique, are not mutually exclusive, have variable duration
   - stages are not unique, are mutually exclusive, have fixed duration
 
@@ -9,7 +9,7 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 from functools import partial
 from math import floor
 from os.path import basename, splitext
@@ -59,7 +59,9 @@ class ConfigNotes(Config):
         self.index['annot_marker_show'] = FormBool('Display Markers in '
                                                    'annotations')
         self.index['annot_marker_color'] = FormStr()
-        self.index['marker_linewidth'] = FormFloat()
+        self.index['annot_event_show'] = FormBool('Display Events in '
+                                                  'annotations')
+        self.index['min_marker_dur'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow(self.index['dataset_marker_show'])
@@ -68,8 +70,10 @@ class ConfigNotes(Config):
         form_layout.addRow(self.index['annot_marker_show'])
         form_layout.addRow('Color of markers in annotations',
                            self.index['annot_marker_color'])
-        form_layout.addRow('Width of the markers',
-                           self.index['marker_linewidth'])
+        form_layout.addRow(self.index['annot_event_show'])
+        form_layout.addRow('Below this duration, markers and events have no'
+                           'duration',
+                           self.index['min_marker_dur'])
 
         box0.setLayout(form_layout)
 
@@ -289,22 +293,6 @@ class Notes(QTabWidget):
 
         self.display_notes()
 
-    def update_dataset_markers(self, header):
-        """called by info.open_dataset
-        """
-        markers = []
-        splitted = header['orig']['notes'].split('\n')
-        for mrk in splitted:
-            values = mrk.split(',')
-            mrk_time = datetime.strptime(values[0], '%Y-%m-%dT%H:%M:%S.%f')
-            mrk_sec = (mrk_time - header['start_time']).total_seconds()
-
-            markers.append({'time': mrk_sec,
-                            'name': ','.join(values[2:])
-                            })
-        self.dataset_markers = markers
-        self.display_markers()
-
     def display_notes(self):
         """Display information about scores and raters.
 
@@ -312,16 +300,15 @@ class Notes(QTabWidget):
         calling the functions in overview. But conceptually it belongs here.
 
         """
-        short_xml_file = short_strings(basename(self.annot.xml_file))
-        self.idx_annotations.setText(short_xml_file)
-        try:
+        if self.annot is not None:
+            short_xml_file = short_strings(basename(self.annot.xml_file))
+            self.idx_annotations.setText(short_xml_file)
             # if annotations were loaded without dataset
             if self.parent.overview.scene is None:
                 self.parent.overview.update()
 
             self.idx_rater.setText(self.annot.current_rater)
 
-            self.display_markers()
             self.display_eventtype()
 
             for epoch in self.annot.epochs:
@@ -329,11 +316,9 @@ class Notes(QTabWidget):
                                                     epoch['end'] -
                                                     epoch['start'],
                                                     epoch['stage'])
-
             self.display_stats()
 
-        except IndexError:
-            self.idx_rater.setText('')
+        self.display_markers()
 
     def display_stats(self):
         """Display summary statistics about duration in each stage."""
@@ -361,21 +346,23 @@ class Notes(QTabWidget):
 
         annot_markers = []
         if self.parent.notes.annot is not None:
-            annot_markers = self.parent.notes.annot.get_markers()
+            if self.parent.value('annot_marker_show'):
+                annot_markers = self.parent.notes.annot.get_markers()
 
         dataset_markers = []
         if self.parent.notes.dataset_markers is not None:
-            dataset_markers = self.parent.notes.dataset_markers
+            if self.parent.value('dataset_marker_show'):
+                dataset_markers = self.parent.notes.dataset_markers
 
         markers = annot_markers + dataset_markers
-        markers = sorted(markers, key=lambda x: x['time'])
+        markers = sorted(markers, key=lambda x: x['start'])
 
         self.idx_marker.clear()
         self.idx_marker.setRowCount(len(markers))
 
         for i, mrk in enumerate(markers):
             abs_time = (start_time +
-                        timedelta(seconds=mrk['time'])).strftime('%H:%M:%S')
+                        timedelta(seconds=mrk['start'])).strftime('%H:%M:%S')
             item_time = QTableWidgetItem(abs_time)
             self.idx_marker.setItem(i, 0, item_time)
             item_name = QTableWidgetItem(mrk['name'])
@@ -389,7 +376,7 @@ class Notes(QTabWidget):
             item_name.setTextColor(QColor(color))
 
         # store information about the time as list (easy to access)
-        marker_time = [mrk['time'] for mrk in markers]
+        marker_time = [mrk['start'] for mrk in markers]
         self.idx_marker.setProperty('time', marker_time)
 
         if self.parent.traces.data is not None:
@@ -577,7 +564,7 @@ class Notes(QTabWidget):
         self.idx_event_list.setProperty('start', [x['start'] for x in events])
         self.idx_event_list.setProperty('end', [x['end'] for x in events])
 
-        self.parent.overview.display_events()
+        self.parent.overview.display_markers()
         self.parent.traces.display()
 
     def reset(self):
