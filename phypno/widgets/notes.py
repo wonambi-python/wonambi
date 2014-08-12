@@ -305,28 +305,29 @@ class Notes(QTabWidget):
         calling the functions in overview. But conceptually it belongs here.
 
         """
-        short_xml_file = short_strings(basename(self.annot.xml_file))
-        self.idx_annotations.setText(short_xml_file)
-        try:
-            # if annotations were loaded without dataset
-            if self.parent.overview.scene is None:
-                self.parent.overview.update()
+        if self.annot is not None:
+            short_xml_file = short_strings(basename(self.annot.xml_file))
+            self.idx_annotations.setText(short_xml_file)
+            try:
+                # if annotations were loaded without dataset
+                if self.parent.overview.scene is None:
+                    self.parent.overview.update()
 
-            self.idx_rater.setText(self.annot.current_rater)
+                self.idx_rater.setText(self.annot.current_rater)
 
-            self.display_markers()
-            self.display_eventtype()
+                self.display_markers()
+                self.display_eventtype()
 
-            for epoch in self.annot.epochs:
-                self.parent.overview.display_stages(epoch['start'],
-                                                    epoch['end'] -
-                                                    epoch['start'],
-                                                    epoch['stage'])
+                for epoch in self.annot.epochs:
+                    self.parent.overview.display_stages(epoch['start'],
+                                                        epoch['end'] -
+                                                        epoch['start'],
+                                                        epoch['stage'])
 
-            self.display_stats()
+                self.display_stats()
 
-        except IndexError:
-            self.idx_rater.setText('')
+            except IndexError:
+                self.idx_rater.setText('')
 
     def display_stats(self):
         """Display summary statistics about duration in each stage."""

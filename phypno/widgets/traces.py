@@ -9,7 +9,8 @@ from datetime import timedelta
 from functools import partial
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, max, min,
-                   log2, pad, power)
+                   linspace, log2, pad, power)
+from scipy.signal import decimate
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QAction,
                          QBrush,
@@ -51,6 +52,7 @@ class ConfigTraces(Config):
         self.index['y_scale'] = FormFloat()
         self.index['label_ratio'] = FormFloat()
         self.index['n_time_labels'] = FormInt()
+        self.index['max_s_freq'] = FormInt()
 
         form_layout = QFormLayout()
         box0.setLayout(form_layout)
@@ -62,6 +64,8 @@ class ConfigTraces(Config):
                            self.index['label_ratio'])
         form_layout.addRow('Number of time labels',
                            self.index['n_time_labels'])
+        form_layout.addRow('Maximum Sampling Frequency',
+                           self.index['max_s_freq'])
 
         box1 = QGroupBox('Grid')
 
@@ -258,6 +262,15 @@ class Traces(QGraphicsView):
                                  begtime=window_start,
                                  endtime=window_end)
 
+        max_s_freq = self.parent.value('max_s_freq')
+        if data.s_freq > max_s_freq:
+            TRIAL = 0
+            q = int(data.s_freq / max_s_freq)
+            lg.debug('Decimate q ' + str(q))
+            data.data[TRIAL] = decimate(data.data[TRIAL], q, axis=1)
+            data.axis['time'][TRIAL] = decimate(data.axis['time'][TRIAL], q)
+            data.s_freq = int(data.s_freq / q)
+
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
         self.parent.overview.mark_downloaded(window_start, window_end)
 
@@ -325,13 +338,11 @@ class Traces(QGraphicsView):
         """
         min_time = int(floor(min(self.data.axis['time'][0])))
         max_time = int(ceil(max(self.data.axis['time'][0])))
-
         n_time_labels = self.parent.value('n_time_labels')
-        step = int((max_time - min_time) / n_time_labels)
 
         self.idx_time = []
         self.time_pos = []
-        for one_time in range(min_time, max_time, step):
+        for one_time in linspace(min_time, max_time, n_time_labels):
             x_label = (self.data.start_time +
                        timedelta(seconds=one_time)).strftime('%H:%M:%S')
             item = QGraphicsSimpleTextItem(x_label)
