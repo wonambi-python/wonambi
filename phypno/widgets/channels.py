@@ -412,11 +412,21 @@ class Channels(QWidget):
             groups = load(outfile)
 
         s_freq = self.parent.info.dataset.header['s_freq']
+        no_in_dataset = []
         for one_grp in groups:
+            no_in_dataset.extend(set(one_grp['chan_to_plot']) -
+                                 set(self.chan_name))
+            chan_to_plot = set(self.chan_name) & set(one_grp['chan_to_plot'])
+            ref_chan = set(self.chan_name) & set(one_grp['ref_chan'])
+
             group = ChannelsGroup(self.chan_name, one_grp, s_freq)
-            group.highlight_channels(group.idx_l0, one_grp['chan_to_plot'])
-            group.highlight_channels(group.idx_l1, one_grp['ref_chan'])
+            group.highlight_channels(group.idx_l0, chan_to_plot)
+            group.highlight_channels(group.idx_l1, ref_chan)
             self.tabs.addTab(group, one_grp['name'])
+
+        if no_in_dataset:
+            msg = 'Channels not present in the dataset: '
+            self.parent.statusBar().showMessage(msg + ', '.join(no_in_dataset))
 
         self.apply()
 
