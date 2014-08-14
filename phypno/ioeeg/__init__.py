@@ -96,5 +96,5 @@ from .ktlx import Ktlx
 from .blackrock import BlackRock
 from .egimff import EgiMff
 # from .fiff import Fiff, write_fiff
-# from .fieldtrip import Fieldtrip, write_fieldtrip
+from .fieldtrip import FieldTrip, write_fieldtrip
 # from .eeglab import Eeglab, write_eeglab

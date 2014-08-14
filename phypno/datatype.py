@@ -278,6 +278,21 @@ class Data:
 
             yield output
 
+    def export(self, filename, export_format='fieldtrip'):
+        """Export data in other formats.
+
+        Parameters
+        ----------
+        filename : path to file
+            file to write
+        export_format : str, optional
+            supported export format is currently only FieldTrip
+        """
+        if export_format == 'fieldtrip':
+            from .ioeeg import write_fieldtrip  # avoid circular import
+
+            write_fieldtrip(self, filename)
+
 
 class ChanTime(Data):
     """Specific class for chan-time recordings, with axes:

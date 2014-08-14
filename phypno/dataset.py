@@ -9,7 +9,7 @@ from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -89,6 +89,8 @@ def detect_format(filename):
                     recformat = Edf
             elif file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
                 recformat = BlackRock
+            elif file_header[:6] == b'MATLAB':  # we might need to read more
+                recformat = FieldTrip
             else:
                 raise UnrecognizedFormat('Unrecognized format for file ' +
                                          filename)
