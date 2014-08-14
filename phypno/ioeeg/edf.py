@@ -221,10 +221,10 @@ class Edf:
         assert all(dig_range > 0)
         gain = phys_range / dig_range
 
-        dat = empty(shape=(len(chan), endsam - begsam), dtype='float32')
+        dat = empty(shape=(len(chan), endsam - begsam), dtype='float64')
 
         for i, i_chan in enumerate(chan):
-            d = self._read_dat(i_chan, begsam, endsam)
+            d = self._read_dat(i_chan, begsam, endsam).astype('float64')
             dat[i, :] = (d - dig_min[i_chan]) * gain[i_chan] + phys_min[i_chan]
 
         return dat
