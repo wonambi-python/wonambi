@@ -57,8 +57,7 @@ class FieldTrip:
             ft_data = ft_data[VAR]
 
             s_freq = ft_data['fsample'].astype('float64').item()
-            sampleinfo = ft_data['sampleinfo'].item()
-            n_samples = sampleinfo[1] - sampleinfo[0] + 1
+            n_samples = ft_data['trial'].item().shape[1]
             chan_name = list(ft_data['label'].item())
 
         except NotImplementedError:
