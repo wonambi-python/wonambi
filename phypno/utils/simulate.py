@@ -3,17 +3,18 @@ lg = getLogger('phypno')
 
 from datetime import datetime
 
-from numpy import (abs, angle, arange, asarray, empty, exp, linspace, real,
-                   zeros)
+from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
+                   real, tile, zeros)
 from numpy.random import random, randn
 from numpy.fft import fft, ifft
+from scipy.signal import savgol_filter
 
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 
 
 def create_data(datatype='ChanTime', start_time=None, n_trial=None,
                 chan_name=None, n_chan=8, s_freq=None, time=None, freq=None,
-                values=None, noise_coef=0):
+                values=None, noise=0):
     """Create data of different datatype from scratch.
 
     Parameters
@@ -34,8 +35,9 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         if tuple, the first and second numbers indicate beginning and end
     freq : numpy.ndarray or tuple of two numbers, optional
         if tuple, the first and second numbers indicate beginning and end
-    noise_coef : float, optional
-        noise color to generate (white noise is 0, pink is 1, brown is 2)
+    noise : float or str, optional
+        noise color to generate (white noise is 0, pink is 1, brown is 2). If
+        str, then it can be 'ekg' (to create heart-related activity).
     values : tuple of two numbers, optional
         the min and max values of the random data values.
 
@@ -87,15 +89,23 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         data = ChanTime()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            values = randn(*(len(chan_name), len(time))) * mult + add
-            for i_ch, x in enumerate(values):
-                values[i_ch, :] = _color_noise(x, s_freq, noise_coef)
+            if noise == 'ekg':
+                n_sec = around(time[-1] - time[0])
+                values = (tile(_make_ekg(s_freq), (len(chan_name), n_sec))
+                          * mult + add)
+
+            else:
+                values = randn(*(len(chan_name), len(time))) * mult + add
+                for i_ch, x in enumerate(values):
+                    values[i_ch, :] = _color_noise(x, s_freq, noise)
             data.data[i] = values
+
     if datatype == 'ChanFreq':
         data = ChanFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
             data.data[i] = random((len(chan_name), len(freq))) * mult + add
+
     if datatype == 'ChanTimeFreq':
         data = ChanTimeFreq()
         data.data = empty(n_trial, dtype='O')
@@ -184,3 +194,37 @@ def f(x, coef):
     y = 1 / (x ** coef)
     y[x < .1] = 0
     return y
+
+
+def _make_ekg(s_freq):
+    """Create a simulated EKG of one second.
+
+    Parameters
+    ----------
+    s_freq : int
+        sampling frequency / duration of the sample
+
+    Returns
+    -------
+    ndarray
+        vector of length "s_freq" with one EKG in it, with peak at 1.
+
+    Notes
+    -----
+    Based on ecg.m in Matlab, in the signal toolbox.
+    """
+    EKG_val = asarray([0, 1, 40, 1, 0, -34, 118, -99, 0, 2, 21, 2, 0, 0, 0])
+    EKG_time = asarray([0, 27, 59, 91, 131, 141, 163, 185, 195, 275, 307, 339,
+                        357, 390, 440, 500])
+
+    EKG_time = around(EKG_time * s_freq / EKG_time[-2])
+    EKG_time[-1] = s_freq
+    x = empty(s_freq)
+    for i in range(len(EKG_val) - 1):
+        m = arange(EKG_time[i], EKG_time[i + 1])
+        slope = (EKG_val[i + 1] - EKG_val[i]) / (EKG_time[i + 1] - EKG_time[i])
+        x[EKG_time[i]:EKG_time[i + 1]] = EKG_val[i] + slope * (m - EKG_time[i])
+
+    polyorder = int(s_freq / 40 / 2) * 2 + 1
+    x = savgol_filter(x, polyorder, 0)
+    return x / max(x)
