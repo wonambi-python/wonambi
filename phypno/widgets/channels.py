@@ -381,6 +381,7 @@ class Channels(QWidget):
             self.parent.spectrum.reset()
 
     def read_group_info(self):
+        """Get information about groups directly from the widget."""
         self.groups = []
         for i in range(self.tabs.count()):
             one_group = self.tabs.widget(i).get_info()
@@ -388,8 +389,18 @@ class Channels(QWidget):
             self.groups.append(one_group)
 
     def load_channels(self, debug_filename=None):
-        """Load channel groups from file. """
-        if not debug_filename:
+        """Load channel groups from file.
+
+        Parameters
+        ----------
+        debug_filename : path to file
+            when debugging the function, you can open a channels file from the
+            command line
+        """
+        if debug_filename:
+            filename = debug_filename
+
+        else:
             if self.filename is not None:
                 filename = self.filename
             elif self.parent.info.filename is not None:
@@ -404,8 +415,6 @@ class Channels(QWidget):
                                                    'Channels File (*.json)')
             if filename == '':
                 return
-        else:
-            filename = debug_filename
 
         self.filename = filename
         with open(filename, 'r') as outfile:
