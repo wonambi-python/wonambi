@@ -3,7 +3,9 @@
 Poor man's version of
 https://github.com/breuderink/eegtools/blob/master/eegtools/io/edfplus.py
 
-TODO: values are slightly different from those computed by fieldtrip
+Values are slightly different from those computed by FieldTrip, however they
+are identical to those computed by Biosig and EDFBrowser. The difference is due
+to the calibration.
 
 """
 
