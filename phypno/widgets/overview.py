@@ -165,8 +165,15 @@ class Overview(QGraphicsView):
         self.add_timestamps()
 
     def update_settings(self):
+        """After changing the settings, we need to recreate the whole image."""
         self.display()
-        self.display_markers()
+
+        if self.parent.notes.annot is not None:
+            self.display_markers()
+            for epoch in self.parent.notes.annot.epochs:
+                self.display_stages(epoch['start'],
+                                    epoch['end'] - epoch['start'],
+                                    epoch['stage'])
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview."""
@@ -221,6 +228,7 @@ class Overview(QGraphicsView):
             self.parent.notes.set_stage_index()
 
     def display_current(self):
+        """Create a rectangle showing the current window."""
         if self.idx_current in self.scene.items():
             self.scene.removeItem(self.idx_current)
 
@@ -252,7 +260,6 @@ class Overview(QGraphicsView):
         if self.parent.notes.annot is not None:
             if self.parent.value('annot_show'):
                 annot_markers = self.parent.notes.annot.get_markers()
-            if self.parent.value('annot_event_show'):
                 events = self.parent.notes.annot.get_events()
 
         markers = dataset_markers + annot_markers + events
@@ -339,19 +346,16 @@ class Overview(QGraphicsView):
         ----------
         event : instance of QtCore.QEvent
             it contains the position that was clicked.
-
-        Notes
-        -----
-        This function overwrites Qt function, therefore the non-standard
-        name. Argument also depends on Qt.
-
         """
-        x_in_scene = self.mapToScene(event.pos()).x()
-        window_length = self.parent.value('window_length')
-        window_start = int(floor(x_in_scene / window_length) * window_length)
-        self.update_position(window_start)
+        if self.scene is not None:
+            x_in_scene = self.mapToScene(event.pos()).x()
+            window_length = self.parent.value('window_length')
+            window_start = int(floor(x_in_scene / window_length) *
+                               window_length)
+            self.update_position(window_start)
 
     def reset(self):
+        """Reset the widget, simply clear the scene."""
         if self.scene is not None:
             self.scene.clear()
         self.scene = None

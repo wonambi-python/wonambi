@@ -39,7 +39,7 @@ MINIMUM_N_SAMPLES = 32  # at least this number of samples to compute fft
 
 
 class ConfigTraces(Config):
-
+    """Widget with preferences in Settings window for Overview."""
     def __init__(self, update_widget):
         super().__init__('traces', update_widget)
 
@@ -139,11 +139,6 @@ class Traces(QGraphicsView):
         the rectangle showing the selection (both for selection and event)
     idx_info : instance of QGraphicsSimpleTextItem
         the rectangle showing the selection
-
-    Notes
-    -----
-    TODO: maybe create an empty scene to add markers
-
     """
     def __init__(self, parent):
         super().__init__()
@@ -168,6 +163,7 @@ class Traces(QGraphicsView):
         self.create_action()
 
     def create_action(self):
+        """Create actions associated with this widget."""
         actions = {}
 
         act = QAction(QIcon(ICON['step_prev']), 'Previous Step', self)
@@ -401,6 +397,7 @@ class Traces(QGraphicsView):
                 self.chan_pos.append(chan_pos)
 
     def display_grid(self):
+        """Display grid on x-axis and y-axis."""
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
@@ -573,7 +570,6 @@ class Traces(QGraphicsView):
         ----------
         event : instance of QtCore.QEvent
             it contains the position that was clicked.
-
         """
         xy_scene = self.mapToScene(event.pos())
         chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
@@ -590,7 +586,6 @@ class Traces(QGraphicsView):
     def mouseMoveEvent(self, event):
         """
         """
-        # lg.debug('IDX_SEL: ' + str(self.idx_sel))
         if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
@@ -727,7 +722,6 @@ class Traces(QGraphicsView):
         how to give the width of the label in absolute width, 2) how to strech
         scene just enough that it doesn't trigger a scrollbar. However, it's
         pretty good as it is now.
-
         """
         if self.scene is not None:
             ratio = self.width() / (self.scene.width() * 1.1)

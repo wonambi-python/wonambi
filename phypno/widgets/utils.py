@@ -51,7 +51,15 @@ config = QSettings("phypno", "scroll_data")
 
 
 class Path(QPainterPath):
+    """Paint a line in the simplest possible way.
 
+    Parameters
+    ----------
+    x : ndarray or list
+        x-coordinates
+    y : ndarray or list
+        y-coordinates
+    """
     def __init__(self, x, y):
         super().__init__()
 
@@ -61,8 +69,12 @@ class Path(QPainterPath):
 
 
 class TextItem_with_BG(QGraphicsSimpleTextItem):
-    """Class to draw text with black background (easier to read).
+    """Class to draw text with dark background (easier to read).
 
+    Parameters
+    ----------
+    bg_color : str or QColor, optional
+        color to use as background
     """
     def __init__(self, bg_color='black'):
         super().__init__()
@@ -83,16 +95,16 @@ def keep_recent_datasets(max_dataset_history, new_dataset=None):
 
     Parameters
     ----------
+    max_dataset_history : int
+        maximum number of datasets to remember
     new_dataset : str, optional
         path to file
-    max_dataset_history : TODO
 
     Returns
     -------
     list of str
         paths to most recent datasets (only if you don't specify
         new_dataset)
-
     """
     history = config.value('recent_recordings', [])
     if isinstance(history, str):
