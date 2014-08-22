@@ -220,8 +220,7 @@ class Info(QWidget):
         self.display_dataset()
 
     def display_dataset(self):
-        """Update the widget with information about the dataset.
-        """
+        """Update the widget with information about the dataset."""
         header = self.dataset.header
 
         self.parent.setWindowTitle(basename(self.filename))
@@ -236,13 +235,13 @@ class Info(QWidget):
         self.idx_end_time.setText(end_time.strftime('%b-%d %H:%M:%S'))
 
     def display_view(self):
-        """Update information about the size of the traces.
-        """
+        """Update information about the size of the traces."""
         self.idx_amplitude.setText(str(self.parent.value('y_scale')))
         self.idx_distance.setText(str(self.parent.value('y_distance')))
         self.idx_length.setText(str(self.parent.value('window_length')))
 
     def reset(self):
+        """Reset widget to original state."""
         self.filename = None
         self.dataset = None
 

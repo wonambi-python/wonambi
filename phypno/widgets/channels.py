@@ -329,7 +329,6 @@ class Channels(QWidget):
         ----------
         chan_name : list of str
             list of channels, to choose from.
-
         """
         self.chan_name = chan_name
 
@@ -338,8 +337,7 @@ class Channels(QWidget):
 
         Notes
         -----
-        It's not necessary to call self.apply()
-
+        Don't call self.apply() just yet, only if the user wants it.
         """
         if self.chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
