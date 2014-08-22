@@ -178,7 +178,7 @@ class Notes(QTabWidget):
         tab2 = QWidget()
         tab_annot = QTableWidget()
         self.idx_annot_list = tab_annot
-        delete_row = QPushButton('Delete Event')
+        delete_row = QPushButton('Delete')
         delete_row.clicked.connect(self.delete_row)
 
         scroll = QScrollArea(tab2)
@@ -402,6 +402,16 @@ class Notes(QTabWidget):
 
         self.update_annotations()
 
+    def get_selected_events(self, time_selection=None):
+
+        events = []
+        for checkbox in self.idx_eventtype_list:
+            if checkbox.checkState() == Qt.Checked:
+                events.extend(self.annot.get_events(name=checkbox.text(),
+                                                    time=time_selection))
+
+        return events
+
     def update_annotations(self):
         """Update annotations made by the user, including markers and events.
         Depending on the settings, it might add the markers to overview and
@@ -410,11 +420,7 @@ class Notes(QTabWidget):
         start_time = self.parent.overview.start_time
 
         markers = self.parent.notes.annot.get_markers()
-
-        events = []
-        for checkbox in self.idx_eventtype_list:
-            if checkbox.checkState() == Qt.Checked:
-                events.extend(self.annot.get_events(name=checkbox.text()))
+        events = self.get_selected_events()
 
         all_annot = markers + events
         all_annot = sorted(all_annot, key=lambda x: x['start'])
@@ -461,6 +467,7 @@ class Notes(QTabWidget):
             self.parent.overview.display_markers()
 
     def delete_row(self):
+        """Delete marker or event from annotations, based on row."""
         sel_model = self.idx_annot_list.selectionModel()
         for row in sel_model.selectedRows():
             i = row.row()
@@ -615,7 +622,7 @@ class Notes(QTabWidget):
 
     def add_event(self, name, time):
         self.annot.add_event(name, time)
-        self.display_events()
+        self.update_annotations()
 
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')

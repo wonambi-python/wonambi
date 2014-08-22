@@ -95,6 +95,9 @@ class Overview(QGraphicsView):
         to keep track of the objects
     idx_current : QGraphicsRectItem
         instance of the current time window
+    idx_annot : list of QGraphicsRectItem
+        list of user-made annotations
+
     """
     def __init__(self, parent):
         super().__init__()
@@ -107,6 +110,7 @@ class Overview(QGraphicsView):
 
         self.scene = None
         self.idx_current = None
+        self.idx_annot = []
 
         self.create()
 
@@ -250,6 +254,9 @@ class Overview(QGraphicsView):
         This function should be called only when we load the dataset or when
         we change the settings.
         """
+        for rect in self.idx_annot:
+            self.scene.removeItem(rect)
+
         dataset_markers = []
         if self.parent.info.markers is not None:
             if self.parent.value('dataset_marker_show'):
@@ -260,7 +267,7 @@ class Overview(QGraphicsView):
         if self.parent.notes.annot is not None:
             if self.parent.value('annot_show'):
                 annot_markers = self.parent.notes.annot.get_markers()
-                events = self.parent.notes.annot.get_events()
+                events = self.parent.notes.get_selected_events()
 
         markers = dataset_markers + annot_markers + events
 
@@ -281,12 +288,14 @@ class Overview(QGraphicsView):
                 color = convert_name_to_color(mrk['name'])
 
             rect = QGraphicsRectItem(mrk['start'], pos0,
-                                     mrk['end'] - mrk['start'], pos1)
+                                     mrk['end'] - mrk['start'], pos1,
+                                     scene=self.scene)
 
             rect.setPen(QPen(color))
             rect.setBrush(QBrush(color))
             rect.setZValue(-5)
             self.scene.addItem(rect)
+            self.idx_annot.append(rect)
 
     def display_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
