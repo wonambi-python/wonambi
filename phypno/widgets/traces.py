@@ -446,10 +446,9 @@ class Traces(QGraphicsView):
         if self.parent.notes.annot is not None:
             if self.parent.value('annot_show'):
                 annot_markers = self.parent.notes.annot.get_markers()
+                events = self.parent.notes.get_selected_events((window_start,
+                                                                window_end))
 
-            if self.parent.value('annot_show'):
-                events = self.parent.notes.annot.get_events(time=(window_start,
-                                                                  window_end))
         markers = dataset_markers + annot_markers + events
 
         for mrk in markers:
@@ -611,7 +610,7 @@ class Traces(QGraphicsView):
                 eventtype = self.parent.notes.idx_eventtype.currentText()
                 color = convert_name_to_color(eventtype)
 
-            item.setBrush(QBrush(color.lighter(150)))
+            item.setBrush(QBrush(color.lighter(115)))
             item.setZValue(-10)
             self.scene.addItem(item)
             self.idx_sel = item
