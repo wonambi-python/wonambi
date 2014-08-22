@@ -34,6 +34,8 @@ class Info(QWidget):
         the full path of the file.
     dataset : instance of phypno.Dataset
         the dataset already read in.
+    markers : list
+        list of the markers in the dataset
 
     idx_filename : QPushButton
         button to select dataset / show current dataset
@@ -60,6 +62,7 @@ class Info(QWidget):
 
         self.filename = None
         self.dataset = None
+        self.markers = []
 
         # about the recordings
         self.idx_filename = None
@@ -191,13 +194,15 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('')
 
-        try:
-            self.parent.notes.dataset_markers = self.dataset.read_markers()
-        except FileNotFoundError:
-            lg.info('No notes/markers present in the header of the file')
-
         self.parent.overview.update()
         self.parent.channels.update(self.dataset.header['chan_name'])
+
+        try:
+            self.markers = self.dataset.read_markers()
+        except FileNotFoundError:
+            lg.info('No notes/markers present in the header of the file')
+        else:
+            self.parent.notes.update_dataset_marker()
 
     def update(self, filename):
         """Read dataset from filename.
