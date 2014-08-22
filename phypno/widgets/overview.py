@@ -97,7 +97,7 @@ class Overview(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigOverview(self.display)
+        self.config = ConfigOverview(self.update_settings)
 
         self.minimum = None
         self.maximum = None
@@ -163,7 +163,11 @@ class Overview(QGraphicsView):
             self.idx_item[name] = item
 
         self.add_timestamps()
-        self.parent.notes.display_notes()
+
+    def update_settings(self):
+        self.display()
+        if self.parent.value('dataset_marker_show'):
+            self.display_markers()
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview.
@@ -251,11 +255,15 @@ class Overview(QGraphicsView):
         self.idx_current = item
 
     def display_markers(self):
-        """Mark all the markers, from annotations or from the dataset. """
+        """Mark all the markers, from annotations or from the dataset.
+
+        This function should be called only when we load the dataset or when
+        we change the settings.
+        """
         dataset_markers = []
-        if self.parent.notes.dataset_markers is not None:
+        if self.parent.info.markers is not None:
             if self.parent.value('dataset_marker_show'):
-                dataset_markers = self.parent.notes.dataset_markers
+                dataset_markers = self.parent.info.markers
 
         annot_markers = []
         events = []

@@ -14,13 +14,16 @@ from functools import partial
 from math import floor
 from os.path import basename, splitext
 
+from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QAbstractItemView,
                          QAction,
+                         QCheckBox,
                          QColor,
                          QComboBox,
                          QFileDialog,
                          QFormLayout,
                          QGroupBox,
+                         QHBoxLayout,
                          QIcon,
                          QInputDialog,
                          QLabel,
@@ -32,11 +35,13 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QTabWidget,
                          QVBoxLayout,
                          QWidget,
+                         QScrollArea,
+                         QSizePolicy,
                          )
 
 from ..attr import Annotations, create_empty_annotations
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool
-from .utils import short_strings, ICON
+from .utils import convert_name_to_color, short_strings, ICON
 
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3',
@@ -107,16 +112,20 @@ class Notes(QTabWidget):
     ----------
     parent : instance of QMainWindow
         the main window.
+    config : ConfigNotes
+        preferences for this widget
+
+    annot : Annotations
+        contains the annotations made by the user
 
 
     """
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-
         self.config = ConfigNotes(self.update_settings)
+
         self.annot = None
-        self.dataset_markers = None  # shouldn't this be in info?
 
         self.idx_annotations = None
         self.idx_rater = None
@@ -124,8 +133,9 @@ class Notes(QTabWidget):
 
         self.idx_marker = None
         self.idx_eventtype = None  # combobox of eventtype
-        self.idx_eventtype_list = None  # list of event types
-        self.idx_event_list = None  # list of events
+        self.idx_eventtype_scroll = None  # QScrollArea
+        self.idx_eventtype_list = []  # list of eventtype QCheckBox
+        self.idx_annot_list = None  # list of markers and events
         self.idx_stage = None
 
         self.create()
@@ -133,15 +143,27 @@ class Notes(QTabWidget):
 
     def create(self):
 
-        """ ------ ANNOTATIONS ------ """
-        tab0 = QWidget()
+        """ ------ MARKERS ------ """
+        tab0 = QTableWidget()
+        self.idx_marker = tab0
+
+        tab0.setColumnCount(3)
+        tab0.horizontalHeader().setStretchLastSection(True)
+        tab0.setSelectionBehavior(QAbstractItemView.SelectRows)
+        tab0.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        go_to_marker = lambda r, c: self.go_to_marker(r, c, 'dataset')
+        tab0.cellDoubleClicked.connect(go_to_marker)
+        tab0.setHorizontalHeaderLabels(['Start', 'Duration', 'Text'])
+
+        """ ------ SUMMARY ------ """
+        tab1 = QWidget()
         self.idx_eventtype = QComboBox(self)
         self.idx_stage = QComboBox(self)
         self.idx_stage.activated.connect(self.get_sleepstage)
 
         self.idx_annotations = QPushButton('Load Annotation File...')
         self.idx_annotations.clicked.connect(self.load_annot)
-        self.idx_rater = QLabel('')
+        self.idx_rater = QLabel('')  # TODO: turn into QComboBox
 
         self.idx_stats = QFormLayout()
 
@@ -159,56 +181,41 @@ class Notes(QTabWidget):
         layout.addWidget(b0)
         layout.addWidget(b1)
 
-        tab0.setLayout(layout)
+        tab1.setLayout(layout)
 
-        """ ------ MARKERS ------ """
-        tab1 = QTableWidget()
-        self.idx_marker = tab1
-
-        tab1.setColumnCount(2)
-        tab1.setHorizontalHeaderLabels(['Time', 'Text'])
-        tab1.horizontalHeader().setStretchLastSection(True)
-        tab1.setSelectionBehavior(QAbstractItemView.SelectRows)
-        tab1.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        tab1.cellDoubleClicked.connect(self.go_to_marker)
-
-        """ ------ EVENTS ------ """
+        """ ------ ANNOTATIONS ------ """
         tab2 = QWidget()
-        self.idx_eventtype_list = QListWidget()
-        self.idx_eventtype_list.itemSelectionChanged.connect(self.display_events)
-        tab_events = QTableWidget()
-        self.idx_event_list = tab_events
+        tab_annot = QTableWidget()
+        self.idx_annot_list = tab_annot
         delete_row = QPushButton('Delete Event')
         delete_row.clicked.connect(self.delete_row)
 
-        tab_events.setColumnCount(2)
-        tab_events.setHorizontalHeaderLabels(['Time', 'Event Type'])
-        tab_events.horizontalHeader().setStretchLastSection(True)
-        tab_events.setSelectionBehavior(QAbstractItemView.SelectRows)
-        tab_events.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        # tab_events.cellDoubleClicked.connect(self.go_to_marker)
+        scroll = QScrollArea(tab2)
+        scroll.setWidgetResizable(True)
+
+        evttype_group = QGroupBox('Event Types')
+        scroll.setWidget(evttype_group)
+        self.idx_eventtype_scroll = scroll
+
+        tab_annot.setColumnCount(4)
+        tab_annot.setHorizontalHeaderLabels(['Start', 'Duration', 'Text',
+                                             'Type'])
+        tab_annot.horizontalHeader().setStretchLastSection(True)
+        tab_annot.setSelectionBehavior(QAbstractItemView.SelectRows)
+        tab_annot.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        go_to_annot = lambda r, c: self.go_to_marker(r, c, 'annot')
+        tab_annot.cellDoubleClicked.connect(go_to_annot)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.idx_eventtype_list)
-        layout.addWidget(self.idx_event_list, stretch=1)
+        layout.addWidget(self.idx_eventtype_scroll, stretch=1)
+        layout.addWidget(self.idx_annot_list)
         layout.addWidget(delete_row)
         tab2.setLayout(layout)
 
         """ ------ TABS ------ """
-        self.addTab(tab0, 'Annotations')
-        self.addTab(tab1, 'Markers')
-        self.addTab(tab2, 'Events')
-
-    def delete_row(self):
-        sel_model = self.idx_event_list.selectionModel()
-        for row in sel_model.selectedRows():
-            i = row.row()
-            start = self.idx_event_list.property('start')[i]
-            end = self.idx_event_list.property('end')[i]
-            name = self.idx_event_list.item(i, 1).text()
-            self.annot.remove_event(name=name, time=(start, end))
-
-        self.display_events()
+        self.addTab(tab0, 'Markers')
+        self.addTab(tab1, 'Summary')  # disable
+        self.addTab(tab2, 'Annotations')  # disable
 
     def create_action(self):
         actions = {}
@@ -264,7 +271,8 @@ class Notes(QTabWidget):
         self.action = actions
 
     def update_settings(self):
-        self.display_markers()
+        self.update_dataset_marker()
+        self.update_annotations()
         self.parent.overview.display()
 
     def update_notes(self, xml_file, new=False):
@@ -293,6 +301,17 @@ class Notes(QTabWidget):
 
         self.display_notes()
 
+    def delete_row(self):
+        sel_model = self.idx_annot_list.selectionModel()
+        for row in sel_model.selectedRows():
+            i = row.row()
+            start = self.idx_annot_list.property('start')[i]
+            end = self.idx_annot_list.property('end')[i]
+            name = self.idx_annot_list.item(i, 1).text()
+            self.annot.remove_event(name=name, time=(start, end))
+
+        self.display_events()
+
     def display_notes(self):
         """Display information about scores and raters.
 
@@ -308,7 +327,6 @@ class Notes(QTabWidget):
                 self.parent.overview.update()
 
             self.idx_rater.setText(self.annot.current_rater)
-
             self.display_eventtype()
 
             for epoch in self.annot.epochs:
@@ -317,8 +335,6 @@ class Notes(QTabWidget):
                                                     epoch['start'],
                                                     epoch['stage'])
             self.display_stats()
-
-        self.display_markers()
 
     def display_stats(self):
         """Display summary statistics about duration in each stage."""
@@ -340,50 +356,120 @@ class Notes(QTabWidget):
 
         self.display_markers()
 
-    def display_markers(self):
-
+    def update_dataset_marker(self):
+        """Update markers which are in the dataset. It always updates the list
+        of events. Depending on the settings, it might add the markers to
+        overview and traces.
+        """
         start_time = self.parent.overview.start_time
 
-        annot_markers = []
-        if self.parent.notes.annot is not None:
-            if self.parent.value('annot_marker_show'):
-                annot_markers = self.parent.notes.annot.get_markers()
+        markers = []
+        if self.parent.info.markers is not None:
+            markers = self.parent.info.markers
 
-        dataset_markers = []
-        if self.parent.notes.dataset_markers is not None:
-            if self.parent.value('dataset_marker_show'):
-                dataset_markers = self.parent.notes.dataset_markers
-
-        markers = annot_markers + dataset_markers
-        markers = sorted(markers, key=lambda x: x['start'])
-
-        self.idx_marker.clear()
+        self.idx_marker.clearContents()
         self.idx_marker.setRowCount(len(markers))
 
         for i, mrk in enumerate(markers):
             abs_time = (start_time +
                         timedelta(seconds=mrk['start'])).strftime('%H:%M:%S')
-            item_time = QTableWidgetItem(abs_time)
-            self.idx_marker.setItem(i, 0, item_time)
-            item_name = QTableWidgetItem(mrk['name'])
-            self.idx_marker.setItem(i, 1, item_name)
+            dur = timedelta(seconds=mrk['end'] - mrk['start'])
+            duration = '{0:02d}.{1:03d}'.format(dur.seconds,
+                                                round(dur.microseconds / 1000))
 
-            if mrk in annot_markers:
-                color = self.parent.value('annot_marker_color')
-            if mrk in dataset_markers:
-                color = self.parent.value('dataset_marker_color')
+            item_time = QTableWidgetItem(abs_time)
+            item_duration = QTableWidgetItem(duration)
+            item_name = QTableWidgetItem(mrk['name'])
+
+            color = self.parent.value('dataset_marker_color')
             item_time.setTextColor(QColor(color))
+            item_duration.setTextColor(QColor(color))
             item_name.setTextColor(QColor(color))
+
+            self.idx_marker.setItem(i, 0, item_time)
+            self.idx_marker.setItem(i, 1, item_duration)
+            self.idx_marker.setItem(i, 2, item_name)
 
         # store information about the time as list (easy to access)
         marker_time = [mrk['start'] for mrk in markers]
-        self.idx_marker.setProperty('time', marker_time)
+        self.idx_marker.setProperty('start', marker_time)
 
-        if self.parent.traces.data is not None:
-            self.parent.traces.display()  # redo the whole figure
-        self.parent.overview.display_markers()
+        if self.parent.value('dataset_marker_show'):
+            if self.parent.traces.data is not None:
+                self.parent.traces.display()  # TODO: too much to redo the whole figure
+            self.parent.overview.display_markers()
 
-    def go_to_marker(self, row, col):
+    def display_eventtype(self):
+
+        evttype_group = QGroupBox('Event Types')
+        layout = QVBoxLayout()
+        evttype_group.setLayout(layout)
+
+        self.idx_eventtype_list = []
+        for one_eventtype in self.annot.event_types:
+            self.idx_eventtype.addItem(one_eventtype)
+            item = QCheckBox(one_eventtype)
+            layout.addWidget(item)
+            item.setCheckState(Qt.Checked)
+            item.stateChanged.connect(self.update_annotations)
+            self.idx_eventtype_list.append(item)
+
+        self.idx_eventtype_scroll.setWidget(evttype_group)
+
+        self.update_annotations()
+
+    def update_annotations(self):
+        """Update annotations made by the user, including markers and events.
+        Depending on the settings, it might add the markers to overview and
+        traces.
+        """
+        start_time = self.parent.overview.start_time
+
+        markers = self.parent.notes.annot.get_markers()
+
+        events = []
+        for checkbox in self.idx_eventtype_list:
+            if checkbox.checkState() == Qt.Checked:
+                events.extend(self.annot.get_events(name=checkbox.text()))
+
+        all_annot = markers + events
+        all_annot = sorted(all_annot, key=lambda x: x['start'])
+
+        self.idx_annot_list.clearContents()
+        self.idx_annot_list.setRowCount(len(all_annot))
+
+        for i, mrk in enumerate(all_annot):
+            abs_time = (start_time +
+                        timedelta(seconds=mrk['start'])).strftime('%H:%M:%S')
+            dur = timedelta(seconds=mrk['end'] - mrk['start'])
+            duration = '{0:02d}.{1:03d}'.format(dur.seconds,
+                                                round(dur.microseconds / 1000))
+
+            item_time = QTableWidgetItem(abs_time)
+            item_duration = QTableWidgetItem(duration)
+            item_name = QTableWidgetItem(mrk['name'])
+            if mrk in markers:
+                item_type = QTableWidgetItem('marker')
+                color = self.parent.value('annot_marker_color')
+            else:
+                item_type = QTableWidgetItem('event')
+                color = convert_name_to_color(mrk['name'])
+
+            item_time.setTextColor(QColor(color))
+            item_duration.setTextColor(QColor(color))
+            item_name.setTextColor(QColor(color))
+            item_type.setTextColor(QColor(color))
+
+            self.idx_annot_list.setItem(i, 0, item_time)
+            self.idx_annot_list.setItem(i, 1, item_duration)
+            self.idx_annot_list.setItem(i, 2, item_name)
+            self.idx_annot_list.setItem(i, 3, item_type)
+
+        # store information about the time as list (easy to access)
+        annot_time = [ann['start'] for ann in all_annot]
+        self.idx_annot_list.setProperty('start', annot_time)
+
+    def go_to_marker(self, row, col, table_type):
         """Move to point in time marked by the marker.
 
         Parameters
@@ -393,8 +479,12 @@ class Notes(QTabWidget):
         column : QtCore.int
 
         """
+        if table_type == 'dataset':
+            marker_time = self.idx_marker.property('start')[row]
+        else:
+            marker_time = self.idx_annot_list.property('start')[row]
+
         window_length = self.parent.value('window_length')
-        marker_time = self.idx_marker.property('time')[row]
         window_start = floor(marker_time / window_length) * window_length
         self.parent.overview.update_position(window_start)
 
@@ -517,66 +607,67 @@ class Notes(QTabWidget):
             self.annot.remove_event_type(answer[0])
             self.display_eventtype()
 
-    def display_eventtype(self):
-        self.idx_eventtype.clear()
-        self.idx_eventtype_list.clear()
-        ExtendedSelection = QAbstractItemView.SelectionMode(3)
-        self.idx_eventtype_list.setSelectionMode(ExtendedSelection)
-
-        for one_eventytype in self.annot.event_types:
-            self.idx_eventtype.addItem(one_eventytype)
-            item = QListWidgetItem(one_eventytype)
-            self.idx_eventtype_list.addItem(item)
-            item.setSelected(True)
-
-        self.display_events()
-
     def add_event(self, name, time):
         self.annot.add_event(name, time)
         self.display_events()
-
-    def display_events(self):
-        self.idx_event_list.clearContents()
-
-        selectedItems = self.idx_eventtype_list.selectedItems()
-
-        eventtypes = (x.text() for x in selectedItems)
-        events = []
-        for one_eventtype in eventtypes:
-            evts = self.annot.get_events(one_eventtype)
-            events.extend(evts)
-
-        start_time = self.parent.overview.start_time
-
-        events = sorted(events, key=lambda x: x['start'])
-        self.idx_event_list.setRowCount(len(events))
-
-        for i, evt in enumerate(events):
-            start = (start_time +
-                     timedelta(seconds=evt['start'])).strftime('%H:%M:%S')
-            end = (start_time +
-                   timedelta(seconds=evt['end'])).strftime('%H:%M:%S')
-            abs_time = start + '-' + end
-            # chan_name = ', '.join(evt['chan'])
-            self.idx_event_list.setItem(i, 0, QTableWidgetItem(abs_time))
-            self.idx_event_list.setItem(i, 1, QTableWidgetItem(evt['name']))
-
-        self.idx_event_list.setProperty('start', [x['start'] for x in events])
-        self.idx_event_list.setProperty('end', [x['end'] for x in events])
-
-        self.parent.overview.display_markers()
-        self.parent.traces.display()
 
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')
         self.idx_rater.setText('')
         self.idx_stats = QFormLayout()
 
-        self.idx_marker.clear()
+        self.idx_marker.clearContents()
+        self.idx_marker.setRowCount(0)
 
         self.idx_eventtype.clear()
-        self.idx_eventtype_list.clear()
-        self.idx_event_list.clear()
+
+        self.idx_annot_list.clear()
 
         self.annot = None
         self.dataset_markers = None
+
+"""
+
+    def display_markers(self):
+
+        start_time = self.parent.overview.start_time
+
+        annot_markers = []
+        if self.parent.notes.annot is not None:
+            if self.parent.value('annot_marker_show'):
+                annot_markers = self.parent.notes.annot.get_markers()
+
+        dataset_markers = []
+        if self.parent.notes.dataset_markers is not None:
+            if self.parent.value('dataset_marker_show'):
+                dataset_markers = self.parent.notes.dataset_markers
+
+
+
+        self.idx_marker.clear()
+        self.idx_marker.setRowCount(len(markers))
+
+        for i, mrk in enumerate(markers):
+            abs_time = (start_time +
+                        timedelta(seconds=mrk['start'])).strftime('%H:%M:%S')
+            item_time = QTableWidgetItem(abs_time)
+            self.idx_marker.setItem(i, 0, item_time)
+            item_name = QTableWidgetItem(mrk['name'])
+            self.idx_marker.setItem(i, 1, item_name)
+
+            if mrk in annot_markers:
+                color = self.parent.value('annot_marker_color')
+            if mrk in dataset_markers:
+                color = self.parent.value('dataset_marker_color')
+            item_time.setTextColor(QColor(color))
+            item_name.setTextColor(QColor(color))
+
+        # store information about the time as list (easy to access)
+        marker_time = [mrk['start'] for mrk in markers]
+        self.idx_marker.setProperty('time', marker_time)
+
+        if self.parent.traces.data is not None:
+            self.parent.traces.display()  # redo the whole figure
+        self.parent.overview.display_markers()
+
+"""

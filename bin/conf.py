@@ -61,7 +61,7 @@ copyright = u'2013-2014, Gio Piantoni'
 # built documents.
 #
 # The short X.Y version.
-version = '11.3'
+version = '11.4'
 # The full version, including alpha/beta/rc tags.
 release = '11'
 
