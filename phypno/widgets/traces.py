@@ -584,7 +584,8 @@ class Traces(QGraphicsView):
             self.parent.spectrum.show_channame(channame)
 
     def mouseMoveEvent(self, event):
-        """
+        """When normal selection, update power spectrum with current selection.
+        Otherwise, show the range of the new marker.
         """
         if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
@@ -655,7 +656,8 @@ class Traces(QGraphicsView):
             self.parent.spectrum.display(data)
 
     def mouseReleaseEvent(self, event):
-
+        """Create a new event or marker, or show the previous power spectrum
+        """
         chk_marker = self.parent.notes.action['new_marker'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
 

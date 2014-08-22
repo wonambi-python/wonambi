@@ -296,17 +296,6 @@ class Notes(QTabWidget):
 
         self.display_notes()
 
-    def delete_row(self):
-        sel_model = self.idx_annot_list.selectionModel()
-        for row in sel_model.selectedRows():
-            i = row.row()
-            start = self.idx_annot_list.property('start')[i]
-            end = self.idx_annot_list.property('end')[i]
-            name = self.idx_annot_list.item(i, 1).text()
-            self.annot.remove_event(name=name, time=(start, end))
-
-        self.display_events()
-
     def display_notes(self):
         """Display information about scores and raters.
 
@@ -385,8 +374,8 @@ class Notes(QTabWidget):
             self.idx_marker.setItem(i, 2, item_name)
 
         # store information about the time as list (easy to access)
-        marker_time = [mrk['start'] for mrk in markers]
-        self.idx_marker.setProperty('start', marker_time)
+        marker_start = [mrk['start'] for mrk in markers]
+        self.idx_marker.setProperty('start', marker_start)
 
         if self.parent.value('dataset_marker_show'):
             if self.parent.traces.data is not None:
@@ -461,13 +450,30 @@ class Notes(QTabWidget):
             self.idx_annot_list.setItem(i, 3, item_type)
 
         # store information about the time as list (easy to access)
-        annot_time = [ann['start'] for ann in all_annot]
-        self.idx_annot_list.setProperty('start', annot_time)
+        annot_start = [ann['start'] for ann in all_annot]
+        annot_end = [ann['end'] for ann in all_annot]
+        self.idx_annot_list.setProperty('start', annot_start)
+        self.idx_annot_list.setProperty('end', annot_end)
 
         if self.parent.value('dataset_marker_show'):
             if self.parent.traces.data is not None:
                 self.parent.traces.display()  # TODO: too much to redo the whole figure
             self.parent.overview.display_markers()
+
+    def delete_row(self):
+        sel_model = self.idx_annot_list.selectionModel()
+        for row in sel_model.selectedRows():
+            i = row.row()
+            start = self.idx_annot_list.property('start')[i]
+            end = self.idx_annot_list.property('end')[i]
+            name = self.idx_annot_list.item(i, 2).text()
+            marker_event = self.idx_annot_list.item(i, 3).text()
+            if marker_event == 'marker':
+                self.annot.remove_marker(name=name, time=(start, end))
+            else:
+                self.annot.remove_event(name=name, time=(start, end))
+
+        self.update_annotations()
 
     def go_to_marker(self, row, col, table_type):
         """Move to point in time marked by the marker.
