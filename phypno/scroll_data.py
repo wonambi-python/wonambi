@@ -12,7 +12,7 @@ if __name__ == '__main__':
         standalone = False
 
 """ ------ KEEP LOG ------ """
-from logging import getLogger, DEBUG, StreamHandler, Formatter
+from logging import getLogger, INFO, StreamHandler, Formatter
 
 lg = getLogger('phypno')  # when called by itself, __name__ is __main__
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
@@ -25,7 +25,7 @@ handler.setFormatter(formatter)
 lg.handlers = []
 lg.addHandler(handler)
 
-lg.setLevel(DEBUG)
+lg.setLevel(INFO)
 
 """ ------ IMPORT ------ """
 from types import MethodType

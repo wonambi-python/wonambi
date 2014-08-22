@@ -447,10 +447,10 @@ class Traces(QGraphicsView):
                 dataset_markers = self.parent.info.markers
 
         if self.parent.notes.annot is not None:
-            if self.parent.value('annot_marker_show'):
+            if self.parent.value('annot_show'):
                 annot_markers = self.parent.notes.annot.get_markers()
 
-            if self.parent.value('annot_marker_show'):
+            if self.parent.value('annot_show'):
                 events = self.parent.notes.annot.get_events(time=(window_start,
                                                                   window_end))
         markers = dataset_markers + annot_markers + events

@@ -4,9 +4,9 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from math import ceil, floor
 
-from numpy import floor
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
                          QFormLayout,
@@ -49,7 +49,7 @@ TOTAL_HEIGHT = 100
 
 
 class ConfigOverview(Config):
-
+    """Widget with preferences in Settings window for Overview."""
     def __init__(self, update_widget):
         super().__init__('overview', update_widget)
 
@@ -81,18 +81,20 @@ class Overview(QGraphicsView):
     ----------
     parent : instance of QMainWindow
         the main window.
-    window_start : int or float
-        start time of the window being plotted (in s).
-    window_length : int or float
-        length of the window being plotted (in s).
+    config : ConfigChannels
+        preferences for this widget
+
+    minimum : int or float
+        start time of the recording, from the absolute time of start_time in s
     maximum : int or float
-        maximum length of the window (in s).
+        length of the recordings in s
+    start_time : datetime
+        absolute start time of the recording
+
     scene : instance of QGraphicsScene
-        to keep track of the objects.
+        to keep track of the objects
     idx_current : QGraphicsRectItem
         instance of the current time window
-    idx_item : dict of RectItem, SimpleText
-        all the items in the scene (TODO: get rid of this)
     """
     def __init__(self, parent):
         super().__init__()
@@ -104,8 +106,7 @@ class Overview(QGraphicsView):
         self.start_time = None  # datetime, absolute start time
 
         self.scene = None
-        self.idx_current = None  # QGraphicsRectItem
-        self.idx_item = {}
+        self.idx_current = None
 
         self.create()
 
@@ -160,43 +161,25 @@ class Overview(QGraphicsView):
                                      self.maximum, pos['pos1'])
             item.setToolTip(pos['tip'])
             self.scene.addItem(item)
-            self.idx_item[name] = item
 
         self.add_timestamps()
 
     def update_settings(self):
         self.display()
-        if self.parent.value('dataset_marker_show'):
-            self.display_markers()
+        self.display_markers()
 
     def add_timestamps(self):
-        """Add timestamps at the bottom of the overview.
-
-        TODO: to improve, don't rely on the hour
-
-        """
-        start_time = self.start_time + timedelta(seconds=self.minimum)
-        first_hour = int((start_time.replace(minute=0, second=0,
-                                             microsecond=0) +
-                          timedelta(hours=1)).timestamp())
-
-        end_time = self.start_time + timedelta(seconds=self.maximum)
-        last_hour = int((end_time.replace(minute=0, second=0,
-                                          microsecond=0) +
-                         timedelta(hours=1)).timestamp())
-
-        steps = self.parent.value('timestamp_steps')
+        """Add timestamps at the bottom of the overview."""
         transform, _ = self.transform().inverted()
 
-        for t in range(first_hour, last_hour, steps):
-            t_as_datetime = datetime.fromtimestamp(t)
-            date_as_text = t_as_datetime.strftime('%H:%M')
+        stamps = _make_timestamps(self.start_time, self.minimum, self.maximum,
+                                  self.parent.value('timestamp_steps'))
+        for stamp, xpos in stamps.items():
 
-            text = self.scene.addSimpleText(date_as_text)
+            text = self.scene.addSimpleText(stamp)
             text.setFlag(QGraphicsItem.ItemIgnoresTransformations)
 
             # set xpos and adjust for text width
-            xpos = (t_as_datetime - start_time).total_seconds()
             text_width = text.boundingRect().width() * transform.m11()
             text.setPos(xpos - text_width / 2, TIME_HEIGHT)
 
@@ -214,7 +197,6 @@ class Overview(QGraphicsView):
         the traces, the scores, and the power spectrum. In other words, this
         function is responsible for keep track of the changes every time
         the start time of the window changes.
-
         """
         if new_position is not None:
             lg.debug('Updating position to {}'.format(new_position))
@@ -255,7 +237,7 @@ class Overview(QGraphicsView):
         self.idx_current = item
 
     def display_markers(self):
-        """Mark all the markers, from annotations or from the dataset.
+        """Mark all the markers/events, from annotations or from the dataset.
 
         This function should be called only when we load the dataset or when
         we change the settings.
@@ -268,7 +250,7 @@ class Overview(QGraphicsView):
         annot_markers = []
         events = []
         if self.parent.notes.annot is not None:
-            if self.parent.value('annot_marker_show'):
+            if self.parent.value('annot_show'):
                 annot_markers = self.parent.notes.annot.get_markers()
             if self.parent.value('annot_event_show'):
                 events = self.parent.notes.annot.get_events()
@@ -310,7 +292,6 @@ class Overview(QGraphicsView):
            duration in s of the epoch being scored.
         stage_name : str
             one of the stages defined in global stages.
-
         """
         y_pos = BARS['stage']['pos0']
 
@@ -342,13 +323,12 @@ class Overview(QGraphicsView):
             beginning of the window that was read.
         end_value : int
             end of the window that was read.
-
         """
         avail = self.scene.addRect(start_value,
                                    BARS['available']['pos0'],
                                    end_value - start_value,
                                    BARS['available']['pos1'])
-        avail.stackBefore(self.idx_item['available'])
+        avail.setZValue(-5)  # behind the lines
         avail.setPen(NoPen)
         avail.setBrush(QBrush(Qt.green))
 
@@ -375,3 +355,49 @@ class Overview(QGraphicsView):
         if self.scene is not None:
             self.scene.clear()
         self.scene = None
+
+
+def _make_timestamps(start_time, minimum, maximum, steps):
+    """Create timestamps on x-axis, every so often.
+
+    Parameters
+    ----------
+    start_time : instance of datetime
+        actual start time of the dataset
+    minimum : int
+        start time of the recording from start_time, in s
+    maximum : int
+        end time of the recording from start_time, in s
+    steps : int
+        how often you want a label, in s
+
+    Returns
+    -------
+    dict
+        where the key is the label and the value is the time point where the
+        label should be placed.
+
+    Notes
+    -----
+    This function takes care that labels are placed at the meaningful time, not
+    at random values.
+    """
+    t0 = start_time + timedelta(seconds=minimum)
+    t1 = start_time + timedelta(seconds=maximum)
+
+    t0_midnight = t0.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    d0 = t0 - t0_midnight
+    d1 = t1 - t0_midnight
+
+    first_stamp = ceil(d0.total_seconds() / steps) * steps
+    last_stamp = ceil(d1.total_seconds() / steps) * steps
+
+    stamps = {}
+    for stamp in range(first_stamp, last_stamp, steps):
+        stamp_as_datetime = t0_midnight + timedelta(seconds=stamp)
+        key = stamp_as_datetime.strftime('%H:%M')
+        value = stamp - d0.total_seconds()
+        stamps[key] = value
+
+    return stamps

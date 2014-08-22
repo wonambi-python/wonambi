@@ -47,9 +47,8 @@ DEFAULTS['spectrum'] = {'x_min': 0.,
                         }
 DEFAULTS['notes'] = {'dataset_marker_show': True,
                      'dataset_marker_color': 'darkBlue',
-                     'annot_marker_show': True,
+                     'annot_show': True,
                      'annot_marker_color': 'darkMagenta',
-                     'annot_event_show': True,
                      'min_marker_dur': .1,
                      'scoring_window': 30,
                      }

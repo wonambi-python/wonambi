@@ -23,12 +23,9 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QFileDialog,
                          QFormLayout,
                          QGroupBox,
-                         QHBoxLayout,
                          QIcon,
                          QInputDialog,
                          QLabel,
-                         QListWidget,
-                         QListWidgetItem,
                          QPushButton,
                          QTableWidget,
                          QTableWidgetItem,
@@ -36,7 +33,6 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QVBoxLayout,
                          QWidget,
                          QScrollArea,
-                         QSizePolicy,
                          )
 
 from ..attr import Annotations, create_empty_annotations
@@ -59,26 +55,22 @@ class ConfigNotes(Config):
         box0 = QGroupBox('Markers')
 
         self.index['dataset_marker_show'] = FormBool('Display Markers in '
-                                                     'dataset')
+                                                     'Dataset')
         self.index['dataset_marker_color'] = FormStr()
-        self.index['annot_marker_show'] = FormBool('Display Markers in '
-                                                   'annotations')
+        self.index['annot_show'] = FormBool('Display user-made '
+                                                   'Annotations')
         self.index['annot_marker_color'] = FormStr()
-        self.index['annot_event_show'] = FormBool('Display Events in '
-                                                  'annotations')
         self.index['min_marker_dur'] = FormFloat()
 
         form_layout = QFormLayout()
         form_layout.addRow(self.index['dataset_marker_show'])
         form_layout.addRow('Color of markers in the dataset',
                            self.index['dataset_marker_color'])
-        form_layout.addRow(self.index['annot_marker_show'])
+        form_layout.addRow(self.index['annot_show'])
         form_layout.addRow('Color of markers in annotations',
                            self.index['annot_marker_color'])
-        form_layout.addRow(self.index['annot_event_show'])
         form_layout.addRow('Below this duration, markers and events have no'
-                           'duration',
-                           self.index['min_marker_dur'])
+                           'duration', self.index['min_marker_dur'])
 
         box0.setLayout(form_layout)
 
@@ -472,6 +464,11 @@ class Notes(QTabWidget):
         # store information about the time as list (easy to access)
         annot_time = [ann['start'] for ann in all_annot]
         self.idx_annot_list.setProperty('start', annot_time)
+
+        if self.parent.value('dataset_marker_show'):
+            if self.parent.traces.data is not None:
+                self.parent.traces.display()  # TODO: too much to redo the whole figure
+            self.parent.overview.display_markers()
 
     def go_to_marker(self, row, col, table_type):
         """Move to point in time marked by the marker.
