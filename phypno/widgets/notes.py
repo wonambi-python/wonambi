@@ -57,8 +57,7 @@ class ConfigNotes(Config):
         self.index['dataset_marker_show'] = FormBool('Display Markers in '
                                                      'Dataset')
         self.index['dataset_marker_color'] = FormStr()
-        self.index['annot_show'] = FormBool('Display user-made '
-                                                   'Annotations')
+        self.index['annot_show'] = FormBool('Display User-Made Annotations')
         self.index['annot_marker_color'] = FormStr()
         self.index['min_marker_dur'] = FormFloat()
 
@@ -69,7 +68,7 @@ class ConfigNotes(Config):
         form_layout.addRow(self.index['annot_show'])
         form_layout.addRow('Color of markers in annotations',
                            self.index['annot_marker_color'])
-        form_layout.addRow('Below this duration, markers and events have no'
+        form_layout.addRow('Below this duration, markers and events have no '
                            'duration', self.index['min_marker_dur'])
 
         box0.setLayout(form_layout)
@@ -265,7 +264,7 @@ class Notes(QTabWidget):
     def update_settings(self):
         self.update_dataset_marker()
         self.update_annotations()
-        self.parent.overview.display()
+        self.parent.overview.update_settings()
 
     def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.
@@ -309,7 +308,6 @@ class Notes(QTabWidget):
 
         This function is called by overview.display and it ends up
         calling the functions in overview. But conceptually it belongs here.
-
         """
         if self.annot is not None:
             short_xml_file = short_strings(basename(self.annot.xml_file))
@@ -346,7 +344,7 @@ class Notes(QTabWidget):
             self.annot.add_marker(name, time)
             lg.info('Added Marker ' + name + 'at ' + str(time))
 
-        self.display_markers()
+        self.update_annotations()
 
     def update_dataset_marker(self):
         """Update markers which are in the dataset. It always updates the list
@@ -398,7 +396,8 @@ class Notes(QTabWidget):
         evttype_group.setLayout(layout)
 
         self.idx_eventtype_list = []
-        for one_eventtype in self.annot.event_types:
+        event_types = sorted(self.annot.event_types, key=str.lower)
+        for one_eventtype in event_types:
             self.idx_eventtype.addItem(one_eventtype)
             item = QCheckBox(one_eventtype)
             layout.addWidget(item)

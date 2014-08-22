@@ -222,7 +222,6 @@ def create_menubar(MAIN):
 
     submenu_marker = menu_annot.addMenu('Marker')
     submenu_marker.addAction(actions['new_marker'])
-    submenu_marker.addAction('Delete Marker(TODO)')
 
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])
