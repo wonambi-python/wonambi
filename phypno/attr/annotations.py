@@ -16,7 +16,8 @@ with open(xml_file, 'w') as f:
 from logging import getLogger
 lg = getLogger(__name__)
 
-from datetime import datetime
+from csv import writer
+from datetime import datetime, timedelta
 from math import ceil
 from os.path import basename
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
@@ -539,3 +540,29 @@ class Annotations():
                 return
 
         raise KeyError('epoch starting at ' + str(epoch_start) + ' not found')
+
+    def export(self, file_to_export, stages=True):
+        """Export annotations to csv file.
+
+        Parameters
+        ----------
+        file_to_export : path to file
+            csv file to write to
+        stages : bool, optional
+            if you want to write down the sleep stages
+        """
+        start_time = self.dataset['start_time']
+
+        with open(file_to_export, 'w', newline='') as f:
+            csv_file = writer(f)
+
+            if stages:
+                csv_file.writerow(('clock start time', 'start', 'end',
+                                   'stage'))
+
+                for epoch in self.epochs:
+                    epoch_time = start_time + timedelta(seconds=epoch['start'])
+                    csv_file.writerow((epoch_time.strftime('%H:%M:%S'),
+                                       epoch['start'],
+                                       epoch['end'],
+                                       epoch['stage']))

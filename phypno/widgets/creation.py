@@ -231,6 +231,9 @@ def create_menubar(MAIN):
     # these are the real QActions attached to notes
     submenu_stage = menu_annot.addMenu('Stage')
     submenu_stage.addActions(MAIN.notes.actions())
+    menu_annot.addSeparator()
+
+    menu_annot.addAction(actions['export'])
 
     """ ------ ANNOTATIONS ------ """
     actions = MAIN.action

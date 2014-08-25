@@ -261,6 +261,10 @@ class Notes(QTabWidget):
 
         actions['stages'] = act
 
+        act = QAction('Export...', self)
+        act.triggered.connect(self.export)
+        actions['export'] = act
+
         self.action = actions
 
     def update_settings(self):
@@ -566,6 +570,16 @@ class Notes(QTabWidget):
 
         self.parent.overview.display_markers()
         self.parent.traces.display()
+
+    def export(self):
+        filename = splitext(self.annot.xml_file)[0] + '.csv'
+        filename = QFileDialog.getSaveFileName(self, 'Export stages',
+                                               filename,
+                                               'Sleep stages (*.csv)')
+        if filename == '':
+            return
+
+        self.annot.export(filename)
 
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')
