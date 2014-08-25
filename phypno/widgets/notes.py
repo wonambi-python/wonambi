@@ -54,20 +54,20 @@ class ConfigNotes(Config):
 
         box0 = QGroupBox('Markers')
 
-        self.index['dataset_marker_show'] = FormBool('Display Markers in '
+        self.index['marker_show'] = FormBool('Display Markers in '
                                                      'Dataset')
-        self.index['dataset_marker_color'] = FormStr()
+        self.index['marker_color'] = FormStr()
         self.index['annot_show'] = FormBool('Display User-Made Annotations')
-        self.index['annot_marker_color'] = FormStr()
+        self.index['annot_bookmark_color'] = FormStr()
         self.index['min_marker_dur'] = FormFloat()
 
         form_layout = QFormLayout()
-        form_layout.addRow(self.index['dataset_marker_show'])
+        form_layout.addRow(self.index['marker_show'])
         form_layout.addRow('Color of markers in the dataset',
-                           self.index['dataset_marker_color'])
+                           self.index['marker_color'])
         form_layout.addRow(self.index['annot_show'])
-        form_layout.addRow('Color of markers in annotations',
-                           self.index['annot_marker_color'])
+        form_layout.addRow('Color of bookmarks in annotations',
+                           self.index['annot_bookmark_color'])
         form_layout.addRow('Below this duration, markers and events have no '
                            'duration', self.index['min_marker_dur'])
 
@@ -229,7 +229,7 @@ class Notes(QTabWidget):
 
         act = QAction(QIcon(ICON['bookmark']), 'New Marker', self)
         act.setCheckable(True)
-        actions['new_marker'] = act
+        actions['new_bookmark'] = act
 
         act = QAction(QIcon(ICON['new_eventtype']), 'New Event Type', self)
         act.triggered.connect(self.new_eventtype)
@@ -244,9 +244,9 @@ class Notes(QTabWidget):
         actions['new_event'] = act
 
         uncheck_new_event = lambda: actions['new_event'].setChecked(False)
-        uncheck_new_marker = lambda: actions['new_marker'].setChecked(False)
-        actions['new_event'].triggered.connect(uncheck_new_marker)
-        actions['new_marker'].triggered.connect(uncheck_new_event)
+        uncheck_new_bookmark = lambda: actions['new_bookmark'].setChecked(False)
+        actions['new_event'].triggered.connect(uncheck_new_bookmark)
+        actions['new_bookmark'].triggered.connect(uncheck_new_event)
 
         act = {}
         for one_stage, one_shortcut in zip(STAGE_NAME, STAGE_SHORTCUT):
@@ -311,12 +311,8 @@ class Notes(QTabWidget):
 
             self.idx_rater.setText(self.annot.current_rater)
             self.display_eventtype()
-
-            for epoch in self.annot.epochs:
-                self.parent.overview.display_stages(epoch['start'],
-                                                    epoch['end'] -
-                                                    epoch['start'],
-                                                    epoch['stage'])
+            self.update_annotations()
+            self.parent.overview.display_stages()
             self.display_stats()
 
     def display_stats(self):
@@ -364,7 +360,7 @@ class Notes(QTabWidget):
             item_duration = QTableWidgetItem(duration)
             item_name = QTableWidgetItem(mrk['name'])
 
-            color = self.parent.value('dataset_marker_color')
+            color = self.parent.value('marker_color')
             item_time.setTextColor(QColor(color))
             item_duration.setTextColor(QColor(color))
             item_name.setTextColor(QColor(color))
@@ -377,7 +373,7 @@ class Notes(QTabWidget):
         marker_start = [mrk['start'] for mrk in markers]
         self.idx_marker.setProperty('start', marker_start)
 
-        if self.parent.value('dataset_marker_show'):
+        if self.parent.value('marker_show'):
             if self.parent.traces.data is not None:
                 self.parent.traces.display()  # TODO: too much to redo the whole figure
             self.parent.overview.display_markers()
@@ -399,8 +395,6 @@ class Notes(QTabWidget):
             self.idx_eventtype_list.append(item)
 
         self.idx_eventtype_scroll.setWidget(evttype_group)
-
-        self.update_annotations()
 
     def get_selected_events(self, time_selection=None):
 
@@ -440,7 +434,7 @@ class Notes(QTabWidget):
             item_name = QTableWidgetItem(mrk['name'])
             if mrk in markers:
                 item_type = QTableWidgetItem('marker')
-                color = self.parent.value('annot_marker_color')
+                color = self.parent.value('annot_bookmark_color')
             else:
                 item_type = QTableWidgetItem('event')
                 color = convert_name_to_color(mrk['name'])
@@ -461,7 +455,7 @@ class Notes(QTabWidget):
         self.idx_annot_list.setProperty('start', annot_start)
         self.idx_annot_list.setProperty('end', annot_end)
 
-        if self.parent.value('dataset_marker_show'):
+        if self.parent.value('marker_show'):
             if self.parent.traces.data is not None:
                 self.parent.traces.display()  # TODO: too much to redo the whole figure
             self.parent.overview.display_markers()
@@ -623,6 +617,16 @@ class Notes(QTabWidget):
     def add_event(self, name, time):
         self.annot.add_event(name, time)
         self.update_annotations()
+
+    def export(self):
+        filename = splitext(self.annot.xml_file)[0] + '.csv'
+        filename = QFileDialog.getSaveFileName(self, 'Export stages',
+                                               filename,
+                                               'Sleep stages (*.csv)')
+        if filename == '':
+            return
+
+        self.annot.export(filename)
 
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')

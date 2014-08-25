@@ -174,9 +174,7 @@ class Overview(QGraphicsView):
     def update_settings(self):
         """After changing the settings, we need to recreate the whole image."""
         self.display()
-
         self.display_markers()
-
         if self.parent.notes.annot is not None:
             self.display_annot()
 
@@ -261,7 +259,7 @@ class Overview(QGraphicsView):
 
         markers = []
         if self.parent.info.markers is not None:
-            if self.parent.value('dataset_marker_show'):
+            if self.parent.value('marker_show'):
                 markers = self.parent.info.markers
 
         for mrk in markers:
@@ -271,14 +269,14 @@ class Overview(QGraphicsView):
                                      BARS['markers']['pos1'],
                                      scene=self.scene)
 
-            color = self.parent.value('dataset_marker_color')
+            color = self.parent.value('marker_color')
             rect.setPen(QPen(color))
             rect.setBrush(QBrush(color))
             rect.setZValue(-5)
             self.scene.addItem(rect)
             self.idx_markers.append(rect)
 
-    def display_annot(self):
+    def display_annotations(self):
         """Mark all the bookmarks/events, from annotations.
 
         This function is similar to display_markers, but they are called at
@@ -306,7 +304,7 @@ class Overview(QGraphicsView):
                                      scene=self.scene)
 
             if annot in bookmarks:
-                color = self.parent.value('annot_marker_color')
+                color = self.parent.value('annot_bookmark_color')
             if annot in events:
                 color = convert_name_to_color(annot['name'])
 
@@ -316,13 +314,13 @@ class Overview(QGraphicsView):
             self.scene.addItem(rect)
             self.idx_annot.append(rect)
 
-        # update sleep stages too
+    def display_stages(self):
         for epoch in self.parent.notes.annot.epochs:
-            self.display_stages(epoch['start'],
-                                epoch['end'] - epoch['start'],
-                                epoch['stage'])
+            self.mark_stages(epoch['start'],
+                             epoch['end'] - epoch['start'],
+                             epoch['stage'])
 
-    def display_stages(self, start_time, length, stage_name):
+    def mark_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
 
         Parameters

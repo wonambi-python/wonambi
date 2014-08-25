@@ -186,7 +186,9 @@ class Info(QWidget):
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
         try:
-            self.update(filename)
+            self.filename = filename
+            self.dataset = Dataset(filename)
+
         except FileNotFoundError:
             self.parent.statusBar().showMessage('File ' + basename(filename) +
                                                 ' cannot be read')
@@ -194,8 +196,9 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('')
 
+        self.display_dataset()
         self.parent.overview.update()
-        self.parent.channels.update(self.dataset.header['chan_name'])
+        self.parent.channels.chan_name = self.dataset.header['chan_name']
 
         try:
             self.markers = self.dataset.read_markers()
@@ -203,21 +206,6 @@ class Info(QWidget):
             lg.info('No notes/markers present in the header of the file')
         else:
             self.parent.notes.update_dataset_marker()
-
-    def update(self, filename):
-        """Read dataset from filename.
-
-        Parameters
-        ----------
-        filename : str
-            path to file to read.
-
-        """
-        lg.info('Loading ' + filename)
-        self.filename = filename
-        self.dataset = Dataset(filename)
-
-        self.display_dataset()
 
     def display_dataset(self):
         """Update the widget with information about the dataset."""

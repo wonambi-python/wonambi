@@ -139,6 +139,10 @@ class Traces(QGraphicsView):
         the rectangle showing the selection (both for selection and event)
     idx_info : instance of QGraphicsSimpleTextItem
         the rectangle showing the selection
+    idx_markers : list of QGraphicsRectItem
+        list of markers in the dataset
+    idx_annot : list of QGraphicsRectItem
+        list of user-made annotations
     """
     def __init__(self, parent):
         super().__init__()
@@ -159,6 +163,8 @@ class Traces(QGraphicsView):
         self.idx_time = []
         self.idx_sel = None
         self.idx_info = None
+        self.idx_markers = []
+        self.idx_annot = []
 
         self.create_action()
 
@@ -278,8 +284,8 @@ class Traces(QGraphicsView):
             self.y_scrollbar_value = self.verticalScrollBar().value()
             self.scene.clear()
 
-        self.create_labels()
-        self.create_time()
+        self.create_chan_labels()
+        self.create_time_labels()
 
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
@@ -295,17 +301,18 @@ class Traces(QGraphicsView):
                                     scene_height)
 
         self.setScene(self.scene)
-        self.add_labels()
+        self.add_chan_labels()
         self.add_time_labels()
         self.add_traces()
         self.display_grid()
-        self.display_notes()
+        self.display_markers()
+        self.display_annotations()
 
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
         self.parent.info.display_view()
 
-    def create_labels(self):
+    def create_chan_labels(self):
         """Create the channel labels, but don't plot them yet.
 
         Notes
@@ -321,7 +328,7 @@ class Traces(QGraphicsView):
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 self.idx_label.append(item)
 
-    def create_time(self):
+    def create_time_labels(self):
         """Create the time labels, but don't plot them yet.
 
         Notes
@@ -347,7 +354,7 @@ class Traces(QGraphicsView):
                                          len(self.idx_label) *
                                          self.parent.value('y_distance')))
 
-    def add_labels(self):
+    def add_chan_labels(self):
         """Add channel labels on the left."""
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
@@ -419,50 +426,28 @@ class Traces(QGraphicsView):
                 path = self.scene.addPath(Path(x_pos, y_pos))
                 path.setPen(QPen(Qt.DotLine))
 
-    def display_notes(self):
-        """Add markers on top of first plot.
+    def display_markers(self):
+        """Add markers on top of first plot."""
+        for item in self.idx_markers:
+            self.scene.removeItem(item)
+        self.idx_markers = []
 
-        Notes
-        -----
-        This function should be called by traces.display only, even when we
-        only add markers. It's because sometimes we delete markers.
-
-        There are two approaches: either we redo the whole figure or we
-        keep track of the markers and we delete only those. Here we go for the
-        first approach.
-        """
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         y_distance = self.parent.value('y_distance')
 
-        annot_markers = []
-        events = []
-        dataset_markers = []
+        markers = []
         if self.parent.info.markers is not None:
-            if self.parent.value('dataset_marker_show'):
-                dataset_markers = self.parent.info.markers
-
-        if self.parent.notes.annot is not None:
-            if self.parent.value('annot_show'):
-                annot_markers = self.parent.notes.annot.get_markers()
-                events = self.parent.notes.get_selected_events((window_start,
-                                                                window_end))
-
-        markers = dataset_markers + annot_markers + events
+            if self.parent.value('marker_show'):
+                markers = self.parent.info.markers
 
         for mrk in markers:
             if window_start <= mrk['end'] and window_end >= mrk['start']:
 
                 mrk_start = max((mrk['start'], window_start))
                 mrk_end = min((mrk['end'], window_end))
-
-                if mrk in dataset_markers:
-                    color = QColor(self.parent.value('dataset_marker_color'))
-                if mrk in annot_markers:
-                    color = QColor(self.parent.value('annot_marker_color'))
-                if mrk in events:
-                    color = convert_name_to_color(mrk['name'])
+                color = QColor(self.parent.value('marker_color'))
 
                 item = QGraphicsRectItem(mrk_start, 0,
                                          mrk_end - mrk_start,
@@ -480,6 +465,57 @@ class Traces(QGraphicsView):
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 item.setRotation(-90)
                 self.scene.addItem(item)
+                self.idx_markers.append(item)
+
+    def display_annotations(self):
+        """Mark all the bookmarks/events, on top of first plot."""
+        for item in self.idx_annot:
+            self.scene.removeItem(item)
+        self.idx_annot = []
+
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
+        window_end = window_start + window_length
+        y_distance = self.parent.value('y_distance')
+
+        bookmarks = []
+        events = []
+
+        if self.parent.notes.annot is not None:
+            if self.parent.value('annot_show'):
+                bookmarks = self.parent.notes.annot.get_bookmarks()
+                events = self.parent.notes.get_selected_events((window_start,
+                                                                window_end))
+        annotations = bookmarks + events
+
+        for annot in annotations:
+
+            if window_start <= annot['end'] and window_end >= annot['start']:
+
+                mrk_start = max((annot['start'], window_start))
+                mrk_end = min((annot['end'], window_end))
+                if annot in bookmarks:
+                    color = QColor(self.parent.value('annot_bookmark_color'))
+                if annot in events:
+                    color = convert_name_to_color(annot['name'])
+
+                item = QGraphicsRectItem(mrk_start, 0,
+                                         mrk_end - mrk_start,
+                                         len(self.idx_label) * y_distance)
+                item.setPen(color)
+                item.setBrush(color)
+                item.setZValue(-8)
+                self.scene.addItem(item)
+
+                item = TextItem_with_BG(color.darker(200))
+                item.setText(annot['name'])
+                item.setPos(annot['start'],
+                            len(self.idx_label) *
+                            self.parent.value('y_distance'))
+                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                item.setRotation(-90)
+                self.scene.addItem(item)
+                self.idx_annot.addItem(item)
 
     def step_prev(self):
         """Go to the previous step."""
@@ -604,7 +640,7 @@ class Traces(QGraphicsView):
             item.setPen(NoPen)
 
             if chk_marker:
-                color = QColor(self.parent.value('annot_marker_color'))
+                color = QColor(self.parent.value('annot_bookmark_color'))
 
             elif chk_event:
                 eventtype = self.parent.notes.idx_eventtype.currentText()

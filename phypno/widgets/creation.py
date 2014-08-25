@@ -220,8 +220,8 @@ def create_menubar(MAIN):
             act.triggered.connect(partial(MAIN.notes.select_rater, rater))
     menu_annot.addSeparator()
 
-    submenu_marker = menu_annot.addMenu('Marker')
-    submenu_marker.addAction(actions['new_marker'])
+    submenu_marker = menu_annot.addMenu('Bookmark')
+    submenu_marker.addAction(actions['new_bookmark'])
 
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])

@@ -45,10 +45,10 @@ DEFAULTS['spectrum'] = {'x_min': 0.,
                         'y_tick': 5.,
                         'log': True,
                         }
-DEFAULTS['notes'] = {'dataset_marker_show': True,
-                     'dataset_marker_color': 'darkBlue',
+DEFAULTS['notes'] = {'marker_show': True,
+                     'marker_color': 'darkBlue',
                      'annot_show': True,
-                     'annot_marker_color': 'darkMagenta',
+                     'annot_bookmark_color': 'darkMagenta',
                      'min_marker_dur': .1,
                      'scoring_window': 30,
                      }

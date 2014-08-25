@@ -322,16 +322,6 @@ class Channels(QWidget):
 
         self.action = actions
 
-    def update(self, chan_name):
-        """Read the channels and updates the widget.
-
-        Parameters
-        ----------
-        chan_name : list of str
-            list of channels, to choose from.
-        """
-        self.chan_name = chan_name
-
     def new_group(self):
         """Create a new channel group.
 
@@ -373,7 +363,6 @@ class Channels(QWidget):
 
         if self.groups:
             self.parent.overview.update_position()
-            self.parent.spectrum.update()
         else:
             self.parent.traces.reset()
             self.parent.spectrum.reset()

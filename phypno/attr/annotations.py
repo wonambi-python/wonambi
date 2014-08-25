@@ -595,4 +595,3 @@ def update_annotation_version(xml_file):
                 '<annotations version="5">', s)
         with open(xml_file, 'w') as f:
             f.write(s)
-
