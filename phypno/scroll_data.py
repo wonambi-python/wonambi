@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-VERSION = 11.4
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
@@ -28,6 +27,7 @@ lg.addHandler(handler)
 lg.setLevel(INFO)
 
 """ ------ IMPORT ------ """
+from os.path import realpath, join, dirname
 from types import MethodType
 
 from numpy import arange
@@ -38,6 +38,10 @@ from phypno.widgets.creation import (create_menubar, create_toolbar,
                                      create_actions, create_widgets)
 from phypno.widgets.settings import DEFAULTS
 from phypno.widgets.utils import keep_recent_datasets
+
+version_file = realpath(join(dirname(realpath(__file__)), '..', 'VERSION'))
+with open(version_file, 'r') as f:
+    VERSION = f.read().strip()
 
 settings = QSettings("phypno", "scroll_data")
 
@@ -73,14 +77,14 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
 
         self.statusBar()
-        self.setWindowTitle('PHYPNO v' + str(VERSION))
+        self.setWindowTitle('PHYPNO v' + VERSION)
 
         window_geometry = settings.value('window/geometry')
         if window_geometry is not None:
             self.restoreGeometry(window_geometry)
         window_state = settings.value('window/state')
         if window_state is not None:
-            self.restoreState(window_state, VERSION)
+            self.restoreState(window_state, float(VERSION))
 
         self.show()
 
@@ -203,7 +207,7 @@ class MainWindow(QMainWindow):
         keep_recent_datasets(max_dataset_history, self.info.filename)
 
         settings.setValue('window/geometry', self.saveGeometry())
-        settings.setValue('window/state', self.saveState(VERSION))
+        settings.setValue('window/state', self.saveState(float(VERSION)))
 
         event.accept()
 
@@ -212,10 +216,10 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
-    q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
-    q.overview.update_position(30)
+    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
+    # q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
+    # q.overview.update_position(30)
 
     if standalone:
         app.exec_()

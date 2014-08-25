@@ -227,7 +227,7 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_rater)
         actions['del_rater'] = act
 
-        act = QAction(QIcon(ICON['marker']), 'New Marker', self)
+        act = QAction(QIcon(ICON['bookmark']), 'New Marker', self)
         act.setCheckable(True)
         actions['new_marker'] = act
 

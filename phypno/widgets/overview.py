@@ -1,5 +1,5 @@
-"""Wide widget giving an overview of the markers, events, and sleep scores.
-
+"""Wide widget giving an overview of the recordings with markers and
+annotations (bookmarks, events, and sleep scores)
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -38,8 +38,9 @@ STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
           }
 
-BARS = {'dataset': {'pos0': 15, 'pos1': 10, 'tip': 'Dataset'},
-        'annot': {'pos0': 30, 'pos1': 10, 'tip': 'Annotations'},
+BARS = {'markers': {'pos0': 15, 'pos1': 10, 'tip': 'Markers in Dataset'},
+        'annot': {'pos0': 30, 'pos1': 10,
+                  'tip': 'Annotations (bookmarks and events)'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
         'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
@@ -95,9 +96,10 @@ class Overview(QGraphicsView):
         to keep track of the objects
     idx_current : QGraphicsRectItem
         instance of the current time window
+    idx_markers : list of QGraphicsRectItem
+        list of markers in the dataset
     idx_annot : list of QGraphicsRectItem
         list of user-made annotations
-
     """
     def __init__(self, parent):
         super().__init__()
@@ -110,6 +112,7 @@ class Overview(QGraphicsView):
 
         self.scene = None
         self.idx_current = None
+        self.idx_markers = []
         self.idx_annot = []
 
         self.create()
@@ -172,12 +175,10 @@ class Overview(QGraphicsView):
         """After changing the settings, we need to recreate the whole image."""
         self.display()
 
+        self.display_markers()
+
         if self.parent.notes.annot is not None:
-            self.display_markers()
-            for epoch in self.parent.notes.annot.epochs:
-                self.display_stages(epoch['start'],
-                                    epoch['end'] - epoch['start'],
-                                    epoch['stage'])
+            self.display_annot()
 
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview."""
@@ -249,53 +250,77 @@ class Overview(QGraphicsView):
         self.idx_current = item
 
     def display_markers(self):
-        """Mark all the markers/events, from annotations or from the dataset.
+        """Mark all the markers, from the dataset.
 
         This function should be called only when we load the dataset or when
         we change the settings.
         """
-        for rect in self.idx_annot:
+        for rect in self.idx_markers:
             self.scene.removeItem(rect)
+        self.idx_markers = []
 
-        dataset_markers = []
+        markers = []
         if self.parent.info.markers is not None:
             if self.parent.value('dataset_marker_show'):
-                dataset_markers = self.parent.info.markers
+                markers = self.parent.info.markers
 
-        annot_markers = []
+        for mrk in markers:
+            rect = QGraphicsRectItem(mrk['start'],
+                                     BARS['markers']['pos0'],
+                                     mrk['end'] - mrk['start'],
+                                     BARS['markers']['pos1'],
+                                     scene=self.scene)
+
+            color = self.parent.value('dataset_marker_color')
+            rect.setPen(QPen(color))
+            rect.setBrush(QBrush(color))
+            rect.setZValue(-5)
+            self.scene.addItem(rect)
+            self.idx_markers.append(rect)
+
+    def display_annot(self):
+        """Mark all the bookmarks/events, from annotations.
+
+        This function is similar to display_markers, but they are called at
+        different stages (f.e. when loading annotations file), so we keep them
+        separate
+        """
+        for rect in self.idx_annot:
+            self.scene.removeItem(rect)
+        self.idx_annot = []
+
+        bookmarks = []
         events = []
         if self.parent.notes.annot is not None:
             if self.parent.value('annot_show'):
-                annot_markers = self.parent.notes.annot.get_markers()
+                bookmarks = self.parent.notes.annot.get_markers()
                 events = self.parent.notes.get_selected_events()
 
-        markers = dataset_markers + annot_markers + events
+        annotations = bookmarks + events
 
-        for mrk in markers:
-            if mrk in dataset_markers:
-                pos0 = BARS['dataset']['pos0']
-                pos1 = BARS['dataset']['pos1']
-                color = self.parent.value('dataset_marker_color')
-
-            if mrk in annot_markers:
-                pos0 = BARS['annot']['pos0']
-                pos1 = BARS['annot']['pos1']
-                color = self.parent.value('annot_marker_color')
-
-            if mrk in events:
-                pos0 = BARS['annot']['pos0']
-                pos1 = BARS['annot']['pos1']
-                color = convert_name_to_color(mrk['name'])
-
-            rect = QGraphicsRectItem(mrk['start'], pos0,
-                                     mrk['end'] - mrk['start'], pos1,
+        for annot in annotations:
+            rect = QGraphicsRectItem(annot['start'],
+                                     BARS['annot']['pos0'],
+                                     annot['end'] - annot['start'],
+                                     BARS['annot']['pos1'],
                                      scene=self.scene)
+
+            if annot in bookmarks:
+                color = self.parent.value('annot_marker_color')
+            if annot in events:
+                color = convert_name_to_color(annot['name'])
 
             rect.setPen(QPen(color))
             rect.setBrush(QBrush(color))
             rect.setZValue(-5)
             self.scene.addItem(rect)
             self.idx_annot.append(rect)
+
+        # update sleep stages too
+        for epoch in self.parent.notes.annot.epochs:
+            self.display_stages(epoch['start'],
+                                epoch['end'] - epoch['start'],
+                                epoch['stage'])
 
     def display_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
@@ -364,7 +389,15 @@ class Overview(QGraphicsView):
             self.update_position(window_start)
 
     def reset(self):
-        """Reset the widget, simply clear the scene."""
+        """Reset the widget, and clear the scene."""
+        self.minimum = None
+        self.maximum = None
+        self.start_time = None  # datetime, absolute start time
+
+        self.idx_current = None
+        self.idx_markers = []
+        self.idx_annot = []
+
         if self.scene is not None:
             self.scene.clear()
         self.scene = None

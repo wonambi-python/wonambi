@@ -211,7 +211,8 @@ class Annotations():
             if time is None:
                 time_cond = True
             else:
-                time_cond = time[0] <= bookmark_end and time[1] >= bookmark_start
+                time_cond = (time[0] <= bookmark_end and
+                             time[1] >= bookmark_start)
 
             if chan is None:
                 chan_cond = True
@@ -248,7 +249,8 @@ class Annotations():
             if time is None:
                 time_cond = True
             else:
-                time_cond = time[0] <= bookmark_end and time[1] >= bookmark_start
+                time_cond = (time[0] <= bookmark_end and
+                             time[1] >= bookmark_start)
 
             if chan is None:
                 chan_cond = True

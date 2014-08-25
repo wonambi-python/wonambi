@@ -285,7 +285,7 @@ def create_toolbar(MAIN):
     toolbar = MAIN.addToolBar('Annotations')
     toolbar.setObjectName('Annotations')
 
-    toolbar.addAction(actions['new_marker'])
+    toolbar.addAction(actions['new_bookmark'])
     toolbar.addSeparator()
     toolbar.addAction(actions['new_event'])
     toolbar.addWidget(MAIN.notes.idx_eventtype)
