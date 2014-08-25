@@ -1,17 +1,4 @@
 """Module to keep track of the user-made annotations and sleep scoring.
-
-xml_file = '/home/gio/recordings/MG68/doc/scores/MG68_eeg_xltek_sessA_d01_08_36_57_scores.xml'
-
-from re import sub
-
-with open(xml_file, 'r') as f:
-    s = f.read()
-s1 = sub('<marker><name>(.*?)</name><time>(.*?)</time></marker>',
-         '<marker><marker_name>\g<1></marker_name><marker_start>\g<2></marker_start><marker_end>\g<2></marker_end><marker_chan/></marker>',
-         s)
-with open(xml_file, 'w') as f:
-    f.write(s1)
-
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -20,8 +7,11 @@ from csv import writer
 from datetime import datetime, timedelta
 from math import ceil
 from os.path import basename
+from re import search, sub
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
+
+VERSION = '5'
 
 
 def parse_iso_datetime(date):
@@ -40,7 +30,7 @@ def create_empty_annotations(xml_file, dataset):
 
     """
     root = Element('annotations')
-    root.set('version', '4')
+    root.set('version', VERSION)
 
     info = SubElement(root, 'dataset')
     x = SubElement(info, 'filename')
@@ -81,6 +71,8 @@ class Annotations():
     def load(self):
         """Load xml from file."""
         lg.info('Loading ' + self.xml_file)
+        update_annotation_version(self.xml_file)
+
         xml = parse(self.xml_file)
         return xml.getroot()
 
@@ -144,7 +136,7 @@ class Annotations():
         self.get_rater(rater_name)
 
         # create subtree
-        SubElement(self.rater, 'markers')
+        SubElement(self.rater, 'bookmarks')
         SubElement(self.rater, 'events')
         SubElement(self.rater, 'stages')
         self.create_epochs(epoch_length=epoch_length)
@@ -172,7 +164,7 @@ class Annotations():
 
         self.save()
 
-    def add_marker(self, name, time, chan=''):
+    def add_bookmark(self, name, time, chan=''):
         """
         Raises
         ------
@@ -180,94 +172,94 @@ class Annotations():
             When there is no selected rater
         """
         try:
-            markers = self.rater.find('markers')
+            bookmarks = self.rater.find('bookmarks')
         except AttributeError:
             raise IndexError('You need to have at least one rater')
-        new_marker = SubElement(markers, 'marker')
-        marker_name = SubElement(new_marker, 'marker_name')
-        marker_name.text = name
-        marker_time = SubElement(new_marker, 'marker_start')
-        marker_time.text = str(time[0])
-        marker_time = SubElement(new_marker, 'marker_end')
-        marker_time.text = str(time[1])
+        new_bookmark = SubElement(bookmarks, 'bookmark')
+        bookmark_name = SubElement(new_bookmark, 'bookmark_name')
+        bookmark_name.text = name
+        bookmark_time = SubElement(new_bookmark, 'bookmark_start')
+        bookmark_time.text = str(time[0])
+        bookmark_time = SubElement(new_bookmark, 'bookmark_end')
+        bookmark_time.text = str(time[1])
 
         if isinstance(chan, (tuple, list)):
             chan = ', '.join(chan)
-        event_chan = SubElement(new_marker, 'marker_chan')
+        event_chan = SubElement(new_bookmark, 'bookmark_chan')
         event_chan.text = chan
 
         self.save()
 
-    def remove_marker(self, name=None, time=None, chan=None):
-        """if you call it without arguments, it removes ALL the markers."""
-        markers = self.rater.find('markers')
+    def remove_bookmark(self, name=None, time=None, chan=None):
+        """if you call it without arguments, it removes ALL the bookmarks."""
+        bookmarks = self.rater.find('bookmarks')
 
-        for m in markers:
+        for m in bookmarks:
 
-            marker_name = m.find('marker_name').text
-            marker_start = float(m.find('marker_start').text)
-            marker_end = float(m.find('marker_end').text)
-            marker_chan = m.find('marker_chan').text
-            if marker_chan is None:  # xml doesn't store empty string
-                marker_chan = ''
+            bookmark_name = m.find('bookmark_name').text
+            bookmark_start = float(m.find('bookmark_start').text)
+            bookmark_end = float(m.find('bookmark_end').text)
+            bookmark_chan = m.find('bookmark_chan').text
+            if bookmark_chan is None:  # xml doesn't store empty string
+                bookmark_chan = ''
 
             if name is None:
                 name_cond = True
             else:
-                name_cond = marker_name == name
+                name_cond = bookmark_name == name
 
             if time is None:
                 time_cond = True
             else:
-                time_cond = time[0] <= marker_end and time[1] >= marker_start
+                time_cond = time[0] <= bookmark_end and time[1] >= bookmark_start
 
             if chan is None:
                 chan_cond = True
             else:
-                chan_cond = marker_chan == chan
+                chan_cond = bookmark_chan == chan
 
             if name_cond and time_cond and chan_cond:
-                markers.remove(m)
+                bookmarks.remove(m)
 
         self.save()
 
-    def get_markers(self, time=None, chan=None):
+    def get_bookmarks(self, time=None, chan=None):
         """
         Raises
         ------
         IndexError
             When there is no selected rater
         """
-        # get markers inside window
+        # get bookmarks inside window
         try:
-            markers = self.rater.find('markers')
+            bookmarks = self.rater.find('bookmarks')
         except AttributeError:
             raise IndexError('You need to have at least one rater')
 
         mrks = []
-        for m in markers:
+        for m in bookmarks:
 
-            marker_start = float(m.find('marker_start').text)
-            marker_end = float(m.find('marker_end').text)
-            marker_chan = m.find('marker_chan').text
-            if marker_chan is None:  # xml doesn't store empty string
-                marker_chan = ''
+            bookmark_start = float(m.find('bookmark_start').text)
+            bookmark_end = float(m.find('bookmark_end').text)
+            bookmark_chan = m.find('bookmark_chan').text
+            if bookmark_chan is None:  # xml doesn't store empty string
+                bookmark_chan = ''
 
             if time is None:
                 time_cond = True
             else:
-                time_cond = time[0] <= marker_end and time[1] >= marker_start
+                time_cond = time[0] <= bookmark_end and time[1] >= bookmark_start
 
             if chan is None:
                 chan_cond = True
             else:
-                chan_cond = marker_chan == chan
+                chan_cond = bookmark_chan == chan
 
             if time_cond and chan_cond:
-                one_mrk = {'name': m.find('marker_name').text,
-                           'start': marker_start,
-                           'end': marker_end,
-                           'chan': marker_chan.split(', '),  # always a list
+                one_mrk = {'name': m.find('bookmark_name').text,
+                           'start': bookmark_start,
+                           'end': bookmark_end,
+                           'chan': bookmark_chan.split(', '),  # always a list
                            }
                 mrks.append(one_mrk)
 
@@ -566,3 +558,39 @@ class Annotations():
                                        epoch['start'],
                                        epoch['end'],
                                        epoch['stage']))
+
+
+def update_annotation_version(xml_file):
+    """Update the fields that have changed over different versions.
+
+    Parameters
+    ----------
+    xml_file : path to file
+        xml file with the sleep scoring
+
+    Notes
+    -----
+    new in version 4: use 'marker_name' instead of simply 'name' etc
+
+    new in version 5: use 'bookmark' instead of 'marker'
+    """
+    with open(xml_file, 'r') as f:
+        s = f.read()
+
+    m = search('<annotations version="([0-9]*)">', s)
+    current = int(m.groups()[0])
+
+    if current < 4:
+        s = sub('<marker><name>(.*?)</name><time>(.*?)</time></marker>',
+                 '<marker><marker_name>\g<1></marker_name><marker_start>\g<2></marker_start><marker_end>\g<2></marker_end><marker_chan/></marker>',
+                 s)
+
+    if current < 5:
+        s = s.replace('marker', 'bookmark')
+
+        # note indentation
+        s = sub('<annotations version="[0-9]*">',
+                '<annotations version="5">', s)
+        with open(xml_file, 'w') as f:
+            f.write(s)
+
