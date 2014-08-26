@@ -362,6 +362,7 @@ class Channels(QWidget):
         self.read_group_info()
 
         if self.groups:
+            self.parent.spectrum.update()
             self.parent.overview.update_position()
         else:
             self.parent.traces.reset()

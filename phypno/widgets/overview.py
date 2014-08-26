@@ -115,10 +115,6 @@ class Overview(QGraphicsView):
         self.idx_markers = []
         self.idx_annot = []
 
-        self.create()
-
-    def create(self):
-        """Define the area of QGraphicsView."""
         self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
     def update(self):
@@ -171,13 +167,6 @@ class Overview(QGraphicsView):
 
         self.add_timestamps()
 
-    def update_settings(self):
-        """After changing the settings, we need to recreate the whole image."""
-        self.display()
-        self.display_markers()
-        if self.parent.notes.annot is not None:
-            self.display_annot()
-
     def add_timestamps(self):
         """Add timestamps at the bottom of the overview."""
         transform, _ = self.transform().inverted()
@@ -192,6 +181,13 @@ class Overview(QGraphicsView):
             # set xpos and adjust for text width
             text_width = text.boundingRect().width() * transform.m11()
             text.setPos(xpos - text_width / 2, TIME_HEIGHT)
+
+    def update_settings(self):
+        """After changing the settings, we need to recreate the whole image."""
+        self.display()
+        self.display_markers()
+        if self.parent.notes.annot is not None:
+            self.display_annot()
 
     def update_position(self, new_position=None):
         """Update the cursor position and much more.

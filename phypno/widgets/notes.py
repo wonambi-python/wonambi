@@ -54,8 +54,7 @@ class ConfigNotes(Config):
 
         box0 = QGroupBox('Markers')
 
-        self.index['marker_show'] = FormBool('Display Markers in '
-                                                     'Dataset')
+        self.index['marker_show'] = FormBool('Display Markers in Dataset')
         self.index['marker_color'] = FormStr()
         self.index['annot_show'] = FormBool('Display User-Made Annotations')
         self.index['annot_bookmark_color'] = FormStr()

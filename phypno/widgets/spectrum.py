@@ -138,6 +138,7 @@ class Spectrum(QWidget):
             self.idx_chan.setCurrentIndex(self.selected_chan)
             self.selected_chan = None
 
+        lg.info('XXXXXXXXXXXXXXX create spectrum')
         self.display_window()
 
     def display_window(self):

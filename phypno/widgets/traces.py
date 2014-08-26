@@ -611,7 +611,7 @@ class Traces(QGraphicsView):
         self.sel_chan = chan_idx
         self.sel_xy = (xy_scene.x(), xy_scene.y())
 
-        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
 
         if not (chk_marker or chk_event):
@@ -626,7 +626,7 @@ class Traces(QGraphicsView):
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
 
-        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
 
         if chk_marker or chk_event:
@@ -693,7 +693,7 @@ class Traces(QGraphicsView):
     def mouseReleaseEvent(self, event):
         """Create a new event or marker, or show the previous power spectrum
         """
-        chk_marker = self.parent.notes.action['new_marker'].isChecked()
+        chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
 
         if chk_marker or chk_event:
