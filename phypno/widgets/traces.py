@@ -722,7 +722,7 @@ class Traces(QGraphicsView):
                     time = (end, start)
 
                 if chk_marker:
-                    self.parent.notes.add_marker(time)
+                    self.parent.notes.add_bookmark(time)
 
                 elif chk_event:
                     eventtype = self.parent.notes.idx_eventtype.currentText()

@@ -307,6 +307,9 @@ class Notes(QTabWidget):
             if self.parent.overview.scene is None:
                 self.parent.overview.update()
 
+            if not self.annot.raters:
+                self.new_rater()
+
             self.idx_rater.setText(self.annot.current_rater)
             self.display_eventtype()
             self.update_annotations()
