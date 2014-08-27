@@ -55,7 +55,7 @@ class ConfigSpectrum(Config):
 class Spectrum(QWidget):
     """Plot the power spectrum for a specified channel.
 
-    Attributes
+    TODO: Attributes
     ----------
     parent : instance of QMainWindow
         the main window.
@@ -85,7 +85,6 @@ class Spectrum(QWidget):
     Notes
     -----
     If data contains NaN, it doesn't create any spectrum (feature or bug?).
-
     """
     def __init__(self, parent):
         super().__init__()
@@ -138,9 +137,6 @@ class Spectrum(QWidget):
             self.idx_chan.setCurrentIndex(self.selected_chan)
             self.selected_chan = None
 
-        lg.info('XXXXXXXXXXXXXXX create spectrum')
-        self.display_window()
-
     def display_window(self):
         """Read the channel name from QComboBox and plot its spectrum.
 
@@ -148,6 +144,9 @@ class Spectrum(QWidget):
         self.display. When the user selects a smaller chunk of data from the
         visible traces, then we don't need to call this function.
         """
+        if self.idx_chan.count() == 0:
+            self.update()
+
         chan_name = self.idx_chan.currentText()
         lg.info('Power spectrum for channel ' + chan_name)
 

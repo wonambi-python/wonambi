@@ -732,6 +732,7 @@ class Traces(QGraphicsView):
 
             # restore spectrum
             self.parent.spectrum.update()
+            self.parent.spectrum.display_window()
 
         # general garbage collection
         self.sel_chan = None
