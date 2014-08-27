@@ -226,7 +226,7 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_rater)
         actions['del_rater'] = act
 
-        act = QAction(QIcon(ICON['bookmark']), 'New Marker', self)
+        act = QAction(QIcon(ICON['bookmark']), 'New Bookmark', self)
         act.setCheckable(True)
         actions['new_bookmark'] = act
 
@@ -267,7 +267,6 @@ class Notes(QTabWidget):
     def update_settings(self):
         self.update_dataset_marker()
         self.update_annotations()
-        self.parent.overview.update_settings()
 
     def update_notes(self, xml_file, new=False):
         """Update information about the sleep scoring.
@@ -323,14 +322,14 @@ class Notes(QTabWidget):
             label = self.idx_stats.itemAt(i, QFormLayout.FieldRole).widget()
             label.setText(time_in_stage)
 
-    def add_marker(self, time):
+    def add_bookmark(self, time):
 
-        answer = QInputDialog.getText(self, 'New Marker',
-                                      'Enter marker\'s name')
+        answer = QInputDialog.getText(self, 'New Bookmark',
+                                      'Enter bookmark\'s name')
         if answer[1]:
             name = answer[0]
-            self.annot.add_marker(name, time)
-            lg.info('Added Marker ' + name + 'at ' + str(time))
+            self.annot.add_bookmark(name, time)
+            lg.info('Added Bookmark ' + name + 'at ' + str(time))
 
         self.update_annotations()
 
@@ -372,10 +371,9 @@ class Notes(QTabWidget):
         marker_start = [mrk['start'] for mrk in markers]
         self.idx_marker.setProperty('start', marker_start)
 
-        if self.parent.value('marker_show'):
-            if self.parent.traces.data is not None:
-                self.parent.traces.display()  # TODO: too much to redo the whole figure
-            self.parent.overview.display_markers()
+        if self.parent.traces.data is not None:
+            self.parent.traces.display()
+        self.parent.overview.display_markers()
 
     def display_eventtype(self):
 
@@ -406,20 +404,24 @@ class Notes(QTabWidget):
         return events
 
     def update_annotations(self):
-        """Update annotations made by the user, including markers and events.
-        Depending on the settings, it might add the markers to overview and
+        """Update annotations made by the user, including bookmarks and events.
+        Depending on the settings, it might add the bookmarks to overview and
         traces.
         """
+        if self.parent.notes.annot is None:
+            return
+
         start_time = self.parent.overview.start_time
 
-        markers = self.parent.notes.annot.get_markers()
+        bookmarks = self.parent.notes.annot.get_bookmarks()
         events = self.get_selected_events()
 
-        all_annot = markers + events
+        all_annot = bookmarks + events
         all_annot = sorted(all_annot, key=lambda x: x['start'])
 
         self.idx_annot_list.clearContents()
         self.idx_annot_list.setRowCount(len(all_annot))
+        lg.info('lenght annotations ' + str(len(all_annot)))
 
         for i, mrk in enumerate(all_annot):
             abs_time = (start_time +
@@ -431,8 +433,8 @@ class Notes(QTabWidget):
             item_time = QTableWidgetItem(abs_time)
             item_duration = QTableWidgetItem(duration)
             item_name = QTableWidgetItem(mrk['name'])
-            if mrk in markers:
-                item_type = QTableWidgetItem('marker')
+            if mrk in bookmarks:
+                item_type = QTableWidgetItem('bookmark')
                 color = self.parent.value('annot_bookmark_color')
             else:
                 item_type = QTableWidgetItem('event')
@@ -454,13 +456,12 @@ class Notes(QTabWidget):
         self.idx_annot_list.setProperty('start', annot_start)
         self.idx_annot_list.setProperty('end', annot_end)
 
-        if self.parent.value('marker_show'):
-            if self.parent.traces.data is not None:
-                self.parent.traces.display()  # TODO: too much to redo the whole figure
-            self.parent.overview.display_markers()
+        if self.parent.traces.data is not None:
+            self.parent.traces.display_annotations()
+        self.parent.overview.display_annotations()
 
     def delete_row(self):
-        """Delete marker or event from annotations, based on row."""
+        """Delete bookmarks or event from annotations, based on row."""
         sel_model = self.idx_annot_list.selectionModel()
         for row in sel_model.selectedRows():
             i = row.row()
@@ -468,8 +469,8 @@ class Notes(QTabWidget):
             end = self.idx_annot_list.property('end')[i]
             name = self.idx_annot_list.item(i, 2).text()
             marker_event = self.idx_annot_list.item(i, 3).text()
-            if marker_event == 'marker':
-                self.annot.remove_marker(name=name, time=(start, end))
+            if marker_event == 'bookmark':
+                self.annot.remove_bookmark(name=name, time=(start, end))
             else:
                 self.annot.remove_event(name=name, time=(start, end))
 

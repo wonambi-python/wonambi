@@ -299,8 +299,11 @@ class Traces(QGraphicsView):
                                     0,
                                     window_length + label_width,
                                     scene_height)
-
         self.setScene(self.scene)
+
+        self.idx_markers = []
+        self.idx_annot = []
+
         self.add_chan_labels()
         self.add_time_labels()
         self.add_traces()
@@ -506,6 +509,7 @@ class Traces(QGraphicsView):
                 item.setBrush(color)
                 item.setZValue(-8)
                 self.scene.addItem(item)
+                self.idx_annot.append(item)
 
                 item = TextItem_with_BG(color.darker(200))
                 item.setText(annot['name'])
@@ -515,7 +519,7 @@ class Traces(QGraphicsView):
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 item.setRotation(-90)
                 self.scene.addItem(item)
-                self.idx_annot.addItem(item)
+                self.idx_annot.append(item)
 
     def step_prev(self):
         """Go to the previous step."""

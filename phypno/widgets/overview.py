@@ -157,6 +157,10 @@ class Overview(QGraphicsView):
                                     TOTAL_HEIGHT)
         self.setScene(self.scene)
 
+        # reset annotations
+        self.idx_markers = []
+        self.idx_annot = []
+
         self.display_current()
 
         for name, pos in BARS.items():
@@ -269,7 +273,6 @@ class Overview(QGraphicsView):
             rect.setPen(QPen(color))
             rect.setBrush(QBrush(color))
             rect.setZValue(-5)
-            self.scene.addItem(rect)
             self.idx_markers.append(rect)
 
     def display_annotations(self):
@@ -287,7 +290,7 @@ class Overview(QGraphicsView):
         events = []
         if self.parent.notes.annot is not None:
             if self.parent.value('annot_show'):
-                bookmarks = self.parent.notes.annot.get_markers()
+                bookmarks = self.parent.notes.annot.get_bookmarks()
                 events = self.parent.notes.get_selected_events()
 
         annotations = bookmarks + events
@@ -307,7 +310,6 @@ class Overview(QGraphicsView):
             rect.setPen(QPen(color))
             rect.setBrush(QBrush(color))
             rect.setZValue(-5)
-            self.scene.addItem(rect)
             self.idx_annot.append(rect)
 
     def display_stages(self):
