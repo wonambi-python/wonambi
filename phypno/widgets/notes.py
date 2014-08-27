@@ -155,8 +155,6 @@ class Notes(QTabWidget):
         self.idx_annotations.clicked.connect(self.load_annot)
         self.idx_rater = QLabel('')  # TODO: turn into QComboBox
 
-        self.idx_stats = QFormLayout()
-
         b0 = QGroupBox('Info')
         form = QFormLayout()
         b0.setLayout(form)
@@ -165,7 +163,7 @@ class Notes(QTabWidget):
         form.addRow('Rater:', self.idx_rater)
 
         b1 = QGroupBox('Recap')
-        b1.setLayout(self.idx_stats)
+        self.idx_stats = b1
 
         layout = QVBoxLayout()
         layout.addWidget(b0)
@@ -289,8 +287,11 @@ class Notes(QTabWidget):
             self.idx_stage.addItem(one_stage)
         self.idx_stage.setCurrentIndex(-1)
 
+        stats_layout = QFormLayout()
+        self.idx_stats.setLayout(stats_layout)
+
         for one_stage in STAGE_NAME:
-            self.idx_stats.addRow(one_stage, QLabel(''))
+            stats_layout.addRow(one_stage, QLabel(''))
 
         self.display_notes()
 
@@ -322,7 +323,8 @@ class Notes(QTabWidget):
             second_in_stage = self.annot.time_in_stage(one_stage)
             time_in_stage = str(timedelta(seconds=second_in_stage))
 
-            label = self.idx_stats.itemAt(i, QFormLayout.FieldRole).widget()
+            stats_layout = self.idx_stats.layout()
+            label = stats_layout.itemAt(i, QFormLayout.FieldRole).widget()
             label.setText(time_in_stage)
 
     def add_bookmark(self, time):
@@ -634,7 +636,7 @@ class Notes(QTabWidget):
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')
         self.idx_rater.setText('')
-        self.idx_stats = QFormLayout()
+        self.idx_stats.setLayout(QFormLayout())
 
         self.idx_marker.clearContents()
         self.idx_marker.setRowCount(0)
