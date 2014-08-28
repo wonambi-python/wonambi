@@ -382,6 +382,8 @@ class Notes(QTabWidget):
 
     def display_eventtype(self):
 
+        self.idx_eventtype.clear()
+
         evttype_group = QGroupBox('Event Types')
         layout = QVBoxLayout()
         evttype_group.setLayout(layout)
@@ -526,8 +528,8 @@ class Notes(QTabWidget):
                     STAGE_NAME[stage_idx])
 
             self.set_stage_index()
-            self.parent.overview.display_stages(window_start, window_length,
-                                                STAGE_NAME[stage_idx])
+            self.parent.overview.mark_stages(window_start, window_length,
+                                             STAGE_NAME[stage_idx])
             self.display_stats()
             self.parent.traces.page_next()
 
