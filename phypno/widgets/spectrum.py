@@ -107,12 +107,6 @@ class Spectrum(QWidget):
         self.idx_fig = QGraphicsView(self)
         self.idx_fig.scale(1, -1)
 
-        value = self.config.value
-        self.scene = QGraphicsScene(value['x_min'], value['y_min'],
-                                    value['x_max'] - value['x_min'],
-                                    value['y_max'] - value['y_min'])
-        self.idx_fig.setScene(self.scene)
-
         layout = QVBoxLayout()
         layout.addWidget(self.idx_chan)
         layout.addWidget(self.idx_fig)
@@ -170,10 +164,11 @@ class Spectrum(QWidget):
         traces (which read chunks of data from the user-made selection).
         """
         value = self.config.value
-        self.scene.setSceneRect(value['x_min'], value['y_min'],
-                                value['x_max'] - value['x_min'],
-                                value['y_max'] - value['y_min'])
-        self.scene.clear()
+        self.scene = QGraphicsScene(value['x_min'], value['y_min'],
+                                    value['x_max'] - value['x_min'],
+                                    value['y_max'] - value['y_min'])
+        self.idx_fig.setScene(self.scene)
+
         self.add_grid()
         self.resizeEvent(None)
 
