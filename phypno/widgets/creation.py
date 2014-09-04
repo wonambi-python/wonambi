@@ -208,6 +208,7 @@ def create_menubar(MAIN):
     menu_annot = menubar.addMenu('Annotations')
     menu_annot.addAction(actions['new_annot'])
     menu_annot.addAction(actions['load_annot'])
+    menu_annot.addAction(actions['clear_annot'])
     menu_annot.addSeparator()
 
     submenu_rater = menu_annot.addMenu('Rater')

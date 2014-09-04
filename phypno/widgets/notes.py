@@ -26,6 +26,7 @@ from PyQt4.QtGui import (QAbstractItemView,
                          QIcon,
                          QInputDialog,
                          QLabel,
+                         QMessageBox,
                          QPushButton,
                          QTableWidget,
                          QTableWidgetItem,
@@ -164,6 +165,7 @@ class Notes(QTabWidget):
 
         b1 = QGroupBox('Recap')
         self.idx_stats = b1
+        self.idx_stats.setLayout(QFormLayout())
 
         layout = QVBoxLayout()
         layout.addWidget(b0)
@@ -215,6 +217,10 @@ class Notes(QTabWidget):
         act = QAction('Load Annotation File...', self)
         act.triggered.connect(self.load_annot)
         actions['load_annot'] = act
+
+        act = QAction('Clear Annotations...', self)
+        act.triggered.connect(self.clear_annot)
+        actions['clear_annot'] = act
 
         act = QAction('New...', self)
         act.triggered.connect(self.new_rater)
@@ -579,6 +585,30 @@ class Notes(QTabWidget):
         except FileNotFoundError:
             self.parent.statusBar().showMessage('Annotation file not found')
 
+    def clear_annot(self):
+
+        """
+        msgBox = QMessageBox(QMessageBox.Question, 'Clear Annotations',
+                             'Do you want to remove all the annotations?')
+        msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msgBox.setDefaultButton(QMessageBox.Yes)
+        response = msgBox.exec_()
+
+        if response == QMessageBox.No:
+            return
+        """
+
+        self.reset()
+
+        self.parent.create_menubar()  # remove all raters
+
+        stats_layout = QFormLayout()
+        self.idx_stats.setLayout(stats_layout)
+
+        if self.parent.traces.data is not None:
+            self.parent.traces.display_annotations()
+        self.parent.overview.display_annotations()
+
     def new_rater(self):
         """
         First argument, if not specified, is a bool/False:
@@ -638,12 +668,9 @@ class Notes(QTabWidget):
     def reset(self):
         self.idx_annotations.setText('Load Annotation File...')
         self.idx_rater.setText('')
-        self.idx_stats.setLayout(QFormLayout())
+        self.idx_stats.layout().deleteLater()
 
-        self.idx_marker.clearContents()
-        self.idx_marker.setRowCount(0)
-
-        self.idx_eventtype.clear()
+        self.display_eventtype()
 
         self.idx_annot_list.clear()
 
