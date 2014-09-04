@@ -61,10 +61,14 @@ copyright = u'2013-2014, Gio Piantoni'
 # built documents.
 #
 # The short X.Y version.
+<<<<<<< HEAD
 from os.path import realpath, join, dirname
 version_file = realpath(join(dirname(realpath(__file__)), '..', 'VERSION'))
 with open(version_file, 'r', newline='') as f:
     version = f.read().strip()
+=======
+version = '11.4'
+>>>>>>> c03c9a0ac8206944df1c177f8fe2a6041d2b6e3c
 # The full version, including alpha/beta/rc tags.
 release = version.split('.')[0]
 
