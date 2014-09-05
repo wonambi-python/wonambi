@@ -286,12 +286,14 @@ class Overview(QGraphicsView):
             self.scene.removeItem(rect)
         self.idx_annot = []
 
+        if self.parent.notes.annot is None:
+            return
+
         bookmarks = []
         events = []
-        if self.parent.notes.annot is not None:
-            if self.parent.value('annot_show'):
-                bookmarks = self.parent.notes.annot.get_bookmarks()
-                events = self.parent.notes.get_selected_events()
+        if self.parent.value('annot_show'):
+            bookmarks = self.parent.notes.annot.get_bookmarks()
+            events = self.parent.notes.get_selected_events()
 
         annotations = bookmarks + events
 
@@ -312,7 +314,6 @@ class Overview(QGraphicsView):
             rect.setZValue(-5)
             self.idx_annot.append(rect)
 
-    def display_stages(self):
         for epoch in self.parent.notes.annot.epochs:
             self.mark_stages(epoch['start'],
                              epoch['end'] - epoch['start'],
@@ -342,6 +343,7 @@ class Overview(QGraphicsView):
         if old_score is not None and old_score.pen() == NoPen:
             lg.debug('Removing old score at {}'.format(start_time))
             self.scene.removeItem(old_score)
+            self.idx_annot.remove(old_score)
 
         rect = QGraphicsRectItem(start_time,
                                  y_pos + STAGES[stage_name]['pos0'],
@@ -350,6 +352,7 @@ class Overview(QGraphicsView):
         rect.setPen(NoPen)
         rect.setBrush(STAGES[stage_name]['color'])
         self.scene.addItem(rect)
+        self.idx_annot.append(rect)
 
     def mark_downloaded(self, start_value, end_value):
         """Set the value of the progress bar.

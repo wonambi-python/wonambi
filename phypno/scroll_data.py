@@ -3,6 +3,8 @@
 from os.path import realpath, join, dirname
 from sys import path
 
+__file__ = '/home/gio/tools/phypno/phypno/scroll_data.py'
+
 phypno_path = realpath(join(dirname(realpath(__file__)), '..'))
 path.append(phypno_path)
 
@@ -221,10 +223,10 @@ if __name__ == '__main__':
 
     q = MainWindow()
     q.show()
-    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
-    # q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
-    # q.overview.update_position(30)
+    q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
+    q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
+    q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
+    q.overview.update_position(30)
 
     if standalone:
         app.exec_()
