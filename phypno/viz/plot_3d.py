@@ -5,98 +5,259 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from itertools import chain
+from multiprocessing import Pool
 from os import listdir, remove
 from os.path import join, splitext
-from shutil import copyfile
 from subprocess import call
 from tempfile import mkdtemp
+from functools import partial
 
-from numpy import asarray, dot, hstack, max, mean, min, ones, zeros
+from numpy import dot, max, mean, min, ones
+from numpy import asarray, NaN, empty, count_nonzero, isnan
 from numpy.linalg import norm
-from visvis import Mesh, gca, figure, solidSphere, CM_JET, record, screenshot
+from visvis import Mesh, gca, figure, solidSphere, CM_JET, record
 
 
-CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255.)
-SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255.)
+CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255., 1)
+SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 0.5)
 
 
-def plot_surf(surf, fig=None):
-    """Plot channels in 3d space.
-
-    Parameters
-    ----------
-    surf : instance of phypno.attr.Surf
-        surface to plot (only one hemisphere).
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-
-    Returns
-    -------
-    instance of visvis.Figure
-        main figure
-
+class Viz3:
     """
-    fig = _make_fig(fig)
 
-    ax = fig.currentAxes
-    m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
-    m.faceColor = hstack((asarray(SKIN_COLOR), 0.5))
-
-    # center the image
-    center_surf = tuple(mean(surf.vert, axis=0))
-    ax.camera.loc = center_surf
-    ax.camera.elevation = 0
-    ax.camera.zoom = 0.007
-
-    if center_surf[0] > 0:  # right hemisphere
-        ax.camera.azimuth = 90
-    else:
-        ax.camera.azimuth = 270
-
-    return fig
-
-
-def plot_values_on_surf(surf, values, trans, fig=None):
-    """Plot values onto the brain surface.
-
-    Parameters
+    Attributes
     ----------
-    surf : instance of phypno.attr.Surf
-        surface to plot (only one hemisphere).
-    values : numpy.ndarray
-        1-d vector with values at each point.
-    trans : numpy.ndarray
-        nVertices X nValues matrix
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-
-    Returns
-    -------
-    instance of visvis.Figure
-        main figure
-    instance of visvis.Mesh
-        mesh which can be modified afterwards
-
-    Notes
-    -----
-    The transformation matrix does the important part of converting the values
-    at each electrode into the values onto the surface. You can specify it as
-    you want, as long as its dimensions are number of vertices X number of
-    values.
-
+    _fig : instance of Figure
+        current figure
+    _ax : instance of Axes
+        current axes
     """
-    fig = _make_fig(fig)
 
-    ax = fig.currentAxes
-    m = Mesh(ax, vertices=surf.vert, faces=surf.tri)
-    m.SetValues(dot(trans, values), setClim=True)
-    m.colormap = CM_JET
+    def __init__(self):
+        self.xyz2surf = None
 
-    return fig, m
+        self._fig = figure()
+        self._ax = gca()
+        self._ax.wobjects[0].Destroy()  # get rid of axises
+
+        self._surf = None
+        self._h_surf = None
+        self._h_chan = []
+
+    def add_surf(self, surf, color=SKIN_COLOR, xyz=None, values=None,
+                 limits=None, colormap=CM_JET):
+
+        if values is not None and limits is None:
+            limits = (min(values), max(values))
+
+        m = Mesh(self._ax, vertices=surf.vert, faces=surf.tri)
+
+        if values is not None:
+            if self.xyz2surf is None:
+                lg.info('Computing transformation, it will take a while')
+                self.xyz2surf = calc_xyz2surf(self._surf, xyz)
+
+            m.SetValues(dot(self.xyz2surf, values))
+            m.clim = limits
+        else:
+            m.faceColor = color
+        m.colormap = colormap
+
+        self._surf = surf
+        self._h_surf = m
+        self.center_surf()
+
+    def add_chan(self, chan, color=(0, 0, 0, 1), values=None, limits=None,
+                 colormap=CM_JET):
+        """
+        Parameters
+        ----------
+        chan : instance of phypno.attr.Channels
+            channels to plot.
+        color : tuple, optional
+            4-element tuple, representing RGB and alpha.
+        values : ndarray, optional
+            vector with values for each electrode
+        limits : 2 float values
+            min and max values
+        colormap : ndarray, optional
+            2d matrix (for example, from visvis import CM_JET)
+        """
+        # larger if colors are meaningful
+        if values is not None:
+            SCALING = 3
+        else:
+            SCALING = 1.5
+
+        if values is not None and limits is None:
+            limits = (min(values), max(values))
+
+        for i, one_chan in enumerate(chan.chan):
+            s = solidSphere(list(one_chan.xyz), scaling=SCALING)
+
+            if values is not None:
+                _set_value_to_chan(s, values[i])
+                s.clim = limits
+            else:
+                s.faceColor = color
+            s.colormap = colormap
+
+            self._h_chan.append(s)
+
+    def update_surf(self, color=None, values=None, limits=None, colormap=None):
+        """Plot values onto the brain surface.
+
+        Parameters
+        ----------
+        values : numpy.ndarray
+            1-d vector with values at each point.
+
+        Notes
+        -----
+        The transformation matrix does the important part of converting the values
+        at each electrode into the values onto the surface. You can specify it as
+        you want, as long as its dimensions are number of vertices X number of
+        values.
+
+        """
+        m = self._h_surf
+        if values is not None:
+            m.SetValues(dot(self.xyz2surf, values))
+
+        if limits is not None:
+            m.clim = limits
+
+        if colormap is not None:
+            m.colormap = colormap
+
+        if color is not None:
+            m.faceColor = color
+
+    def update_chan(self, color=None, values=None, limits=None, colormap=None):
+
+        for i, s in enumerate(self._h_chan):
+
+            if values is not None:
+                _set_value_to_chan(s, values[i])
+
+            if limits is not None:
+                s.clim = limits
+
+            if colormap is not None:
+                s.colormap = colormap
+
+            if color is not None:
+                s.faceColor = color
+
+    def animate_surf(self, all_values, output_file):
+        """I cannot modify frame rate in avconv, default is 24"""
+
+        img_dir = mkdtemp()
+
+        rec = record(self._ax)
+        for values in all_values:
+            self.update_surf(values=values)
+            self._fig.DrawNow()
+        rec.Stop()
+        rec.Export(join(img_dir, 'image.png'))
+
+        if splitext(output_file)[1] == '.gif':
+            _make_gif(img_dir, output_file)
+        else:
+            _make_mp4(img_dir, output_file)
+
+    def animate_chan(self, all_values, output_file):
+
+        img_dir = mkdtemp()
+
+        rec = record(self._ax)
+        for values in all_values:
+            self.update_chan(values=values)
+            self._fig.DrawNow()
+        rec.Stop()
+        rec.Export(join(img_dir, 'image.png'))
+
+        if splitext(output_file)[1] == '.gif':
+            _make_gif(img_dir, output_file)
+        else:
+            _make_mp4(img_dir, output_file)
+
+    def rotate(self, output_file, loop='full', step=5):
+        """Create rotating images in a temporary folder.
+
+        Parameters
+        ----------
+        fig : instance of visvis.Figure
+            figure being plotted.
+        loop : str, optional
+            'full' (complete rotation) or 'patrol' (half rotation)
+        step : int, optional
+            distance in degrees between frames
+        focus : str, optional
+            'fig' or 'axis', which part of the image should be saved
+        poster : bool, optional
+            make a poster image before the video (it creates "poster.png")
+
+        Returns
+        -------
+        path to dir
+            temporary directory with images
+
+        """
+        img_dir = mkdtemp()
+
+        if self._ax.camera.azimuth > 0:  # right hemi
+            if loop == 'hemi':
+                angles = range(180, 0, -step)
+            elif loop == 'full':
+                angles = range(180, -180, -step)
+            elif loop == 'patrol':
+                angles = chain(range(180, 0, -step),
+                               range(0, 180, step))
+            elif loop == 'consistent':
+                angles = range(180, 0, -step)
+
+        else:
+            if loop == 'hemi':
+                angles = range(-180, 0, step)
+            elif loop == 'full':
+                angles = range(-180, 180, step)
+            elif loop == 'patrol':
+                angles = chain(range(-180, 0, step),
+                               range(0, -180, -step))
+            elif loop == 'consistent':
+                angles = range(0, -180, -step)
+
+        rec = record(self._ax)
+        for i in angles:
+            self._ax.camera.azimuth = i
+            self._fig.DrawNow()
+
+        rec.Stop()
+        rec.Export(join(img_dir, 'image.png'))
+
+        if splitext(output_file)[1] == '.gif':
+            _make_gif(img_dir, output_file)
+        else:
+            _make_mp4(img_dir, output_file)
+
+    def center_surf(self):
+        center_surf = tuple(mean(self._surf.vert, axis=0))
+        self._ax.camera.loc = center_surf
+        self._ax.camera.elevation = 0
+        self._ax.camera.zoom = 0.007
+
+        if center_surf[0] > 0:  # right hemisphere
+            self._ax.camera.azimuth = 90
+        else:
+            self._ax.camera.azimuth = 270
+
+    def draw(self):
+        pass
 
 
-def calculate_chan2surf_trans(surf, xyz, dist_func=None):
-    """Calculate transformation matrix from channel values to vertices.
+def calc_xyz2surf(surf, xyz, threshold=10):
+    """Calculate transformation matrix from xyz values to vertices.
 
     Parameters
     ----------
@@ -127,75 +288,42 @@ def calculate_chan2surf_trans(surf, xyz, dist_func=None):
     but if you calculate it once, you can reuse it.
 
     """
-    if dist_func is None:
-        dist_func = lambda one_vert, one_chan: 1 / norm(one_vert - one_chan)
+    with Pool() as p:
+        xyz2surf = p.map(partial(calc_one_vert, xyz=xyz, thres=threshold),
+                         surf.vert)
 
-    trans = zeros((surf.vert.shape[0], xyz.shape[0]))
+    xyz2surf = asarray(xyz2surf)
+    xyz2surf[isnan(xyz2surf)] = 0
 
-    for i, one_vert in enumerate(surf.vert):
-        for j, one_xyz in enumerate(xyz):
-            trans[i, j] = dist_func(one_vert, one_xyz)
-
-    return trans
+    return xyz2surf
 
 
-def plot_chan(chan, fig=None, color=(0, 0, 0, 1), values=None, limits=None,
-              colormap=CM_JET):
-    """Plot channels in 3d space.
+def calc_one_vert(one_vert, xyz=None, thres=10):
+    trans = empty(xyz.shape[0])
+    for i, one_xyz in enumerate(xyz):
+        if norm(one_vert - one_xyz) <= thres:
+            trans[i] = 1
+        else:
+            trans[i] = NaN
+    return trans / count_nonzero(~isnan(trans))
+
+
+def _set_value_to_chan(s, v):
+    """Change color for one channel. Each dot is actually a complicated mesh,
+    so we need to change the color of all the elements.
 
     Parameters
     ----------
-    chan : instance of phypno.attr.Channels
-        channels to plot.
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-    color : tuple, optional
-        4-element tuple, representing RGB and alpha.
-    values : ndarray, optional
-        vector with values for each electrode
-    limits : 2 float values
-        min and max values
-    colormap : ndarray, optional
-        2d matrix (for example, from visvis import CM_JET)
-
-    Returns
-    -------
-    instance of visvis.Figure
-
+    s : instance of solidSphere
+        the representation of the channel
+    v : float
+        value to assign to the channel.
     """
-    fig = _make_fig(fig)
-    azimuth = fig.currentAxes.camera.azimuth
-    elevation = fig.currentAxes.camera.elevation
-    zoom = fig.currentAxes.camera.zoom
-
-    # larger if colors are meaningful
-    if values is not None:
-        SCALING = 3
-    else:
-        SCALING = 1.5
-
-    if values is not None and limits is None:
-        limits = (min(values), max(values))
-
-    for i, one_chan in enumerate(chan.chan):
-        s = solidSphere(list(one_chan.xyz), scaling=SCALING)
-
-        if values is not None:
-            n_vert = s._vertices.shape[0]
-            s.SetValues(values[i] * ones((n_vert, 1)))
-            s.clim = limits
-        else:
-            s.faceColor = color
-        s.colormap = colormap
-
-    fig.currentAxes.camera.azimuth = azimuth
-    fig.currentAxes.camera.elevation = elevation
-    fig.currentAxes.camera.zoom = zoom
-
-    return fig
+    n_vert = s._vertices.shape[0]
+    s.SetValues(v * ones((n_vert, 1)))
 
 
-def make_gif(fig, gif_file, loop='full', step=5, focus='fig'):
+def _make_gif(img_dir, gif_file):
     """Save the image as rotating gif.
 
     Parameters
@@ -215,14 +343,11 @@ def make_gif(fig, gif_file, loop='full', step=5, focus='fig'):
     -----
     It requires ''convert'' from Imagemagick
     """
-    img_dir = _rotate_images(fig, loop=loop, step=step, focus=focus)
-
     call('convert ' + join(img_dir, 'image*.png') + ' ' + gif_file,
          shell=True)
 
 
-def make_movie(fig, movie_file, loop='full', step=5, focus='fig', rate=24,
-               poster=False):
+def _make_mp4(img_dir, movie_file):
     """Save the image as rotating movie.
 
     Parameters
@@ -247,9 +372,6 @@ def make_movie(fig, movie_file, loop='full', step=5, focus='fig', rate=24,
     It requires ''avconv'' from LibAv
 
     """
-    img_dir = _rotate_images(fig, loop=loop, step=step, focus=focus,
-                             poster=poster)
-
     # name in the images depends on the number of images
     # I took this part from visvis directly
     N = len(listdir(img_dir))
@@ -267,104 +389,4 @@ def make_movie(fig, movie_file, loop='full', step=5, focus='fig', rate=24,
         pass
 
     call('avconv -i ' + join(img_dir, 'image' + formatter + '.png') +
-         ' -r ' + str(rate) + ' -tune animation ' + movie_file, shell=True)
-
-    if poster:
-        poster_file = splitext(movie_file)[0] + '_poster.jpg'
-        copyfile(join(img_dir, 'poster.jpg'), poster_file)
-
-
-def _make_fig(fig=None):
-    """Create a figure, if it doesn't exist already.
-
-    Parameters
-    ----------
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-
-    Returns
-    -------
-    instance of visvis.Figure
-
-    """
-    fig = figure(fig)
-    ax = gca()
-    ax.axis.visible = False
-
-    return fig
-
-
-def _rotate_images(fig, loop='full', step=5, focus='fig', poster=False):
-    """Create rotating images in a temporary folder.
-
-    Parameters
-    ----------
-    fig : instance of visvis.Figure
-        figure being plotted.
-    loop : str, optional
-        'full' (complete rotation) or 'patrol' (half rotation)
-    step : int, optional
-        distance in degrees between frames
-    focus : str, optional
-        'fig' or 'axis', which part of the image should be saved
-    poster : bool, optional
-        make a poster image before the video (it creates "poster.png")
-
-    Returns
-    -------
-    path to dir
-        temporary directory with images
-
-    """
-    img_dir = mkdtemp()
-
-    ax = fig.currentAxes
-    if focus == 'fig':
-        obj = fig
-    elif focus == 'axis':
-        obj = ax
-
-    AZIMUTH = ax.camera.azimuth
-
-    if ax.camera.azimuth > 0:  # right hemi
-        poster_angle = 90
-        if loop == 'hemi':
-            angles = range(180, 0, -step)
-        elif loop == 'full':
-            angles = range(180, -180, -step)
-        elif loop == 'patrol':
-            angles = chain(range(180, 0, -step),
-                           range(0, 180, step))
-        elif loop == 'consistent':
-            angles = range(180, 0, -step)
-
-    else:
-        poster_angle = -90
-        if loop == 'hemi':
-            angles = range(-180, 0, step)
-        elif loop == 'full':
-            angles = range(-180, 180, step)
-        elif loop == 'patrol':
-            angles = chain(range(-180, 0, step),
-                           range(0, -180, -step))
-        elif loop == 'consistent':
-            angles = range(0, -180, -step)
-
-    rec = record(obj)
-    for i in angles:
-        ax.camera.azimuth = i
-        ax.Draw()
-        fig.DrawNow()
-
-    rec.Stop()
-    rec.Export(join(img_dir, 'image.png'))
-
-    if poster:
-        ax.camera.azimuth = poster_angle
-        ax.Draw()
-        fig.DrawNow()
-        screenshot(join(img_dir, 'poster.jpg'), obj)
-
-    ax.camera.azimuth = AZIMUTH
-
-    return img_dir
+         ' -tune animation ' + movie_file, shell=True)
