@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+""" ------ ADD MODULE ------ """
+from os.path import realpath, join, dirname
+from sys import path
+
+phypno_path = realpath(join(dirname(realpath(__file__)), '..'))
+path.append(phypno_path)
 
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
@@ -27,7 +33,6 @@ lg.addHandler(handler)
 lg.setLevel(INFO)
 
 """ ------ IMPORT ------ """
-from os.path import realpath, join, dirname
 from types import MethodType
 
 from numpy import arange
@@ -39,7 +44,7 @@ from phypno.widgets.creation import (create_menubar, create_toolbar,
 from phypno.widgets.settings import DEFAULTS
 from phypno.widgets.utils import keep_recent_datasets
 
-version_file = realpath(join(dirname(realpath(__file__)), '..', 'VERSION'))
+version_file = join(phypno_path, 'VERSION')
 with open(version_file, 'r') as f:
     VERSION = f.read().strip()
 
