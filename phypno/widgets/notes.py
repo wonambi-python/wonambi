@@ -1,6 +1,6 @@
 """Widgets containing notes (such as markers, events, and stages).
 
-  - markers are unique (might have the same text), are not mutually
+  - bookmarks are unique (might have the same text), are not mutually
     exclusive, have variable duration
   - events are not unique, are not mutually exclusive, have variable duration
   - stages are not unique, are mutually exclusive, have fixed duration
@@ -393,6 +393,11 @@ class Notes(QTabWidget):
 
     def display_eventtype(self):
 
+        if self.annot is not None:
+            event_types = sorted(self.annot.event_types, key=str.lower)
+        else:
+            event_types = []
+
         self.idx_eventtype.clear()
 
         evttype_group = QGroupBox('Event Types')
@@ -400,7 +405,6 @@ class Notes(QTabWidget):
         evttype_group.setLayout(layout)
 
         self.idx_eventtype_list = []
-        event_types = sorted(self.annot.event_types, key=str.lower)
         for one_eventtype in event_types:
             self.idx_eventtype.addItem(one_eventtype)
             item = QCheckBox(one_eventtype)
@@ -426,16 +430,16 @@ class Notes(QTabWidget):
         Depending on the settings, it might add the bookmarks to overview and
         traces.
         """
-        if self.parent.notes.annot is None:
-            return
-
         start_time = self.parent.overview.start_time
 
-        bookmarks = self.parent.notes.annot.get_bookmarks()
-        events = self.get_selected_events()
+        if self.parent.notes.annot is None:
+            all_annot = []
+        else:
+            bookmarks = self.parent.notes.annot.get_bookmarks()
+            events = self.get_selected_events()
 
-        all_annot = bookmarks + events
-        all_annot = sorted(all_annot, key=lambda x: x['start'])
+            all_annot = bookmarks + events
+            all_annot = sorted(all_annot, key=lambda x: x['start'])
 
         self.idx_annot_list.clearContents()
         self.idx_annot_list.setRowCount(len(all_annot))
@@ -591,7 +595,7 @@ class Notes(QTabWidget):
             self.parent.statusBar().showMessage('Annotation file not found')
 
     def clear_annot(self):
-
+        """
         """
         msgBox = QMessageBox(QMessageBox.Question, 'Clear Annotations',
                              'Do you want to remove all the annotations?')
@@ -601,14 +605,8 @@ class Notes(QTabWidget):
 
         if response == QMessageBox.No:
             return
-        """
+
         self.reset()
-
-        self.parent.create_menubar()  # remove all raters
-
-        if self.parent.traces.data is not None:
-            self.parent.traces.display_annotations()
-        self.parent.overview.display_annotations()
 
     def new_rater(self):
         """
@@ -670,6 +668,9 @@ class Notes(QTabWidget):
         self.idx_annotations.setText('Load Annotation File...')
         self.idx_rater.setText('')
 
+        self.annot = None
+        self.dataset_markers = None
+
         w = self.idx_stats_box.takeAt(1).widget()
         self.idx_stats_box.removeWidget(w)
         w.deleteLater()
@@ -679,7 +680,6 @@ class Notes(QTabWidget):
 
         self.display_eventtype()
 
-        self.idx_annot_list.clear()
+        self.update_annotations()
 
-        self.annot = None
-        self.dataset_markers = None
+        self.parent.create_menubar()  # remove all raters
