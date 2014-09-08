@@ -47,7 +47,7 @@ STAGE_SHORTCUT = ['9', '8', '5', '1', '2', '3', '0', '']
 
 
 class ConfigNotes(Config):
-
+    """Widget with preferences in Settings window for the Annotations."""
     def __init__(self, update_widget):
         super().__init__('notes', update_widget)
 
@@ -109,7 +109,29 @@ class Notes(QTabWidget):
     annot : Annotations
         contains the annotations made by the user
 
+    idx_marker : QTableWidget
+        table with the markers in the dataset
 
+    idx_summary: QVBoxLayout
+        layout of the "Summary" tab (we add and remove the "Recap" box)
+    idx_annotations : QPushButton
+        push button with the text of the annotation file
+    idx_rater : QLabel
+        name of the current rater
+    idx_stats : QFormLayout
+        layout of the stage statistics
+
+    idx_eventtype_scroll : QScrollArea
+        area to which you add the QGroupBox with the list of events as checkbox
+    idx_eventtype_list : list of QCheckBox
+        list of checkboxes with the event types
+    idx_annot_list : QTableWidget
+        table with the bookmarks and events in the annotations
+
+    idx_eventtype : QComboBox
+        Combo box of the event types for the toolbar
+    idx_stage : QComboBox
+        Combo box of the stages for the toolbar
     """
     def __init__(self, parent):
         super().__init__()
@@ -118,22 +140,25 @@ class Notes(QTabWidget):
 
         self.annot = None
 
+        self.idx_marker = None
+
+        self.idx_summary = None
         self.idx_annotations = None
         self.idx_rater = None
         self.idx_stats = None
-        self.idx_stats_box = None  # TODO: explain, better name
 
-        self.idx_marker = None
-        self.idx_eventtype = None  # combobox of eventtype
-        self.idx_eventtype_scroll = None  # QScrollArea
-        self.idx_eventtype_list = []  # list of eventtype QCheckBox
-        self.idx_annot_list = None  # list of markers and events
+        self.idx_eventtype_scroll = None
+        self.idx_eventtype_list = []
+        self.idx_annot_list = None
+
+        self.idx_eventtype = None
         self.idx_stage = None
 
         self.create()
         self.create_action()
 
     def create(self):
+        """Create the widget layout with all the annotations."""
 
         """ ------ MARKERS ------ """
         tab0 = QTableWidget()
@@ -155,7 +180,7 @@ class Notes(QTabWidget):
 
         self.idx_annotations = QPushButton('Load Annotation File...')
         self.idx_annotations.clicked.connect(self.load_annot)
-        self.idx_rater = QLabel('')  # TODO: turn into QComboBox
+        self.idx_rater = QLabel('')
 
         b0 = QGroupBox('Info')
         form = QFormLayout()
@@ -169,7 +194,7 @@ class Notes(QTabWidget):
         layout = QVBoxLayout()
         layout.addWidget(b0)
         layout.addWidget(b1)
-        self.idx_stats_box = layout
+        self.idx_summary = layout
 
         tab1.setLayout(layout)
 
@@ -208,6 +233,7 @@ class Notes(QTabWidget):
         self.addTab(tab2, 'Annotations')  # disable
 
     def create_action(self):
+        """Create actions associated with Annotations."""
         actions = {}
 
         act = QAction('New Annotation File...', self)
@@ -269,6 +295,7 @@ class Notes(QTabWidget):
         self.action = actions
 
     def update_settings(self):
+        """Once Settings are applied, update the notes."""
         self.update_dataset_marker()
         self.update_annotations()
 
@@ -279,7 +306,8 @@ class Notes(QTabWidget):
         ----------
         xml_file : str
             file of the new or existing .xml file
-
+        new : bool
+            if the xml_file should be a new file or an existing one
         """
         if new:
             create_empty_annotations(xml_file, self.parent.info.dataset)
@@ -293,8 +321,8 @@ class Notes(QTabWidget):
             self.idx_stage.addItem(one_stage)
         self.idx_stage.setCurrentIndex(-1)
 
-        w = self.idx_stats_box.takeAt(1).widget()
-        self.idx_stats_box.removeWidget(w)
+        w = self.idx_summary.takeAt(1).widget()
+        self.idx_summary.removeWidget(w)
         w.deleteLater()
 
         b1 = QGroupBox('Recap')
@@ -303,7 +331,7 @@ class Notes(QTabWidget):
         for one_stage in STAGE_NAME:
             layout.addRow(one_stage, QLabel(''))
         b1.setLayout(layout)
-        self.idx_stats_box.addWidget(b1)
+        self.idx_summary.addWidget(b1)
         self.idx_stats = layout
 
         self.display_notes()
@@ -339,7 +367,13 @@ class Notes(QTabWidget):
             label.setText(time_in_stage)
 
     def add_bookmark(self, time):
+        """Run this function when user adds a new bookmark.
 
+        Parameters
+        ----------
+        time : tuple of float
+            start and end of the new bookmark, in s
+        """
         answer = QInputDialog.getText(self, 'New Bookmark',
                                       'Enter bookmark\'s name')
         if answer[1]:
@@ -392,7 +426,8 @@ class Notes(QTabWidget):
         self.parent.overview.display_markers()
 
     def display_eventtype(self):
-
+        """Read the list of event types in the annotations and update widgets.
+        """
         if self.annot is not None:
             event_types = sorted(self.annot.event_types, key=str.lower)
         else:
@@ -416,7 +451,18 @@ class Notes(QTabWidget):
         self.idx_eventtype_scroll.setWidget(evttype_group)
 
     def get_selected_events(self, time_selection=None):
+        """Returns which events are present in one time window.
 
+        Parameters
+        ----------
+        time_selection : tuple of float
+            start and end of the window of interest
+
+        Returns
+        -------
+        list of dict
+            list of events in the window of interest
+        """
         events = []
         for checkbox in self.idx_eventtype_list:
             if checkbox.checkState() == Qt.Checked:
@@ -507,6 +553,8 @@ class Notes(QTabWidget):
 
         column : QtCore.int
 
+        table_type : str
+            'dataset' table or 'annot' table, it works on either
         """
         if table_type == 'dataset':
             marker_time = self.idx_marker.property('start')[row]
@@ -558,10 +606,7 @@ class Notes(QTabWidget):
             self.idx_stage.setCurrentIndex(STAGE_NAME.index(stage))
 
     def new_annot(self):
-        """Action: create a new file for annotations.
-
-        It should be gray-ed out when no dataset
-        """
+        """Action: create a new file for annotations."""
         if self.parent.info.filename is None:
             self.parent.statusBar().showMessage('No dataset loaded')
             return
@@ -595,8 +640,7 @@ class Notes(QTabWidget):
             self.parent.statusBar().showMessage('Annotation file not found')
 
     def clear_annot(self):
-        """
-        """
+        """Action: clear all the annotations (ask for confirmation first)."""
         msgBox = QMessageBox(QMessageBox.Question, 'Clear Annotations',
                              'Do you want to remove all the annotations?')
         msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -609,10 +653,12 @@ class Notes(QTabWidget):
         self.reset()
 
     def new_rater(self):
-        """
+        """Action: add a new rater.
+
+        Notes
+        -----
         First argument, if not specified, is a bool/False:
         http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
-
         """
         answer = QInputDialog.getText(self, 'New Rater',
                                       'Enter rater\'s name')
@@ -623,10 +669,18 @@ class Notes(QTabWidget):
             self.parent.create_menubar()  # refresh list ot raters
 
     def select_rater(self, rater=False):
+        """Action: select one rater.
+
+        Parameters
+        ----------
+        rater : str
+            name of the rater
+        """
         self.annot.get_rater(rater)
         self.display_notes()
 
     def delete_rater(self):
+        """Action: create dialog to delete rater."""
         answer = QInputDialog.getText(self, 'Delete Rater',
                                       'Enter rater\'s name')
         if answer[1]:
@@ -635,6 +689,7 @@ class Notes(QTabWidget):
             self.parent.create_menubar()  # refresh list ot raters
 
     def new_eventtype(self):
+        """Action: create dialog to add new event type."""
         answer = QInputDialog.getText(self, 'New Event Type',
                                       'Enter new event\'s name')
         if answer[1]:
@@ -644,6 +699,7 @@ class Notes(QTabWidget):
             self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
 
     def delete_eventtype(self):
+        """Action: create dialog to delete event type."""
         answer = QInputDialog.getText(self, 'Delete Event Type',
                                       'Enter event\'s name to delete')
         if answer[1]:
@@ -651,10 +707,12 @@ class Notes(QTabWidget):
             self.display_eventtype()
 
     def add_event(self, name, time):
+        """Action: add a single event."""
         self.annot.add_event(name, time)
         self.update_annotations()
 
     def export(self):
+        """action: export annotations to CSV."""
         filename = splitext(self.annot.xml_file)[0] + '.csv'
         filename = QFileDialog.getSaveFileName(self, 'Export stages',
                                                filename,
@@ -665,21 +723,21 @@ class Notes(QTabWidget):
         self.annot.export(filename)
 
     def reset(self):
+        """Remove all annotations from window."""
         self.idx_annotations.setText('Load Annotation File...')
         self.idx_rater.setText('')
 
         self.annot = None
         self.dataset_markers = None
 
-        w = self.idx_stats_box.takeAt(1).widget()
-        self.idx_stats_box.removeWidget(w)
+        # remove summary statistics
+        w = self.idx_summary.takeAt(1).widget()
+        self.idx_summary.removeWidget(w)
         w.deleteLater()
-
         b1 = QGroupBox('Recap')
-        self.idx_stats_box.addWidget(b1)
+        self.idx_summary.addWidget(b1)
 
         self.display_eventtype()
-
         self.update_annotations()
 
         self.parent.create_menubar()  # remove all raters
