@@ -219,7 +219,7 @@ def _read_neuralsg(filename):
         hdr['SamplingFreq'] = int(hdr['TimeRes'] / unpack('<I', f.read(4))[0])
         n_chan = unpack('<I', f.read(4))[0]
         hdr['ChannelCount'] = n_chan
-        hdr['ChannelID'] = unpack('<I' * n_chan, f.read(4 * n_chan))
+        hdr['ChannelID'] = unpack('<' + 'I' * n_chan, f.read(4 * n_chan))
 
         BOData = f.tell()
         f.seek(0, SEEK_END)
