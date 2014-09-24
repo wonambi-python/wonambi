@@ -177,8 +177,8 @@ class Overview(QGraphicsView):
 
         stamps = _make_timestamps(self.start_time, self.minimum, self.maximum,
                                   self.parent.value('timestamp_steps'))
-        for stamp, xpos in stamps.items():
 
+        for stamp, xpos in zip(*stamps):
             text = self.scene.addSimpleText(stamp)
             text.setFlag(QGraphicsItem.ItemIgnoresTransformations)
 
@@ -438,11 +438,11 @@ def _make_timestamps(start_time, minimum, maximum, steps):
     first_stamp = ceil(d0.total_seconds() / steps) * steps
     last_stamp = ceil(d1.total_seconds() / steps) * steps
 
-    stamps = {}
+    stamp_label = []
+    stamp_time = []
     for stamp in range(first_stamp, last_stamp, steps):
         stamp_as_datetime = t0_midnight + timedelta(seconds=stamp)
-        key = stamp_as_datetime.strftime('%H:%M')
-        value = stamp - d0.total_seconds()
-        stamps[key] = value
+        stamp_label.append(stamp_as_datetime.strftime('%H:%M'))
+        stamp_time.append(stamp - d0.total_seconds())
 
-    return stamps
+    return stamp_label, stamp_time
