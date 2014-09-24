@@ -190,8 +190,8 @@ def read_block_hdr(f):
     n_samples = (n_samples / (depth / 8)).astype('I')
 
     opt_hdr_size = unpack('<I', f.read(4))[0]
-    opt_hdr_type = unpack('<I', f.read(4))[0]
-    if opt_hdr_type == 1:
+    if opt_hdr_size > 0:
+        opt_hdr_type = unpack('<I', f.read(4))[0]
         n_blocks = unpack('<Q', f.read(8))[0]
         n_smp = unpack('<Q', f.read(8))[0]
         n_signals_opt = unpack('<I', f.read(4))[0]
@@ -250,7 +250,11 @@ def read_all_block_hdr(filename):
 def parse_xml(xml_file):
     xml = parse(xml_file)
     root = xml.getroot()
-    return xml2dict(root)
+    return xml2list(root)
+
+
+# remove namespace
+ns = lambda s: '}'.join(s.split('}')[1:])
 
 
 def xml2list(one_list):
@@ -265,7 +269,8 @@ def xml2list(one_list):
         elif element.text:
             text = element.text.strip()
             if text:
-                output.append(text)
+                tag = ns(element.tag)
+                output.append({tag: text})
 
     return output
 
@@ -274,9 +279,6 @@ def xml2dict(root):
     """Use functions instead of Class and remove namespace based on:
     http://stackoverflow.com/questions/2148119
     """
-    # remove namespace
-    ns = lambda s: '}'.join(s.split('}')[1:])
-
     output = {}
     if root.items():
         output.update(dict(root.items()))
