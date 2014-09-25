@@ -1,11 +1,14 @@
 from datetime import datetime
 from glob import glob
 from os import SEEK_CUR
-from os.path import join
+from os.path import basename, join, splitext
 from struct import unpack
 from xml.etree.ElementTree import parse
 
 from numpy import append, cumsum, diff, empty, asarray, NaN, reshape, where
+
+
+shorttime = lambda x: x[:26] + x[29:32] + x[33:]
 
 
 class EgiMff:
@@ -23,6 +26,7 @@ class EgiMff:
         self._block_hdr = []
         self._i_data = []
         self._n_samples = []
+        self._orig = {}
 
     def return_hdr(self):
         """Return the header for further use.
@@ -43,16 +47,10 @@ class EgiMff:
             additional information taken directly from the header
 
         """
-        xml_files = ['info', 'history', 'workflow', 'subject', 'coordinates',
-                     'sensorLayout', 'epochs', ]
-
         orig = {}
-        for xml_file in xml_files:
-            try:
-                orig[xml_file] = parse_xml(join(self.filename,
-                                                xml_file + '.xml'))
-            except FileNotFoundError:
-                orig[xml_file] = None
+        for xml_file in glob(join(self.filename, '*.xml')):
+            xml_type = splitext(basename(xml_file))[0]
+            orig[xml_type] = parse_xml(xml_file)
 
         signals = glob(join(self.filename, 'signal*.bin'))
 
@@ -64,9 +62,8 @@ class EgiMff:
             n_samples = asarray([x['n_samples'][0] for x in block_hdr], 'q')
             self._n_samples.append(n_samples)
 
-        subj_id = orig['subject']['fields']['field']['name']
-        shorttime = lambda x: x[:26] + x[29:32] + x[33:]
-        start_time = datetime.strptime(shorttime(orig['info']['recordTime']),
+        subj_id = orig['subject'][0]['field']['name']
+        start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
                                        '%Y-%m-%dT%H:%M:%S.%f%z')
 
         # it only works if they have all the same sampling frequency
@@ -75,7 +72,7 @@ class EgiMff:
         SIGNAL = 0
         s_freq = block_hdr[SIGNAL]['freq'][0]
 
-        sensors = orig['sensorLayout']['sensors']['sensor']
+        sensors = orig['sensorLayout'][1]
         chan_name = []
         for one_sensor in sensors:
             if one_sensor['name'] is not None:
@@ -84,7 +81,7 @@ class EgiMff:
                 chan_name.append(one_sensor['number'])
 
         n_samples = block_hdr[SIGNAL]['opt_hdr']['n_smp']
-        orig = orig
+        self._orig = orig
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -145,7 +142,27 @@ class EgiMff:
 
     def return_markers(self):
         """"""
-        return []
+        xml_files = self._orig.keys()
+        xml_events = [x for x in xml_files if x[:7] == 'Events_']
+
+        start_time = datetime.strptime(shorttime(self._orig['info'][0]['recordTime']),
+                                       '%Y-%m-%dT%H:%M:%S.%f%z')
+
+        markers = []
+        for xml in xml_events:
+            for event in self._orig[xml][2:]:
+                event_start = datetime.strptime(shorttime(event['beginTime']),
+                                                '%Y-%m-%dT%H:%M:%S.%f%z')
+                start = (event_start - start_time).total_seconds()
+
+                marker = {'name': event['code'],
+                          'start': start,
+                          'end': start + float(event['duration']) / 1e9,
+                          'chan': None,
+                          }
+                markers.append(marker)
+
+        return markers
 
 
 def _read_block(filename, block_hdr, i):
@@ -257,9 +274,9 @@ def parse_xml(xml_file):
 ns = lambda s: '}'.join(s.split('}')[1:])
 
 
-def xml2list(one_list):
+def xml2list(root):
     output = []
-    for element in one_list:
+    for element in root:
         if element:
             if len(element) == 1 or element[0].tag != element[1].tag:
                 output.append(xml2dict(element))
