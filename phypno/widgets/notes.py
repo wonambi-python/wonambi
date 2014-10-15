@@ -730,6 +730,10 @@ class Notes(QTabWidget):
         self.annot = None
         self.dataset_markers = None
 
+        # remove dataset marker
+        self.idx_marker.clearContents()
+        self.idx_marker.setRowCount(0)
+
         # remove summary statistics
         w = self.idx_summary.takeAt(1).widget()
         self.idx_summary.removeWidget(w)
@@ -737,6 +741,7 @@ class Notes(QTabWidget):
         b1 = QGroupBox('Recap')
         self.idx_summary.addWidget(b1)
 
+        # remove annotations
         self.display_eventtype()
         self.update_annotations()
 
