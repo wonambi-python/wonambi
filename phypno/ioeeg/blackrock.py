@@ -100,7 +100,7 @@ class BlackRock:
 
             # we need these two items to read the data
             self.BOData = orig['BOData']
-            self.DataPoints = n_samples
+            self.n_samples = n_samples
             self.factor = 0.25 * ones(len(orig['ChannelID']))
 
             # make up names
