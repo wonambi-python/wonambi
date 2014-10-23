@@ -329,7 +329,8 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
     sigma_t = 1 / (2 * pi * sigma_f)
 
     if ratio < 5 and not zero_mean:
-        lg.info('The wavelet won''t have zero mean, set zero_mean=True')
+        lg.info('The wavelet won\'t have zero mean, set zero_mean=True to '
+                'correct it')
 
     if dur_in_s is None:
         dur_in_s = sigma_t * dur_in_sd * 2
