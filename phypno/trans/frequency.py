@@ -279,7 +279,7 @@ def _create_morlet(options, s_freq):
 
 
 def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
-           normalization='area', zero_mean=False):
+           normalization='peak', zero_mean=False):
     """Create a Morlet wavelet.
 
     Parameters
@@ -335,8 +335,7 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
     if dur_in_s is None:
         dur_in_s = sigma_t * dur_in_sd * 2
 
-    dur_in_s /= 2
-    t = arange(-dur_in_s, dur_in_s, 1 / s_freq)
+    t = arange(-dur_in_s / 2, dur_in_s / 2, 1 / s_freq)
 
     w = exp(1j * 2 * pi * freq * t)
     if zero_mean:
