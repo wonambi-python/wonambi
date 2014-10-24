@@ -6,7 +6,7 @@ lg = getLogger('phypno')
 
 from copy import deepcopy
 
-from numpy import arange, empty, exp, max, mean, pi, real, sqrt, where
+from numpy import arange, array, empty, exp, max, mean, pi, real, sqrt, where
 from numpy.linalg import norm
 from scipy.signal import welch, fftconvolve
 
@@ -198,7 +198,7 @@ class TimeFreq:
 
             for i in range(data.number_of('trial')):
                 lg.info('Processing trial # {0: 6}'.format(i))
-                timefreq.axis['freq'][i] = self.options['foi']
+                timefreq.axis['freq'][i] = array(self.options['foi'])
                 timefreq.axis['time'][i] = data.axis['time'][i]
 
                 timefreq.data[i] = empty((data.number_of('chan')[i],
