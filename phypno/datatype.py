@@ -155,7 +155,7 @@ class Data:
                         n_values = len(selected_values)
                     else:
                         n_values = 1
-                        selected_values = (selected_values, )
+                        selected_values = array([selected_values])
                         squeeze_axis.append(self.index_of(axis))
 
                     idx = _get_indices(values[i],
