@@ -358,7 +358,7 @@ class Channels():
             export_csv(self, elec_file)
 
 
-def assign_region_to_channels(channels, anat, approx=3):
+def assign_region_to_channels(channels, anat, max_approx=3):
     """Assign a brain region based on the channel location.
 
     Parameters
@@ -369,7 +369,7 @@ def assign_region_to_channels(channels, anat, approx=3):
         anatomical information taken from freesurfer.
     chan_name : list of str, optional
         the channel name (if not specified, it uses them all)
-    approx : int, optional
+    max_approx : int, optional
         approximation to define position of the electrode.
 
     Returns
@@ -379,7 +379,7 @@ def assign_region_to_channels(channels, anat, approx=3):
 
     """
     for one_chan in channels.chan:
-        one_region, approx = anat.find_brain_region(one_chan.xyz)
+        one_region, approx = anat.find_brain_region(one_chan.xyz, max_approx)
         one_chan.attr.update({'region': one_region, 'approx': approx})
 
     return channels
