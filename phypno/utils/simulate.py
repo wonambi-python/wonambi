@@ -7,7 +7,6 @@ from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
                    real, tile, zeros)
 from numpy.random import random, randn
 from numpy.fft import fft, ifft
-from scipy.signal import savgol_filter
 
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 
@@ -213,6 +212,8 @@ def _make_ekg(s_freq):
     -----
     Based on ecg.m in Matlab, in the signal toolbox.
     """
+    from scipy.signal import savgol_filter  # scipy is optional dependency
+
     EKG_val = asarray([0, 1, 40, 1, 0, -34, 118, -99, 0, 2, 21, 2, 0, 0, 0])
     EKG_time = asarray([0, 27, 59, 91, 131, 141, 163, 185, 195, 275, 307, 339,
                         357, 390, 440, 500])

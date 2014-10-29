@@ -127,10 +127,10 @@ def export_csv(chan, elec_file):
     with open(elec_file, 'w') as f:
         for one_chan in chan.chan:
             line = '{0}, {1:.4}, {2:.4}, {3:.4}\n'.format(one_chan.label,
-                                                        one_chan.xyz[0],
-                                                        one_chan.xyz[1],
-                                                        one_chan.xyz[2],
-                                                        )
+                                                          one_chan.xyz[0],
+                                                          one_chan.xyz[1],
+                                                          one_chan.xyz[2],
+                                                          )
             f.write(line)
 
 
@@ -358,7 +358,8 @@ class Channels():
             export_csv(self, elec_file)
 
 
-def assign_region_to_channels(channels, anat, max_approx=3):
+def assign_region_to_channels(channels, anat, max_approx=3,
+                              exclude_regions=None):
     """Assign a brain region based on the channel location.
 
     Parameters
@@ -367,10 +368,11 @@ def assign_region_to_channels(channels, anat, max_approx=3):
         channels to assign regions to
     anat : instance of phypno.attr.anat.Freesurfer
         anatomical information taken from freesurfer.
-    chan_name : list of str, optional
-        the channel name (if not specified, it uses them all)
     max_approx : int, optional
         approximation to define position of the electrode.
+    exclude_regions : list of str or empty list
+            do not report regions if they contain these substrings. None means
+            that it does not exclude any region.
 
     Returns
     -------
@@ -379,7 +381,8 @@ def assign_region_to_channels(channels, anat, max_approx=3):
 
     """
     for one_chan in channels.chan:
-        one_region, approx = anat.find_brain_region(one_chan.xyz, max_approx)
+        one_region, approx = anat.find_brain_region(one_chan.xyz, max_approx,
+                                                    exclude_regions)
         one_chan.attr.update({'region': one_region, 'approx': approx})
 
     return channels

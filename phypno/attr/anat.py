@@ -8,6 +8,7 @@ lg = getLogger(__name__)
 from collections import Counter
 from os import environ
 from os.path import exists, join, basename, splitext
+from re import compile
 from struct import unpack
 
 try:
@@ -68,7 +69,7 @@ def _read_geometry(surf_file):
     return verts, faces
 
 
-def _find_neighboring_regions(pos, mri_dat, region, approx):
+def _find_neighboring_regions(pos, mri_dat, region, approx, exclude_regions):
 
     spot_size = approx * 2 + 1
 
@@ -82,8 +83,10 @@ def _find_neighboring_regions(pos, mri_dat, region, approx):
                          pos[2] + neighb[p, 2]]
         label_index = region['index'].index(d_type)
         regions.append(region['label'][label_index])
-    regions = [x for x in regions if not 'White' in x and
-               not 'Unknown' in x and not 'WM' in x]
+
+    if exclude_regions:
+        excluded = compile('|'.join(exclude_regions))
+        regions = [x for x in regions if not excluded.search(x)]
 
     return regions
 
@@ -217,7 +220,8 @@ class Freesurfer:
             lg.warning('Could not find lookup table, some functions that rely '
                        'on it might complain or crash.')
 
-    def find_brain_region(self, abs_pos, max_approx=None):
+    def find_brain_region(self, abs_pos, max_approx=None,
+                          exclude_regions=('White', 'WM', 'Unknown')):
         """Find the name of the brain region in which an electrode is located.
 
         Parameters
@@ -226,8 +230,9 @@ class Freesurfer:
             3x0 vector with the position of interest.
         max_approx : int, optional
             max approximation to define position of the electrode.
-        fs_lut : str
-            path to file called FreeSurferColorLUT.txt
+        exclude_regions : list of str or empty list
+            do not report regions if they contain these substrings. None means
+            that it does not exclude any region.
 
         Notes
         -----
@@ -255,7 +260,8 @@ class Freesurfer:
         for approx in range(max_approx + 1):
             lg.debug('Trying approx {} out of {}'.format(approx, max_approx))
             regions = _find_neighboring_regions(pos, mri_dat,
-                                                self.lookuptable, approx)
+                                                self.lookuptable, approx,
+                                                exclude_regions)
             if regions:
                 break
 

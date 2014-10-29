@@ -1,7 +1,15 @@
+from logging import getLogger
+lg = getLogger(__name__)
+
+
 from datetime import datetime
 
 from numpy import around, empty
-from scipy.io import loadmat, savemat
+try:
+    from scipy.io import loadmat, savemat
+except ImportError:
+    lg.warning('scipy (optional dependency) is not installed. You will not '
+               'be able to read and write in FieldTrip format.')
 
 VAR = 'data'
 
