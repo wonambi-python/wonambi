@@ -20,8 +20,8 @@ class Linear:
     """TODO: both hemispheres"""
     def __init__(self, surf, chan, threshold=20, exponent=None, std=None):
         """TODO: specify method explicitly."""
-        self.inv = calc_xyz2surf(surf, chan.return_xyz(), threshold=20,
-                                 exponent=None, std=None)
+        self.inv = calc_xyz2surf(surf, chan.return_xyz(), threshold=threshold,
+                                 exponent=exponent, std=std)
         self.chan = chan.return_label()
 
     def __call__(self, data, parameter='chan'):
