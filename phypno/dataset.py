@@ -202,6 +202,9 @@ class Dataset:
         If begtime and endtime are a list, they both need the exact same
         length and the data will be stored in trials.
 
+        If neither begtime or begsam are specified, it starts from the first
+        sample. If neither endtime or endsam are specified, it reads until the
+        end.
         """
         data = ChanTime()
         data.start_time = self.header['start_time']
@@ -212,6 +215,11 @@ class Dataset:
         if not (isinstance(chan, list) or isinstance(chan, tuple)):
             raise TypeError('Parameter "chan" should be a list')
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
+
+        if begtime is None and begsam is None:
+            begsam = 0
+        if endtime is None and endsam is None:
+            endsam = self.header['n_samples']
 
         if begtime is not None:
             if not isinstance(begtime, list):
