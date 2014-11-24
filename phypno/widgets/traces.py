@@ -8,8 +8,8 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 
-from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, max, min,
-                   linspace, log2, pad, power)
+from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, in1d,
+                   max, min, linspace, log2, pad, power)
 from PyQt4.QtCore import QPointF, Qt, QRectF
 from PyQt4.QtGui import (QAction,
                          QBrush,
@@ -31,6 +31,10 @@ from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
 from .utils import convert_name_to_color, ICON, Path, TextItem_with_BG
+
+
+# undo the chan + (group) naming
+take_raw_name = lambda x: ' ('.join(x.split(' (')[:-1])
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -377,6 +381,7 @@ class Traces(QGraphicsView):
 
     def add_traces(self):
         """Add traces based on self.data."""
+        y_distance = self.parent.value('y_distance')
         self.chan = []
         self.chan_pos = []
         self.chan_scale = []
@@ -397,8 +402,7 @@ class Traces(QGraphicsView):
                 path.setPen(QPen(one_grp['color']))
 
                 # adjust position
-                chan_pos = (self.parent.value('y_distance') * row +
-                            self.parent.value('y_distance') / 2)
+                chan_pos = y_distance * row + y_distance / 2
                 path.setPos(0, chan_pos)
                 row += 1
 
@@ -457,7 +461,7 @@ class Traces(QGraphicsView):
                                          len(self.idx_label) * y_distance)
                 item.setPen(color)
                 item.setBrush(color)
-                item.setZValue(-8)
+                item.setZValue(-9)
                 self.scene.addItem(item)
 
                 item = TextItem_with_BG(color.darker(200))
@@ -480,6 +484,7 @@ class Traces(QGraphicsView):
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         y_distance = self.parent.value('y_distance')
+        raw_chan_name = list(map(take_raw_name, self.chan))
 
         bookmarks = []
         events = []
@@ -502,24 +507,36 @@ class Traces(QGraphicsView):
                 if annot in events:
                     color = convert_name_to_color(annot['name'])
 
-                item = QGraphicsRectItem(mrk_start, 0,
-                                         mrk_end - mrk_start,
-                                         len(self.idx_label) * y_distance)
-                item.setPen(color)
-                item.setBrush(color)
-                item.setZValue(-8)
-                self.scene.addItem(item)
-                self.idx_annot.append(item)
+                if annot['chan'] == ['']:
+                    h_annot = len(self.idx_label) * y_distance
+                    y_annot = (0, )
 
-                item = TextItem_with_BG(color.darker(200))
-                item.setText(annot['name'])
-                item.setPos(annot['start'],
-                            len(self.idx_label) *
-                            self.parent.value('y_distance'))
-                item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
-                item.setRotation(-90)
-                self.scene.addItem(item)
-                self.idx_annot.append(item)
+                    item = TextItem_with_BG(color.darker(200))
+                    item.setText(annot['name'])
+                    item.setPos(annot['start'],
+                                len(self.idx_label) * y_distance)
+                    item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+                    item.setRotation(-90)
+                    self.scene.addItem(item)
+                    self.idx_annot.append(item)
+                    zvalue = -8
+
+                else:
+                    h_annot = y_distance
+                    # find indices of channels with annotations
+                    chan_idx_in_mrk = in1d(raw_chan_name, annot['chan'])
+                    y_annot = asarray(self.chan_pos)[chan_idx_in_mrk]
+                    y_annot -= y_distance / 2
+                    zvalue = -7
+
+                for y in y_annot:
+                    item = QGraphicsRectItem(mrk_start, y,
+                                             mrk_end - mrk_start, h_annot)
+                    item.setPen(color)
+                    item.setBrush(color)
+                    item.setZValue(zvalue)
+                    self.scene.addItem(item)
+                    self.idx_annot.append(item)
 
     def step_prev(self):
         """Go to the previous step."""
