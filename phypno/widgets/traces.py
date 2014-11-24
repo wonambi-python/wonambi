@@ -627,6 +627,9 @@ class Traces(QGraphicsView):
         event : instance of QtCore.QEvent
             it contains the position that was clicked.
         """
+        if not self.scene:
+            return
+
         xy_scene = self.mapToScene(event.pos())
         chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
         self.sel_chan = chan_idx
@@ -643,6 +646,9 @@ class Traces(QGraphicsView):
         """When normal selection, update power spectrum with current selection.
         Otherwise, show the range of the new marker.
         """
+        if not self.scene:
+            return
+
         if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
@@ -714,6 +720,9 @@ class Traces(QGraphicsView):
     def mouseReleaseEvent(self, event):
         """Create a new event or marker, or show the previous power spectrum
         """
+        if not self.scene:
+            return
+
         chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
 
