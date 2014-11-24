@@ -14,7 +14,10 @@ from PyQt4.QtGui import (QFormLayout,
                          QVBoxLayout,
                          QWidget,
                          )
-from PyQt4.phonon import Phonon
+try:
+    from PyQt4.phonon import Phonon
+except ImportError:
+    Phonon = False
 
 from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
 
@@ -92,10 +95,11 @@ class Video(QWidget):
         self.video = None
         self.idx_button = None
 
-        availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
-        lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
+        if Phonon:
+            availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
+            lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
 
-        if availableMimeTypes:
+        if Phonon and availableMimeTypes:
             self.phonon = True
         else:
             self.phonon = False
