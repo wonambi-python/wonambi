@@ -314,7 +314,7 @@ def _read_ent(ent_file):
                 break
             s = f.read(note['length'] - note_hdr_length)
             s = s[:-2]  # it ends with one empty byte
-            s = s.decode('utf-8')
+            s = s.decode('utf-8', errors='replace')
             s1 = s.replace('\n', ' ')
             s1 = s1.replace('\\xd ', '')
             s1 = s1.replace('(.', '{')
