@@ -52,7 +52,7 @@ class EgiMff:
             xml_type = splitext(basename(xml_file))[0]
             orig[xml_type] = parse_xml(xml_file)
 
-        signals = glob(join(self.filename, 'signal*.bin'))
+        signals = sorted(glob(join(self.filename, 'signal*.bin')))  #TODO: sorted temporary
 
         for signal in signals:
             block_hdr, i_data = read_all_block_hdr(join(self.filename, signal))
@@ -62,7 +62,7 @@ class EgiMff:
             n_samples = asarray([x['n_samples'][0] for x in block_hdr], 'q')
             self._n_samples.append(n_samples)
 
-        subj_id = orig['subject'][0]['field']['name']
+        subj_id = orig['subject'][0][0]['name']
         start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
                                        '%Y-%m-%dT%H:%M:%S.%f%z')
 
