@@ -278,9 +278,9 @@ def xml2list(root):
     output = []
     for element in root:
         if element:
-            if len(element) == 1 or element[0].tag != element[1].tag:
+            if element[0].tag != element[-1].tag:
                 output.append(xml2dict(element))
-            elif element[0].tag == element[1].tag:
+            else:
                 output.append(xml2list(element))
 
         elif element.text:
