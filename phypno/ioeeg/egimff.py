@@ -5,8 +5,8 @@ from os.path import basename, join, splitext
 from struct import unpack
 from xml.etree.ElementTree import parse
 
-from numpy import append, cumsum, diff, empty, asarray, NaN, reshape, where
-
+from numpy import (append, asarray, cumsum, diff, empty, NaN, ones, r_,
+                   reshape, where, zeros)
 
 shorttime = lambda x: x[:26] + x[29:32] + x[33:]
 
@@ -25,6 +25,7 @@ class EgiMff:
         self._signal = []
         self._block_hdr = []
         self._i_data = []
+        self._nchan_signal1 = []  # n of channels in signal1
         self._n_samples = []
         self._orig = {}
 
@@ -52,7 +53,7 @@ class EgiMff:
             xml_type = splitext(basename(xml_file))[0]
             orig[xml_type] = parse_xml(xml_file)
 
-        signals = sorted(glob(join(self.filename, 'signal*.bin')))  #TODO: sorted temporary
+        signals = sorted(glob(join(self.filename, 'signal*.bin')))
 
         for signal in signals:
             block_hdr, i_data = read_all_block_hdr(join(self.filename, signal))
@@ -71,16 +72,9 @@ class EgiMff:
         assert all([x == s_freq[0] for x in s_freq])
         SIGNAL = 0
         s_freq = block_hdr[SIGNAL]['freq'][0]
-
-        sensors = orig['sensorLayout'][1]
-        chan_name = []
-        for one_sensor in sensors:
-            if one_sensor['name'] is not None:
-                chan_name.append(one_sensor['name'])
-            else:
-                chan_name.append(one_sensor['number'])
-
         n_samples = block_hdr[SIGNAL]['opt_hdr']['n_smp']
+
+        chan_name, self._nchan_signal1 = _read_chan_name(orig)
         self._orig = orig
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
@@ -90,8 +84,8 @@ class EgiMff:
 
         Parameters
         ----------
-        chan : int or list
-            index (indices) of the channels to read
+        chan : list
+            indices of the channels to read
         begsam : int
             index of the first sample
         endsam : int
@@ -102,6 +96,13 @@ class EgiMff:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
 
+        Notes
+        -----
+        This format is tricky for both channels and samples. For the samples,
+        we just use the boundaries in the block header. For the channels, we
+        assume that there are max two signals, one EEG and one PIB box. We
+        just use the boundary between them to define if a channel belongs to
+        the first group or to the second.
         """
         assert begsam < endsam
 
@@ -111,36 +112,54 @@ class EgiMff:
         begsam = float(begsam)
         endsam = float(endsam)
 
-        SIGNAL = 0
-        f = open(self._signal[SIGNAL], 'rb')
-        x = append(0, self._n_samples[SIGNAL])
-        x1 = cumsum(x)
+        chan = asarray(chan)
 
-        begrec = where(begsam < x1)[0][0] - 1
-        endrec = where(endsam < x1)[0][0] - 1
+        # we assume there are only two signals
+        signals_to_read = []
+        if (chan < self._nchan_signal1).any():
+            signals_to_read.append(0)
+        if (chan >= self._nchan_signal1).any():
+            signals_to_read.append(1)
 
-        i0 = 0
-        for rec in range(begrec, endrec + 1):
-            rec_dat = _read_block(f,
-                                  self._block_hdr[SIGNAL][rec],
-                                  self._i_data[SIGNAL][rec])
+        for one_signal in signals_to_read:
+            if one_signal == 0:
+                i_chan_data = chan < self._nchan_signal1
+                i_chan_rec = chan[i_chan_data]
 
-            if rec == begrec:
-                begpos_rec = begsam - x1[rec]
-            else:
-                begpos_rec = 0
+            if one_signal == 1:
+                i_chan_data = chan >= self._nchan_signal1
+                i_chan_rec = chan[i_chan_data] - self._nchan_signal1
 
-            if rec == endrec:
-                endpos_rec = endsam - x1[rec]
-            else:
-                endpos_rec = x[rec]
+            x = append(0, self._n_samples[one_signal])
+            x1 = cumsum(x)
 
-            i1 = i0 + endpos_rec - begpos_rec
-            data[:, i0:i1] = rec_dat[chan, begpos_rec:endpos_rec]
-            i0 = i1
+            begrec = where(begsam < x1)[0][0] - 1
+            endrec = where(endsam < x1)[0][0] - 1
 
+            f = open(self._signal[one_signal], 'rb')
 
-        f.close()
+            i0 = 0
+            for rec in range(begrec, endrec + 1):
+                rec_dat = _read_block(f,
+                                      self._block_hdr[one_signal][rec],
+                                      self._i_data[one_signal][rec])
+
+                if rec == begrec:
+                    begpos_rec = begsam - x1[rec]
+                else:
+                    begpos_rec = 0
+
+                if rec == endrec:
+                    endpos_rec = endsam - x1[rec]
+                else:
+                    endpos_rec = x[rec]
+
+                i1 = i0 + endpos_rec - begpos_rec
+                data[i_chan_data, i0:i1] = rec_dat[i_chan_rec,
+                                                   begpos_rec:endpos_rec]
+                i0 = i1
+            f.close()
+
         return data
 
     def return_markers(self):
@@ -321,3 +340,41 @@ def xml2dict(root):
             output.update({ns(element.tag): element.text})
 
     return output
+
+
+def _read_chan_name(orig):
+    """Read channel labels, which can be across xml files.
+
+    Parameters
+    ----------
+    orig : dict
+        contains the converted xml information
+
+    Returns
+    -------
+    list of str
+        list of channel names
+    ndarray
+        vector to indicate to which signal a channel belongs to
+
+    Notes
+    -----
+    This assumes that the PIB Box is the second signal.
+    """
+    sensors = orig['sensorLayout'][1]
+
+    eeg_chan = []
+    for one_sensor in sensors:
+        if one_sensor['type'] in ('0', '1'):
+            if one_sensor['name'] is not None:
+                eeg_chan.append(one_sensor['name'])
+            else:
+                eeg_chan.append(one_sensor['number'])
+
+    pns_chan = []
+    if 'pnsSet' in orig:
+        pnsSet = orig['pnsSet'][1]
+        for one_sensor in pnsSet:
+            pns_chan.append(one_sensor['name'])
+
+    return eeg_chan + pns_chan, len(eeg_chan)
