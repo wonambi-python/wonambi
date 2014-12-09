@@ -49,7 +49,6 @@ elif system() == 'Linux':
     home = expanduser('~')
     cache_dir = join(home, 'projects/temp')
 
-makedirs(cache_dir, exist_ok=True)
 lg.info('Temporary Directory with data: ' + cache_dir)
 
 
@@ -387,6 +386,8 @@ def _read_erd(erd_file, n_samples):
     Shorted channels have NaN's only.
 
     """
+    makedirs(cache_dir, exist_ok=True)
+
     hdr = _read_hdr_file(erd_file)
     n_allchan = hdr['num_channels']
     shorted = hdr['shorted']  # does this exist for Schema 7 at all?
