@@ -112,6 +112,7 @@ class EgiMff:
         endsam = float(endsam)
 
         SIGNAL = 0
+        f = open(self._signal[SIGNAL], 'rb')
         x = append(0, self._n_samples[SIGNAL])
         x1 = cumsum(x)
 
@@ -120,7 +121,7 @@ class EgiMff:
 
         i0 = 0
         for rec in range(begrec, endrec + 1):
-            rec_dat = _read_block(self._signal[SIGNAL],
+            rec_dat = _read_block(f,
                                   self._block_hdr[SIGNAL][rec],
                                   self._i_data[SIGNAL][rec])
 
@@ -138,6 +139,8 @@ class EgiMff:
             data[:, i0:i1] = rec_dat[chan, begpos_rec:endpos_rec]
             i0 = i1
 
+
+        f.close()
         return data
 
     def return_markers(self):
@@ -166,6 +169,7 @@ class EgiMff:
 
 
 def _read_block(filename, block_hdr, i):
+    f = filename
 
     n_bytes = (block_hdr['depth'] / 8).astype('B')
 
@@ -178,11 +182,10 @@ def _read_block(filename, block_hdr, i):
         if b == 8:
             data_type.append('d' * n_smp)
 
-    with open(filename, 'rb') as f:
-        f.seek(i)
+    f.seek(i)
 
-        v = unpack('<' + ''.join(data_type),
-                   f.read(sum(n_bytes * block_hdr['n_samples'])))
+    v = unpack('<' + ''.join(data_type),
+		   f.read(sum(n_bytes * block_hdr['n_samples'])))
 
     return reshape(v, (block_hdr['n_signals'], block_hdr['n_samples'][0]))
 
