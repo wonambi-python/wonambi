@@ -1,42 +1,107 @@
-from numpy import log, min, max, meshgrid, linspace, NaN, isinf
+
+"""Module to plot all the elements as flat images.
+
+"""
+from logging import getLogger
+lg = getLogger('phypno')
+
+from numpy import max, min, meshgrid, linspace
 from scipy.interpolate import griddata
-from visvis import imshow, CM_JET
+from vispy.color.colormap import get_colormap
+from vispy.io.image import _make_png
+from vispy.scene import SceneCanvas
+from vispy.scene.visuals import Image
 
 RESOLUTION = 200
 
 
-def plot_data(data, zlog=False):
-    """Plot data in 2d.
+def _plot_image(self, dat, colormap):
+    view = self._canvas.central_widget.add_view()
+    cmap = get_colormap(colormap)
+    img_data = cmap[dat.flatten()].rgba
+    img_data = img_data.reshape(dat.shape + (4, ))
 
-    """
-    imv = ImageView()
-    imv.show()
-    if zlog:
-        plot_data = log(data.data[0, :, :])
-        plot_data[isinf(plot_data)] = NaN
-    else:
-        plot_data = data.data[0, :, :]
+    Image(img_data, parent=view.scene)
 
-    imv.setImage(plot_data)
-    return imv  # avoid garbage-collection
+    view.camera.rect = (0, 0) + dat.shape[::-1]
 
 
-def plot_topo(chan, values, v_lim=None):
-    xy = chan.return_xy()
+class Viz2:
+    def __init__(self):
+        """Class to generate lines."""
+        self._canvas = SceneCanvas()
 
-    min_xy = min(xy, axis=0)
-    max_xy = max(xy, axis=0)
+    def add_data(self, data, trial=0, limits_z=None, colormap='cool'):
+        """
+        Parameters
+        ----------
+        data : any instance of DataType
+            Duck-typing should help
+        trial : int
+            index of the trial to plot
+        limits_z : tuple, optional
+            limits on the z-axis (if unspecified, it's the max across subplots)
+        colormap : str
+            one of the implemented colormaps.
+        """
+        dat = data(trial=trial)
 
-    x_grid, y_grid = meshgrid(linspace(min_xy[0], max_xy[0], RESOLUTION),
-                              linspace(min_xy[1], max_xy[1], RESOLUTION))
+        if limits_z is None:
+            max_z = max(dat)
+            min_z = min(dat)
+        else:
+            min_z, max_z = limits_z
 
-    zi = griddata(xy, values, (x_grid, y_grid), method='linear')
+        dat = (dat - min_z) / (max_z - min_z)
 
-    if v_lim is None:
-        vlim = (0, max(values))
-    else:
-        vlim = v_lim
+        _plot_image(self, dat, colormap)
+        self._canvas.show()
 
-    img = imshow(zi, clim=vlim, cm=CM_JET)
+    def add_topo(self, chan, values, limits=None, colormap='cool'):
+        """
+        Parameters
+        ----------
+        data : any instance of DataType
+            Duck-typing should help
+        trial : int
+            index of the trial to plot
+        limits_z : tuple, optional
+            limits on the z-axis (if unspecified, it's the max across subplots)
+        colormap : str
+            one of the implemented colormaps.
+        """
+        if limits is None:
+            max_z = max(values)
+            min_z = min(values)
+        else:
+            min_z, max_z = limits
 
-    return img
+        values = (values - min_z) / (max_z - min_z)
+
+        xy = chan.return_xy()
+
+        min_xy = min(xy, axis=0)
+        max_xy = max(xy, axis=0)
+
+        x_grid, y_grid = meshgrid(linspace(min_xy[0], max_xy[0], RESOLUTION),
+                                  linspace(min_xy[1], max_xy[1], RESOLUTION))
+
+        dat = griddata(xy, values, (x_grid, y_grid), method='linear')
+
+        _plot_image(self, dat, colormap)
+        self._canvas.show()
+
+    def _repr_png_(self):
+        """This is used by ipython to plot inline.
+
+        Notes
+        -----
+        It uses _make_png, which is a private function. Otherwise it needs to
+        write to file and read from file.
+        """
+        self._canvas.show()
+        image = self._canvas.render()
+        self._canvas.close()
+        img = _make_png(image).tobytes()
+
+        return img
