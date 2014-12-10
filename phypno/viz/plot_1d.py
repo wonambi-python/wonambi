@@ -1,88 +1,86 @@
-"""Module to plot all the elements in 3d space.
+"""Module to plot all the elements as lines.
 
 """
 from logging import getLogger
 lg = getLogger('phypno')
 
-from numpy import max, min
-from visvis import figure, subplot, gca, plot
+from numpy import array, max, min
+from vispy.io.image import _make_png
+from vispy.scene import SceneCanvas
+from vispy.scene.visuals import Line, GridLines
 
 
-FIGURE_SIZE = (1280, 720)
-BOTTOM_ROW = 144
+class Viz1:
+    def __init__(self):
+        """Class to generate lines."""
+        self._canvas = SceneCanvas()
+        self._viewbox = []
 
+    def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
+                 limits_x=None, limits_y=None):
+        """
+        Parameters
+        ----------
+        data : any instance of DataType
+            Duck-typing should help
+        trial : int
+            index of the trial to plot
+        axis_x : str, optional
+            value to plot on x-axis, such as 'time' or 'freq'
+        axis_subplot : str, optional
+            axis to use for subplot
+        limits_x : tuple, optional
+            limits on the x-axis (if unspecified, it's the max across subplots)
+        limits_y : tuple, optional
+            limits on the y-axis (if unspecified, it's the max across subplots)
+        """
+        grid = self._canvas.central_widget.add_grid()
 
-def plot_xy(data, axis_x='time', axis_subplot='chan',
-            y_limits=None):
-    """Plot recordings, so that you can scroll through it.
+        x = data.axis[axis_x][trial]
+        max_x = max(x)
+        min_x = min(x)
 
-    Parameters
-    ----------
-    data : any instance of DataType
-        Duck-typing should help
-    axis_x : str, optional
-        value to plot on x-axis, such as 'time' or 'freq'
-    axis_subplot : str, optional
-        axis to use for subplot
-    y_limits : tuple, optional
-        limits on the y-axis (if unspecified, it's the max across subplots)
+        subplot_values = data.axis[axis_subplot][trial]
 
-    Returns
-    -------
-    instance of visvis.Figure
+        max_y = 0
+        min_y = 0
 
-    """
-    fig = _make_fig()  # always make new figure
-    fig.Clear()  # necessary, otherwise, subplot raises the existing axis
+        for cnt, one_value in enumerate(subplot_values):
+            selected_axis = {axis_subplot: one_value}
+            dat = data(trial=trial, **selected_axis)
 
-    trial = 0
+            max_y = max((max_y, max(dat)))
+            min_y = min((min_y, min(dat)))
 
-    x = data.axis[axis_x][trial]
-    subplot_values = data.axis[axis_subplot][trial]
+            viewbox = grid.add_view(row=cnt, col=0)
+            line = Line(array((x, dat)).T)
+            viewbox.add(line)
+            GridLines(parent=viewbox.scene)
 
-    y_max = 0
-    y_min = 0
+            self._viewbox.append(viewbox)
 
-    for cnt, one_value in enumerate(subplot_values):
-        selected_axis = {axis_subplot: one_value}
-        dat = data(trial=trial, **selected_axis)
-        y_max = max((y_max, max(dat)))
-        y_min = min((y_min, min(dat)))
+        if limits_x is not None:
+            min_x, max_x = limits_x
 
-        if dat.shape != x.shape:
-            raise ValueError('The shape of the data (' + str(dat.shape) + ') '
-                             'is different from the shape of x (' +
-                             str(x.shape) + ')')
-        subplot(len(subplot_values), 1, cnt + 1)
-        plot(x, dat)
+        if limits_y is not None:
+            min_y, max_y = limits_y
 
-    if y_limits is None:
-        y_minmax = (y_min, y_max)
-    else:
-        y_minmax = y_limits
+        for viewbox in self._viewbox:
+            viewbox.camera.rect = min_x, min_y, max_x - min_x, max_y - min_y
 
-    for cnt in range(len(subplot_values)):
-        ax = subplot(len(subplot_values), 1, cnt + 1)
-        ax.SetLimits(rangeY=y_minmax)
+        self._canvas.show()
 
-    return fig
+    def _repr_png_(self):
+        """This is used by ipython to plot inline.
 
+        Notes
+        -----
+        It uses _make_png, which is a private function. Otherwise it needs to
+        write to file and read from file.
+        """
+        self._canvas.show()
+        image = self._canvas.render()
+        self._canvas.close()
+        img = _make_png(image).tobytes()
 
-def _make_fig(fig=None):
-    """Create a figure, if it doesn't exist already.
-
-    Parameters
-    ----------
-    fig : instance of visvis.Figure, optional
-        figure being plotted.
-
-    Returns
-    -------
-    instance of visvis.Figure
-
-    """
-    fig = figure(fig)
-    ax = gca()
-    ax.axis.visible = False
-
-    return fig
+        return img
