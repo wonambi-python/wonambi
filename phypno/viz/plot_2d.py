@@ -15,17 +15,6 @@ from vispy.scene.visuals import Image
 RESOLUTION = 200
 
 
-def _plot_image(self, dat, colormap):
-    view = self._canvas.central_widget.add_view()
-    cmap = get_colormap(colormap)
-    img_data = cmap[dat.flatten()].rgba
-    img_data = img_data.reshape(dat.shape + (4, ))
-
-    Image(img_data, parent=view.scene)
-
-    view.camera.rect = (0, 0) + dat.shape[::-1]
-
-
 class Viz2:
     def __init__(self):
         """Class to generate lines."""
@@ -61,11 +50,11 @@ class Viz2:
         """
         Parameters
         ----------
-        data : any instance of DataType
-            Duck-typing should help
-        trial : int
-            index of the trial to plot
-        limits_z : tuple, optional
+        chan : instance of Channels
+            channels to be plotted
+        values : ndarray
+            vector with the values to plot
+        limits : tuple, optional
             limits on the z-axis (if unspecified, it's the max across subplots)
         colormap : str
             one of the implemented colormaps.
@@ -105,3 +94,26 @@ class Viz2:
         img = _make_png(image).tobytes()
 
         return img
+
+
+def _plot_image(self, dat, colormap):
+    """function that actually plots the image in vispy.
+
+    Parameters
+    ----------
+    self : instance of Viz2
+        we need this for _canvas
+    dat : ndarray
+        matrix with the data to be plotted
+    colormap : str
+        one of the implemented colormaps.
+    """
+    viewbox = self._canvas.central_widget.add_view()
+    cmap = get_colormap(colormap)
+    img_data = cmap[dat.flatten()].rgba
+    img_data = img_data.reshape(dat.shape + (4, ))
+
+    img = Image(img_data)
+    viewbox.add(img)
+
+    viewbox.camera.rect = (0, 0) + dat.shape[::-1]
