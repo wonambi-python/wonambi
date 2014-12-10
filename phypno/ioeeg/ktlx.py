@@ -147,6 +147,8 @@ def _calculate_conversion(hdr):
     -----
     Final units are microvolts
 
+    It should include all the headbox versions apart from 5 because it depends
+    on subversion.
     """
     discardbits = hdr['discardbits']
     n_chan = hdr['num_channels']
@@ -163,6 +165,22 @@ def _calculate_conversion(hdr):
 
         factor = concatenate((ch1, ch2))
 
+    elif hdr['headbox_type'][0] == 6:
+        # 0 - 31
+        ch1 = ones((32)) * (8711. / (2 ** 21 - 0.5)) * 2 ** discardbits
+        # 32 - 35
+        ch2 = ones((4)) * ((5000000. / (2 ** 10 - 0.5)) / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2))
+
+    elif hdr['headbox_type'][0] == 8:
+        # 0 - 24
+        ch1 = ones((25)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 25 - 26
+        ch2 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2))
+
     elif hdr['headbox_type'][0] == 9:
         # 0 - 32
         ch1 = ones((33)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
@@ -171,8 +189,44 @@ def _calculate_conversion(hdr):
 
         factor = concatenate((ch1, ch2))
 
+    elif hdr['headbox_type'][0] == 14:
+        # 0 - 37
+        ch1 = ones((38)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 38 - 47
+        ch2 = ones((10)) * ((10800000 / 65536) / (2 ** 6)) * 2 ** discardbits
+        # 48-49
+        ch3 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3))
+
+    elif hdr['headbox_type'][0] == 15:
+        # 0 - 23
+        ch1 = ones((24)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 24 - 27 (as above)
+        ch2 = ones((4)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 28 - 31 (note 10000000 instead of 10800000)
+        ch3 = ones((4)) * ((10000000 / 65536) / (2 ** 6)) * 2 ** discardbits
+        # 32-33
+        ch4 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3, ch4))
+
+    elif hdr['headbox_type'][0] == 17:
+        # 0 - 39
+        ch1 = ones((40)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 40 - 43
+        ch2 = ones((4)) * ((10800000 / 65536) / (2 ** 6)) * 2 ** discardbits
+        # 44 - 45
+        ch3 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3))
+
+    elif hdr['headbox_type'][0] == 19:
+        # all channels
+        factor = ones((n_chan)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+
     elif hdr['headbox_type'][0] == 21:
-        # 0 -127
+        # 0 - 127
         ch1 = ones((128)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
         # 128 - 129
         ch2 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
@@ -182,13 +236,25 @@ def _calculate_conversion(hdr):
         factor = concatenate((ch1, ch2, ch3))
 
     elif hdr['headbox_type'][0] == 22:
-        # 0 -31
+        # 0 - 31
         ch1 = ones((32)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
         # 32 - 39
         ch2 = ones((8)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
         # 40 - 41
         ch3 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
         # 42
+        ch4 = ones((1)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
+
+        factor = concatenate((ch1, ch2, ch3, ch4))
+
+    elif hdr['headbox_type'][0] == 23:
+        # 0 - 31
+        ch1 = ones((32)) * (8711. / ((2 ** 21) - 0.5)) * 2 ** discardbits
+        # 32 - 35
+        ch2 = ones((4)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
+        # 36 - 37
+        ch3 = ones((2)) * (1 / (2 ** 6)) * 2 ** discardbits
+        # 38
         ch4 = ones((1)) * ((10800000. / 65536.) / (2 ** 6)) * 2 ** discardbits
 
         factor = concatenate((ch1, ch2, ch3, ch4))
