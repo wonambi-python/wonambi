@@ -20,7 +20,7 @@ def test_freq_basic():
     freq = calc_freq(data)
     assert freq.list_of_axes == ('chan', 'freq')
     assert_almost_equal(freq(trial=0, chan='LMF6', freq=10),
-                        36.0515022277)
+                        49.15529248338329)
 
 
 def test_freq_option():
@@ -29,7 +29,7 @@ def test_freq_option():
     calc_freq = Freq(scaling='spectrum')
     freq = calc_freq(data)
     assert_almost_equal(freq(trial=0, chan='LMF6', freq=10),
-                        108.15450286865234)
+                        36.86646936253747)
 
 
 @raises(ValueError)
@@ -55,13 +55,6 @@ def test_timefreq_methoderror():
     TimeFreq(method='nonexistent')
 
 
-@raises(ValueError)
-def test_timefreq_no_foi():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    TimeFreq()
-
-
 def test_timefreq_morlet():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -74,7 +67,7 @@ def test_timefreq_morlet():
     assert tf.data[0].shape[1] == data.number_of('time')[0]
     assert tf.data[0].shape[2] == len(FOI)
     x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
-    assert_almost_equal(x[0], (-2044.0615279587946+1949.3117731755101j))
+    assert_almost_equal(x[0], (-220.22782600662993+221.15713670591379j))
 
 
 def test_timefreq_example_in_doc():
@@ -85,7 +78,7 @@ def test_timefreq_example_in_doc():
     tf = calc_tf(data)
     make_abs = Math(operator_name='abs')
     tf_abs = make_abs(tf)
-    assert_almost_equal(tf_abs.data[0][0, 0, 0], 1737.4662219735853)
+    assert_almost_equal(tf_abs.data[0][0, 0, 0], 243.835870058669)
 
 
 def test_timefreq_sine():
@@ -116,4 +109,4 @@ def test_timefreq_welch():
     assert tf.data[0].shape[0] == data.number_of('chan')[0]
     assert tf.data[0].shape[2] == data.s_freq / 2 + 1
     x = tf(trial=0, chan='LMF6', time=tf.axis['time'][0][10])
-    assert_almost_equal(x[0], 12.79265022277832)
+    assert_almost_equal(x[0], 5.0586684531420154)

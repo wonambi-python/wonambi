@@ -2,62 +2,56 @@ from . import *
 
 from os import makedirs
 from os.path import join, dirname
+from shutil import copyfile
 from tempfile import mkdtemp
 
-from phypno.attr import Scores
+from phypno.attr import Annotations
+
+tempdir = mkdtemp()
+
+old_scores_file = join(data_dir, 'MGXX/doc/scores',
+                       'MGXX_eeg_xltek_sessA_d03_06_38_05_scores_v3.xml')
+toupdate_scores_file = join(tempdir,
+                            'MGXX_eeg_xltek_sessA_d03_06_38_05_scores_v3.xml')
+copyfile(old_scores_file, toupdate_scores_file)
 
 scores_file = join(data_dir, 'MGXX/doc/scores',
                    'MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml')
-temp_scores_file = join(mkdtemp(), 'MGXX/doc/scores',
+temp_scores_file = join(tempdir, 'MGXX/doc/scores',
                         'MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml')
 
+annot = Annotations(scores_file)
 
-sc = Scores(scores_file)
 
-
-def test_scores_01():
+def test_update_version():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    assert sc.get_rater() == 'gio'
-    sc.set_stage_for_epoch('30', 'NREM2')
-    assert sc.get_stage_for_epoch('30') == 'NREM2'
-
-
-def test_get_epochs_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    sc.get_epochs(('NREM1', 'NREM2'))
-    assert len(sc.get_epochs(('xxx'))) == 0
+    annot_old = Annotations(toupdate_scores_file)
+    assert annot_old.root.get('version') == '5'
 
 
 def test_get_epochs():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    sc.set_stage_for_epoch('30', 'NREM1')
-    epochs = sc.get_epochs()
+    annot.set_stage_for_epoch(30, 'NREM1')
 
     # implementation details
-    assert len(epochs) == 159
-    assert isinstance(epochs, list)
-    epochs = sorted(epochs, key=lambda x: x['start_time'])
+    assert sum(1 for x in annot.epochs) == 159
+
+    epochs = sorted(annot.epochs, key=lambda x: x['start'])
     assert epochs[1]['stage'] == 'NREM1'
+
+
+def test_scores_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    assert annot.current_rater == 'gio'
+    annot.set_stage_for_epoch(30, 'NREM2')
+    assert annot.get_stage_for_epoch(30) == 'NREM2'
 
 
 @raises(KeyError)
 def test_scores_02():
     lg.info('---\nfunction: ' + stack()[0][3])
 
-    sc.set_stage_for_epoch('xxx', 'NREM2')
-
-
-def test_scores_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    makedirs(dirname(temp_scores_file))
-    Scores(temp_scores_file, sc.root)
-
-
-
-
-
-
+    annot.set_stage_for_epoch(999, 'NREM2')

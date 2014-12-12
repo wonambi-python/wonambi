@@ -5,7 +5,7 @@ from os import remove
 from os.path import join, basename
 from phypno.ioeeg import Ktlx
 from phypno.ioeeg.ktlx import (_read_ent, _read_etc, _read_snc, _read_erd,
-                               _read_eeg, _read_vtc, temp_dir)
+                               _read_eeg, _read_vtc, cache_dir)
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
@@ -16,15 +16,6 @@ sine_dir = join(data_dir, 'MGXX/eeg/raw/xltek/sine1')
 def test_sine_dir():
     lg.info('---\nfunction: ' + stack()[0][3])
     Ktlx(sine_dir)
-
-
-def test_sine_erd():
-    lg.info('---\nfunction: ' + stack()[0][3])
-    sinewave = glob(join(sine_dir, '*.erd'))[0]
-    remove(join(temp_dir, basename(sinewave)))
-
-    _read_erd(sinewave, 10)  # new file
-    _read_erd(sinewave, 10)  # memory-mapped file
 
 
 def test_read_ent():

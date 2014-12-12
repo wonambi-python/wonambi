@@ -91,7 +91,7 @@ def test_select_trials_and_string_invert():
     s = Select(trial=(1, 5), chan=('chan01', 'chan02'), invert=True)
     data1 = s(data)
     assert len(data1.axis['chan']) == data.number_of('trial') - 2
-    assert len(data1.axis['chan'][0]) == data.number_of('chan') - 2
+    assert len(data1.axis['chan'][0]) == data.number_of('chan')[0] - 2
 
 
 def test_select_interval():

@@ -1,6 +1,7 @@
 from . import *
 
 from datetime import timedelta, datetime
+from numpy import float64, int64
 from numpy.random import rand
 
 from phypno import Dataset
@@ -13,9 +14,9 @@ ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
 blackrock_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport',
-                      'MGXX_eeg_neuroport_sessA_d00_14_14_30.ns5')
+                      'MG72_eeg_bcd_sessA_d11_11_49_17.ns3')
 nev_file = join(data_dir, 'MGXX/eeg/raw/blackrock/neuroport',
-                          'MGXX_eeg_neuroport_sessA_d00_14_14_30.nev')
+                          'MG72_eeg_bcd_sessA_d11_11_49_17.nev')
 
 
 @raises(UnrecognizedFormat)

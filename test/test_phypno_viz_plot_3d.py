@@ -2,9 +2,11 @@ from . import *
 
 from numpy import ones
 
+"""
 from phypno.attr import Freesurfer, Channels
 from phypno.viz.plot_3d import (plot_surf, plot_chan, plot_values_on_surf,
                                 calculate_chan2surf_trans)
+
 
 fs_dir = join(data_dir, 'MGXX/mri/proc/freesurfer')
 chan_file = join(data_dir, 'MGXX/doc/elec/elec_pos_adjusted.csv')
@@ -31,3 +33,4 @@ def test_viz_plot_values_on_surf():
     lg.info('---\nfunction: ' + stack()[0][3])
     trans = calculate_chan2surf_trans(surf, chan.return_xyz())
     plot_values_on_surf(surf, 5 * ones(trans.shape[1]), trans)
+"""

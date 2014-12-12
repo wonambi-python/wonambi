@@ -22,7 +22,7 @@ def test_math_operator_name():
     apply_sqrt = Math(operator_name='square')
 
     data1 = apply_sqrt(data)
-    assert_array_equal(data1.data[0] ** .5, data.data[0])
+    assert_array_equal(data1.data[0] ** .5, abs(data.data[0]))
 
 
 def test_math_operator_name_on_axis():

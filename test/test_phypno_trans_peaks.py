@@ -1,6 +1,6 @@
 from . import *
 
-from numpy import hstack, max, min
+from numpy import hstack, max, min, nan, nanargmax
 
 from phypno.trans import Peaks
 from phypno.utils import create_data
@@ -17,7 +17,7 @@ def test_peaks_default():
     assert len(max_data.list_of_axes) == 1
     chan = 'chan05'
     trl = 4
-    idx_max = argmax(data(trial=trl, chan=chan))
+    idx_max = nanargmax(data(trial=trl, chan=chan))
     assert data.axis['time'][trl][idx_max] == max_data(trial=trl, chan=chan)
 
 

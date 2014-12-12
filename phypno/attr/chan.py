@@ -371,8 +371,10 @@ def assign_region_to_channels(channels, anat, max_approx=3,
     max_approx : int, optional
         approximation to define position of the electrode.
     exclude_regions : list of str or empty list
-            do not report regions if they contain these substrings. None means
-            that it does not exclude any region.
+        do not report regions if they contain these substrings. None means
+        that it does not exclude any region. For example, to exclude white
+        matter regions and unknown regions you can use
+        exclude_regions=('White', 'WM', 'Unknown')
 
     Returns
     -------
@@ -407,6 +409,7 @@ def find_chan_in_region(channels, anat, region_name):
 
     """
     if 'region' not in channels.chan[0].attr.keys():
+        lg.info('Computing region for each channel.')
         channels = assign_region_to_channels(channels, anat)
 
     chan_in_region = []

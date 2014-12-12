@@ -1,6 +1,6 @@
 from . import *
 
-
+"""
 from phypno.utils import create_data
 from phypno.viz.plot_1d import Viz1
 
@@ -15,3 +15,4 @@ def test_viz_plot_xy():
 
     plot_xy(data)
     plot_xy(data, y_limits=(0, 10))
+"""

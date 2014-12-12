@@ -161,9 +161,12 @@ def test_assign_region_01():
     lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
     fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
-    ch = assign_region_to_channels(ch, fs)
+    ch = assign_region_to_channels(ch, fs, max_approx=3,
+                                   exclude_regions=('White', 'WM', 'Unknown'))
     neuroport = ch(lambda x: x.label == 'neuroport').chan[0].attr['region']
     assert neuroport == 'ctx-lh-rostralmiddlefrontal'
+    cing_chan = find_chan_in_region(ch, fs, 'cingulate')
+    assert cing_chan == ['LOF1', 'LOF2', 'LAF1', 'LAF2', 'LMF2']
 
 
 @attr('slow')
@@ -172,4 +175,4 @@ def test_find_chan_in_region_01():
     ch = Channels(elec_file)
     fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
     cing_chan = find_chan_in_region(ch, fs, 'cingulate')
-    assert cing_chan == ['LOF1', 'LOF2', 'LAF1', 'LAF2', 'LMF2']
+    assert cing_chan == ['LAF1', 'LAF2', 'LMF2']

@@ -18,6 +18,7 @@ app = QApplication([])
 # or %gui qt
 
 
+@attr('gui')
 def test_scroll_data_ktlx():
     lg.info('---\nfunction: ' + stack()[0][3])
 
@@ -41,6 +42,7 @@ def test_scroll_data_ktlx():
     q.action['close_wndw'].trigger()
 
 
+@attr('gui')
 def test_scroll_data_edf():
     lg.info('---\nfunction: ' + stack()[0][3])
 
