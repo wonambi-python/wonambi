@@ -7,10 +7,12 @@ lg = getLogger('phypno')
 
 from numpy import max, min, meshgrid, linspace
 from scipy.interpolate import griddata
-from vispy.color.colormap import get_colormap
 from vispy.io.image import _make_png
 from vispy.scene import SceneCanvas
 from vispy.scene.visuals import Image
+
+from .base import convert_color
+
 
 RESOLUTION = 200
 
@@ -109,10 +111,7 @@ def _plot_image(self, dat, colormap):
         one of the implemented colormaps.
     """
     viewbox = self._canvas.central_widget.add_view()
-    cmap = get_colormap(colormap)
-    img_data = cmap[dat.flatten()].rgba
-    img_data = img_data.reshape(dat.shape + (4, ))
-
+    img_data = convert_color(dat, colormap)
     img = Image(img_data)
     viewbox.add(img)
 
