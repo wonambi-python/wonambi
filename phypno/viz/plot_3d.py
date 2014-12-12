@@ -10,16 +10,25 @@ from os.path import join, splitext
 from subprocess import call
 from tempfile import mkdtemp
 
-from numpy import (max, mean, min, ones)
-from visvis import Mesh, gca, figure, solidSphere, CM_JET, screenshot
+from numpy import max, mean, min, ones
+
+from vispy.geometry import MeshData, create_sphere
+from vispy.scene import SceneCanvas
+from vispy.scene.visuals import Mesh
+from vispy.visuals.transforms import STTransform
+
+from .base import convert_color, Viz
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255., 1)
 SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 0.5)
+SHADING = 'smooth'
+CAMERA = 'perspective'
+DISTANCE = 400  # if it's too close, it's all deformed
 
 IMAGE = 'image%09d.jpg'
 
 
-class Viz3:
+class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
 
     Attributes
@@ -28,29 +37,23 @@ class Viz3:
         nVertices X nChan matrix, that explains how channel activity should be
         plotted onto the vertices
 
-    _fig : instance of Figure
+    _canvas : instance of Canvas
         current figure
-    _ax : instance of Axes
-        current axes
-    _surf : instance of phypno.attr.anat.Surf
-        surface to be plotted
-    _h_surf : instance of visvis.wobjects.polygonalModeling.Mesh
-        mesh with the brain surface
-    _h_chan : list of visvis.wobjects.polygonalModeling.OrientableMesh
-        list of objects used to represent channels
+
     """
     def __init__(self):
+        self._canvas = SceneCanvas(keys='interactive')
 
-        self._fig = figure()
-        self._ax = gca()
-        self._ax.wobjects[0].Destroy()  # get rid of axises
+        self._viewbox = None
+        self._mesh = None
+        self._chan = []
 
-        self._surf = None
-        self._h_surf = None
-        self._h_chan = []
+        self._surf_limits_c = None
+        self._chan_limits_c = None
+        self._colormap = None
 
-    def add_surf(self, surf, color=SKIN_COLOR, xyz=None, values=None,
-                 limits=None, colormap=CM_JET):
+    def add_surf(self, surf, color=SKIN_COLOR, values=None, limits_c=None,
+                 colormap='cool'):
         """Add surfaces to the visualization.
 
         Parameters
@@ -59,14 +62,12 @@ class Viz3:
             surface to be plotted
         color : tuple, optional
             4-element tuple, representing RGB and alpha, between 0 and 1
-        xyz : ndarray, optional
-            nChan X 3 matrix of the xyz-position of the channels
         values : ndarray, optional
-            vector with values for each channel
-        limits : tuple of 2 floats, optional
+            vector with values for each vertex
+        limits_c : tuple of 2 floats, optional
             min and max values to normalize the color
-        colormap : ndarray, optional
-            matrix for the color coding (such as CM_JET, CM_HOT, ...)
+        colormap : str
+            one of the colormaps in vispy
 
         Notes
         -----
@@ -80,24 +81,36 @@ class Viz3:
         You can pre-compute it (using arbitrary values) and pass it as
         attribute to this class.
         """
-        if values is not None and limits is None:
-            limits = (min(values), max(values))
+        if values is not None:
+            color = None  # otherwise this color prevails
 
-        m = Mesh(self._ax, vertices=surf.vert, faces=surf.tri)
+        meshdata = MeshData(vertices=surf.vert, faces=surf.tri)
+        mesh = Mesh(meshdata=meshdata, color=color, shading='smooth')
+
+        viewbox = self._canvas.central_widget.add_view()
+        viewbox.set_camera('turntable', mode=CAMERA, azimuth=90,
+                           distance=DISTANCE, center=-mean(surf.vert, axis=0))
+        viewbox.add(mesh)
 
         if values is not None:
-            m.SetValues(values)
-            m.clim = limits
-        else:
-            m.faceColor = color
-        m.colormap = colormap
+            if limits_c is None:
+                min_c = min(values)  # maybe NaN here
+                max_c = max(values)
+            else:
+                min_c, max_c = limits_c
 
-        self._surf = surf
-        self._h_surf = m
-        self.center_surf()
+            self._surf_limits_c = min_c, max_c
+            self._colormap = colormap
+            values = (values - min_c) / (max_c - min_c)
+            meshdata.set_vertex_colors(convert_color(values, colormap))
 
-    def add_chan(self, chan, color=(0, 0, 0, 1), values=None, limits=None,
-                 colormap=CM_JET):
+        self._mesh = mesh
+        self._viewbox = viewbox
+
+        self._canvas.show()
+
+    def add_chan(self, chan, color=(0, 1, 0, 1), values=None, limits_c=None,
+                 colormap='cool'):
         """
         Parameters
         ----------
@@ -107,86 +120,78 @@ class Viz3:
             4-element tuple, representing RGB and alpha, between 0 and 1
         values : ndarray, optional
             vector with values for each electrode
-        limits : tuple of 2 floats, optional
+        limits_c : tuple of 2 floats, optional
             min and max values to normalize the color
-        colormap : ndarray, optional
-            matrix for the color coding (such as CM_JET, CM_HOT, ...)
+        colormap : str
+            one of the colormaps in vispy
+
         """
         # larger if colors are meaningful
         if values is not None:
-            SCALING = 3
+            radius = 3
         else:
-            SCALING = 1.5
+            radius = 1.5
+        sphere = create_sphere(10, 10, radius=radius)
 
-        if values is not None and limits is None:
-            limits = (min(values), max(values))
+        if self._viewbox is not None:
+            viewbox = self._viewbox
+        else:
+            viewbox = self._canvas.central_widget.add_view()
+            viewbox.set_camera('turntable', mode=CAMERA, azimuth=90,
+                               distance=DISTANCE)
+            self._viewbox = viewbox
 
-        for i, one_chan in enumerate(chan.chan):
-            s = solidSphere(list(one_chan.xyz), scaling=SCALING)
-
-            if values is not None:
-                _set_value_to_chan(s, values[i])
-                s.clim = limits
+        if values is not None:
+            if limits_c is None:
+                min_c = min(values)  # maybe NaN here
+                max_c = max(values)
             else:
-                s.faceColor = color
-            s.colormap = colormap
+                min_c, max_c = limits_c
 
-            self._h_chan.append(s)
+            values = (values - min_c) / (max_c - min_c)
+            colors = convert_color(values, colormap)
+        else:
+            colors = [color] * chan.n_chan
 
-    def update_surf(self, color=None, values=None, limits=None, colormap=None):
+        for one_chan, one_color in zip(chan.chan, colors):
+            mesh = Mesh(meshdata=sphere, color=one_color, shading='smooth')
+            mesh.transform = STTransform(translate=one_chan.xyz)
+            viewbox.add(mesh)
+
+        self._canvas.show()
+
+    def update_surf(self, values):
         """Change values of the brain surface.
+
+        THIS DOES NOT WORK CURRENTLY. It updates if you change the values
+        before the figure appears.
 
         Parameters
         ----------
-        color : tuple, optional
-            4-element tuple, representing RGB and alpha, between 0 and 1
         values : ndarray, optional
             vector with values for each channel
-        limits : tuple of 2 floats, optional
-            min and max values to normalize the color
-        colormap : ndarray, optional
-            matrix for the color coding (such as CM_JET, CM_HOT, ...)
+
+        Notes
+        -----
+        It reuses the color-limits and color map of the initial surf
         """
-        m = self._h_surf
-        if values is not None:
-            m.SetValues(values)
+        min_c, max_c = self._surf_limits_c
+        values = (values - min_c) / (max_c - min_c)
+        self._mesh.mesh_data.set_vertex_colors(convert_color(values,
+                                                             self._colormap))
 
-        if limits is not None:
-            m.clim = limits
-
-        if colormap is not None:
-            m.colormap = colormap
-
-        if color is not None:
-            m.faceColor = color
-
-    def update_chan(self, color=None, values=None, limits=None, colormap=None):
+    def update_chan(self, values):
         """Change values of the electrodes.
 
         Parameters
         ----------
-        color : tuple, optional
-            4-element tuple, representing RGB and alpha, between 0 and 1
         values : ndarray, optional
             vector with values for each channel
-        limits : tuple of 2 floats, optional
-            min and max values to normalize the color
-        colormap : ndarray, optional
-            matrix for the color coding (such as CM_JET, CM_HOT, ...)
+
+        BROKEN
         """
-        for i, s in enumerate(self._h_chan):
-
-            if values is not None:
-                _set_value_to_chan(s, values[i])
-
-            if limits is not None:
-                s.clim = limits
-
-            if colormap is not None:
-                s.colormap = colormap
-
-            if color is not None:
-                s.faceColor = color
+        min_c, max_c = self._surf_limits_c
+        values = (values - min_c) / (max_c - min_c)
 
     def animate_surf(self, all_values, output_file):
         """Create a movie with the changing values onto the surface.

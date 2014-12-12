@@ -5,12 +5,13 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from numpy import array, max, min
-from vispy.io.image import _make_png
 from vispy.scene import SceneCanvas
 from vispy.scene.visuals import Line, GridLines
 
+from .base import Viz
 
-class Viz1:
+
+class Viz1(Viz):
     def __init__(self):
         """Class to generate lines."""
         self._canvas = SceneCanvas()
@@ -69,18 +70,3 @@ class Viz1:
             viewbox.camera.rect = min_x, min_y, max_x - min_x, max_y - min_y
 
         self._canvas.show()
-
-    def _repr_png_(self):
-        """This is used by ipython to plot inline.
-
-        Notes
-        -----
-        It uses _make_png, which is a private function. Otherwise it needs to
-        write to file and read from file.
-        """
-        self._canvas.show()
-        image = self._canvas.render()
-        self._canvas.close()
-        img = _make_png(image).tobytes()
-
-        return img

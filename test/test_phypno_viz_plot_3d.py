@@ -2,35 +2,54 @@ from . import *
 
 from numpy import ones
 
-"""
-from phypno.attr import Freesurfer, Channels
-from phypno.viz.plot_3d import (plot_surf, plot_chan, plot_values_on_surf,
-                                calculate_chan2surf_trans)
+from phypno.attr import Freesurfer
+from phypno.viz.plot_3d import Viz3
+
+filename = '/home/gio/recordings/MG72/mri/proc/freesurfer'
+fs = Freesurfer(filename)
+surf = fs.read_surf('lh')
+from phypno.attr import Channels
+chan = Channels('/home/gio/recordings/MG72/doc/elec/MG72_elec_pos-names_sessA.csv')
 
 
-fs_dir = join(data_dir, 'MGXX/mri/proc/freesurfer')
-chan_file = join(data_dir, 'MGXX/doc/elec/elec_pos_adjusted.csv')
-
-anat = Freesurfer(fs_dir)
-chan = Channels(chan_file)
-hemi = 'lh'
-surf = anat.read_surf(hemi)
-
-
-def test_viz_plot_chan_and_surf():
+def test_viz_plot3d_surf_01():
     lg.info('---\nfunction: ' + stack()[0][3])
-    neuroport = chan(lambda x: x.label.lower() == 'neuroport')
-    other_chan = chan(lambda x: not x.label.lower() == 'neuroport')
 
-    fig = plot_chan(neuroport, color=(0, 1, 0, 1))
-    plot_chan(other_chan, fig, color=(1, 0, 0, 1))
-
-    plot_surf(surf, fig)
+    v = Viz3()
+    v.add_surf(surf, values=surf.vert[:, 1])
+    assert v._repr_png_()[2000:2010] == b'\x0f@DDDDD\xda\xa1\xfa'
 
 
-@attr('slow')
-def test_viz_plot_values_on_surf():
+def test_viz_plot3d_surf_02():
     lg.info('---\nfunction: ' + stack()[0][3])
-    trans = calculate_chan2surf_trans(surf, chan.return_xyz())
-    plot_values_on_surf(surf, 5 * ones(trans.shape[1]), trans)
-"""
+
+    v = Viz3()
+    v.add_surf(surf, values=surf.vert[:, 1], limits_c=(-10, 10))
+    assert v._repr_png_()[2000:2010] == b'\xf1\xc67\x8d\x002\xa9\x1e\xc3\x1a'
+
+
+def test_viz_plot3d_surf_03():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    v = Viz3()
+    v.add_surf(surf, values=surf.vert[:, 1], limits_c=(-10, 10))
+    v.update_surf(values=surf.vert[:, 0])
+    assert v._repr_png_()[2000:2010] == b'\x10\x11\x11\x11\x11\x11\xefp\xbd\x00'
+
+
+def test_viz_plot3d_chan_01():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    v = Viz3()
+    v.add_chan(chan, values=chan.return_xyz()[:, 0], limits_c=(-50, 0))
+    lg.info(v._repr_png_()[2000:2010])
+    # assert v._repr_png_()[2000:2010] is everytime different
+
+
+def test_viz_plot3d_chan_02():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    v = Viz3()
+    v.add_surf(surf, color=(.5, .5, .5, .1))
+    v.add_chan(chan)
+    # assert v._repr_png_()[2000:2010] is everytime different
