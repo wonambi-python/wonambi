@@ -4,8 +4,14 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from vispy.color.colormap import get_colormap
+from vispy.color.colormap import get_colormap, _colormaps, Colormap
 from vispy.io.image import _make_png
+
+
+custom_cmap = {'jet': Colormap([(0, 0, .5), (0, 0, 1), (0, .5, 1), (0, 1, 1),
+                                (.5, 1, .5), (1, 1, 0), (1, .5, 0), (1, 0, 0),
+                                (.5, 0, 0)])}
+_colormaps.update(custom_cmap)
 
 
 def convert_color(dat, colormap):
@@ -13,6 +19,7 @@ def convert_color(dat, colormap):
     This function won't be necessary when vispy implements colormaps.
     """
     cmap = get_colormap(colormap)
+
     img_data = cmap[dat.flatten()].rgba
     return img_data.reshape(dat.shape + (4, ))
 

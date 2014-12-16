@@ -11,6 +11,9 @@ from vispy.scene.visuals import Line, GridLines
 from .base import Viz
 
 
+ONE_CHANNEL_HEIGHT = 30
+
+
 class Viz1(Viz):
     def __init__(self):
         """Class to generate lines."""
@@ -18,7 +21,7 @@ class Viz1(Viz):
         self._viewbox = []
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
-                 limits_x=None, limits_y=None):
+                 limits_x=None, limits_y=None, grid=True):
         """
         Parameters
         ----------
@@ -34,8 +37,10 @@ class Viz1(Viz):
             limits on the x-axis (if unspecified, it's the max across subplots)
         limits_y : tuple, optional
             limits on the y-axis (if unspecified, it's the max across subplots)
+        grid : bool
+            with grid or not
         """
-        grid = self._canvas.central_widget.add_grid()
+        main_grid = self._canvas.central_widget.add_grid()
 
         x = data.axis[axis_x][trial]
         max_x = max(x)
@@ -53,10 +58,11 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            viewbox = grid.add_view(row=cnt, col=0)
+            viewbox = main_grid.add_view(row=cnt, col=0)
             line = Line(array((x, dat)).T)
             viewbox.add(line)
-            GridLines(parent=viewbox.scene)
+            if grid:
+                GridLines(parent=viewbox.scene)
 
             self._viewbox.append(viewbox)
 
@@ -68,5 +74,8 @@ class Viz1(Viz):
 
         for viewbox in self._viewbox:
             viewbox.camera.rect = min_x, min_y, max_x - min_x, max_y - min_y
+
+        self._canvas.size = (self._canvas.size[0],
+                             ONE_CHANNEL_HEIGHT * len(subplot_values))
 
         self._canvas.show()
