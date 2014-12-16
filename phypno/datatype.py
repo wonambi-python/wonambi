@@ -174,7 +174,7 @@ class Data:
                 output_shape.append(n_values)
 
             output[cnt] = empty(output_shape, dtype=self.data[i].dtype)
-            output[cnt][:] = NaN
+            output[cnt].fill(NaN)
 
             if all([len(x) > 0 for x in idx_data]):
                 ix_output = ix_(*idx_output)

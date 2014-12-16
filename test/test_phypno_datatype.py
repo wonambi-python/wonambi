@@ -219,6 +219,18 @@ def test_chantime_select_equal_to_read():
 
     assert_array_equal(dat1[0], dat2[0])
 
+def test_data_one_dim_one_value():
+    lg.info('---\nfunction: ' + stack()[0][3])
+
+    data = Data()
+    data.axis = {'chan': empty(1, dtype='O')}
+    data.axis['chan'][0] = array(('chan02', 'chan05'))
+    data.data = empty(1, dtype='O')
+    data.data[0] = array((10, 20))
+    assert data(trial=0, chan='chan02') == 10
+
+
+
 """
 TODO
 calc_freq = Freq()

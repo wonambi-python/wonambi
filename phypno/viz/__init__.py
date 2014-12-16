@@ -16,7 +16,7 @@ We might include these functions as methods to classes in the future, but it
 might complicate the code, instead of making it more clear.
 
 """
-toolkit = 'vispy'
+toolkit = 'visvis'
 
 from .plot_1d import Viz1
 from .plot_2d import Viz2
