@@ -219,6 +219,7 @@ def test_chantime_select_equal_to_read():
 
     assert_array_equal(dat1[0], dat2[0])
 
+
 def test_data_one_dim_one_value():
     lg.info('---\nfunction: ' + stack()[0][3])
 

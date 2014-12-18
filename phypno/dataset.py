@@ -68,8 +68,7 @@ def detect_format(filename):
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
             recformat = Ktlx
-        elif (glob(join(filename, 'info.xml')) and
-              glob(join(filename, 'subject.xml'))):
+        elif glob(join(filename, 'info.xml')):
             recformat = EgiMff
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +

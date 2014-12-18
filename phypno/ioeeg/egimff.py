@@ -63,7 +63,10 @@ class EgiMff:
             n_samples = asarray([x['n_samples'][0] for x in block_hdr], 'q')
             self._n_samples.append(n_samples)
 
-        subj_id = orig['subject'][0][0]['name']
+        try:
+            subj_id = orig['subject'][0][0]['name']
+        except KeyError:
+            subj_id = ''
         start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
                                        '%Y-%m-%dT%H:%M:%S.%f%z')
 
@@ -204,7 +207,7 @@ def _read_block(filename, block_hdr, i):
     f.seek(i)
 
     v = unpack('<' + ''.join(data_type),
-		   f.read(sum(n_bytes * block_hdr['n_samples'])))
+               f.read(sum(n_bytes * block_hdr['n_samples'])))
 
     return reshape(v, (block_hdr['n_signals'], block_hdr['n_samples'][0]))
 
