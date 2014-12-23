@@ -290,8 +290,12 @@ class Data:
         """
         if export_format == 'fieldtrip':
             from .ioeeg import write_fieldtrip  # avoid circular import
-
             write_fieldtrip(self, filename)
+
+        elif export_format == 'mnefiff':
+
+            from .ioeeg import write_mnefiff
+            write_mnefiff(self, filename)
 
 
 class ChanTime(Data):
