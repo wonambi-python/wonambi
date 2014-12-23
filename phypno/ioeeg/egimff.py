@@ -5,8 +5,8 @@ from os.path import basename, join, splitext
 from struct import unpack
 from xml.etree.ElementTree import parse
 
-from numpy import (append, asarray, cumsum, diff, empty, NaN, ones, r_,
-                   reshape, where, zeros)
+from numpy import (append, asarray, cumsum, diff, empty, NaN, reshape, sum,
+                   where)
 
 shorttime = lambda x: x[:26] + x[29:32] + x[33:]
 
@@ -74,8 +74,8 @@ class EgiMff:
         s_freq = [x[0]['freq'][0] for x in self._block_hdr]
         assert all([x == s_freq[0] for x in s_freq])
         SIGNAL = 0
-        s_freq = block_hdr[SIGNAL]['freq'][0]
-        n_samples = block_hdr[SIGNAL]['opt_hdr']['n_smp']
+        s_freq = self._block_hdr[SIGNAL][0]['freq'][0]
+        n_samples = sum(self._n_samples[SIGNAL])
 
         chan_name, self._nchan_signal1 = _read_chan_name(orig)
         self._orig = orig
@@ -235,7 +235,7 @@ def read_block_hdr(f):
     if opt_hdr_size > 0:
         opt_hdr_type = unpack('<I', f.read(4))[0]
         n_blocks = unpack('<Q', f.read(8))[0]
-        n_smp = unpack('<Q', f.read(8))[0]
+        n_smp = unpack('<Q', f.read(8))[0]  # unreliable
         n_signals_opt = unpack('<I', f.read(4))[0]
     else:
         n_blocks = None
