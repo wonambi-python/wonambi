@@ -5,11 +5,11 @@ from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
-from os.path import isdir, join
+from os.path import isdir, join, splitext
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Phypno
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -67,13 +67,15 @@ def detect_format(filename):
     """
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
-            recformat = Ktlx
+            return Ktlx
         elif glob(join(filename, 'info.xml')):
-            recformat = EgiMff
+            return EgiMff
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
     else:
+        if splitext(filename)[-1] == '.pkl':
+            return Phypno
 
         with open(filename, 'rb') as f:
             file_header = f.read(8)
@@ -81,20 +83,18 @@ def detect_format(filename):
                 f.seek(192)
                 edf_type = f.read(5)
                 if edf_type == b'EDF+C':
-                    recformat = 'EDF+C'
+                    return 'EDF+C'
                 elif edf_type == b'EDF+D':
-                    recformat = 'EDF+D'
+                    return 'EDF+D'
                 else:
-                    recformat = Edf
+                    return Edf
             elif file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
-                recformat = BlackRock
+                return BlackRock
             elif file_header[:6] == b'MATLAB':  # we might need to read more
-                recformat = FieldTrip
+                return FieldTrip
             else:
                 raise UnrecognizedFormat('Unrecognized format for file ' +
                                          filename)
-
-    return recformat
 
 
 class Dataset:

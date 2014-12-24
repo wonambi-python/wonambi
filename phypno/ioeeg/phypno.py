@@ -1,19 +1,26 @@
-"""Package to import and export common formats.
+from pickle import load
 
-class IOEEG:
-    \"""Basic class to read the data.
+from numpy import hstack
+
+
+class Phypno:
+    """Basic class to read the data.
 
     Parameters
     ----------
     filename : path to file
         the name of the filename or directory
 
-    \"""
+    """
     def __init__(self, filename):
         self.filename = filename
+        with open(filename, 'rb') as f:
+            self._data = load(f)
+
+        # transform data using NaN, based on time information
 
     def return_hdr(self):
-        \"""Return the header for further use.
+        """Return the header for further use.
 
         Returns
         -------
@@ -30,18 +37,18 @@ class IOEEG:
         orig : dict
             additional information taken directly from the header
 
-        \"""
+        """
         subj_id = str()
-        start_time = datetime.datetime
-        s_freq = int()
-        chan_name = ['', '']
-        n_samples = int()
+        start_time = self._data.start_time
+        s_freq = self._data.s_freq
+        chan_name = self._data.axis['chan'][0]
+        n_samples = sum(self._data.number_of('time'))
         orig = dict()
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
     def return_dat(self, chan, begsam, endsam):
-        \"""Return the data as 2D numpy.ndarray.
+        """Return the data as 2D numpy.ndarray.
 
         Parameters
         ----------
@@ -57,12 +64,12 @@ class IOEEG:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
 
-        \"""
-        data = rand(10, 100)
+        """
+        data = hstack(self._data.data)  # simple concatenation
         return data[chan, begsam:endsam]
 
     def return_markers(self):
-        \"""Return all the markers (also called triggers or events).
+        """Return all the markers (also called triggers or events).
 
         Returns
         -------
@@ -76,26 +83,10 @@ class IOEEG:
         FileNotFoundError
             when it cannot read the events for some reason (don't use other
             exceptions).
-        \"""
+        """
         markers = [{'name': 'one_trigger',
                     'start': 10,
                     'end': 15,  # duration of 5s
                     'chan': ['chan1', 'chan2'],  # or None
                     }]
         return markers
-
-Biosig has a very large library of tools to read various formats. I think it's
-best to use it in general. However, it has bindings only for Python2 and running
-Makefile/swig using python3 is tricky. Use pure python for EDF, and maybe other
-common format (fiff, fieldtrip, eeglab) in python3, then if necessary use
-python2 as script using biosig for all the other formats.
-
-"""
-from .edf import Edf
-from .ktlx import Ktlx
-from .blackrock import BlackRock
-from .egimff import EgiMff
-from .mnefiff import write_mnefiff
-from .fieldtrip import FieldTrip, write_fieldtrip
-from .phypno import Phypno
-# from .eeglab import Eeglab, write_eeglab
