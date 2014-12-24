@@ -87,16 +87,19 @@ class Annotations():
 
     @property
     def dataset(self):
-        xml_dataset = self.root.find('dataset')
+        return self.root.find('dataset/path').text
 
-        start_time = parse_iso_datetime(xml_dataset.find('start_time').text)
+    @property
+    def start_time(self):
+        return parse_iso_datetime(self.root.find('dataset/start_time').text)
 
-        output = {'start_time': start_time,
-                  'first_second': int(xml_dataset.find('first_second').text),
-                  'last_second': int(xml_dataset.find('last_second').text)
-                  }
+    @property
+    def first_second(self):
+        return int(self.root.find('dataset/first_second').text)
 
-        return output
+    @property
+    def last_second(self):
+        return int(self.root.find('dataset/last_second').text)
 
     @property
     def current_rater(self):
@@ -427,12 +430,11 @@ class Annotations():
         return ev
 
     def create_epochs(self, epoch_length=30):
-        first_sec = int(self.root.find('dataset/first_second').text)
-        last_sec = int(self.root.find('dataset/last_second').text)
-        last_sec = ceil((last_sec - first_sec) / epoch_length) * epoch_length
+        last_sec = ceil((self.last_second - self.first_second) /
+                        epoch_length) * epoch_length
 
         stages = self.rater.find('stages')
-        for epoch_beg in range(first_sec, last_sec, epoch_length):
+        for epoch_beg in range(self.first_second, last_sec, epoch_length):
             epoch = SubElement(stages, 'epoch')
 
             start_time = SubElement(epoch, 'epoch_start')
@@ -545,8 +547,6 @@ class Annotations():
         stages : bool, optional
             if you want to write down the sleep stages
         """
-        start_time = self.dataset['start_time']
-
         with open(file_to_export, 'w', newline='') as f:
             csv_file = writer(f)
 
@@ -555,7 +555,8 @@ class Annotations():
                                    'stage'))
 
                 for epoch in self.epochs:
-                    epoch_time = start_time + timedelta(seconds=epoch['start'])
+                    epoch_time = (self.start_time +
+                                  timedelta(seconds=epoch['start']))
                     csv_file.writerow((epoch_time.strftime('%H:%M:%S'),
                                        epoch['start'],
                                        epoch['end'],
