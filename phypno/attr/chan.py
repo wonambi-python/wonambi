@@ -202,7 +202,8 @@ class Channels():
     -----
     chan_input can be a csv file without header and with format:
     label, x-pos, y-pos, z-pos
-
+    or an sfp file without header and with format:
+    label x-pos y-pos z-pos
     """
     def __init__(self, *args):
 
