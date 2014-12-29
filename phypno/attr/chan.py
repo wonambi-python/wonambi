@@ -73,7 +73,7 @@ def _convert_unit(unit):
     return unit
 
 
-def _read_csv(elec_file):
+def _read_separated_values(elec_file, sep):
     """TODO:documentation
 
     """
@@ -84,7 +84,7 @@ def _read_csv(elec_file):
     with open(elec_file, 'r') as f:
         for i, l in enumerate(f):
             a, b, c, d = [t(s) for t, s in zip((str, float, float, float),
-                          l.split(','))]
+                          l.split(sep))]
             chan_label.append(a)
             chan_pos[i, :] = [b, c, d]
 
@@ -107,6 +107,9 @@ def detect_format(filename):
     """
     if splitext(filename)[1] == '.csv':
         recformat = 'csv'
+    elif splitext(filename)[1] == '.sfp':
+        recformat = 'sfp'
+
     else:
         recformat = 'unknown'
 
@@ -214,7 +217,9 @@ class Channels():
             if len(args) == 1:
                 format_ = detect_format(args[0])
                 if format_ == 'csv':
-                    labels, xyz = _read_csv(args[0])
+                    labels, xyz = _read_separated_values(args[0], ',')
+                elif format_ == 'sfp':
+                    labels, xyz = _read_separated_values(args[0], ' ')
                 else:
                     raise UnrecognizedFormat('Unrecognized format ("' +
                                              format_ + '")')
