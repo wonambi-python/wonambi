@@ -64,12 +64,25 @@ def _get_indices(values, selected, tolerance):
 class Data:
     """General class containing recordings.
 
+    Parameters
+    ----------
+    data : ndarray
+        one matrix with dimension matching the number of axes. You can pass
+        only one trial.
+    s_freq : int
+        sampling frequency
+    axes : dict
+        dictionary where the key is the name of the axis and the values must be
+        a numpy vector with the actual values.
+
     Attributes
     ----------
     data : ndarray (dtype='O')
         the data as trials. Each trial is a ndarray (dtype='d' or 'f')
     axis : OrderedDict
         dictionary with axiss (standard names are 'chan', 'time', 'freq')
+    s_freq : int
+        sampling frequency
     start_time : instance of datetime.datetime
         the start time of the recording
     attr : dict
@@ -85,11 +98,22 @@ class Data:
     (meaning String) it creates strings of type bytes\_.
 
     """
-    def __init__(self):
-        self.data = array([], dtype='O')
+    def __init__(self, data=None, s_freq=None, **axes):
+
+        self.s_freq = s_freq
+
+        if data is None:
+            self.data = array([], dtype='O')
+        else:
+            self.data = array((1, ), dtype='O')
+            self.data[0] = data
+
         self.axis = OrderedDict()
+        for axis, value in axes.items():
+            self.axis[axis] = array((1,), dtype='O')
+            self.axis[axis][0] = value
         self.start_time = None
-        self.s_freq = None
+
         self.attr = {'surf': None,
                      'chan': None,
                      'scores': None,
