@@ -74,9 +74,6 @@ def detect_format(filename):
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
     else:
-        if splitext(filename)[-1] == '.pkl':
-            return Phypno
-
         with open(filename, 'rb') as f:
             file_header = f.read(8)
             if file_header == b'0       ':

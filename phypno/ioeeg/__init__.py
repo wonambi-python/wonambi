@@ -97,5 +97,4 @@ from .blackrock import BlackRock
 from .egimff import EgiMff
 from .mnefiff import write_mnefiff
 from .fieldtrip import FieldTrip, write_fieldtrip
-from .phypno import Phypno
 # from .eeglab import Eeglab, write_eeglab
