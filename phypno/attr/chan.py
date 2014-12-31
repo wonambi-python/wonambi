@@ -78,7 +78,8 @@ def _read_separated_values(elec_file, sep):
 
     """
     chan_label = []
-    num_lines = sum(1 for line in open(elec_file))
+    with open(elec_file) as f:
+        num_lines = sum(1 for line in f)
     chan_pos = zeros((num_lines, 3))
 
     with open(elec_file, 'r') as f:
