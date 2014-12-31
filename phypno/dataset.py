@@ -5,11 +5,11 @@ from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
-from os.path import isdir, join, splitext
+from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Phypno
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
