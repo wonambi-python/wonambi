@@ -117,27 +117,6 @@ def detect_format(filename):
     return recformat
 
 
-def export_csv(chan, elec_file):
-    """Write the elec coordinates into a csv file.
-
-    Parameters
-    ----------
-    chan : instance of class Chan
-        the definition of the channels
-    elec_file : str
-        path to file where to save csv
-
-    """
-    with open(elec_file, 'w') as f:
-        for one_chan in chan.chan:
-            line = '{0}, {1:.4}, {2:.4}, {3:.4}\n'.format(one_chan.label,
-                                                          one_chan.xyz[0],
-                                                          one_chan.xyz[1],
-                                                          one_chan.xyz[2],
-                                                          )
-            f.write(line)
-
-
 class Chan():
     """Provide class Chan, for individual channels.
 
@@ -362,7 +341,16 @@ class Channels():
         """
         ext = splitext(elec_file)[1]
         if ext == '.csv':
-            export_csv(self, elec_file)
+            sep = ', '
+        elif ext == '.sfp':
+            sep = ' '
+
+        with open(elec_file, 'w') as f:
+            for one_chan in self.chan:
+                values = ([one_chan.label, ] +
+                          ['{:.3f}'.format(x) for x in one_chan.xyz])
+                line = sep.join(values) + '\n'
+                f.write(line)
 
 
 def assign_region_to_channels(channels, anat, max_approx=3,

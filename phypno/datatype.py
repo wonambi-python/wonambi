@@ -321,6 +321,9 @@ class Data:
             from .ioeeg import write_mnefiff
             write_mnefiff(self, filename)
 
+        else:
+            raise ValueError('Cannot export to ' + export_format)
+
 
 class ChanTime(Data):
     """Specific class for chan-time recordings, with axes:
