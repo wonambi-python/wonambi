@@ -91,7 +91,7 @@ common format (fiff, fieldtrip, eeglab) in python3, then if necessary use
 python2 as script using biosig for all the other formats.
 
 """
-from .edf import Edf
+from .edf import Edf, write_edf
 from .ktlx import Ktlx
 from .blackrock import BlackRock
 from .egimff import EgiMff

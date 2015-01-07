@@ -302,7 +302,7 @@ class Data:
 
             yield output
 
-    def export(self, filename, export_format='fieldtrip'):
+    def export(self, filename, export_format='FieldTrip', **options):
         """Export data in other formats.
 
         Parameters
@@ -310,9 +310,17 @@ class Data:
         filename : path to file
             file to write
         export_format : str, optional
-            supported export format is currently only FieldTrip
+            supported export format is currently EDF, FieldTrip and FIFF
+
+        Notes
+        -----
+        EDF takes an optional argument "physical_max", see write_edf.
         """
-        if export_format == 'fieldtrip':
+        if export_format == 'EDF':
+            from .ioeeg import write_edf  # avoid circular import
+            write_edf(self, filename, **options)
+
+        elif export_format == 'FieldTrip':
             from .ioeeg import write_fieldtrip  # avoid circular import
             write_fieldtrip(self, filename)
 

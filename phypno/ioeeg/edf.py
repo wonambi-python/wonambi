@@ -8,12 +8,20 @@ are identical to those computed by Biosig and EDFBrowser. The difference is due
 to the calibration.
 
 """
+from logging import getLogger
+lg = getLogger(__name__)
 
-from __future__ import division
-from datetime import datetime
-from re import findall
+from datetime import datetime, timedelta
 from math import floor
-from numpy import empty, asarray, fromstring
+from re import findall
+from struct import pack
+
+from numpy import empty, asarray, fromstring, iinfo, abs, max
+
+EDF_FORMAT = 'int16'  # by definition
+edf_iinfo = iinfo(EDF_FORMAT)
+DIGITAL_MAX = edf_iinfo.max
+DIGITAL_MIN = -1 * edf_iinfo.max  # so that digital 0 = physical 0
 
 
 def _assert_all_the_same(items):
@@ -234,3 +242,90 @@ class Edf:
     def return_markers(self):
         """"""
         return []
+
+
+def write_edf(data, filename, physical_max=1000):
+    """Export data to FieldTrip.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data with only one trial
+    filename : path to file
+        file to export to (include '.mat')
+    physical_max : int
+        values above this parameter will be considered saturated (and also
+        those that are too negative). This parameter defines the precision.
+
+    Notes
+    -----
+    Data is always recorded as 2 Byte int (which is 'int16'), so precision is
+    limited. You can control the precision with physical_max. To get the
+    precision:
+
+    >>> precision = physical_max / DIGITAL_MAX
+
+    where DIGITAL_MAX is 32767.
+    """
+    start_time = data.start_time + timedelta(seconds=data.axis['time'][0][0])
+
+    if physical_max is None:
+        physical_max = max(abs(data.data[0]))
+
+    precision = physical_max / DIGITAL_MAX
+    lg.info('Data exported to EDF will have precision ' + str(precision))
+
+    physical_min = -1 * physical_max
+    dat = data.data[0] / physical_max * DIGITAL_MAX
+    dat = dat.astype(EDF_FORMAT)
+    dat[dat > DIGITAL_MAX] = DIGITAL_MAX
+    dat[dat < DIGITAL_MIN] = DIGITAL_MIN
+
+    with open(filename, 'wb') as f:
+        f.write('{:<8}'.format(0).encode('ascii'))
+        f.write('{:<80}'.format('X X X X').encode('ascii'))  # subject_id
+        f.write('{:<80}'.format('Startdate X X X X').encode('ascii'))
+        f.write(start_time.strftime('%d.%m.%y').encode('ascii'))
+        f.write(start_time.strftime('%H.%M.%S').encode('ascii'))
+
+        n_smp = data.data[0].shape[1]
+        s_freq = int(data.s_freq)
+        n_records = n_smp // s_freq  # floor
+        record_length = 1
+        n_channels = data.number_of('chan')[0]
+
+        header_n_bytes = 256 + 256 * n_channels
+        f.write('{:<8d}'.format(header_n_bytes).encode('ascii'))
+        f.write((' ' * 44).encode('ascii'))  # reserved for EDF+
+
+        f.write('{:<8}'.format(n_records).encode('ascii'))
+        f.write('{:<8d}'.format(record_length).encode('ascii'))
+        f.write('{:<4}'.format(n_channels).encode('ascii'))
+
+        for chan in data.axis['chan'][0]:
+            f.write('{:<16}'.format(chan).encode('ascii'))  # label
+        for _ in range(n_channels):
+            f.write(('{:<80}').format('').encode('ascii'))  # tranducer
+        for _ in range(n_channels):
+            f.write('{:<8}'.format('uV').encode('ascii'))  # physical_dim
+        for _ in range(n_channels):
+            f.write('{:<8}'.format(physical_min).encode('ascii'))
+        for _ in range(n_channels):
+            f.write('{:<8}'.format(physical_max).encode('ascii'))
+        for _ in range(n_channels):
+            f.write('{:<8}'.format(DIGITAL_MIN).encode('ascii'))
+        for _ in range(n_channels):
+            f.write('{:<8}'.format(DIGITAL_MAX).encode('ascii'))
+        for _ in range(n_channels):
+            f.write('{:<80}'.format('').encode('ascii'))  # prefiltering
+        for _ in range(n_channels):
+            f.write('{:<8d}'.format(s_freq).encode('ascii'))  # n_smp in record
+        for _ in range(n_channels):
+            f.write((' ' * 32).encode('ascii'))
+
+        l = s_freq * n_channels  # length of one record
+        for i in range(n_records):
+            i0 = i * s_freq
+            i1 = i0 + s_freq
+            x = dat[:, i0:i1].flatten(order='C')  # assumes it's ChanTimeData
+            f.write(pack('<' + 'h' * l, *x))

@@ -1,7 +1,6 @@
 from logging import getLogger
 lg = getLogger(__name__)
 
-
 from datetime import datetime
 
 from numpy import around, empty
