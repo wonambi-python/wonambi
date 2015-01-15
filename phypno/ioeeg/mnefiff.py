@@ -34,4 +34,8 @@ def write_mnefiff(data, filename):
     UNITS = 1e-6  # mne wants data in uV
     fiff = RawArray(data.data[0] * UNITS, info)
 
+    if data.attr['chan']:
+        fiff.set_channel_positions(data.attr['chan'].return_xyz(),
+                                   data.attr['chan'].return_label())
+
     fiff.save(filename, overwrite=True)
