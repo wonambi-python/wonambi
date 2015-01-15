@@ -64,7 +64,7 @@ class BlackRock:
             file_header = f.read(8)
 
         if file_header == b'NEURALEV':
-            orig = _read_neuralev(self.filename)[0]
+            orig = _read_neuralev(self.filename)
 
             s_freq = orig['SampleRes']
             n_samples = orig['DataDuration']
@@ -84,12 +84,11 @@ class BlackRock:
 
             nev_file = splitext(self.filename)[0] + '.nev'
             try:
-                nev_orig, markers = _read_neuralev(nev_file)[:2]
+                nev_orig = _read_neuralev(nev_file)
             except FileNotFoundError:
                 pass
 
             else:
-                self.markers = markers
                 nev_orig.update(orig)  # precedence to orig
                 orig = nev_orig
 
@@ -143,22 +142,30 @@ class BlackRock:
         if requested.
 
         """
-        markers = deepcopy(self.markers)
-        if trigger_bits == 8:
-            to8 = lambda x: str(int(x) - (256 ** 2 - 256))
-            for m in markers:
-                m['name'] = to8(m['name'])
+        nev_file = splitext(self.filename)[0] + '.nev'
+        try:
+            markers = _read_neuralev(nev_file, read_markers=True)
 
-        if trigger_zero:
-            no_zero = (i for i, m in enumerate(markers) if m['name'] != '0')
+        except Exception as err:
+            print('Contact Gio with error report below')
+            raise err
 
-            markers_no_zero = []
-            for i in no_zero:
-                if (i + 1) < len(markers) and markers[i + 1]['name'] == '0':
-                    markers[i]['end'] = markers[i + 1]['start']
-                markers_no_zero.append(markers[i])
+        else:
+            if trigger_bits == 8:
+                to8 = lambda x: str(int(x) - (256 ** 2 - 256))
+                for m in markers:
+                    m['name'] = to8(m['name'])
 
-        return markers_no_zero
+            if trigger_zero:
+                no_zero = (i for i, m in enumerate(markers) if m['name'] != '0')
+
+                markers_no_zero = []
+                for i in no_zero:
+                    if (i + 1) < len(markers) and markers[i + 1]['name'] == '0':
+                        markers[i]['end'] = markers[i + 1]['start']
+                    markers_no_zero.append(markers[i])
+
+            return markers_no_zero
 
 
 def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
@@ -348,13 +355,16 @@ def _read_neuralcd(filename):
     return hdr
 
 
-def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
+def _read_neuralev(filename, read_markers=False, trigger_bits=16,
+                   trigger_zero=True):
     """Read some information from NEV
 
     Parameters
     ----------
     filename : str
         path to NEV file
+    read_markers : bool
+        whether to read markers or not (it can get really large)
     trigger_bits : int, optional
         8 or 16, read the triggers as one or two bytes
     trigger_zero : bool, optional
@@ -364,6 +374,8 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
     -------
     MetaTags : list of dict
         which corresponds to MetaTags of openNEV
+    Markers : list of dict
+        markers in NEV file
 
     Notes
     -----
@@ -495,8 +507,9 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
         fData = f.seek(0, SEEK_END)
         countDataPacket = int((fData - fExtendedHeader) / hdr['PacketBytes'])
 
-        markers = []
-        if countDataPacket:
+        if read_markers and countDataPacket:
+
+            markers = []
 
             f.seek(fExtendedHeader)
             x = f.read(countDataPacket * hdr['PacketBytes'])
@@ -535,7 +548,10 @@ def _read_neuralev(filename, trigger_bits=16, trigger_zero=True):
                      }
                 markers.append(m)
 
-    return hdr, markers
+    if read_markers:
+        return markers
+    else:
+        return hdr
 
 
 def _str(t_in):
