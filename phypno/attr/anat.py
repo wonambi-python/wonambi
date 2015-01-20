@@ -7,7 +7,7 @@ lg = getLogger(__name__)
 
 from collections import Counter
 from os import environ
-from os.path import exists, join, basename, splitext
+from os.path import exists, join
 from re import compile
 from struct import unpack
 
@@ -162,29 +162,21 @@ class Surf:
     ----------
     surf_file : path to file
         freesurfer file containing the surface
-    hemi : str
-            'lh' or 'rh'
-    surf_type : str
-        'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
     vert : numpy.ndarray
         vertices of the mesh
     tri : numpy.ndarray
         triangulation of the mesh
 
     """
-
     def __init__(self, *args):
 
         if len(args) == 1:
             self.surf_file = args[0]
-            self.surf_type = splitext(self.surf_file)[1][1:]
-            self.hemi = splitext(basename(self.surf_file))[0]
 
         elif len(args) == 3:
-            self.hemi = args[1]
-            self.surf_type = args[2]
-            self.surf_file = join(args[0], 'surf',
-                                  self.hemi + '.' + self.surf_type)
+            hemi = args[1]
+            surf_type = args[2]
+            self.surf_file = join(args[0], 'surf', hemi + '.' + surf_type)
 
         surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert

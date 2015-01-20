@@ -47,6 +47,11 @@ def test_Surf_02():
     Surf(join(fs_dir, 'surf', 'lh' + '.' + 'pial'))
 
 
+def test_Surf_03():
+    lg.info('---\nfunction: ' + stack()[0][3])
+    Surf(join(fs_dir, 'bem', 'freesurfer-outer_skin.surf'))
+
+
 @raises(OSError)
 def test_Freesurfer_01():
     lg.info('---\nfunction: ' + stack()[0][3])
