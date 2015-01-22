@@ -174,9 +174,10 @@ class Surf:
             self.surf_file = args[0]
 
         elif len(args) == 3:
-            hemi = args[1]
-            surf_type = args[2]
-            self.surf_file = join(args[0], 'surf', hemi + '.' + surf_type)
+            self.hemi = args[1]
+            self.surf_type = args[2]
+            self.surf_file = join(args[0], 'surf',
+                                  self.hemi + '.' + self.surf_type)
 
         surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert
@@ -332,6 +333,5 @@ class Freesurfer:
         instance of Surf
 
         """
-        surf_file = join(self.dir, 'surf', hemi + '.' + surf_type)
-        surf = Surf(surf_file)
+        surf = Surf(self.dir, hemi, surf_type)
         return surf
