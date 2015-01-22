@@ -15,4 +15,3 @@ def test_viz_plot1d_01():
     v = Viz1()
     v.add_data(data, limits_x=(0, 1), limits_y=(-3, 3))
     assert v._repr_png_()[2000:2010] == b'\xc7uU\x80D\xfe\x1cl\xb2\xfd'
-

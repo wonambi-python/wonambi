@@ -17,6 +17,7 @@ class Viz1(Viz):
     def __init__(self):
         """Class to generate lines."""
         self._widget = GraphicsLayoutWidget()
+        self._plots = []
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
                  limits_x=None, limits_y=None):
@@ -45,6 +46,7 @@ class Viz1(Viz):
         max_y = 0
         min_y = 0
 
+        self._plots = []
         for cnt, one_value in enumerate(subplot_values):
             selected_axis = {axis_subplot: one_value}
             dat = data(trial=trial, **selected_axis)
@@ -57,11 +59,16 @@ class Viz1(Viz):
                 p.hideAxis('bottom')
             p.plot(x, dat)
             self._widget.nextRow()
+            self._plots.append(p)
 
         if limits_x is not None:
             min_x, max_x = limits_x
+            for one_plot in self._plots:
+                one_plot.setXRange(min_x, max_x)
 
         if limits_y is not None:
             min_y, max_y = limits_y
+            for one_plot in self._plots:
+                one_plot.setYRange(min_y, max_y)
 
         self._widget.show()
