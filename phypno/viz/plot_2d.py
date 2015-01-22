@@ -6,8 +6,6 @@ lg = getLogger('phypno')
 
 from numpy import max, min, meshgrid, linspace
 from scipy.interpolate import griddata
-from vispy.scene import SceneCanvas
-from vispy.scene.visuals import Image
 
 from .base import convert_color, Viz
 

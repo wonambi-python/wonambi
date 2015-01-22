@@ -5,8 +5,7 @@ from logging import getLogger
 lg = getLogger('phypno')
 
 from numpy import array, max, min
-from vispy.scene import SceneCanvas
-from vispy.scene.visuals import Line, GridLines
+from pyqtgraph import GraphicsLayoutWidget
 
 from .base import Viz
 
@@ -17,11 +16,10 @@ ONE_CHANNEL_HEIGHT = 30
 class Viz1(Viz):
     def __init__(self):
         """Class to generate lines."""
-        self._canvas = SceneCanvas()
-        self._viewbox = []
+        self._widget = GraphicsLayoutWidget()
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
-                 limits_x=None, limits_y=None, grid=True):
+                 limits_x=None, limits_y=None):
         """
         Parameters
         ----------
@@ -37,11 +35,7 @@ class Viz1(Viz):
             limits on the x-axis (if unspecified, it's the max across subplots)
         limits_y : tuple, optional
             limits on the y-axis (if unspecified, it's the max across subplots)
-        grid : bool
-            with grid or not
         """
-        main_grid = self._canvas.central_widget.add_grid()
-
         x = data.axis[axis_x][trial]
         max_x = max(x)
         min_x = min(x)
@@ -58,13 +52,11 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            viewbox = main_grid.add_view(row=cnt, col=0)
-            line = Line(array((x, dat)).T)
-            viewbox.add(line)
-            if grid:
-                GridLines(parent=viewbox.scene)
-
-            self._viewbox.append(viewbox)
+            p = self._widget.addPlot(title=one_value)
+            if (cnt + 1) < len(subplot_values):
+                p.hideAxis('bottom')
+            p.plot(x, dat)
+            self._widget.nextRow()
 
         if limits_x is not None:
             min_x, max_x = limits_x
@@ -72,10 +64,4 @@ class Viz1(Viz):
         if limits_y is not None:
             min_y, max_y = limits_y
 
-        for viewbox in self._viewbox:
-            viewbox.camera.rect = min_x, min_y, max_x - min_x, max_y - min_y
-
-        self._canvas.size = (self._canvas.size[0],
-                             ONE_CHANNEL_HEIGHT * len(subplot_values))
-
-        self._canvas.show()
+        self._widget.show()

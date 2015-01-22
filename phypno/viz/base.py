@@ -4,21 +4,10 @@
 from logging import getLogger
 lg = getLogger('phypno')
 
-from . import toolkit
-if toolkit == 'visvis':
-    from visvis import getframe
+from tempfile import mkstemp
 
-elif toolkit == 'vispy':
-
-    from vispy.color.colormap import get_colormap, _colormaps, Colormap
-
-    custom_cmap = {'jet': Colormap([(0, 0, .5), (0, 0, 1), (0, .5, 1), (0, 1, 1),
-                                    (.5, 1, .5), (1, 1, 0), (1, .5, 0), (1, 0, 0),
-                                    (.5, 0, 0)])}
-    _colormaps.update(custom_cmap)
-
-
-from vispy.io.image import _make_png
+from IPython.display import Image  # TODOL extra dependency on ipython, but _repr_png is practically only used by ipython
+from PyQt4.Qt import QImage, QPainter
 
 
 def convert_color(dat, colormap):
@@ -38,22 +27,20 @@ class Viz():
 
         Notes
         -----
-        It uses _make_png, which is a private function. Otherwise it needs to
-        write to file and read from file.
+        extra dependency on ipython, but _repr_png is practically only used by
+        ipython. Plus it needs to write to file and read from file.
+
+        I'll need to understand QImage and QPainter better.
         """
-        if toolkit == 'visvis':
-            self._canvas.DrawNow()
-            image = getframe(self._viewbox)
-            image[image < 0] = 0
-            image[image > 1] = 1
-            image = (image * 255).astype('uint8')
-            self._canvas.Destroy()
+        scene = self._widget.scene()
+        image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
+        self._painter = QPainter(image)  # otherwise it gets garbage-collected
+        scene.render(self._painter)
 
-        elif toolkit == 'vispy':
-            self._canvas.show()
-            image = self._canvas.render()
-            self._canvas.close()
+        tmp_png = mkstemp(suffix='.png')[1]
+        image.save(tmp_png)
+        self._widget.close()
 
-        img = _make_png(image).tobytes()
+        ipython_image = Image(filename=tmp_png)
 
-        return img
+        return ipython_image
