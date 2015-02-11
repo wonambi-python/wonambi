@@ -6,8 +6,8 @@ lg = getLogger('phypno')
 
 from tempfile import mkstemp
 
-from IPython.display import Image  # TODOL extra dependency on ipython, but _repr_png is practically only used by ipython
 from PyQt4.Qt import QImage, QPainter
+from PyQt4.Qt import QPixmap, QBuffer, QIODevice, QByteArray
 
 
 def convert_color(dat, colormap):
@@ -30,17 +30,17 @@ class Viz():
         extra dependency on ipython, but _repr_png is practically only used by
         ipython. Plus it needs to write to file and read from file.
 
-        I'll need to understand QImage and QPainter better.
+        This works for 2D, we need to check for 3d
         """
         scene = self._widget.scene()
-        image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
-        self._painter = QPainter(image)  # otherwise it gets garbage-collected
-        scene.render(self._painter)
+        self.image = QImage(scene.sceneRect().size().toSize(), QImage.Format_RGB32)
+        _painter = QPainter(self.image)
+        scene.render(_painter)
 
-        tmp_png = mkstemp(suffix='.png')[1]
-        image.save(tmp_png)
-        self._widget.close()
+        byte_array = QByteArray()
+        buffer = QBuffer(byte_array)
+        buffer.open(QIODevice.ReadWrite)
+        self.image.save(buffer, 'PNG')
+        buffer.close()
 
-        ipython_image = Image(filename=tmp_png)
-
-        return ipython_image
+        return bytes(byte_array)
