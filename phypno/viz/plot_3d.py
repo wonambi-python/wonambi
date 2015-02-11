@@ -106,6 +106,8 @@ class Viz3(Viz):
                 mesh.SetValues(values)
                 mesh.clim = (0, 1)
                 mesh.colormap = visvis_colormap(colormap)
+            else:
+                mesh.faceColor = color
 
         elif toolkit == 'vispy':
             meshdata = MeshData(vertices=surf.vert, faces=surf.tri)
