@@ -17,7 +17,7 @@ class Viz1(Viz):
         self._plots = []
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
-                 limits_x=None, limits_y=None):
+                 limits_x=None, limits_y=None, color='w'):
         """
         Parameters
         ----------
@@ -54,7 +54,7 @@ class Viz1(Viz):
             p = self._widget.addPlot(title=one_value)
             if (cnt + 1) < len(subplot_values):
                 p.hideAxis('bottom')
-            p.plot(x, dat)
+            p.plot(x, dat, pen=color)
             self._widget.nextRow()
             self._plots.append(p)
 
