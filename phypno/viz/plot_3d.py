@@ -1,56 +1,62 @@
 """Module to plot all the elements in 3d space.
 
 """
-from logging import getLogger
-lg = getLogger('phypno')
+from numpy import max, mean, min, ones, tile
+from pyqtgraph import Vector
+from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
+from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
+                                      FragmentShader)
 
-from numpy import max, mean, min, ones
-
-from . import toolkit
-
-if toolkit == 'visvis':
-    from visvis import Mesh, gca, figure, solidSphere, CM_JET
-    ELEVATION = 0
-    ZOOM = 0.007
-
-elif toolkit == 'vispy':
-    from vispy.geometry import MeshData, create_sphere
-    from vispy.scene import SceneCanvas
-    from vispy.scene.visuals import Mesh
-    from vispy.visuals.transforms import STTransform
-    SHADING = 'smooth'
-    CAMERA = 'perspective'
-    DISTANCE = 150  # only works for perspective, but it looks funny
-
-from .base import convert_color, Viz
+from .base import Viz
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255., 1)
-SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 0.5)
+SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 0.7)
+
+
+shader = ShaderProgram('brain', [
+            VertexShader("""
+                varying vec3 normal;
+                void main() {
+                    // compute here for use in fragment shader
+                    normal = normalize(gl_NormalMatrix * gl_Normal);
+                    gl_FrontColor = gl_Color;
+                    gl_BackColor = gl_Color;
+                    gl_Position = ftransform();
+                }
+            """),
+            FragmentShader("""
+                varying vec3 normal;
+                void main() {
+                    float p = dot(normal, normalize(vec3(0.0, -2.0, -10.0)));
+                    p = p < 0. ? 0. : p * 0.8;
+                    vec4 color = gl_Color;
+                    color.x = color.x * (0.2 + p);
+                    color.y = color.y * (0.2 + p);
+                    color.z = color.z * (0.2 + p);
+                    gl_FragColor = color;
+                }
+            """)
+        ])
+Shaders.append(shader)
 
 
 class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
 
-    Attributes
-    ----------
-    _canvas : instance of Canvas
-        current figure
-
     """
-    def __init__(self):
-        if toolkit == 'visvis':
-            self._canvas = figure()
-            self._viewbox = gca()
-            self._viewbox.wobjects[0].Destroy()
-        elif toolkit == 'vispy':
-            self._canvas = SceneCanvas(keys='interactive')
-            self._viewbox = None
+    def __init__(self, projection='ortho'):
+        self._widget = GLViewWidget()
+        self._widget.setCameraPosition(azimuth=-180, elevation=10)
 
-        self._mesh = None
-        self._chan = []
+        if projection == 'ortho':
+            # not really ortho, but pretty good
+            self._widget.opts['fov'] = 0.5
+            self._widget.opts['distance'] = 22000
+        else:
+            self._widget.opts['distance'] = 250
 
     def add_surf(self, surf, color=SKIN_COLOR, values=None, limits_c=None,
-                 colormap='jet'):
+                 colormap='default'):
         """Add surfaces to the visualization.
 
         Parameters
@@ -78,55 +84,35 @@ class Viz3(Viz):
         You can pre-compute it (using arbitrary values) and pass it as
         attribute to this class.
         """
+        mesh = MeshData(vertexes=surf.vert, faces=surf.tri,
+                        vertexColors=tile(color, (surf.tri.shape[0], 1)))
+        mesh._vertexNormals = -1 * mesh.vertexNormals()
+        self._mesh = GLMeshItem(meshdata=mesh, smooth=True, shader='brain',
+                                glOptions='translucent')
+        self._widget.addItem(self._mesh)
+
+        self._widget.opts['center'] = Vector(mean(surf.vert, axis=0))
+        self._widget.show()
+
+    def add_chan(self, chan, values=None):
+
+        # larger if colors are meaningful
         if values is not None:
-            color = None  # otherwise this color prevails
-            if limits_c is None:
-                min_c = min(values)  # maybe NaN here
-                max_c = max(values)
-            else:
-                min_c, max_c = limits_c
-            values = (values - min_c) / (max_c - min_c)
-
-        surf_center = mean(surf.vert, axis=0)
-        if surf_center[0] < 0:
-            azimuth = 270
+            radius = 3
         else:
-            azimuth = 90
+            radius = 1.5
 
-        if toolkit == 'visvis':
-            viewbox = self._viewbox
-            mesh = Mesh(viewbox, vertices=surf.vert, faces=surf.tri)
+        sphere = MeshData.sphere(10, 10, radius=radius)
 
-            viewbox.camera.loc = tuple(surf_center)
-            viewbox.camera.elevation = ELEVATION
-            viewbox.camera.zoom = ZOOM
-            viewbox.camera.azimuth = azimuth
+        for one_chan in chan.chan:
+            self._mesh = GLMeshItem(meshdata=sphere, smooth=True,
+                                    shader='shaded', glOptions='opaque')
+            self._mesh.translate(*one_chan.xyz)
 
-            if values is not None:
-                mesh.SetValues(values)
-                mesh.clim = (0, 1)
-                mesh.colormap = visvis_colormap(colormap)
-            else:
-                mesh.faceColor = color
+            self._widget.addItem(self._mesh)
+        self._widget.show()
 
-        elif toolkit == 'vispy':
-            meshdata = MeshData(vertices=surf.vert, faces=surf.tri)
-            mesh = Mesh(meshdata=meshdata, color=color, shading='smooth')
-            viewbox = self._canvas.central_widget.add_view()
-            viewbox.add(mesh)
-
-            viewbox.set_camera('turntable', mode=CAMERA, azimuth=azimuth,
-                               distance=DISTANCE, center=-surf_center)
-
-            if values is not None:
-                meshdata.set_vertex_colors(convert_color(values, colormap))
-
-            self._canvas.show()
-
-        self._mesh = mesh
-        self._viewbox = viewbox
-
-    def add_chan(self, chan, color=(0, 1, 0, 1), values=None, limits_c=None,
+    def add_chan_old(self, chan, color=(0, 1, 0, 1), values=None, limits_c=None,
                  colormap='jet'):
         """
         Parameters
@@ -143,11 +129,7 @@ class Viz3(Viz):
             one of the colormaps in vispy
 
         """
-        # larger if colors are meaningful
-        if values is not None:
-            radius = 3
-        else:
-            radius = 1.5
+
 
         if toolkit == 'vispy':
             sphere = create_sphere(10, 10, radius=radius)
@@ -191,10 +173,3 @@ class Viz3(Viz):
                 mesh = Mesh(meshdata=sphere, color=one_color, shading='smooth')
                 mesh.transform = STTransform(translate=one_chan.xyz)
                 viewbox.add(mesh)
-
-
-def visvis_colormap(colormap):
-    if colormap == 'jet':
-        return CM_JET
-    else:
-        raise NotImplementedError('Only jet colormap for visvis')

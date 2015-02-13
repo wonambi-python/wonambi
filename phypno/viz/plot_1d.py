@@ -1,10 +1,7 @@
 """Module to plot all the elements as lines.
 
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
-from numpy import array, max, min
+from numpy import max, min
 from pyqtgraph import GraphicsLayoutWidget
 
 from .base import Viz

@@ -1,41 +1,42 @@
 """Module with helper functions for plotting
 
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
-from tempfile import mkstemp
-
-from PyQt4.Qt import QImage, QPainter
-from PyQt4.Qt import QPixmap, QBuffer, QIODevice, QByteArray
+from numpy import array, ubyte
+from PyQt4.Qt import QImage, QPainter, QBuffer, QIODevice, QByteArray
+from PyQt4.QtGui import QApplication
+from pyqtgraph import ColorMap
 
 
-def convert_color(dat, colormap):
-    """Simple way to convert values between 0 and 1 into color.
-    This function won't be necessary when vispy implements colormaps.
-    """
-    cmap = get_colormap(colormap)
+class Colormap(ColorMap):
 
-    img_data = cmap[dat.flatten()].rgba
-    return img_data.reshape(dat.shape + (4, ))
+    def __init__(self, name='default'):
+        if name == 'default':
+            pos = array([0., 1., 0.5, 0.25, 0.75])
+            color = array([[0, 255, 255, 255],
+                           [255, 255, 0, 255],
+                           [0, 0, 0, 255],
+                           [0, 0, 255, 255],
+                           [255, 0, 0, 255]], dtype=ubyte)
+            super().__init__(pos, color)
 
 
 class Viz():
 
     def _repr_png_(self):
         """This is used by ipython to plot inline.
-
-        Notes
-        -----
-        extra dependency on ipython, but _repr_png is practically only used by
-        ipython. Plus it needs to write to file and read from file.
-
-        This works for 2D, we need to check for 3d
         """
-        scene = self._widget.scene()
-        self.image = QImage(scene.sceneRect().size().toSize(), QImage.Format_RGB32)
-        _painter = QPainter(self.image)
-        scene.render(_painter)
+        self._widget.hide()
+        QApplication.processEvents()
+
+        try:
+            self.image = QImage(self._widget.viewRect().size().toSize(),
+                                QImage.Format_RGB32)
+        except AttributeError:
+            self._widget.updateGL()
+            self.image = self._widget.grabFrameBuffer()
+
+        painter = QPainter(self.image)
+        self._widget.render(painter)
 
         byte_array = QByteArray()
         buffer = QBuffer(byte_array)

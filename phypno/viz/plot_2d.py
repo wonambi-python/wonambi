@@ -1,23 +1,22 @@
 """Module to plot all the elements as flat images.
 
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
 from numpy import max, min, meshgrid, linspace
 from scipy.interpolate import griddata
+from pyqtgraph import GraphicsLayoutWidget, ImageItem
 
-from .base import convert_color, Viz
+from .base import Viz, Colormap
 
 RESOLUTION = 200
 
 
 class Viz2(Viz):
     def __init__(self):
-        """Class to generate lines."""
-        self._canvas = SceneCanvas()
+        """Class to generate images."""
+        self._widget = GraphicsLayoutWidget()
+        self._plots = []
 
-    def add_data(self, data, trial=0, limits_c=None, colormap='cool'):
+    def add_data(self, data, trial=0, limits_c=None, colormap='default'):
         """
         Parameters
         ----------
@@ -40,8 +39,14 @@ class Viz2(Viz):
 
         dat = (dat - min_c) / (max_c - min_c)
 
-        _plot_image(self, dat, colormap)
-        self._canvas.show()
+        cmap = Colormap(colormap)
+        for i in range(1):
+            p = self._widget.addPlot()
+            img = ImageItem(cmap.map(dat))
+            p.addItem(img)
+            self._plots.append(p)
+
+        self._widget.show()
 
     def add_topo(self, chan, values, limits_c=None, colormap='cool'):
         """
@@ -74,25 +79,5 @@ class Viz2(Viz):
 
         dat = griddata(xy, values, (x_grid, y_grid), method='linear')
 
-        _plot_image(self, dat, colormap)
-        self._canvas.show()
-
-
-def _plot_image(self, dat, colormap):
-    """function that actually plots the image in vispy.
-
-    Parameters
-    ----------
-    self : instance of Viz2
-        we need this for _canvas
-    dat : ndarray
-        matrix with the data to be plotted
-    colormap : str
-        one of the implemented colormaps.
-    """
-    viewbox = self._canvas.central_widget.add_view()
-    img_data = convert_color(dat, colormap)
-    img = Image(img_data)
-    viewbox.add(img)
-
-    viewbox.camera.rect = (0, 0) + dat.shape[::-1]
+        # _plot_image(self, dat, colormap)
+        self._widget.show()
