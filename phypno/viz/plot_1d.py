@@ -14,7 +14,7 @@ class Viz1(Viz):
     def __init__(self):
         """Class to generate lines."""
         self._widget = GraphicsLayoutWidget()
-        self._plots = []
+        self._plots = {}
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
                  limits_x=None, limits_y=None, color='w'):
@@ -43,7 +43,6 @@ class Viz1(Viz):
         max_y = 0
         min_y = 0
 
-        self._plots = []
         for cnt, one_value in enumerate(subplot_values):
             selected_axis = {axis_subplot: one_value}
             dat = data(trial=trial, **selected_axis)
@@ -51,21 +50,25 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            p = self._widget.addPlot(title=one_value)
+            if one_value in self._plots:
+                p = self._plots[one_value]
+            else:
+                p = self._widget.addPlot(title=one_value)
+                self._plots[one_value] = p
+                self._widget.nextRow()
+
             if (cnt + 1) < len(subplot_values):
                 p.hideAxis('bottom')
             p.plot(x, dat, pen=color)
-            self._widget.nextRow()
-            self._plots.append(p)
 
         if limits_x is not None:
             min_x, max_x = limits_x
-            for one_plot in self._plots:
+            for one_plot in self._plots.values():
                 one_plot.setXRange(min_x, max_x)
 
         if limits_y is not None:
             min_y, max_y = limits_y
-            for one_plot in self._plots:
+            for one_plot in self._plots.values():
                 one_plot.setYRange(min_y, max_y)
 
         self._widget.show()
