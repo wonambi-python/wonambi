@@ -64,7 +64,7 @@ class Math:
     You can pass a single value or a tuple. The order starts from left to
     right, so abs of the hilbert transform, should be:
 
-    >>> rms = Math(operator_name=('hilbert', 'abs'))
+    >>> rms = Math(operator_name=('hilbert', 'abs'), axis='time')
 
     If you want to pass the power of three, use lambda (or partial):
 
