@@ -46,7 +46,7 @@ class Viz3(Viz):
     """
     def __init__(self, projection='ortho'):
         self._widget = GLViewWidget()
-        self._widget.setCameraPosition(azimuth=-180, elevation=10)
+        self._widget.setCameraPosition(elevation=10)
 
         if projection == 'ortho':
             # not really ortho, but pretty good
@@ -91,10 +91,17 @@ class Viz3(Viz):
                                 glOptions='translucent')
         self._widget.addItem(self._mesh)
 
-        self._widget.opts['center'] = Vector(mean(surf.vert, axis=0))
+        surf_center = mean(surf.vert, axis=0)
+        if surf_center[0] < 0:
+            azimuth = 180
+        else:
+            azimuth = 0
+
+        self._widget.setCameraPosition(azimuth=azimuth)
+        self._widget.opts['center'] = Vector(surf_center)
         self._widget.show()
 
-    def add_chan(self, chan, values=None):
+    def add_chan(self, chan, color=(0, 1, 0, 1), values=None):
 
         # larger if colors are meaningful
         if values is not None:
@@ -103,13 +110,14 @@ class Viz3(Viz):
             radius = 1.5
 
         sphere = MeshData.sphere(10, 10, radius=radius)
+        sphere.setVertexColors(tile(color, (sphere._vertexes.shape[0], 1)))
 
         for one_chan in chan.chan:
-            self._mesh = GLMeshItem(meshdata=sphere, smooth=True,
-                                    shader='shaded', glOptions='opaque')
-            self._mesh.translate(*one_chan.xyz)
+            mesh = GLMeshItem(meshdata=sphere, smooth=True,
+                              shader='shaded', glOptions='translucent')
+            mesh.translate(*one_chan.xyz)
 
-            self._widget.addItem(self._mesh)
+            self._widget.addItem(mesh)
         self._widget.show()
 
     def add_chan_old(self, chan, color=(0, 1, 0, 1), values=None, limits_c=None,
