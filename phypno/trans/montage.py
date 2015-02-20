@@ -11,6 +11,13 @@ class Montage:
 
     Parameters
     ----------
+    ref_chan : list of str
+        list of channels used as reference
+    ref_to_avg : bool
+        if re-reference to average or not
+    bipolar : float
+        distance in mm to consider two channels as neighbors and then compute
+        the bipolar montage between them.
 
     Attributes
     ----------
@@ -19,7 +26,7 @@ class Montage:
     -----
 
     """
-    def __init__(self, ref_chan=None, ref_to_avg=False):
+    def __init__(self, ref_chan=None, ref_to_avg=False, bipolar=None):
         if ref_to_avg and ref_chan is not None:
             raise TypeError('You cannot specify reference to the average and '
                             'the channels to use as reference')
@@ -28,9 +35,10 @@ class Montage:
             if (not isinstance(ref_chan, (list, tuple)) or
                 not all(isinstance(x, str) for x in ref_chan)):
                     raise TypeError('chan should be a list of strings')
-
+                    
         self.ref_chan = ref_chan
         self.ref_to_avg = ref_to_avg
+        self.bipolar = bipolar
 
     def __call__(self, data):
         """Apply the montage to the data.
