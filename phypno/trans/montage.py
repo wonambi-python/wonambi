@@ -54,6 +54,16 @@ class Montage:
             filtered data
 
         """
+        if self.bipolar:
+            if not data.attr['chan']:
+                raise ValueError('Data should have Chan information in attr')
+            
+all_chan = Channels('/home/gio/recordings/EM09/doc/elec/EM09_elec_pos-names_sessA.csv')
+chan_list = _select_channels('/home/gio/recordings/EM09/doc/elec/EM09_eeg_xltek_sessA_d05_11_53_38_channels.json', 'grid')
+
+chan = all_chan(lambda x: x.label in chan_list)
+        
+        
         mdata = deepcopy(data)
 
         if self.ref_to_avg or len(self.ref_chan) > 0:
@@ -68,3 +78,6 @@ class Montage:
                                       axis=mdata.index_of('chan')))
 
         return mdata
+
+
+
