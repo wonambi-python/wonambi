@@ -1,7 +1,7 @@
 """Module with helper functions for plotting
 
 """
-from numpy import array, ubyte
+from numpy import array, ubyte, linspace, c_, r_, zeros, arange
 from PyQt4.Qt import QImage, QPainter, QBuffer, QIODevice, QByteArray
 from PyQt4.QtGui import QApplication
 from pyqtgraph import ColorMap
@@ -9,14 +9,14 @@ from pyqtgraph import ColorMap
 
 class Colormap(ColorMap):
 
-    def __init__(self, name='default'):
-        if name == 'default':
-            pos = array([0., 1., 0.5, 0.25, 0.75])
-            color = array([[0, 255, 255, 255],
-                           [255, 255, 0, 255],
-                           [0, 0, 0, 255],
-                           [0, 0, 255, 255],
-                           [255, 0, 0, 255]], dtype=ubyte)
+    def __init__(self, name='jet', limits=(0, 1)):
+        if name == 'jet':
+            pos = linspace(limits[0], limits[1], 511)
+            r = r_[zeros(255), arange(0, 256)]
+            g = r_[arange(0, 255), arange(255, -1, -1)]
+            b = r_[arange(255, 0, -1), zeros(256)]
+            color = array(c_[r, g, b])
+
             super().__init__(pos, color)
 
 
