@@ -88,9 +88,8 @@ class Viz3(Viz):
             if limits_c is None:
                 limits_c = min(values), max(values)
 
-            print(colormap)
             colormap = Colormap(name=colormap, limits=limits_c)
-            vertexColors = colormap.map(values)
+            vertexColors = colormap.mapToFloat(values)
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
@@ -100,7 +99,7 @@ class Viz3(Viz):
 
         mesh._vertexNormals = -1 * mesh.vertexNormals()
         self._mesh = GLMeshItem(meshdata=mesh, smooth=True, shader='brain',
-                                glOptions='additive')
+                                glOptions='translucent')
         self._widget.addItem(self._mesh)
 
         surf_center = mean(surf.vert, axis=0)

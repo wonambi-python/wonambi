@@ -15,7 +15,7 @@ class Colormap(ColorMap):
             r = r_[zeros(255), arange(0, 256)]
             g = r_[arange(0, 255), arange(255, -1, -1)]
             b = r_[arange(255, 0, -1), zeros(256)]
-            color = array(c_[r, g, b])
+            color = array(c_[r, g, b]) / 255
 
             super().__init__(pos, color)
 
