@@ -65,6 +65,10 @@ class Spindles:
                        }
         self.spindle.append(one_spindle)
 
+    def __iter__(self):
+        for one_spindle in self.spindle:
+            yield one_spindle
+
     def __call__(self, func=None):
 
         spindles = []

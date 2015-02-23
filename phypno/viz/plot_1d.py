@@ -2,7 +2,7 @@
 
 """
 from numpy import max, min
-from pyqtgraph import GraphicsLayoutWidget
+from pyqtgraph import GraphicsLayoutWidget, FillBetweenItem
 
 from .base import Viz
 
@@ -12,9 +12,14 @@ ONE_CHANNEL_HEIGHT = 30
 
 class Viz1(Viz):
     def __init__(self):
-        """Class to generate lines."""
+        """Class to generate lines.
+        TODO: describe attributes
+        """
         self._widget = GraphicsLayoutWidget()
         self._plots = {}
+
+        self._limits_x = None  # tuple
+        self._limits_y = None  # tuple
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
                  limits_x=None, limits_y=None, color='w'):
@@ -72,3 +77,36 @@ class Viz1(Viz):
                 one_plot.setYRange(min_y, max_y)
 
         self._widget.show()
+        self._limits_x = min_x, max_x
+        self._limits_y = min_y, max_y
+
+    def add_graphoelement(self, graphoelement, color='r'):
+        """Add graphoelements (at the moment, only spindles, but it works fine)
+
+        Parameters
+        ----------
+        graphoelement : instance of Spindles
+            the detected spindles
+        color : str
+            color to use for the area of detection.
+        """
+        for one_sp in graphoelement:
+            chan = one_sp['chan']  # it could be over multiple channels
+            start_time = one_sp['start_time']
+            end_time = one_sp['end_time']
+            peak_val = one_sp['peak_val']
+
+            if chan in self._plots and end_time > self._limits_x[0] and start_time < self._limits_x[1]:
+                if start_time < self._limits_x[0]:
+                    start_time = self._limits_x[0]
+                if end_time > self._limits_x[1]:
+                    end_time = self._limits_x[1]
+
+                p = self._plots[chan]
+                up = p.plot((start_time, end_time), (peak_val, peak_val),
+                            pen=color)
+                down = p.plot((start_time, end_time),
+                              (-1 * peak_val, -1 * peak_val), pen=color)
+                filled = FillBetweenItem(up, down, brush=color)
+                print('a')
+                self._plots[chan].addItem(filled)
