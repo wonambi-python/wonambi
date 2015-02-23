@@ -22,6 +22,14 @@ class Colormap(ColorMap):
 
 class Viz():
 
+    @property
+    def size(self):
+        return self._widget.size().width(), self._widget.size().height()
+
+    @size.setter
+    def size(self, newsize):
+        self._widget.resize(*newsize)
+
     def _repr_png_(self):
         """This is used by ipython to plot inline.
         """
@@ -32,6 +40,7 @@ class Viz():
             self.image = QImage(self._widget.viewRect().size().toSize(),
                                 QImage.Format_RGB32)
         except AttributeError:
+            print('c')
             self._widget.updateGL()
             self.image = self._widget.grabFrameBuffer()
 
