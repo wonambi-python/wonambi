@@ -10,7 +10,7 @@ from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
 from .base import Viz, Colormap
 
 CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255., 1)
-SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 0.7)
+SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 1)
 
 
 shader = ShaderProgram('brain', [
@@ -84,6 +84,8 @@ class Viz3(Viz):
         You can pre-compute it (using arbitrary values) and pass it as
         attribute to this class.
         """
+        glOptions = 'opaque'
+
         if values is not None:
             if limits_c is None:
                 limits_c = min(values), max(values)
@@ -94,13 +96,15 @@ class Viz3(Viz):
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
+            if color[3] < 1:
+                glOptions = 'translucent'  # use this when using transparency
 
         mesh = MeshData(vertexes=surf.vert, faces=surf.tri,
                         vertexColors=vertexColors)
 
         mesh._vertexNormals = -1 * mesh.vertexNormals()
         self._mesh = GLMeshItem(meshdata=mesh, smooth=True, shader='brain',
-                                glOptions='opaque')
+                                glOptions=glOptions)
         self._widget.addItem(self._mesh)
 
         surf_center = mean(surf.vert, axis=0)
