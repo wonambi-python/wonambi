@@ -1,7 +1,7 @@
 """Module with helper functions for plotting
 
 """
-from numpy import array, linspace, c_, r_, zeros, arange
+from numpy import array, linspace, c_, r_, zeros, arange, ones
 from PyQt4.Qt import QImage, QPainter, QBuffer, QIODevice, QByteArray
 from PyQt4.QtGui import QApplication
 from pyqtgraph import ColorMap
@@ -53,16 +53,12 @@ class Colormap(ColorMap):
             b = r_[arange(255, 0, -1), zeros(256)]
             color = array(c_[r, g, b])
 
-            super().__init__(pos, color)
-
         if name == 'bwr':
             pos = linspace(limits[0], limits[1], 3)
             r = r_[0, 255, 255]
             g = r_[0, 255, 0]
             b = r_[255, 255, 0]
             color = array(c_[r, g, b])
-
-            super().__init__(pos, color)
 
         if name == 'hot':
             pos = linspace(limits[0], limits[1], 4)
@@ -71,8 +67,6 @@ class Colormap(ColorMap):
             b = r_[0, 0, 0, 255]
             color = array(c_[r, g, b])
 
-            super().__init__(pos, color)
-
         if name == 'cool':
             pos = linspace(limits[0], limits[1], 2)
             r = r_[0, 255]
@@ -80,50 +74,12 @@ class Colormap(ColorMap):
             b = r_[255, 255]
             color = array(c_[r, g, b])
 
-            super().__init__(pos, color)
-
         if name == 'coolwarm':
             pos = linspace(limits[0], limits[1], coolwarm.shape[0])
             color = coolwarm
 
-            super().__init__(pos, color)
-
-
-
-59
-68
-77
-87
-98
-108
-119
-130
-141
-152
-163
-174
-184
-194
-204
-213
-221
-229
-236
-241
-245
-247
-247
-247
-244
-241
-236
-229
-222
-213
-203
-192
-180
-
+        color = c_[color, 255 * ones((color.shape[0], 1))]
+        super().__init__(pos, color)
 
 
 class Viz():
@@ -159,3 +115,18 @@ class Viz():
         buffer.close()
 
         return bytes(byte_array)
+
+    def save(self, png_file):
+        """Save png to disk.
+
+        Parameters
+        ----------
+        png_file : path to file
+            file to write to
+
+        Notes
+        -----
+        It relies on _repr_png_, so fix issues there.
+        """
+        with open(png_file, 'wb') as f:
+            f.write(self._repr_png_())
