@@ -1,7 +1,7 @@
 """Module to plot all the elements in 3d space.
 
 """
-from numpy import max, mean, min, ones, tile
+from numpy import isnan, max, mean, min, ones, tile
 from pyqtgraph import Vector
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
@@ -56,7 +56,7 @@ class Viz3(Viz):
             self._widget.opts['distance'] = 250
 
     def add_surf(self, surf, color=SKIN_COLOR, values=None, limits_c=None,
-                 colormap='jet'):
+                 colormap='coolwarm'):
         """Add surfaces to the visualization.
 
         Parameters
@@ -90,6 +90,7 @@ class Viz3(Viz):
 
             colormap = Colormap(name=colormap, limits=limits_c)
             vertexColors = colormap.mapToFloat(values)
+            vertexColors[isnan(values)] = color[:3]
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
@@ -99,7 +100,7 @@ class Viz3(Viz):
 
         mesh._vertexNormals = -1 * mesh.vertexNormals()
         self._mesh = GLMeshItem(meshdata=mesh, smooth=True, shader='brain',
-                                glOptions='translucent')
+                                glOptions='opaque')
         self._widget.addItem(self._mesh)
 
         surf_center = mean(surf.vert, axis=0)

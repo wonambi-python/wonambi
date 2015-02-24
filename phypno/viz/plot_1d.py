@@ -103,10 +103,10 @@ class Viz1(Viz):
                     end_time = self._limits_x[1]
 
                 p = self._plots[chan]
-                up = p.plot((start_time, end_time), (peak_val, peak_val),
+                # TODO: 2 * is arbitrary
+                up = p.plot((start_time, end_time), (3 * peak_val, 3 * peak_val),
                             pen=color)
                 down = p.plot((start_time, end_time),
-                              (-1 * peak_val, -1 * peak_val), pen=color)
+                              (-3 * peak_val, -3 * peak_val), pen=color)
                 filled = FillBetweenItem(up, down, brush=color)
-                print('a')
                 self._plots[chan].addItem(filled)

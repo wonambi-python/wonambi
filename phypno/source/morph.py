@@ -25,7 +25,8 @@ class Morph:
         stc = SourceEstimate(atleast_2d(data.data[0]).T, vertices=vertices,
                              tstep=0, tmin=0)
         m = morph_data(from_surf_name, self.to_surf, stc,
-                       subjects_dir=SUBJECTS_DIR, grade=None, smooth=None)
+                       subjects_dir=SUBJECTS_DIR, grade=None, smooth=None,
+                       verbose=False)
 
         filler = zeros(163842)
         filler.fill(NaN)

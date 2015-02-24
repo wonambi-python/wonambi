@@ -100,12 +100,21 @@ def calc_xyz2surf(surf, xyz, threshold=20, exponent=None, std=None):
 
     if exponent is not None:
         threshold_value = (1 / (threshold ** exponent))
+        external_threshold_value = threshold_value
     elif std is not None:
         threshold_value = gauss(threshold, std)
+        external_threshold_value = gauss(std, std) # this is around 0.607
     lg.debug('Values thresholded at ' + str(threshold_value))
 
     xyz2surf[xyz2surf < threshold_value] = NaN
-    xyz2surf /= atleast_2d(nansum(xyz2surf, axis=1)).T
+
+    # here we deal with vertices that are within the threshold value but far
+    # from a single electrodes, so those remain empty
+    sumval = nansum(xyz2surf, axis=1)
+    sumval[sumval < external_threshold_value] = NaN
+
+    # normalize by the number of electrodes
+    xyz2surf /= atleast_2d(sumval).T
     xyz2surf[isnan(xyz2surf)] = 0
 
     return xyz2surf
