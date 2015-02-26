@@ -78,8 +78,8 @@ class Colormap(ColorMap):
             pos = linspace(limits[0], limits[1], coolwarm.shape[0])
             color = coolwarm
 
-        # color = c_[color, 255 * ones((color.shape[0], 1))]
-        super().__init__(pos, color)
+        color = c_[color, 255 * ones((color.shape[0], 1))]
+        super().__init__(pos, 255 - color)
 
 
 class Viz():
