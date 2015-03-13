@@ -71,18 +71,6 @@ class Viz3(Viz):
             min and max values to normalize the color
         colormap : str
             one of the colormaps in vispy
-
-        Notes
-        -----
-        'color' vs 'xyz' and 'values' are mutally exclusive. You need to
-        specify 'xyz' and 'values' if you use those.
-
-        If you specify 'values', then you'll need a matrix called 'xyz2surf'
-        that converts from the channel values to the electrodes.
-        It takes a few seconds to compute but once it's done, plotting is
-        really fast.
-        You can pre-compute it (using arbitrary values) and pass it as
-        attribute to this class.
         """
         glOptions = 'opaque'
 
@@ -135,65 +123,3 @@ class Viz3(Viz):
 
             self._widget.addItem(mesh)
         self._widget.show()
-
-    def add_chan_old(self, chan, color=(0, 1, 0, 1), values=None, limits_c=None,
-                 colormap='jet'):
-        """
-        Parameters
-        ----------
-        chan : instance of phypno.attr.Channels
-            channels to plot.
-        color : tuple, optional
-            4-element tuple, representing RGB and alpha, between 0 and 1
-        values : ndarray, optional
-            vector with values for each electrode
-        limits_c : tuple of 2 floats, optional
-            min and max values to normalize the color
-        colormap : str
-            one of the colormaps in vispy
-
-        """
-
-
-        if toolkit == 'vispy':
-            sphere = create_sphere(10, 10, radius=radius)
-
-        if self._viewbox is not None:
-            viewbox = self._viewbox
-        else:
-            viewbox = self._canvas.central_widget.add_view()
-            viewbox.set_camera('turntable', mode=CAMERA, azimuth=90,
-                               distance=DISTANCE)
-            self._viewbox = viewbox
-
-        if values is not None:
-            if limits_c is None:
-                min_c = min(values)  # maybe NaN here
-                max_c = max(values)
-            else:
-                min_c, max_c = limits_c
-
-            values = (values - min_c) / (max_c - min_c)
-            if toolkit == 'visvis':
-                colors = values
-            elif toolkit == 'vispy':
-                colors = convert_color(values, colormap)
-        else:
-            colors = [color] * chan.n_chan
-
-        for one_chan, one_color in zip(chan.chan, colors):
-            if toolkit == 'visvis':
-                mesh = solidSphere(list(one_chan.xyz), scaling=radius)
-                if values is not None:
-                    n_vert = mesh._vertices.shape[0]
-                    mesh.SetValues(one_color * ones((n_vert, 1)))
-                    mesh.colormap = visvis_colormap(colormap)
-                    mesh.clim = (0, 1)
-
-                else:
-                    mesh.faceColor = one_color
-
-            elif toolkit == 'vispy':
-                mesh = Mesh(meshdata=sphere, color=one_color, shading='smooth')
-                mesh.transform = STTransform(translate=one_chan.xyz)
-                viewbox.add(mesh)

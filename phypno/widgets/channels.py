@@ -1,9 +1,5 @@
 """Widget to define channels, montage and filters.
-
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from copy import deepcopy
 from json import dump, load
 from os.path import splitext
