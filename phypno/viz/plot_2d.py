@@ -38,6 +38,7 @@ class Viz2(Viz):
             min_c, max_c = limits_c
 
         dat = (dat - min_c) / (max_c - min_c)
+        dat = dat.T  # time on x-axis, channels on y-axis
 
         cmap = Colormap(colormap)
         for i in range(1):
