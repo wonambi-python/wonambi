@@ -16,7 +16,7 @@ class Viz2(Viz):
         self._widget = GraphicsLayoutWidget()
         self._plots = []
 
-    def add_data(self, data, trial=0, limits_c=None, colormap='default'):
+    def add_data(self, data, trial=0, limits_c=None, colormap='coolwarm'):
         """
         Parameters
         ----------
@@ -48,7 +48,7 @@ class Viz2(Viz):
 
         self._widget.show()
 
-    def add_topo(self, chan, values, limits_c=None, colormap='cool'):
+    def add_topo(self, chan, values, limits_c=None, colormap='coolwarm'):
         """
         Parameters
         ----------

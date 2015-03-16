@@ -43,15 +43,33 @@ coolwarm = array([[59, 76, 192],
 
 
 class Colormap(ColorMap):
+    """Create colormap using predefined color scheme.
 
+    Parameters
+    ----------
+    name : str
+        name of the colormap
+    limits : tuple of two floats
+        min and max values of the colormap
+
+    Notes
+    -----
+    bwr : blue-white-red diverging
+    cool : blue-dominanted sequential
+    coolwarm : continuous blue-white-red diverging
+       http://www.sandia.gov/~kmorel/documents/ColorMaps/
+    jet : old-school Matlab
+    hot : red-dominated sequential
+
+    Examples
+    --------
+    >>> cmap = Colormap('jet')
+    >>> from pyqtgraph import GradientWidget
+    >>> gradient = GradientWidget()
+    >>> gradient.item.setColorMap(cmap)
+    >>> gradient.show()
+    """
     def __init__(self, name='coolwarm', limits=(0, 1)):
-        if name == 'jet':
-            pos = linspace(limits[0], limits[1], 511)
-            r = r_[zeros(255), arange(0, 256)]
-            g = r_[arange(0, 255), arange(255, -1, -1)]
-            b = r_[arange(255, 0, -1), zeros(256)]
-            color = array(c_[r, g, b])
-
         if name == 'bwr':
             pos = linspace(limits[0], limits[1], 3)
             r = r_[0, 255, 255]
@@ -59,26 +77,34 @@ class Colormap(ColorMap):
             b = r_[255, 255, 0]
             color = array(c_[r, g, b])
 
-        if name == 'hot':
-            pos = linspace(limits[0], limits[1], 4)
-            r = r_[10, 255, 255, 255]
-            g = r_[0, 0, 255, 255]
-            b = r_[0, 0, 0, 255]
-            color = array(c_[r, g, b])
-
-        if name == 'cool':
+        elif name == 'cool':
             pos = linspace(limits[0], limits[1], 2)
             r = r_[0, 255]
             g = r_[255, 0]
             b = r_[255, 255]
             color = array(c_[r, g, b])
 
-        if name == 'coolwarm':
+        elif name == 'coolwarm':
             pos = linspace(limits[0], limits[1], coolwarm.shape[0])
             color = coolwarm
 
-        color = c_[color, 255 * ones((color.shape[0], 1))]
-        super().__init__(pos, 255 - color)
+        elif name == 'jet':
+            pos = linspace(limits[0], limits[1], 511)
+            r = r_[zeros(255), arange(0, 256)]
+            g = r_[arange(0, 255), arange(255, -1, -1)]
+            b = r_[arange(255, 0, -1), zeros(256)]
+            color = array(c_[r, g, b])
+
+        elif name == 'hot':
+            pos = linspace(limits[0], limits[1], 4)
+            r = r_[10, 255, 255, 255]
+            g = r_[0, 0, 255, 255]
+            b = r_[0, 0, 0, 255]
+            color = array(c_[r, g, b])
+
+        # add alpha and it's necessary to pass it as int
+        color = c_[color, 255 * ones((color.shape[0], 1))].astype(int)
+        super().__init__(pos, color)
 
 
 class Viz():

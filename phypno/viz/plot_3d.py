@@ -1,7 +1,6 @@
 """Module to plot all the elements in 3d space.
-
 """
-from numpy import isnan, max, mean, min, ones, tile
+from numpy import isnan, max, mean, min, tile
 from pyqtgraph import Vector
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
@@ -80,7 +79,7 @@ class Viz3(Viz):
 
             colormap = Colormap(name=colormap, limits=limits_c)
             vertexColors = colormap.mapToFloat(values)
-            vertexColors[isnan(values)] = color[:3]
+            # vertexColors[isnan(values)] = color
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
