@@ -1,6 +1,6 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import isnan, max, mean, min, tile
+from numpy import array, isnan, max, mean, min, tile
 from pyqtgraph import Vector
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
@@ -8,8 +8,8 @@ from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
 
 from .base import Viz, Colormap
 
-CHAN_COLOR = (20 / 255., 20 / 255., 20 / 255., 1)
-SKIN_COLOR = (239 / 255., 208 / 255., 207 / 255., 1)
+CHAN_COLOR = 0, 255, 0, 255
+SKIN_COLOR = 239, 208, 207, 255
 
 
 shader = ShaderProgram('brain', [
@@ -63,7 +63,7 @@ class Viz3(Viz):
         surf : instance of phypno.attr.anat.Surf
             surface to be plotted
         color : tuple, optional
-            4-element tuple, representing RGB and alpha, between 0 and 1
+            4-element tuple, representing RGB and alpha, between 0 and 255
         values : ndarray, optional
             vector with values for each vertex
         limits_c : tuple of 2 floats, optional
@@ -71,6 +71,8 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
+        color = array(color) / 255
+
         glOptions = 'opaque'
 
         if values is not None:
@@ -79,7 +81,7 @@ class Viz3(Viz):
 
             colormap = Colormap(name=colormap, limits=limits_c)
             vertexColors = colormap.mapToFloat(values)
-            # vertexColors[isnan(values)] = color
+            vertexColors[isnan(values)] = color
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
@@ -104,7 +106,19 @@ class Viz3(Viz):
         self._widget.opts['center'] = Vector(surf_center)
         self._widget.show()
 
-    def add_chan(self, chan, color=(0, 1, 0, 1), values=None):
+    def add_chan(self, chan, color=CHAN_COLOR, values=None):
+        """Add channels to visualization
+
+        Parameters
+        ----------
+        chan : instance of Channels
+            channels to plot
+        color : tuple
+            4-element tuple, representing RGB and alpha, between 0 and 255
+        values : ndarray
+            array with values for each channel
+        """
+        color = array(color) / 255
 
         # larger if colors are meaningful
         if values is not None:
@@ -113,7 +127,8 @@ class Viz3(Viz):
             radius = 1.5
 
         sphere = MeshData.sphere(10, 10, radius=radius)
-        sphere.setVertexColors(tile(color, (sphere._vertexes.shape[0], 1)))
+        sphere.setVertexColors(tile(color,
+                                    (sphere._vertexes.shape[0], 1)))
 
         for one_chan in chan.chan:
             mesh = GLMeshItem(meshdata=sphere, smooth=True,
