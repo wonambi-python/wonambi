@@ -17,7 +17,7 @@ class Morph:
         from_surf_file = dirname(dirname(self.from_surf.surf_file))
         SUBJECTS_DIR, from_surf_name = split(from_surf_file)
 
-        if self.from_surf.hemi == 'lh':
+        if 'lh' in self.from_surf.surf_file:  # TODO: not good, we need to check
             vertices = [arange(data.data[0].shape[0]), arange(0)]
         else:
             vertices = [arange(0), arange(data.data[0].shape[0])]
@@ -28,9 +28,9 @@ class Morph:
                        subjects_dir=SUBJECTS_DIR, grade=None, smooth=None,
                        verbose=False)
 
-        filler = zeros(163842)
+        filler = zeros(163842)  # TODO: we need to check this number
         filler.fill(NaN)
-        if self.from_surf.hemi == 'lh':
+        if 'lh' in self.from_surf.surf_file:  # TODO: not good, we need to check
             output.data[0] = append(m.data, filler)
         else:
             output.data[0] = append(filler, m.data)
