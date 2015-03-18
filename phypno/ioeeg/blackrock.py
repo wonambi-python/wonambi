@@ -1,8 +1,5 @@
-from logging import getLogger
-lg = getLogger(__name__)
-
-from copy import deepcopy
 from datetime import datetime
+from logging import getLogger
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
@@ -10,6 +7,8 @@ from struct import unpack
 from numpy import fromfile, reshape, asarray, expand_dims, ones, empty, NaN
 
 from ..utils.timezone import Eastern, utc
+
+lg = getLogger(__name__)
 
 
 class BlackRock:
@@ -507,9 +506,8 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
         fData = f.seek(0, SEEK_END)
         countDataPacket = int((fData - fExtendedHeader) / hdr['PacketBytes'])
 
+        markers = []
         if read_markers and countDataPacket:
-
-            markers = []
 
             f.seek(fExtendedHeader)
             x = f.read(countDataPacket * hdr['PacketBytes'])

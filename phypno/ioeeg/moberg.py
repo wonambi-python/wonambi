@@ -2,11 +2,12 @@ from os.path import getsize, join
 from xml.etree.ElementTree import parse
 from datetime import datetime
 
-from ..utils.timezone import Eastern
+from numpy import reshape, zeros
 
-# we assume that it was recorded in EST
-# but maybe local could be good too.
-TIMEZONE = Eastern
+# note that the time is in Unix Time, so the time here uses local time
+# there might be differences if you read the file in a different timezone than
+# the timezone where it was acquired.
+TIMEZONE = None
 # 24bit precision
 DATA_PRECISION = 3
 
@@ -23,6 +24,7 @@ class Moberg:
     """
     def __init__(self, filename):
         self.filename = filename
+        self.n_chan = None
 
     def return_hdr(self):
         """Return the header for further use.
@@ -58,10 +60,12 @@ class Moberg:
         chan_name = [x.replace(';', ' - ') for x in chan_list]
 
         data_size = getsize(join(self.filename, EEG_FILE))
-        n_samples = int(data_size / DATA_PRECISION / len(chan_name) / s_freq)
+        n_samples = int(data_size / DATA_PRECISION / len(chan_name))
         orig = {'patient': patient,
                 'montage': montage,
                 }
+
+        self.n_chan = len(chan_name)
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -81,10 +85,20 @@ class Moberg:
         -------
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
-
         """
-        data = rand(10, 100)
-        return data[chan, begsam:endsam]
+        first_sam = DATA_PRECISION * self.n_chan * begsam
+        toread_sam = DATA_PRECISION * self.n_chan * (endsam - begsam)
+
+        with open(join(self.filename, EEG_FILE), 'rb') as f:
+            f.seek(first_sam)
+            x = f.read(toread_sam)
+
+        dat = _read_dat(x)
+        dat = reshape(dat, (self.n_chan, -1), 'F')
+
+        # conversion factor!!!
+
+        return dat[chan, :]
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
@@ -102,9 +116,33 @@ class Moberg:
             when it cannot read the events for some reason (don't use other
             exceptions).
         """
-        markers = [{'name': 'one_trigger',
-                    'start': 10,
-                    'end': 15,  # duration of 5s
-                    'chan': ['chan1', 'chan2'],  # or None
-                    }]
+        markers = []
         return markers
+
+
+def _read_dat(x):
+    """read 24bit binary data and convert them to numpy.
+
+    Parameters
+    ----------
+    x : bytes
+        bytes (length should be divisible by 3)
+
+    Returns
+    -------
+    numpy vector
+        vector with the signed 24bit values
+
+    Notes
+    -----
+    It's pretty slow but it's pretty a PITA to read 24bit as far as I can tell.
+    """
+    n_smp = int(len(x) / DATA_PRECISION)
+    dat = zeros(n_smp)
+
+    for i in range(n_smp):
+        i0 = i * DATA_PRECISION
+        i1 = i0 + DATA_PRECISION
+        dat[i] = int.from_bytes(x[i0:i1], byteorder='little', signed=True)
+
+    return dat
