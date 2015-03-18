@@ -1,19 +1,31 @@
-"""Package to import and export common formats.
+from os.path import getsize, join
+from xml.etree.ElementTree import parse
+from datetime import datetime
 
-class IOEEG:
-    \"""Basic class to read the data.
+from ..utils.timezone import Eastern
+
+# we assume that it was recorded in EST
+# but maybe local could be good too.
+TIMEZONE = Eastern
+# 24bit precision
+DATA_PRECISION = 3
+
+EEG_FILE = 'EEG,Composite,SampleSeries,Composite,MRIAmp,data'
+
+
+class Moberg:
+    """Basic class to read the data.
 
     Parameters
     ----------
     filename : path to file
         the name of the filename or directory
-
-    \"""
+    """
     def __init__(self, filename):
         self.filename = filename
 
     def return_hdr(self):
-        \"""Return the header for further use.
+        """Return the header for further use.
 
         Returns
         -------
@@ -29,19 +41,32 @@ class IOEEG:
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
-
-        \"""
+        """
         subj_id = str()
-        start_time = datetime.datetime
-        s_freq = int()
-        chan_name = ['', '']
-        n_samples = int()
-        orig = dict()
+        patient = parse(join(self.filename, 'patient.info'))
+        for patientname in ['PatientFirstName', 'PatientLastName']:
+            subj_id += patient.findall(patientname)[0].text.strip()
+
+        unix_time = int(patient.findall('TimeStamp')[0].text.strip()) / 1e6
+        start_time = datetime.fromtimestamp(unix_time, TIMEZONE)
+
+        s_freq = 256  # could not find it in the text files
+
+        montage = parse(join(self.filename, 'Montage.xml'))
+        chan_str = montage.findall('MontageChannels')[0].text.strip()
+        chan_list = chan_str.split(',')
+        chan_name = [x.replace(';', ' - ') for x in chan_list]
+
+        data_size = getsize(join(self.filename, EEG_FILE))
+        n_samples = int(data_size / DATA_PRECISION / len(chan_name) / s_freq)
+        orig = {'patient': patient,
+                'montage': montage,
+                }
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
     def return_dat(self, chan, begsam, endsam):
-        \"""Return the data as 2D numpy.ndarray.
+        """Return the data as 2D numpy.ndarray.
 
         Parameters
         ----------
@@ -57,12 +82,12 @@ class IOEEG:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
 
-        \"""
+        """
         data = rand(10, 100)
         return data[chan, begsam:endsam]
 
     def return_markers(self):
-        \"""Return all the markers (also called triggers or events).
+        """Return all the markers (also called triggers or events).
 
         Returns
         -------
@@ -76,26 +101,10 @@ class IOEEG:
         FileNotFoundError
             when it cannot read the events for some reason (don't use other
             exceptions).
-        \"""
+        """
         markers = [{'name': 'one_trigger',
                     'start': 10,
                     'end': 15,  # duration of 5s
                     'chan': ['chan1', 'chan2'],  # or None
                     }]
         return markers
-
-Biosig has a very large library of tools to read various formats. I think it's
-best to use it in general. However, it has bindings only for Python2 and running
-Makefile/swig using python3 is tricky. Use pure python for EDF, and maybe other
-common format (fiff, fieldtrip, eeglab) in python3, then if necessary use
-python2 as script using biosig for all the other formats.
-
-"""
-from .edf import Edf, write_edf
-from .ktlx import Ktlx
-from .blackrock import BlackRock
-from .egimff import EgiMff
-from .moberg import Moberg
-from .mnefiff import write_mnefiff
-from .fieldtrip import FieldTrip, write_fieldtrip
-# from .eeglab import Eeglab, write_eeglab

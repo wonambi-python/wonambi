@@ -9,7 +9,7 @@ from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Moberg
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -68,6 +68,8 @@ def detect_format(filename):
     if isdir(filename):
         if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
             return Ktlx
+        elif glob(join(filename, 'patient.info')):
+            return Moberg
         elif glob(join(filename, 'info.xml')):
             return EgiMff
         else:
