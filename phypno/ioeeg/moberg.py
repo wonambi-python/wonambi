@@ -12,6 +12,7 @@ TIMEZONE = None
 DATA_PRECISION = 3
 
 EEG_FILE = 'EEG,Composite,SampleSeries,Composite,MRIAmp,data'
+SETTINGS_FILE = 'EEG,Composite,SampleSeries,Composite,MRIAmp,settings'
 
 
 class Moberg:
@@ -61,11 +62,25 @@ class Moberg:
 
         data_size = getsize(join(self.filename, EEG_FILE))
         n_samples = int(data_size / DATA_PRECISION / len(chan_name))
-        orig = {'patient': patient,
-                'montage': montage,
-                }
 
         self.n_chan = len(chan_name)
+        settings = parse(join(self.filename, SETTINGS_FILE))
+        conversion = settings.findall('SampleConversion')[0].text.strip()
+
+        dig_min, dig_max, anl_min, anl_max = [int(x) for x in
+                                              conversion.split(',')]
+
+        if dig_max == -dig_min and anl_max == -anl_min:
+            self.convertion = lambda dat: dat / dig_max * anl_max
+        else:
+            self.convertion = lambda dat: ((dat + dig_min) /
+                                           (dig_max - dig_min) *
+                                           (anl_max - anl_min) + anl_min)
+
+        orig = {'patient': patient,
+                'montage': montage,
+                'settings': settings,
+                }
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -96,9 +111,7 @@ class Moberg:
         dat = _read_dat(x)
         dat = reshape(dat, (self.n_chan, -1), 'F')
 
-        # conversion factor!!!
-
-        return dat[chan, :]
+        return self.convertion(dat[chan, :])
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
