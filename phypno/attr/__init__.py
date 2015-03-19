@@ -22,5 +22,5 @@ dataset and the classes below.
 
 """
 from .chan import Channels
-from .anat import Surf, Freesurfer
+from .anat import Brain, Surf, Freesurfer
 from .annotations import Annotations, create_empty_annotations

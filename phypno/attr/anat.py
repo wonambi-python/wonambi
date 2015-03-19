@@ -1,10 +1,7 @@
 """Module to read and return anatomical information, such as:
     - surfaces, with class Surf
-
+    - brains, with class BrainSurf (both hemispheres)
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from collections import Counter
 from os import environ
 from os.path import exists, join
@@ -24,6 +21,7 @@ FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
                    [0, 1, 0, 128],
                    [0, 0, 0, 1]])
+HEMISPHERES = 'lh', 'rh'
 
 
 def _read_geometry(surf_file):
@@ -45,7 +43,6 @@ def _read_geometry(surf_file):
     -----
     This function comes from nibabel, but it doesn't use numpy because numpy
     doesn't return the correct values in Python 3.
-
     """
     with open(surf_file, 'rb') as f:
         filebytes = f.read()
@@ -110,7 +107,6 @@ def import_freesurfer_LUT(fs_lut=None):
         names of the brain regions
     rgba : numpy.ndarray
         one row is a brain region and the columns are the RGB + alpha colors
-
     """
     if fs_lut is not None:
         lg.info('Reading user-specified lookuptable {}'.format(fs_lut))
@@ -149,15 +145,6 @@ class Surf:
     surf_file : path to file
         freesurfer file containing the surface
 
-    Parameters
-    ----------
-    freesurfer_dir : str
-        subject-specific directory created by freesurfer
-    hemi : str
-        'lh' or 'rh'
-    surf_type : str
-        'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
-
     Attributes
     ----------
     surf_file : path to file
@@ -166,22 +153,29 @@ class Surf:
         vertices of the mesh
     tri : numpy.ndarray
         triangulation of the mesh
-
     """
-    def __init__(self, *args):
-
-        if len(args) == 1:
-            self.surf_file = args[0]
-
-        elif len(args) == 3:
-            self.hemi = args[1]
-            self.surf_type = args[2]
-            self.surf_file = join(args[0], 'surf',
-                                  self.hemi + '.' + self.surf_type)
-
+    def __init__(self, surf_file):
+        self.surf_file = surf_file
         surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert
         self.tri = surf_tri
+
+
+class Brain:
+    """Class that contains the left and right hemispheres.
+
+    Parameters
+    ----------
+    freesurfer_dir : str
+        subject-specific directory created by freesurfer
+    surf_type : str
+        'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
+    """
+    def __init__(self, freesurfer_dir, surf_type='pial'):
+
+        for hemi in HEMISPHERES:
+            surf_file = join(freesurfer_dir, 'surf', hemi + '.' + surf_type)
+            setattr(self, hemi, Surf(surf_file))
 
 
 class Freesurfer:
@@ -239,7 +233,6 @@ class Freesurfer:
         detection.
         Minimal value is 0, which means only if the electrode is in the
         precise location.
-
         """
         # convert to freesurfer coordinates of the MRI
         pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3]
@@ -283,7 +276,6 @@ class Freesurfer:
             RGB + alpha colors for each label
         list of str
             names of the labels
-
         """
         parc_file = join(self.dir, 'label', hemi + '.' + parc_type + '.annot')
         try:
@@ -307,7 +299,6 @@ class Freesurfer:
             3d matrix with values
         numpy.ndarray
             4x4 affine matrix
-
         """
         seg_file = join(self.dir, 'mri', parc_type + '+aseg.mgz')
         try:
@@ -318,20 +309,17 @@ class Freesurfer:
         seg_dat = seg_mri.get_data()
         return seg_dat, seg_aff
 
-    def read_surf(self, hemi, surf_type='pial'):
-        """Read the surface for each hemisphere.
+    def read_brain(self, surf_type='pial'):
+        """Read the surface of both hemispheres.
 
         Parameters
         ----------
-        hemi : str
-            'lh' or 'rh'
         surf_type : str
             'pial', 'smoothwm', 'inflated', 'white', or 'sphere'
 
         Returns
         -------
-        instance of Surf
-
+        instance of Brain
+            the surfaces of both brain hemispheres
         """
-        surf = Surf(self.dir, hemi, surf_type)
-        return surf
+        return Brain(self.dir, surf_type=surf_type)
