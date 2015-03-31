@@ -510,7 +510,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     if 'moving_avg' == method:
         dur = method_opt['dur']
 
-        flat = ones(dur * s_freq)
+        flat = ones(int(dur * s_freq))
         dat = fftconvolve(dat, flat / sum(flat), mode='same')
 
     return dat
