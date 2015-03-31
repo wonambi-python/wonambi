@@ -1,7 +1,7 @@
 """Module to plot all the elements in 3d space.
 """
 from numpy import array, isnan, max, mean, min, tile
-from pyqtgraph import Vector
+from pyqtgraph import Vector, setConfigOption
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
                                       FragmentShader)
@@ -43,8 +43,11 @@ class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
 
     """
-    def __init__(self, projection='ortho'):
+    def __init__(self, projection='ortho', color='wk'):
+        self._color = color
+
         self._widget = GLViewWidget()
+        self._widget.setBackgroundColor(self._color[1])
         self._widget.setCameraPosition(elevation=10)
 
         if projection == 'ortho':

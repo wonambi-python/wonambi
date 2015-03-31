@@ -3,18 +3,22 @@
     - brains, with class BrainSurf (both hemispheres)
 """
 from collections import Counter
+from logging import getLogger
 from os import environ
 from os.path import exists, join
 from re import compile
 from struct import unpack
+
+from numpy import (array, empty, vstack, around, dot, append, reshape,
+                   meshgrid, asarray)
+
+lg = getLogger(__name__)
 
 try:
     from nibabel.freesurfer import load, read_annot
 except ImportError:
     lg.warning('nibabel (optional dependency) is not installed. You will not '
                'be able to read Freesurfer annotations and segmentations.')
-from numpy import (array, empty, vstack, around, dot, append, reshape,
-                   meshgrid, asarray)
 
 
 FS_AFFINE = array([[-1, 0, 0, 128],
@@ -159,6 +163,7 @@ class Surf:
         surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert
         self.tri = surf_tri
+        self.n_vert = surf_vert.shape[1]
 
 
 class Brain:

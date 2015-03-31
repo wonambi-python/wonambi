@@ -3,7 +3,7 @@
 """
 from numpy import max, min, meshgrid, linspace
 from scipy.interpolate import griddata
-from pyqtgraph import GraphicsLayoutWidget, ImageItem
+from pyqtgraph import GraphicsLayoutWidget, ImageItem, setConfigOption
 
 from .base import Viz, Colormap
 
@@ -11,8 +11,12 @@ RESOLUTION = 200
 
 
 class Viz2(Viz):
-    def __init__(self):
+    def __init__(self, color='wk'):
         """Class to generate images."""
+        self._color = color
+        setConfigOption('foreground', self._color[0])
+        setConfigOption('background', self._color[1])
+
         self._widget = GraphicsLayoutWidget()
         self._plots = []
 

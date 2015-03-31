@@ -1,17 +1,21 @@
 """Module to convert from electrode to sources using linear matrices
 
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
 from copy import deepcopy
 from functools import partial
+from logging import getLogger
 from multiprocessing import Pool
 
-from numpy import (arange, asarray, atleast_2d, dot, empty, exp, isnan, NaN,
+from numpy import (arange, asarray, atleast_2d, empty, exp, isnan, NaN,
                    nansum)
 from numpy.linalg import norm
+try:
+    from scipy.sparse import csr_matrix as sparse
+    # test if csr_matrix is the fastest approach
+except ImportError:
+    sparse = lambda x: x
 
+lg = getLogger(__name__)
 
 gauss = lambda x, s: exp(-.5 * (x ** 2 / s ** 2))
 
@@ -20,8 +24,9 @@ class Linear:
     """TODO: both hemispheres"""
     def __init__(self, surf, chan, threshold=20, exponent=None, std=None):
         """TODO: specify method explicitly."""
-        self.inv = calc_xyz2surf(surf, chan.return_xyz(), threshold=threshold,
-                                 exponent=exponent, std=std)
+        inverse = calc_xyz2surf(surf, chan.return_xyz(), threshold=threshold,
+                                exponent=exponent, std=std)
+        self.inv = sparse(inverse)
         self.chan = chan.return_label()
 
     def __call__(self, data, parameter='chan'):
@@ -33,7 +38,7 @@ class Linear:
 
         for i, one_trl in enumerate(data):
             output.axis['surf'][i] = arange(self.inv.shape[0])
-            output.data[i] = dot(self.inv, data.data[i])
+            output.data[i] = self.inv.dot(data.data[i])
 
         return output
 

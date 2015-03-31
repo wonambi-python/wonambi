@@ -1,7 +1,7 @@
 from copy import deepcopy
 from os.path import dirname, split
 
-from numpy import append, arange, atleast_2d, NaN, zeros
+from numpy import arange, atleast_2d, squeeze
 from mne import morph_data, SourceEstimate
 
 
@@ -28,13 +28,7 @@ class Morph:
                        subjects_dir=SUBJECTS_DIR, grade=None, smooth=None,
                        verbose=False)
 
-        filler = zeros(163842)  # TODO: we need to check this number
-        filler.fill(NaN)
-        if 'lh' in self.from_surf.surf_file:  # TODO: not good, we need to check
-            output.data[0] = append(m.data, filler)
-        else:
-            output.data[0] = append(filler, m.data)
-
-        output.axis['surf'][0] = arange(163842 * 2)
+        output.data[0] = squeeze(m.data, axis=1)
+        output.axis['surf'][0] = arange(m.data.shape[0])
 
         return output

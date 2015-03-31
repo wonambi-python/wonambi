@@ -2,7 +2,7 @@
 
 """
 from numpy import max, min
-from pyqtgraph import GraphicsLayoutWidget, FillBetweenItem
+from pyqtgraph import GraphicsLayoutWidget, FillBetweenItem, setConfigOption
 
 from .base import Viz
 
@@ -11,10 +11,14 @@ ONE_CHANNEL_HEIGHT = 30
 
 
 class Viz1(Viz):
-    def __init__(self):
+    def __init__(self, color='wk'):  # white on black
         """Class to generate lines.
         TODO: describe attributes
         """
+        self._color = color
+        setConfigOption('foreground', self._color[0])
+        setConfigOption('background', self._color[1])
+
         self._widget = GraphicsLayoutWidget()
         self._plots = {}
 
@@ -22,7 +26,7 @@ class Viz1(Viz):
         self._limits_y = None  # tuple
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
-                 limits_x=None, limits_y=None, color='w'):
+                 limits_x=None, limits_y=None, color=None):
         """
         Parameters
         ----------
@@ -39,6 +43,9 @@ class Viz1(Viz):
         limits_y : tuple, optional
             limits on the y-axis (if unspecified, it's the max across subplots)
         """
+        if color is None:
+            color = self._color[0]
+
         x = data.axis[axis_x][trial]
         max_x = max(x)
         min_x = min(x)

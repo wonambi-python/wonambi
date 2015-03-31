@@ -1,8 +1,6 @@
 """Module to keep track of the user-made annotations and sleep scoring.
 """
 from logging import getLogger
-lg = getLogger(__name__)
-
 from csv import writer
 from datetime import datetime, timedelta
 from math import ceil
@@ -11,6 +9,7 @@ from re import search, sub
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
+lg = getLogger(__name__)
 VERSION = '5'
 
 
