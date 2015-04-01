@@ -1,12 +1,12 @@
 from logging import getLogger
-lg = getLogger('phypno')
-
 from copy import deepcopy
 
 from numpy import asarray, dot, zeros, where, c_, mean
 from numpy.linalg import norm
 
 from ..attr import Channels
+
+lg = getLogger(__name__)
 
 
 class Montage:
@@ -65,8 +65,9 @@ class Montage:
 
             _assert_equal_channels(data.axis['chan'])
             chan_in_data = data.axis['chan'][0]
-            chan, trans = _create_bipolar_chan(data.attr['chan'],
-                                               chan_in_data, self.bipolar)
+            chan = data.attr['chan']
+            chan = chan(lambda x: x.label in chan_in_data)
+            chan, trans = create_bipolar_chan(chan, self.bipolar)
             data.attr['chan'] = chan
 
         mdata = deepcopy(data)
@@ -114,9 +115,7 @@ def _assert_equal_channels(axis):
                                  'the same labels, in the same order.')
 
 
-def _create_bipolar_chan(chan, chan_in_data, max_dist):
-    chan = chan(lambda x: x.label in chan_in_data)
-
+def create_bipolar_chan(chan, max_dist):
     chan_dist = zeros((chan.n_chan, chan.n_chan), dtype='bool')
     for i0, chan0 in enumerate(chan.chan):
         for i1, chan1 in enumerate(chan.chan):
