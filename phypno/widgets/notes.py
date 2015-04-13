@@ -4,13 +4,10 @@
     exclusive, have variable duration
   - events are not unique, are not mutually exclusive, have variable duration
   - stages are not unique, are mutually exclusive, have fixed duration
-
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from datetime import timedelta
 from functools import partial
+from logging import getLogger
 from math import floor
 from os.path import basename, splitext
 
@@ -39,6 +36,8 @@ from PyQt4.QtGui import (QAbstractItemView,
 from ..attr import Annotations, create_empty_annotations
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool
 from .utils import convert_name_to_color, short_strings, ICON
+
+lg = getLogger(__name__)
 
 # TODO: this in ConfigNotes
 STAGE_NAME = ['Wake', 'Movement', 'REM', 'NREM1', 'NREM2', 'NREM3',
@@ -338,9 +337,6 @@ class Notes(QTabWidget):
 
     def display_notes(self):
         """Display information about scores and raters.
-
-        This function is called by overview.display and it ends up
-        calling the functions in overview. But conceptually it belongs here.
         """
         if self.annot is not None:
             short_xml_file = short_strings(basename(self.annot.xml_file))

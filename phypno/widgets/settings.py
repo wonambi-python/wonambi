@@ -1,10 +1,7 @@
 """Large and simple widget to indicate settings/Settings.
-
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from ast import literal_eval
+from logging import getLogger
 
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QCheckBox,
@@ -23,6 +20,7 @@ from PyQt4.QtGui import (QCheckBox,
                          QWidget,
                          )
 
+lg = getLogger(__name__)
 
 settings = QSettings("phypno", "scroll_data")
 
@@ -84,7 +82,6 @@ class Settings(QDialog):
     ----------
     parent : instance of QMainWindow
         the main window
-
     """
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
@@ -101,8 +98,8 @@ class Settings(QDialog):
         -----
         When you add widgets in config, remember to update show_settings too
         """
-        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply
-                                | QDialogButtonBox.Cancel)
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply |
+                                QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         self.idx_apply = bbox.button(QDialogButtonBox.Apply)
         self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
@@ -147,7 +144,6 @@ class Settings(QDialog):
         ----------
         new_row : int
             index of the widgets
-
         """
         self.stacked.setCurrentIndex(new_row)
 
@@ -158,7 +154,6 @@ class Settings(QDialog):
         ----------
         button : instance of QPushButton
             which button was pressed
-
         """
         if button in (self.idx_ok, self.idx_apply):
 
@@ -204,7 +199,6 @@ class Config(QWidget):
     Notes
     -----
     You'll need to implement create_config with the QGroupBox and layouts
-
     """
     def __init__(self, widget, update_widget):
         super().__init__()
@@ -232,7 +226,6 @@ class Config(QWidget):
         -------
         dict
             dictionary with the value names as keys
-
         """
         output = {}
         for value_name in value_names:
@@ -490,7 +483,7 @@ class FormInt(QLineEdit):
         """
         text = self.text()
         try:
-            text = int(text)
+            text = int(float(text))  # to convert values like 30.0
         except ValueError:
             lg.debug('Cannot convert "' + str(text) + '" to int. ' +
                      'Using default ' + str(default))

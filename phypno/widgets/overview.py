@@ -1,10 +1,8 @@
 """Wide widget giving an overview of the recordings with markers and
 annotations (bookmarks, events, and sleep scores)
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from datetime import timedelta
+from logging import getLogger
 from math import ceil, floor
 
 from PyQt4.QtCore import Qt
@@ -21,6 +19,8 @@ from PyQt4.QtGui import (QBrush,
 
 from .settings import Config, FormInt
 from .utils import convert_name_to_color
+
+lg = getLogger(__name__)
 
 NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
@@ -191,7 +191,7 @@ class Overview(QGraphicsView):
         self.display()
         self.display_markers()
         if self.parent.notes.annot is not None:
-            self.display_annot()
+            self.parent.notes.display_notes()
 
     def update_position(self, new_position=None):
         """Update the cursor position and much more.
@@ -229,6 +229,8 @@ class Overview(QGraphicsView):
 
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
+
+        self.display_current()
 
     def display_current(self):
         """Create a rectangle showing the current window."""

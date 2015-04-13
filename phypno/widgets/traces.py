@@ -1,12 +1,9 @@
 """Definition of the main widgets, with recordings.
-
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
+from logging import getLogger
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, in1d,
                    max, min, linspace, log2, pad, power)
@@ -31,6 +28,9 @@ from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
 from .utils import convert_name_to_color, ICON, Path, TextItem_with_BG
+
+
+lg = getLogger(__name__)
 
 
 # undo the chan + (group) naming
@@ -151,7 +151,7 @@ class Traces(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigTraces(self.display)
+        self.config = ConfigTraces(self.parent.overview.update_position)
 
         self.y_scrollbar_value = 0
         self.data = None
@@ -318,6 +318,7 @@ class Traces(QGraphicsView):
         self.resizeEvent(None)
         self.verticalScrollBar().setValue(self.y_scrollbar_value)
         self.parent.info.display_view()
+        self.parent.overview.display_current()
 
     def create_chan_labels(self):
         """Create the channel labels, but don't plot them yet.
@@ -573,20 +574,17 @@ class Traces(QGraphicsView):
         """Zoom in on the x-axis."""
         self.parent.value('window_length',
                           self.parent.value('window_length') * 2)
-        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def X_less(self):
         """Zoom out on the x-axis."""
         self.parent.value('window_length',
                           self.parent.value('window_length') / 2)
-        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def X_length(self, new_window_length):
         """Use presets for length of the window."""
         self.parent.value('window_length', new_window_length)
-        self.parent.overview.display_current()
         self.parent.overview.update_position()
 
     def Y_more(self):

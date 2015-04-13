@@ -1,8 +1,6 @@
 """Widget to show power spectrum.
-
 """
 from logging import getLogger
-lg = getLogger(__name__)
 
 from numpy import log, ceil, floor, min
 from scipy.signal import welch
@@ -19,6 +17,8 @@ from PyQt4.QtGui import (QComboBox,
 
 from .utils import Path
 from .settings import Config, FormFloat, FormBool
+
+lg = getLogger(__name__)
 
 
 class ConfigSpectrum(Config):
@@ -173,7 +173,8 @@ class Spectrum(QWidget):
         self.resizeEvent(None)
 
         s_freq = self.parent.traces.data.s_freq
-        f, Pxx = welch(data, fs=s_freq, nperseg=min((s_freq, len(data))))
+        f, Pxx = welch(data, fs=s_freq,
+                       nperseg=int(min((s_freq, len(data)))))  # force int
 
         freq_limit = (value['x_min'] <= f) & (f <= value['x_max'])
 

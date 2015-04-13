@@ -1,7 +1,7 @@
 """Module to plot all the elements in 3d space.
 """
 from numpy import array, isnan, max, mean, min, tile
-from pyqtgraph import Vector, setConfigOption
+from pyqtgraph import Vector
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
                                       FragmentShader)
