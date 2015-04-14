@@ -897,9 +897,13 @@ class Ktlx():
             return dat
 
         if begrec is None:
-            begrec = 0
+            begrec = endrec - 1
+            if begrec < 0:
+                begrec = 0
         if endrec is None:
-            endrec = len(all_stamp) - 1
+            endrec = begrec + 1
+            if endrec >= len(all_stamp):
+                endrec = len(all_stamp) - 1
 
         lg.debug('Reading from recording #{} ({})'.format(begrec,
                                                           all_erd[begrec]) +
