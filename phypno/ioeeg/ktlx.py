@@ -959,7 +959,7 @@ class Ktlx():
         s_freq = orig['sample_freq']
 
         # information contained in .stc
-        n_samples = sum([x['sample_span'] for x in self._hdr['stamps']])
+        n_samples = self._hdr['stamps'][-1]['end_stamp']
 
         # make a fake chan_name, it'll be replace if it exists
         try:
