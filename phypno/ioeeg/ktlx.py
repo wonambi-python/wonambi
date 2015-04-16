@@ -914,6 +914,11 @@ class Ktlx():
             if begpos_rec < 0:
                 begpos_rec = 0
 
+            # this line seems crazy, but in some weird cases, you can have:
+            # 'sample_span': 578508, 'start_stamp': 772, 'end_stamp': 6117999,
+            if begpos_rec > all_stamp[rec]['sample_span']:
+                begpos_rec = all_stamp[rec]['sample_span']
+
             endpos_rec = endsam - all_stamp[rec]['start_stamp']
             if endpos_rec > all_stamp[rec]['sample_span']:
                 endpos_rec = all_stamp[rec]['sample_span']
