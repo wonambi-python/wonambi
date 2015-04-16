@@ -1,16 +1,20 @@
 """Module to compute frequency representation.
-
 """
-from logging import getLogger, DEBUG
-lg = getLogger('phypno')
-
 from copy import deepcopy
+from logging import getLogger, DEBUG
 
-from numpy import arange, array, empty, exp, max, mean, pi, real, sqrt, where
+from numpy import (arange, array, empty, exp, inf, max, mean, pi, real, sqrt,
+                   where)
 from numpy.linalg import norm
 from scipy.signal import welch, fftconvolve
+try:
+    from mne.time_frequency.multitaper import multitaper_psd
+except ImportError:
+    pass
 
 from ..datatype import ChanFreq, ChanTimeFreq
+
+lg = getLogger('phypno')
 
 
 class Freq:
@@ -25,17 +29,32 @@ class Freq:
     -----
     TODO: check that power does not change if duration becomes longer
     """
-    def __init__(self, method='welch', duration=2, **options):
-        implemented_methods = ('welch', )
+    def __init__(self, method='welch', **options):
+        implemented_methods = ('welch', 'multitaper')
 
         if method not in implemented_methods:
             raise ValueError('Method ' + method + ' is not implemented yet.\n'
                              'Currently implemented methods are ' +
                              ', '.join(implemented_methods))
 
+        if method == 'welch':
+            default_options = {'duration': 2,
+                               'overlap': .5,
+                               'scaling': 'density',
+                               }
+
+        elif method == 'multitaper':
+            default_options = {'fmin': 0,
+                               'fmax': inf,
+                               'bandwidth': None,
+                               'adaptive': False,
+                               'low_bias': True,
+                               'normalization': 'full',
+                               }
+
         self.method = method
-        self.duration = duration
-        self.options = options
+        default_options.update(options)
+        self.options = default_options
 
     def __call__(self, data):
         """Calculate power on the data.
@@ -73,16 +92,29 @@ class Freq:
         freq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
         freq.data = empty(data.number_of('trial'), dtype='O')
 
-        if self.method == 'welch':
-            for i in range(data.number_of('trial')):
-
+        for i in range(data.number_of('trial')):
+            if self.method == 'welch':
                 f, Pxx = welch(data(trial=i),
                                fs=data.s_freq,
-                               nperseg=data.s_freq * self.duration,
-                               axis=idx_time,
-                               **self.options)
-                freq.axis['freq'][i] = f
-                freq.data[i] = Pxx
+                               nperseg=int(data.s_freq *
+                                           self.options['duration']),
+                               noverlap=int(data.s_freq *
+                                            self.options['overlap']),
+                               scaling=self.options['scaling'],
+                               axis=idx_time)
+
+            elif self.method == 'multitaper':
+                Pxx, f = multitaper_psd(data(trial=i),
+                                        sfreq=data.s_freq,
+                                        fmin=self.options['fmin'],
+                                        fmax=self.options['fmax'],
+                                        bandwidth=self.options['bandwidth'],
+                                        adaptive=self.options['adaptive'],
+                                        low_bias=self.options['low_bias'],
+                                        normalization=self.options['normalization'],
+                                        n_jobs=2)
+            freq.axis['freq'][i] = f
+            freq.data[i] = Pxx
 
         return freq
 
