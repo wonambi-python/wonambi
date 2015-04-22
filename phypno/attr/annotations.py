@@ -378,7 +378,24 @@ class Annotations():
         self.save()
 
     def get_events(self, name=None, time=None, chan=None):
-        """
+        """Get list of events in the file.
+
+        Parameters
+        ----------
+        name : str, optional
+            name of the event of interest
+        time : tuple of two float, optional
+            start and end time of the period of interest
+        chan : tuple of str, optional
+            list of channels of interests
+
+        Returns
+        -------
+        list of dict
+            where each dict has 'name' (name of the event), 'start' (start
+            time), 'end' (end time), 'chan' (channels of interest, can be
+            empty)
+
         Raises
         ------
         IndexError
