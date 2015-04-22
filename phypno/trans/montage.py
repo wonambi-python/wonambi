@@ -72,10 +72,10 @@ class Montage:
 
         mdata = deepcopy(data)
 
-        if self.ref_to_avg or not self.ref_chan:
+        if self.ref_to_avg or self.ref_chan:
 
             for i in range(mdata.number_of('trial')):
-                if self.ref_to_avg or len(self.ref_chan) > 0:  # TODO: check bool for ref_chan
+                if self.ref_to_avg or self.ref_chan:
                     if self.ref_to_avg:
                         self.ref_chan = data.axis['chan'][0]
 
