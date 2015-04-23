@@ -970,7 +970,6 @@ class Ktlx():
         # information contained in .stc
         n_samples = self._hdr['stamps'][-1]['end_stamp']
 
-        # make a fake chan_name, it'll be replace if it exists
         try:
             ent_file = join(self.filename, self._basename + '.ent')
             if not exists(ent_file):
@@ -982,7 +981,8 @@ class Ktlx():
             chan_name = ['chan{0:03}'.format(x) for x in
                          range(orig['num_channels'])]
         else:
-            for ent_note in ent_notes:
+            # use the last montage, hoping that it's the most accurate
+            for ent_note in reversed(ent_notes):
                 try:
                     chan_name = _find_channels(ent_note['value'])
                     chan_name = chan_name[:orig['num_channels']]
