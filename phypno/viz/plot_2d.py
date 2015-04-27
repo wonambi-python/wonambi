@@ -32,8 +32,21 @@ class Viz2(Viz):
             limits on the z-axis (if unspecified, it's the max across subplots)
         colormap : str
             one of the implemented colormaps.
+
+        Notes
+        -----
+        This works great for chantime data but it's not really flexible.
         """
         dat = data(trial=trial)
+
+        # time axis
+        t = data.axis['time'][trial]
+        x_scale = (t[-1] - t[0]) / len(t)
+        x_translate = t[0] / x_scale
+
+        # chan axis
+        y_scale = 1
+        y_translate = 1
 
         if limits_c is None:
             max_c = max(dat)
@@ -47,7 +60,11 @@ class Viz2(Viz):
         cmap = Colormap(colormap)
         for i in range(1):
             p = self._widget.addPlot()
-            img = ImageItem(cmap.map(dat))
+            # convert to float to avoid deprecation warning at
+            # pyqtgraph/functions.py:828
+            img = ImageItem(cmap.map(dat).astype('float'))
+            img.scale(x_scale, y_scale)
+            img.translate(x_translate, y_translate)
             p.addItem(img)
             self._plots.append(p)
 
