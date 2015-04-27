@@ -936,7 +936,7 @@ class Ktlx():
                                                                    endpos_rec))
                 dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
             except FileNotFoundError:
-                lg.warning('{} does not exist')
+                lg.warning('{} does not exist'.format(erd_file))
 
         return dat
 
