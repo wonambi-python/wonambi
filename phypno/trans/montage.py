@@ -72,7 +72,7 @@ class Montage:
 
         mdata = deepcopy(data)
 
-        if self.ref_to_avg or self.ref_chan:
+        if self.ref_to_avg or self.ref_chan or self.bipolar:
 
             for i in range(mdata.number_of('trial')):
                 if self.ref_to_avg or self.ref_chan:
