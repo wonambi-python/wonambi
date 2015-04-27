@@ -109,7 +109,8 @@ class Viz3(Viz):
         self._widget.opts['center'] = Vector(surf_center)
         self._widget.show()
 
-    def add_chan(self, chan, color=CHAN_COLOR, values=None):
+    def add_chan(self, chan, color=CHAN_COLOR, values=None, limits_c=None,
+                 colormap='coolwarm'):
         """Add channels to visualization
 
         Parameters
@@ -120,8 +121,22 @@ class Viz3(Viz):
             4-element tuple, representing RGB and alpha, between 0 and 255
         values : ndarray
             array with values for each channel
+        limits_c : tuple of 2 floats, optional
+            min and max values to normalize the color
+        colormap : str
+            one of the colormaps in vispy
         """
         color = array(color) / 255
+
+        if values is not None:
+            if limits_c is None:
+                limits_c = min(values), max(values)
+
+            colormap = Colormap(name=colormap, limits=limits_c)
+            vertexColors = colormap.mapToFloat(values)
+            vertexColors[isnan(values)] = color
+        else:
+            vertexColors = tile(color, (chan.n_chan, 1))
 
         # larger if colors are meaningful
         if values is not None:
@@ -129,13 +144,14 @@ class Viz3(Viz):
         else:
             radius = 1.5
 
-        sphere = MeshData.sphere(10, 10, radius=radius)
-        sphere.setVertexColors(tile(color,
-                                    (sphere._vertexes.shape[0], 1)))
+        for i, one_chan in enumerate(chan.chan):
+            sphere = MeshData.sphere(10, 10, radius=radius)
+            sphere.setVertexColors(tile(vertexColors[i, :],
+                                        (sphere._vertexes.shape[0], 1)))
 
-        for one_chan in chan.chan:
             mesh = GLMeshItem(meshdata=sphere, smooth=True,
                               shader='shaded', glOptions='translucent')
+
             mesh.translate(*one_chan.xyz)
 
             self._widget.addItem(mesh)
