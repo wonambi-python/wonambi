@@ -929,11 +929,14 @@ class Ktlx():
             d2 = endpos_rec + all_stamp[rec]['start_stamp'] - begsam
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
-            dat_rec = _read_erd(erd_file, all_stamp[rec]['sample_span'])
-            lg.debug('From {}, selecting samples {}-{}'.format(all_erd[rec],
-                                                               begpos_rec,
-                                                               endpos_rec))
-            dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
+            try:
+                dat_rec = _read_erd(erd_file, all_stamp[rec]['sample_span'])
+                lg.debug('From {}, selecting samples {}-{}'.format(all_erd[rec],
+                                                                   begpos_rec,
+                                                                   endpos_rec))
+                dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
+            except FileNotFoundError:
+                lg.warning('{} does not exist')
 
         return dat
 
