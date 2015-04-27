@@ -239,7 +239,7 @@ def _read_neuralsg(filename):
 
     hdr['DateTimeRaw'] = time
     hdr['DateTime'] = datetime(time[0], time[1], time[3],
-                               time[4], time[5], time[6], time[7])
+                               time[4], time[5], time[6], time[7] * 1000)
 
     hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
     hdr['BOData'] = BOData
@@ -272,7 +272,7 @@ def _read_neuralcd(filename):
         time = unpack('<' + 'H' * 8, BasicHdr[286:302])
         hdr['DateTimeRaw'] = time
         d = datetime(time[0], time[1], time[3], time[4], time[5], time[6],
-                     time[7], utc)
+                     time[7] * 1000, utc)
         hdr['DateTime'] = d.astimezone(Eastern).replace(tzinfo=None)
         hdr['ChannelCount'] = unpack('<I', BasicHdr[302:306])[0]
 
@@ -409,7 +409,7 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
         time = unpack('<' + 'H' * 8, BasicHdr[i0:i1])
         hdr['DateTimeRaw'] = time
         hdr['DateTime'] = datetime(time[0], time[1], time[3],
-                                   time[4], time[5], time[6], time[7])
+                                   time[4], time[5], time[6], time[7] * 1000)
         i0, i1 = i1, i1 + 32
         # hdr['Application'] = _str(BasicHdr[i0:i1].decode('utf-8'))
         i0, i1 = i1, i1 + 256
