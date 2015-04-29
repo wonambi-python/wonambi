@@ -240,7 +240,7 @@ class Freesurfer:
         precise location.
         """
         # convert to freesurfer coordinates of the MRI
-        pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3]
+        pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3].astype(int)
         lg.debug('Position in the MRI matrix: {}'.format(pos))
 
         mri_dat, _ = self.read_seg()
