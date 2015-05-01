@@ -172,7 +172,7 @@ class Edf:
         endrec = int(floor(endsam / n_sam_rec[i_chan]))
         endsam_rec = int(endsam % n_sam_rec[i_chan])
 
-        dat = empty(shape=(endsam - begsam), dtype='int16')
+        dat = empty(shape=(int(endsam) - int(begsam)), dtype='int16')
         i_dat = 0
 
         with open(self.filename, 'rb') as f:
