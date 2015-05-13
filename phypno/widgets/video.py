@@ -16,6 +16,9 @@ from PyQt4.QtGui import (QFormLayout,
                          )
 try:
     from PyQt4.phonon import Phonon
+    from PyQt4.QtCore import QCoreApplication
+    QCoreApplication.setApplicationName('phonon')
+
 except ImportError:
     Phonon = False
 
