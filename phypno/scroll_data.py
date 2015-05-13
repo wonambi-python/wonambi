@@ -11,13 +11,6 @@ path.append(phypno_path)
 """ ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
 
-if __name__ == '__main__':
-    try:
-        app = QApplication([])
-        standalone = True
-    except RuntimeError:
-        standalone = False
-
 """ ------ KEEP LOG ------ """
 from logging import getLogger, INFO, StreamHandler, Formatter
 
@@ -219,7 +212,9 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
-if __name__ == '__main__':
+def main():
+
+    app = QApplication([])
 
     q = MainWindow()
     q.show()
@@ -228,6 +223,5 @@ if __name__ == '__main__':
     # q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
     # q.overview.update_position(30)
 
-    if standalone:
-        app.exec_()
-        app.deleteLater()  # so that it kills the figure in the right order
+    app.exec_()
+    app.deleteLater()  # so that it kills the figure in the right order
