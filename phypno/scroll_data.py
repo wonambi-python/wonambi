@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
-""" ------ ADD MODULE ------ """
-from os.path import realpath, join, dirname
-from sys import path
 
-# __file__ = '/home/gio/tools/phypno/phypno/scroll_data.py'
-
-phypno_path = realpath(join(dirname(realpath(__file__)), '..'))
-path.append(phypno_path)
-
-""" ------ START APPLICATION ------ """
 from PyQt4.QtGui import QApplication
 
-""" ------ KEEP LOG ------ """
 from logging import getLogger, INFO, StreamHandler, Formatter
 
-lg = getLogger('phypno')  # when called by itself, __name__ is __main__
+lg = getLogger('phypno')
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
 DATE_FORMAT = '%H:%M:%S'
 
@@ -27,23 +17,19 @@ lg.addHandler(handler)
 
 lg.setLevel(INFO)
 
-""" ------ IMPORT ------ """
 from types import MethodType
 
 from numpy import arange
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import QMainWindow, QMessageBox
 
-from phypno.widgets.creation import (create_menubar, create_toolbar,
-                                     create_actions, create_widgets)
-from phypno.widgets.settings import DEFAULTS
-from phypno.widgets.utils import keep_recent_datasets
-
-version_file = join(phypno_path, 'VERSION')
-with open(version_file, 'r') as f:
-    VERSION = f.read().strip()
+from .widgets.creation import (create_menubar, create_toolbar,
+                               create_actions, create_widgets)
+from .widgets.settings import DEFAULTS
+from .widgets.utils import keep_recent_datasets
 
 settings = QSettings("phypno", "scroll_data")
+VERSION = '13.2'  # check this
 
 
 class MainWindow(QMainWindow):
@@ -218,10 +204,6 @@ def main():
 
     q = MainWindow()
     q.show()
-    # q.info.open_dataset('/home/gio/tools/phypno/data/MGXX/eeg/raw/xltek/MGXX_eeg_xltek_sessA_d03_06_38_05')
-    # q.notes.update_notes('/home/gio/tools/phypno/data/MGXX/doc/scores/MGXX_eeg_xltek_sessA_d03_06_38_05_scores.xml', False)
-    # q.channels.load_channels('/home/gio/tools/phypno/data/MGXX/doc/elec/MGXX_eeg_xltek_sessA_d03_06_38_05_channels.json')
-    # q.overview.update_position(30)
 
     app.exec_()
     app.deleteLater()  # so that it kills the figure in the right order

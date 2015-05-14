@@ -42,16 +42,12 @@ setup(
 
     packages=find_packages(exclude=['data', 'doc', 'test', 'var']),
 
-    setup_requires=["numpy"],
-
-    install_requires=['numpy'],
-
     extras_require={
         'analysis': ['scipy'],
         'gui': ['scipy'],  # pyqt4
         'viz': ['pyqtgraph'],
         'test': ['coverage'],
-        'all': ['scipy'
+        'all': ['scipy',
                 'mne',
                 'nibabel',
                 'pyqtgraph',
