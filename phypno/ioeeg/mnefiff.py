@@ -1,13 +1,6 @@
 from logging import getLogger, WARNING
 lg = getLogger(__name__)
 
-try:
-    from mne import create_info, set_log_level
-    from mne.io import RawArray
-except ImportError:
-    lg.warning('mne-tools (optional dependency) is not installed. You will '
-               'not be able to write in MNE fiff format.')
-
 
 def write_mnefiff(data, filename):
     """Export data to MNE using FIFF format.
@@ -25,6 +18,9 @@ def write_mnefiff(data, filename):
     The data is assumed to have only EEG electrodes.
     It overwrites a file if it exists.
     """
+    from mne import create_info, set_log_level
+    from mne.io import RawArray
+
     set_log_level(WARNING)
 
     TRIAL = 0
