@@ -636,10 +636,8 @@ def _read_stc(stc_file):
         - start_stamp : First sample stamp that is found in the ERD / ETC pair
         - end_stamp : Last sample stamp that is still found in the ERD / ETC
         pair
-        - sample_num : Number of samples recorded to the point that corresponds
-        to start_stamp. This number accumulates over ERD / ETC pairs and is
-        equal to sample_num of the first entry in the ETC file referenced by
-        this STC entry
+        - sample_num : Number of samples actually being recorded (gaps in the 
+        data are not included in this number)
 
 
     Notes
@@ -660,7 +658,6 @@ def _read_stc(stc_file):
 
     <INDEX> is formatted with "%03d" format specifier and starts at 1 (initial
     value being 0 and omitted for compatibility with the previous versions).
-
     """
     with open(stc_file, 'rb') as f:
         f.seek(0, SEEK_END)
@@ -704,7 +701,6 @@ def _read_vtc(vtc_file):
         list of start time of the avi files
     end_time : list of datetime
         list of end time of the avi files
-
     """
     with open(vtc_file, 'rb') as f:
         filebytes = f.read()
@@ -752,7 +748,6 @@ def _read_hdr_file(ktlx_file):
     p.3: says long, but python-long requires 8 bytes, so we use f.read(4)
 
     GUID is correct, BUT little/big endian problems somewhere
-
     """
     with open(ktlx_file, 'rb') as f:
 
@@ -823,7 +818,6 @@ class Ktlx():
         Also, it adds the attribute
         _basename : str
             the name of the files inside the directory
-
         """
         eeg_file = join(self.filename, basename(self.filename) + '.stc')
         if exists(eeg_file):
@@ -879,7 +873,6 @@ class Ktlx():
         actual acquisition starts. STC takes the offset into account. This has
         the counterintuitive result that if you call read_data, the first few
         hundreds samples are nan.
-
         """
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
@@ -923,6 +916,9 @@ class Ktlx():
             if endpos_rec > all_stamp[rec]['sample_span']:
                 endpos_rec = all_stamp[rec]['sample_span']
 
+            if endpos_rec < 0:
+                endpos_rec = 0
+
             # this looks weird, but it takes into account whether the values
             # are outside of the limits of the file
             d1 = begpos_rec + all_stamp[rec]['start_stamp'] - begsam
@@ -957,7 +953,6 @@ class Ktlx():
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
-
         """
         # information contained in .erd
         orig = self._hdr['erd']
@@ -1045,7 +1040,7 @@ class Ktlx():
                 if 'User' not in n['Data'].keys():
                     continue
                 user1 = n['Data']['User'] == 'Persyst'
-                user2 = n['Data']['User'] == 'eeg'
+                user2 = False  # n['Data']['User'] == 'eeg'
                 user3 = n['Data']['User'] == pcname
                 user4 = n['Data']['User'] == 'XLSpike - Intracranial'
                 user5 = n['Data']['User'] == 'XLEvent - Intracranial'
