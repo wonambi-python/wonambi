@@ -12,7 +12,7 @@ setup(
 
     version='13.2.0',
 
-    description='Tools for Electrophysiology, especially for sleep',
+    description='Tools for electrophysiology, especially for sleep',
     long_description=long_description,
 
     url='https://github.com/gpiantoni/phypno',

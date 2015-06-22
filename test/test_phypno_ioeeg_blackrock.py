@@ -1,11 +1,10 @@
-from . import *
+from nose.tools import raises
+from os.path import abspath, join
 
-from glob import glob
-from os import remove
-from os.path import join, basename
 from phypno.ioeeg import Ktlx
-from phypno.ioeeg.ktlx import (_read_ent, _read_etc, _read_snc, _read_erd,
-                               _read_eeg, _read_vtc, cache_dir)
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
@@ -14,5 +13,4 @@ sine_dir = join(data_dir, 'MGXX/eeg/raw/xltek/sine1')
 
 @raises(FileNotFoundError)
 def test_sine_dir():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Ktlx(sine_dir)

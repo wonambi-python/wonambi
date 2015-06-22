@@ -1,12 +1,16 @@
-from . import *
+from os.path import abspath, join
+from numpy.testing import assert_array_equal
 
 from numpy import array
-from numpy.testing import assert_array_equal
 
 from phypno import Dataset
 from phypno.attr import Annotations
 from phypno.detect import DetectSpindle
 from phypno.detect.spindle import _detect_start_end
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
+
 
 ktlx_dir = join(data_dir, 'MGXX/eeg/raw/xltek',
                 'MGXX_eeg_xltek_sessA_d03_06_38_05')
@@ -24,7 +28,6 @@ data = dataset.read_data(chan=['GR' + str(x) for x in range(1, 11)],
 
 
 def test_detect_start_end():
-    lg.info('---\nfunction: ' + stack()[0][3])
     x = array([0, 0, 0, 0, 0, 0, 0, 0])
     assert_array_equal(_detect_start_end(x), None)
 
@@ -42,8 +45,6 @@ def test_detect_start_end():
 
 
 def test_detect_housestyle():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     detsp = DetectSpindle(method='Nir2011',
                           frequency=(10, 16), duration=(0.5, 2))
     sp = detsp(data)

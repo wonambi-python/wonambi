@@ -1,4 +1,6 @@
-from . import *
+from nose.tools import raises
+from os.path import abspath, join
+from numpy.testing import assert_array_equal, assert_almost_equal
 
 from numpy import log10, asarray
 from scipy.signal import fftconvolve
@@ -6,6 +8,9 @@ from scipy.signal import fftconvolve
 from phypno import Dataset
 from phypno.trans import Filter, Convolve
 from phypno.utils import create_data
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
 
 
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
@@ -15,63 +20,45 @@ data = d.read_data(chan=['LMF5', 'LMF6'], begtime=0, endtime=100)
 
 @raises(TypeError)
 def test_filter_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     Filter()
 
 
 def test_filter_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     f = Filter(low_cut=.1)
     f(data)
 
 
 @raises(ValueError)
 def test_filter_wrong_axis():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     f = Filter(low_cut=.1)
     f(data, axis='chan')  # too short
 
 
 @raises(ValueError)
 def test_filter_nonexistent_axis():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     f = Filter(low_cut=.1)
     f(data, axis='xxx')
 
 
 def test_filter_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     Filter(high_cut=.4)
 
 
 def test_filter_04():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     Filter(low_cut=.1, high_cut=.4)
 
 
 def test_filter_05():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     Filter(low_cut=.1, order=5)
 
 
 def test_filter_06():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     f1 = Filter(low_cut=10, s_freq=200)
     f2 = Filter(low_cut=.1)
     assert all(f1.a == f2.a)
 
 
 def test_convolution_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     tapering = Convolve(window='boxcar', length=1, s_freq=data.s_freq)
     fdata = tapering(data)
     assert data.data[0].shape == fdata.data[0].shape
@@ -90,8 +77,6 @@ def test_convolution_01():
 
 
 def test_convolution_chantimefreq():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)
@@ -107,8 +92,6 @@ def test_convolution_chantimefreq():
 
 
 def test_convolution_chantimefreq_another_dim():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)
@@ -124,8 +107,6 @@ def test_convolution_chantimefreq_another_dim():
 
 @raises(AssertionError)
 def test_convolution_chantimefreq_another_dim_fail():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(datatype='ChanTimeFreq')
 
     tapering = Convolve(window='hanning', length=1, s_freq=data.s_freq)

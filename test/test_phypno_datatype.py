@@ -1,6 +1,5 @@
-from . import *
-
-from os.path import join
+from os.path import abspath, join
+from numpy.testing import assert_array_equal
 
 from numpy import arange, array, empty, isnan, where
 from numpy.random import random
@@ -8,10 +7,11 @@ from numpy.random import random
 from phypno import Data, Dataset, ChanTime, ChanTimeFreq
 from phypno.utils import create_data
 
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
+
 
 def test_data_select_trial():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     output = data(trial=(1, 2, 3))
@@ -19,8 +19,6 @@ def test_data_select_trial():
 
 
 def test_data_select_trial_compress():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     output = data(trial=(1, ))
@@ -35,8 +33,6 @@ def test_data_select_trial_compress():
 
 
 def test_data_select_one_axis():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = data.axis['time'][0][:10]
@@ -46,8 +42,6 @@ def test_data_select_one_axis():
 
 
 def test_data_select_two_axis():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = data.axis['time'][0][:10]
@@ -58,8 +52,6 @@ def test_data_select_two_axis():
 
 
 def test_data_select_one_value():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = data.axis['time'][0][0]
@@ -72,8 +64,6 @@ def test_data_select_one_value():
 
 
 def test_data_select_one_value_twice():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = data.axis['time'][0][0]
@@ -92,8 +82,6 @@ def test_data_select_one_value_twice():
 
 
 def test_data_select_empty_selection():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = (100, 200)
@@ -104,8 +92,6 @@ def test_data_select_empty_selection():
 
 
 def test_data_select_one_empty_selection():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     CHAN = 'chanXX'
@@ -115,8 +101,6 @@ def test_data_select_one_empty_selection():
 
 
 def test_data_conserve_order():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     CHAN = ('chan02', )
@@ -137,8 +121,6 @@ def test_data_conserve_order():
 
 
 def test_data_select_tolerance():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     TIME = arange(0, 1, 0.05)
@@ -152,8 +134,6 @@ def test_data_select_tolerance():
 
 
 def test_data_arbitrary_axis():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = Data()
     len_axis0 = 6
     data.axis['axis0'] = empty(1, dtype='O')
@@ -178,8 +158,6 @@ def test_data_arbitrary_axis():
 
 
 def test_iter_trials():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = create_data(n_trial=10, s_freq=500)
 
     from phypno.trans import Math
@@ -190,8 +168,6 @@ def test_iter_trials():
 
 
 def test_datatype_with_freq():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     ChanTime()
     ChanTimeFreq()
 
@@ -201,16 +177,12 @@ data = d.read_data(chan=['LOF1', 'LOF2', 'LMF6'], begtime=0, endtime=60)
 
 
 def test_chantime_realdata():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     chan_limits = ['LOF1', 'LOF2']
     sel_dat = data(chan=chan_limits)
     assert sel_dat[0].shape[0] == 2
 
 
 def test_chantime_select_equal_to_read():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     subdata = d.read_data(chan=['LOF1', 'LOF2'], begtime=0, endtime=1)
     dat1 = subdata()
 
@@ -221,79 +193,9 @@ def test_chantime_select_equal_to_read():
 
 
 def test_data_one_dim_one_value():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     data = Data()
     data.axis = {'chan': empty(1, dtype='O')}
     data.axis['chan'][0] = array(('chan02', 'chan05'))
     data.data = empty(1, dtype='O')
     data.data[0] = array((10, 20))
     assert data(trial=0, chan='chan02') == 10
-
-
-
-"""
-TODO
-calc_freq = Freq()
-freq = calc_freq(data)
-
-
-def test_DataFreq_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    assert len(freq.data[0].shape) == 3
-    assert freq.data[0].shape[1] == 1  # time is always one
-    assert freq.data[0].shape[2] > 1
-
-
-def test_DataFreq_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    dat1, freq1 = freq()
-    assert len(dat1[0].shape) == 2
-    assert len(freq1[0]) == freq.data[0].shape[2]
-
-
-def test_DataFreq_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    freq_limits = (10, 25)
-    dat1, freq1 = freq(freq=freq_limits)
-    assert freq1[0][0] >= freq_limits[0]
-    assert freq1[0][-1] <= freq_limits[1]
-
-
-TOI = arange(2, 8)
-calc_tf = TimeFreq(toi=TOI)
-tf = calc_tf(data)
-
-
-def test_DataTimeFreq_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    assert len(tf.data[0].shape) == 3
-    assert tf.data[0].shape[1] == len(TOI)
-    assert tf.data[0].shape[2] > 1
-
-
-def test_DataTimeFreq_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    chan_limits = ['LOF1', 'LOF2']
-    time_limits = (4, 5)
-    sel_dat, sel_time, sel_freq = tf(chan=chan_limits, time=time_limits)
-    assert sel_dat[0].shape[0] == 2
-    assert sel_time[0].shape[0] == 1
-
-
-def test_DataTimeFreq_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
-    time_limits = (4, 5)
-    freq_limits = (10, 25)
-    sel_dat, sel_time, sel_freq = tf(freq=freq_limits, time=time_limits)
-    assert sel_dat[0].shape[0] == 3
-    assert sel_time[0].shape[0] == 1
-    assert sel_dat[0].shape[2] == 15
-
-"""

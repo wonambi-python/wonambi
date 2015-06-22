@@ -1,11 +1,13 @@
-from . import *
+from nose.tools import raises
+from os.path import abspath, join
 
-from os import makedirs
-from os.path import join, dirname
 from shutil import copyfile
 from tempfile import mkdtemp
 
 from phypno.attr import Annotations
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
 
 tempdir = mkdtemp()
 
@@ -24,15 +26,11 @@ annot = Annotations(scores_file)
 
 
 def test_update_version():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     annot_old = Annotations(toupdate_scores_file)
     assert annot_old.root.get('version') == '5'
 
 
 def test_get_epochs():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     annot.set_stage_for_epoch(30, 'NREM1')
 
     # implementation details
@@ -43,8 +41,6 @@ def test_get_epochs():
 
 
 def test_scores_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     assert annot.current_rater == 'gio'
     annot.set_stage_for_epoch(30, 'NREM2')
     assert annot.get_stage_for_epoch(30) == 'NREM2'
@@ -52,6 +48,4 @@ def test_scores_01():
 
 @raises(KeyError)
 def test_scores_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     annot.set_stage_for_epoch(999, 'NREM2')

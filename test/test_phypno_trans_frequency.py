@@ -1,10 +1,15 @@
-from . import *
+from nose.tools import raises
+from os.path import abspath, join
+from numpy.testing import assert_almost_equal
 
 from numpy import arange, pi, sin
 
 from phypno import Dataset
 from phypno.utils import create_data
 from phypno.trans import Freq, TimeFreq, Math
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
 
 
 edf_file = join(data_dir, 'MGXX/eeg/conv/edf/sample.edf')
@@ -14,8 +19,6 @@ data.s_freq = 512
 
 
 def test_freq_basic():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     calc_freq = Freq()
     freq = calc_freq(data)
     assert freq.list_of_axes == ('chan', 'freq')
@@ -24,8 +27,6 @@ def test_freq_basic():
 
 
 def test_freq_option():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     calc_freq = Freq(scaling='spectrum')
     freq = calc_freq(data)
     assert_almost_equal(freq(trial=0, chan='LMF6', freq=10),
@@ -34,15 +35,11 @@ def test_freq_option():
 
 @raises(ValueError)
 def test_freq_methoderror():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     Freq(method='nonexistent')
 
 
 @raises(TypeError)
 def test_freq_typeerror():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     wrong_data = create_data(datatype='ChanFreq')
     calc_freq = Freq()
     calc_freq(wrong_data)
@@ -50,14 +47,10 @@ def test_freq_typeerror():
 
 @raises(ValueError)
 def test_timefreq_methoderror():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     TimeFreq(method='nonexistent')
 
 
 def test_timefreq_morlet():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     FOI = arange(5, 10)
     calc_tf = TimeFreq(foi=FOI)
     tf = calc_tf(data)
@@ -71,8 +64,6 @@ def test_timefreq_morlet():
 
 
 def test_timefreq_example_in_doc():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     from phypno.trans import Math, TimeFreq
     calc_tf = TimeFreq(foi=(8, 10))
     tf = calc_tf(data)
@@ -82,8 +73,6 @@ def test_timefreq_example_in_doc():
 
 
 def test_timefreq_sine():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     FREQ = 10
     data = create_data(n_chan=1)
     data.data[0][0, :] = sin(2 * pi * data.axis['time'][0] * FREQ)
@@ -100,8 +89,6 @@ def test_timefreq_sine():
 
 
 def test_timefreq_welch():
-    lg.info('---\nfunction: ' + stack()[0][3])
-
     calc_tf = TimeFreq(method='welch')
     tf = calc_tf(data)
 

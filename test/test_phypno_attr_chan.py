@@ -1,7 +1,9 @@
-from . import *
+from nose.plugins.attrib import attr
+from nose.tools import raises
+from os.path import abspath, join
+from numpy.testing import assert_array_equal
 
 from os import environ
-from os.path import join
 from numpy import array
 from numpy.random import random
 from tempfile import mkdtemp
@@ -10,6 +12,10 @@ from phypno.attr import Freesurfer, Channels
 from phypno.attr.chan import (detect_format, _convert_unit, Chan,
                               assign_region_to_channels, find_chan_in_region)
 from phypno.utils.exceptions import UnrecognizedFormat
+
+import phypno
+data_dir = abspath(join(phypno.__path__[0], '..', 'data'))
+
 
 temp_dir = mkdtemp()
 fs_dir = join(data_dir, 'MGXX/mri/proc/freesurfer')
@@ -23,17 +29,14 @@ FREESURFER_HOME = environ['FREESURFER_HOME']
 
 
 def test_detect_format_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
     assert detect_format(elec_file) == 'csv'
 
 
 def test_detect_format_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
     assert detect_format(random_file) == 'unknown'
 
 
 def test_convert_unit():
-    lg.info('---\nfunction: ' + stack()[0][3])
     unit = _convert_unit(None)
     assert unit == ''
     unit = _convert_unit('microvolt')
@@ -53,22 +56,18 @@ def test_convert_unit():
 
 
 def test_Chan_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Chan('chan001')
 
 
 def test_Chan_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Chan('chan001', [0, 0, 0])
 
 
 def test_Chan_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Chan('chan001', [0, 0, 0], 'microVolt')
 
 
 def test_Chan_04():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch = Chan('chan001', [0, 0, 0], 'microVolt', {'region': 'cortex'})
     ch.attr.update({'region': 'hippo',
                     'type': 'grid'})
@@ -76,12 +75,10 @@ def test_Chan_04():
 
 @raises(UnrecognizedFormat)
 def test_Channels_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Channels(random_file)
 
 
 def test_Channels_02():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
     assert ch.n_chan == 103
     assert_array_equal(ch.return_xyz(['FPS1']),
@@ -91,7 +88,6 @@ def test_Channels_02():
 
 @raises(ValueError)
 def test_Channels_03():
-    lg.info('---\nfunction: ' + stack()[0][3])
     chan_name = ['ch{0:03}'.format(x) for x in range(10)]
     xyz = random((10, 4))
     Channels(chan_name, xyz)
@@ -101,7 +97,6 @@ xyz = random((10, 3))
 
 
 def test_Channels_04():
-    lg.info('---\nfunction: ' + stack()[0][3])
     Channels(labels, xyz)
 
 
@@ -109,7 +104,6 @@ ch = Channels(labels, xyz)
 
 
 def test_Channels_05():
-    lg.info('---\nfunction: ' + stack()[0][3])
     has00 = lambda x: '00' in x.label
     ch_with_00 = ch(has00)
     assert len(ch_with_00.chan) == 10
@@ -120,36 +114,30 @@ def test_Channels_05():
 
 
 def test_Channels_06():
-    lg.info('---\nfunction: ' + stack()[0][3])
     labels = ch.return_label()
     assert len(labels) == ch.n_chan
 
 
 @raises(TypeError)
 def test_Channels_07():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch.return_label(['chan001'])
 
 
 def test_Channels_08():
-    lg.info('---\nfunction: ' + stack()[0][3])
     xyz = ch.return_xyz(['ch000', 'ch001'])
     assert xyz.shape == (2, 3)
 
 
 @raises(ValueError)
 def test_Channels_09():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch.return_xyz(['chXXX'])
 
 
 def test_Channels_10():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch.return_xy()  # does nothing
 
 
 def test_Channels_11():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch.chan[0].attr['region'] = 'hippo'
     region = ch.return_attr('region')
     assert region[0] == 'hippo'
@@ -158,7 +146,6 @@ def test_Channels_11():
 
 @attr('slow')
 def test_assign_region_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
     fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
     ch = assign_region_to_channels(ch, fs, max_approx=3,
@@ -171,7 +158,6 @@ def test_assign_region_01():
 
 @attr('slow')
 def test_find_chan_in_region_01():
-    lg.info('---\nfunction: ' + stack()[0][3])
     ch = Channels(elec_file)
     fs = Freesurfer(fs_dir, join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
     cing_chan = find_chan_in_region(ch, fs, 'cingulate')
