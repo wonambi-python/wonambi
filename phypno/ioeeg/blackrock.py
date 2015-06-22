@@ -4,11 +4,16 @@ from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
-from numpy import fromfile, reshape, asarray, expand_dims, ones, empty, NaN
+from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones, 
+                   reshape)
 
 from ..utils.timezone import Eastern, utc
 
 lg = getLogger(__name__)
+
+BLACKROCK_FORMAT = 'int16'  # by definition
+blackrock_iinfo = iinfo(BLACKROCK_FORMAT)
+N_BYTES = int(blackrock_iinfo.bits / 8)
 
 
 class BlackRock:
@@ -93,6 +98,8 @@ class BlackRock:
 
         elif file_header == b'NEURALSG':
             orig = _read_neuralsg(self.filename)
+            orig = _calc_sess_intervals(orig)
+            
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
 
@@ -198,12 +205,12 @@ def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
             endshift = endshift
 
         f.seek(BOData, SEEK_SET)
-        f.seek(n_chan * 2 * begsam, SEEK_CUR)
+        f.seek(N_BYTES * n_chan * begsam, SEEK_CUR)
 
         n_sam = endsam - begsam
         if n_sam < 0:
             n_sam = 0
-        dat_in_file = fromfile(f, 'int16', n_chan * n_sam)
+        dat_in_file = fromfile(f, BLACKROCK_FORMAT, n_chan * n_sam)
         dat[:, begshift:endshift] = reshape(dat_in_file, (n_chan, n_sam),
                                             order='F')
 
@@ -241,7 +248,7 @@ def _read_neuralsg(filename):
     hdr['DateTime'] = datetime(time[0], time[1], time[3],
                                time[4], time[5], time[6], time[7] * 1000)
 
-    hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
+    hdr['DataPoints'] = int((EOData - BOData) / (n_chan * N_BYTES))
     hdr['BOData'] = BOData
 
     return hdr
@@ -333,24 +340,36 @@ def _read_neuralcd(filename):
             raise EOFError('File {0} does not seem to contain data '
                            '(size {1} B)'.format(filename, EOF))
 
-        # TODO: allow for paused files, if they exist
-        # "Added by NH - Feb 19, 2014" seems incorrect to me about BOData
+        BOData = []
+        EOData = []
+        Timestamps = []
+        DataPoints = []
 
-        while f.tell() < EOF:
+        while f.tell() < EOF and f.read(1) == b'\x01':
 
-            if f.tell() < EOF and unpack('<B', f.read(1))[0] != 1:
-                hdr['DataPoints'] = int((EOF - BOData) / (n_chan * 2))
-                break
+            Timestamps.append(unpack('<I', f.read(4))[0])
 
-            Timestamp = unpack('<I', f.read(4))[0]
-            DataPoints = unpack('<I', f.read(4))[0]
-            BOData = f.tell()
-            f.seek(DataPoints * n_chan * 2, SEEK_CUR)
-            EOData = f.tell()
-            hdr['DataPoints'] = int((EOData - BOData) / (n_chan * 2))
+            DataPoint = unpack('<I', f.read(4))[0]
+            DataPoints.append(DataPoint)
+
+            BOData.append(f.tell())
+            f.seek(N_BYTES * DataPoint * n_chan, SEEK_CUR)
+            EOData.append(f.tell())
+
+        # the last datapoint does not get updated, so it remains 0
+        if DataPoints[-1] == 0:
+            
+            # we need to update EOData, because it depends on DataPoint
+            EOData[-1] = EOF
+            
+            # we back compute the last DataPoint
+            DataPoints[-1] = int((EOData[-1] - BOData[-1]) / N_BYTES / n_chan)
 
         hdr['BOData'] = BOData
-
+        hdr['EOData'] = EOData
+        hdr['Timestamps'] = Timestamps  # sampled at 'TimeRes' Hz, ie 30000
+        hdr['DataPoints'] = DataPoints
+        
     return hdr
 
 
@@ -574,3 +593,32 @@ def _convert_factor(ElectrodesInfo):
                       (elec['MaxDigiValue'] - elec['MinDigiValue']))
 
     return asarray(factor)
+
+
+def _calc_sess_intervals(hdr):
+    
+    sess_begin = []
+    sess_end = []
+    n_sess = len(hdr['Timestamps'])
+
+    # timestamps are always at 30 kHz, so we need to convert
+    sampling_inverval = hdr['TimeRes'] / hdr['SamplingFreq']
+    
+    for i in range(n_sess):
+        
+        sess_smp_begin = (sum(hdr['DataPoints'][:i]) + 
+                          sum(hdr['Timestamps'][:i + 1]) / sampling_inverval)
+        sess_begin.append(sess_smp_begin)
+        
+        sess_smp_end = (sum(hdr['DataPoints'][:i + 1]) + 
+                        sum(hdr['Timestamps'][:i + 1]) / sampling_inverval)
+        sess_end.append(sess_smp_end)
+    
+    sess_begin = asarray(sess_begin, dtype=int)
+    sess_end = asarray(sess_end, dtype=int)
+    
+    hdr['sess_begin'] = sess_begin
+    hdr['sess_end'] = sess_end
+    
+    return hdr
+    
