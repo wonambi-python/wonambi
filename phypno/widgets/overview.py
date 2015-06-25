@@ -7,6 +7,7 @@ from math import ceil, floor
 
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import (QBrush,
+                         QColor,
                          QFormLayout,
                          QGraphicsItem,
                          QGraphicsRectItem,
@@ -272,8 +273,8 @@ class Overview(QGraphicsView):
                                      scene=self.scene)
 
             color = self.parent.value('marker_color')
-            rect.setPen(QPen(color))
-            rect.setBrush(QBrush(color))
+            rect.setPen(QPen(QColor(color)))
+            rect.setBrush(QBrush(QColor(color)))
             rect.setZValue(-5)
             self.idx_markers.append(rect)
 
@@ -311,8 +312,8 @@ class Overview(QGraphicsView):
             if annot in events:
                 color = convert_name_to_color(annot['name'])
 
-            rect.setPen(QPen(color))
-            rect.setBrush(QBrush(color))
+            rect.setPen(QPen(QColor(color)))
+            rect.setBrush(QBrush(QColor(color)))
             rect.setZValue(-5)
             self.idx_annot.append(rect)
 

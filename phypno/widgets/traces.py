@@ -332,7 +332,7 @@ class Traces(QGraphicsView):
         for one_grp in self.parent.channels.groups:
             for one_label in one_grp['chan_to_plot']:
                 item = QGraphicsSimpleTextItem(one_label)
-                item.setBrush(QBrush(one_grp['color']))
+                item.setBrush(QBrush(QColor(one_grp['color'])))
                 item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                 self.idx_label.append(item)
 
@@ -400,7 +400,7 @@ class Traces(QGraphicsView):
                 dat *= -1  # flip data, upside down
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
-                path.setPen(QPen(one_grp['color']))
+                path.setPen(QPen(QColor(one_grp['color'])))
 
                 # adjust position
                 chan_pos = y_distance * row + y_distance / 2
