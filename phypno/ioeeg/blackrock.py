@@ -4,8 +4,8 @@ from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
-from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones, 
-                   reshape)
+from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones,
+                   reshape, where)
 
 from ..utils.timezone import Eastern, utc
 
@@ -28,8 +28,10 @@ class BlackRock:
     def __init__(self, filename):
         self.filename = filename
         self.markers = []
+
         self.BOData = None
-        self.n_samples = None
+        self.sess_begin = None
+        self.sess_end = None
         self.factor = None
 
     def return_hdr(self):
@@ -59,9 +61,7 @@ class BlackRock:
 
         Notes
         -----
-        BOData and factor
-
-        What is the difference between NEURALCD and NEURALSG?
+        The implementation needs to be updated for NEURALSG
 
         """
         with open(self.filename, 'rb') as f:
@@ -78,12 +78,12 @@ class BlackRock:
             orig = _read_neuralcd(self.filename)
 
             s_freq = orig['SamplingFreq']
-            n_samples = orig['DataPoints']
+            n_samples = sum(orig['DataPoints']) + sum(orig['Timestamps'])
             chan_name = [x['Label'] for x in orig['ElectrodesInfo']]
 
-            # we need these two items to read the data
+            # INFO to read the data
             self.BOData = orig['BOData']
-            self.n_samples = n_samples
+            self.sess_begin, self.sess_end = _calc_sess_intervals(orig)
             self.factor = _convert_factor(orig['ElectrodesInfo'])
 
             nev_file = splitext(self.filename)[0] + '.nev'
@@ -98,13 +98,11 @@ class BlackRock:
 
         elif file_header == b'NEURALSG':
             orig = _read_neuralsg(self.filename)
-            orig = _calc_sess_intervals(orig)
-            
+            raise NotImplementedError('This implementation needs to be updated')
+
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
 
-            # we need these two items to read the data
-            self.BOData = orig['BOData']
             self.n_samples = n_samples
             self.factor = 0.25 * ones(len(orig['ChannelID']))
 
@@ -138,8 +136,8 @@ class BlackRock:
         if ext == '.nev':
             raise TypeError('NEV contains only header info, not data')
 
-        data = _read_nsx(self.filename, self.BOData, self.n_samples,
-                         self.factor, begsam, endsam)
+        data = _read_nsx(self.filename, self.BOData, self.sess_begin,
+                         self.sess_end, self.factor, begsam, endsam)
 
         return data[chan, :]
 
@@ -174,12 +172,12 @@ class BlackRock:
             return markers_no_zero
 
 
-def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
+def _read_nsx(filename, BOData, sess_begin, sess_end, factor, begsam, endsam):
     """
 
     Notes
     -----
-    Common to NEURALCD and NEURALSG
+    Tested on NEURALCD
 
     It returns NaN if you select an interval outside of the data
     """
@@ -188,31 +186,33 @@ def _read_nsx(filename, BOData, DataPoints, factor, begsam, endsam):
     dat = empty((n_chan, endsam - begsam))
     dat.fill(NaN)
 
+    sess_to_read = where((begsam < sess_end) & (endsam > sess_begin))[0]
+
     with open(filename, 'rb') as f:
 
-        if begsam < 0:
-            begshift = 0 - begsam
-            endshift = endsam - begsam
-            begsam = 0
-        else:
+        for sess in sess_to_read:
+            begsam_sess = begsam - sess_begin[sess]
+            endsam_sess = endsam - sess_begin[sess]
+
             begshift = 0
-            endshift = endsam
 
-        if endsam > DataPoints:
-            endshift = DataPoints - endshift
-            endsam = DataPoints
-        else:
-            endshift = endshift
+            if begsam_sess < 0:
+                begsam_sess = 0
+                begshift = sess_begin[sess] - begsam
 
-        f.seek(BOData, SEEK_SET)
-        f.seek(N_BYTES * n_chan * begsam, SEEK_CUR)
+            if endsam_sess > (sess_end[sess] - sess_begin[sess]):
+                endsam_sess = (sess_end[sess] - sess_begin[sess])
 
-        n_sam = endsam - begsam
-        if n_sam < 0:
-            n_sam = 0
-        dat_in_file = fromfile(f, BLACKROCK_FORMAT, n_chan * n_sam)
-        dat[:, begshift:endshift] = reshape(dat_in_file, (n_chan, n_sam),
-                                            order='F')
+            endshift = begshift + endsam_sess - begsam_sess
+
+            f.seek(BOData[sess], SEEK_SET)
+            f.seek(n_chan * N_BYTES * begsam_sess, SEEK_CUR)
+
+            n_sam = endsam_sess - begsam_sess
+            dat_in_file = fromfile(f, BLACKROCK_FORMAT, n_chan * n_sam)
+
+            dat[:, begshift:endshift] = reshape(dat_in_file, (n_chan, n_sam),
+                                                order='F')
 
     return expand_dims(factor, 1) * dat
 
@@ -358,10 +358,10 @@ def _read_neuralcd(filename):
 
         # the last datapoint does not get updated, so it remains 0
         if DataPoints[-1] == 0:
-            
+
             # we need to update EOData, because it depends on DataPoint
             EOData[-1] = EOF
-            
+
             # we back compute the last DataPoint
             DataPoints[-1] = int((EOData[-1] - BOData[-1]) / N_BYTES / n_chan)
 
@@ -369,7 +369,7 @@ def _read_neuralcd(filename):
         hdr['EOData'] = EOData
         hdr['Timestamps'] = Timestamps  # sampled at 'TimeRes' Hz, ie 30000
         hdr['DataPoints'] = DataPoints
-        
+
     return hdr
 
 
@@ -596,29 +596,25 @@ def _convert_factor(ElectrodesInfo):
 
 
 def _calc_sess_intervals(hdr):
-    
+
     sess_begin = []
     sess_end = []
     n_sess = len(hdr['Timestamps'])
 
     # timestamps are always at 30 kHz, so we need to convert
     sampling_inverval = hdr['TimeRes'] / hdr['SamplingFreq']
-    
+
     for i in range(n_sess):
-        
-        sess_smp_begin = (sum(hdr['DataPoints'][:i]) + 
+
+        sess_smp_begin = (sum(hdr['DataPoints'][:i]) +
                           sum(hdr['Timestamps'][:i + 1]) / sampling_inverval)
         sess_begin.append(sess_smp_begin)
-        
-        sess_smp_end = (sum(hdr['DataPoints'][:i + 1]) + 
+
+        sess_smp_end = (sum(hdr['DataPoints'][:i + 1]) +
                         sum(hdr['Timestamps'][:i + 1]) / sampling_inverval)
         sess_end.append(sess_smp_end)
-    
+
     sess_begin = asarray(sess_begin, dtype=int)
     sess_end = asarray(sess_end, dtype=int)
-    
-    hdr['sess_begin'] = sess_begin
-    hdr['sess_end'] = sess_end
-    
-    return hdr
-    
+
+    return sess_begin, sess_end
