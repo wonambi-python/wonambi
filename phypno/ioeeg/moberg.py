@@ -1,13 +1,15 @@
 from os.path import getsize, join
 from xml.etree.ElementTree import parse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from numpy import reshape, zeros
 
-# note that the time is in Unix Time, so the time here uses local time
-# there might be differences if you read the file in a different timezone than
-# the timezone where it was acquired.
-TIMEZONE = None
+from ..utils.timezone import utc
+
+# note that the time is in "local" Unix Time, which is in the local time zone,
+# so we read it as "UTC" (meaning, do not apply timezone transformation) and
+# then remove timezone info.
+TIMEZONE = utc
 # 24bit precision
 DATA_PRECISION = 3
 
@@ -51,7 +53,10 @@ class Moberg:
             subj_id += patient.findall(patientname)[0].text.strip()
 
         unix_time = int(patient.findall('TimeStamp')[0].text.strip()) / 1e6
-        start_time = datetime.fromtimestamp(unix_time, TIMEZONE)
+        system_offset = int(patient.findall('SystemOffset')[0].text.strip())
+        print(system_offset)
+        start_time = (datetime.fromtimestamp(unix_time, TIMEZONE) +
+                      timedelta(seconds=system_offset)).replace(tzinfo=None)
 
         s_freq = 256  # could not find it in the text files
 
