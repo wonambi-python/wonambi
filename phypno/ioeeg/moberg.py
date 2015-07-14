@@ -54,7 +54,6 @@ class Moberg:
 
         unix_time = int(patient.findall('TimeStamp')[0].text.strip()) / 1e6
         system_offset = int(patient.findall('SystemOffset')[0].text.strip())
-        print(system_offset)
         start_time = (datetime.fromtimestamp(unix_time, TIMEZONE) +
                       timedelta(seconds=system_offset)).replace(tzinfo=None)
 
