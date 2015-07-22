@@ -89,10 +89,10 @@ class Colormap(ColorMap):
             color = coolwarm
 
         elif name == 'jet':
-            pos = linspace(limits[0], limits[1], 511)
-            r = r_[zeros(255), arange(0, 256)]
-            g = r_[arange(0, 255), arange(255, -1, -1)]
-            b = r_[arange(255, 0, -1), zeros(256)]
+            pos = linspace(limits[0], limits[1], 66)
+            r = r_[zeros(24), arange(0, 255, 15), 255 * ones(17), arange(255, 135, -15)]
+            g = r_[zeros(7), arange(0, 255, 15), 255 * ones(17), arange(255, 0, -15), zeros(8)]
+            b = r_[arange( 150, 255, 15),  255 * ones(17), arange(255, 0, -15), zeros(25)]
             color = array(c_[r, g, b])
 
         elif name == 'hot':
