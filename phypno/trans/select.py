@@ -129,7 +129,8 @@ class Select:
 class Resample:
 
     def __init__(self, s_freq=None, axis='time'):
-        self.s_freq = s_freq
+        # force convertion to int
+        self.s_freq = int(s_freq)
         self.axis = axis
 
     def __call__(self, data):
@@ -140,7 +141,8 @@ class Resample:
 
         for i in range(data.number_of('trial')):
 
-            n_samples = data.axis[axis][i].shape[0] / ratio
+            # force convertion to int
+            n_samples = int(data.axis[axis][i].shape[0] / ratio)
             data.axis[axis][i] = linspace(data.axis[axis][i][0],
                                           data.axis[axis][i][-1] +
                                           1 / data.s_freq,
