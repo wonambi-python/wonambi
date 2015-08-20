@@ -1,8 +1,7 @@
 """Module to plot all the elements as lines.
-
 """
 from numpy import max, min
-from pyqtgraph import GraphicsLayoutWidget, FillBetweenItem, setConfigOption
+from vispy.plot import Fig
 
 from .base import Viz
 
@@ -16,11 +15,8 @@ class Viz1(Viz):
         TODO: describe attributes
         """
         self._color = color
-        setConfigOption('foreground', self._color[0])
-        setConfigOption('background', self._color[1])
 
-        self._widget = GraphicsLayoutWidget()
-        self._plots = {}
+        self._fig = Fig()
 
         self._limits_x = None  # tuple
         self._limits_y = None  # tuple
@@ -62,28 +58,18 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            if one_value in self._plots:
-                p = self._plots[one_value]
-            else:
-                p = self._widget.addPlot(title=one_value)
-                self._plots[one_value] = p
-                self._widget.nextRow()
-
-            if (cnt + 1) < len(subplot_values):
-                p.hideAxis('bottom')
-            p.plot(x, dat, pen=color)
+            self._fig[cnt, 0].plot((x, dat), color=color)
 
         if limits_x is not None:
             min_x, max_x = limits_x
-            for one_plot in self._plots.values():
-                one_plot.setXRange(min_x, max_x)
+        for onewidget in self._fig.plot_widgets:
+            onewidget.view.camera.set_range(x=(min_x, max_x))
 
         if limits_y is not None:
             min_y, max_y = limits_y
-            for one_plot in self._plots.values():
-                one_plot.setYRange(min_y, max_y)
+        for onewidget in self._fig.plot_widgets:
+            onewidget.view.camera.set_range(y=(min_y, max_y))
 
-        self._widget.show()
         self._limits_x = min_x, max_x
         self._limits_y = min_y, max_y
 

@@ -8,16 +8,7 @@
   - things in 3d (plot_3d.py), such as:
       - surfaces (meshes)
       - channels
-
-This module should contain only functions.
-Inputs to the function should be objects.
-
-We might include these functions as methods to classes in the future, but it
-might complicate the code, instead of making it more clear.
-
 """
-toolkit = 'visvis'
-
 from .plot_1d import Viz1
 from .plot_2d import Viz2
 from .plot_3d import Viz3

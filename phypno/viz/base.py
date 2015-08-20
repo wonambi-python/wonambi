@@ -1,9 +1,7 @@
 """Module with helper functions for plotting
-
 """
 from numpy import array, linspace, c_, r_, zeros, arange, ones
-from PyQt4.Qt import QImage, QPainter, QBuffer, QIODevice, QByteArray
-from PyQt4.QtGui import QApplication
+from vispy.io.image import _make_png
 from pyqtgraph import ColorMap
 
 
@@ -109,37 +107,11 @@ class Colormap(ColorMap):
 
 class Viz():
 
-    @property
-    def size(self):
-        return self._widget.size().width(), self._widget.size().height()
-
-    @size.setter
-    def size(self, newsize):
-        self._widget.resize(*newsize)
-
     def _repr_png_(self):
         """This is used by ipython to plot inline.
         """
-        self._widget.hide()
-        QApplication.processEvents()
-
-        try:
-            self.image = QImage(self._widget.viewRect().size().toSize(),
-                                QImage.Format_RGB32)
-        except AttributeError:
-            self._widget.updateGL()
-            self.image = self._widget.grabFrameBuffer()
-
-        painter = QPainter(self.image)
-        self._widget.render(painter)
-
-        byte_array = QByteArray()
-        buffer = QBuffer(byte_array)
-        buffer.open(QIODevice.ReadWrite)
-        self.image.save(buffer, 'PNG')
-        buffer.close()
-
-        return bytes(byte_array)
+        self._fig.show(False)
+        return bytes(_make_png(self._fig.render(), ))
 
     def save(self, png_file):
         """Save png to disk.

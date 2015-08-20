@@ -41,7 +41,6 @@ Shaders.append(shader)
 
 class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
-
     """
     def __init__(self, projection='ortho', color='wk'):
         self._color = color
