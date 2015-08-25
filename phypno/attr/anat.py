@@ -212,14 +212,17 @@ class Freesurfer:
             lg.warning('Could not find lookup table, some functions that rely '
                        'on it might complain or crash.')
 
-    def find_brain_region(self, abs_pos, max_approx=None,
-                          exclude_regions=('White', 'WM', 'Unknown')):
+    def find_brain_region(self, abs_pos, parc_type='aparc', max_approx=None,
+                          exclude_regions=None):
         """Find the name of the brain region in which an electrode is located.
 
         Parameters
         ----------
         abs_pos : numpy.ndarray
             3x0 vector with the position of interest.
+        parc_type : str
+            'aparc', 'aparc.a2009s', 'BA', 'BA.thresh', or 'aparc.DKTatlas40'
+            'aparc.DKTatlas40' is only for recent freesurfer versions
         max_approx : int, optional
             max approximation to define position of the electrode.
         exclude_regions : list of str or empty list
@@ -243,7 +246,13 @@ class Freesurfer:
         pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3].astype(int)
         lg.debug('Position in the MRI matrix: {}'.format(pos))
 
-        mri_dat, _ = self.read_seg()
+        mri_dat, _ = self.read_seg(parc_type)
+
+        if exclude_regions is None:
+            if parc_type == 'aparc':
+                exclude_regions = ('White', 'WM', 'Unknown')
+            elif parc_type == 'aparc.a2009s':
+                exclude_regions = ('White-Matter')
 
         if max_approx is None:
             max_approx = 3

@@ -9,7 +9,6 @@ electrodes to have one signal, where one signal is the difference between the
 two electrodes.
 
 In other words, the channel is where you want to plot the signal.
-
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -133,7 +132,6 @@ class Chan():
     attr : dict
         dictionary where you can store additional information per channel. Use
         chan.attr.update({'new_key': new_value})
-
     """
     def __init__(self, label, xyz=None, unit=None, attr=None):
         self.label = label
@@ -246,7 +244,6 @@ class Channels():
         -------
         list of str
             list of the channel labels.
-
         """
         return [x.label for x in self.chan]
 
@@ -266,7 +263,6 @@ class Channels():
         Notes
         -----
         Simplest implementation. We should at least use project onto a 2D plane
-
         """
         xyz = self.return_xyz(labels=labels)
         xy = asarray(xyz)[:, 1:]
@@ -284,7 +280,6 @@ class Channels():
         -------
         numpy.ndarray
             a 3xn vector with the position of a channel.
-
         """
         all_labels = self.return_label()
 
@@ -337,7 +332,6 @@ class Channels():
         ----------
         elec_file : str
             path to file where to save csv
-
         """
         ext = splitext(elec_file)[1]
         if ext == '.csv':
@@ -353,7 +347,7 @@ class Channels():
                 f.write(line)
 
 
-def assign_region_to_channels(channels, anat, max_approx=3,
+def assign_region_to_channels(channels, anat, parc_type='aparc', max_approx=3,
                               exclude_regions=None):
     """Assign a brain region based on the channel location.
 
@@ -363,6 +357,9 @@ def assign_region_to_channels(channels, anat, max_approx=3,
         channels to assign regions to
     anat : instance of phypno.attr.anat.Freesurfer
         anatomical information taken from freesurfer.
+    parc_type : str
+        'aparc', 'aparc.a2009s', 'BA', 'BA.thresh', or 'aparc.DKTatlas40'
+        'aparc.DKTatlas40' is only for recent freesurfer versions
     max_approx : int, optional
         approximation to define position of the electrode.
     exclude_regions : list of str or empty list
@@ -375,10 +372,11 @@ def assign_region_to_channels(channels, anat, max_approx=3,
     -------
     instance of phypno.attr.chan.Channels
         same instance as before, now Chan have attr 'region'
-
     """
     for one_chan in channels.chan:
-        one_region, approx = anat.find_brain_region(one_chan.xyz, max_approx,
+        one_region, approx = anat.find_brain_region(one_chan.xyz,
+                                                    parc_type,
+                                                    max_approx,
                                                     exclude_regions)
         one_chan.attr.update({'region': one_region, 'approx': approx})
 
@@ -401,7 +399,6 @@ def find_chan_in_region(channels, anat, region_name):
     -------
     chan_in_region : list of str
         list of the channels that are in one region.
-
     """
     if 'region' not in channels.chan[0].attr.keys():
         lg.info('Computing region for each channel.')
