@@ -1,6 +1,6 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, max, mean, min, tile
+from numpy import array, isnan, max, mean, min, ndarray, tile
 from pyqtgraph import Vector
 from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
 from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
@@ -65,8 +65,9 @@ class Viz3(Viz):
         ----------
         surf : instance of phypno.attr.anat.Surf
             surface to be plotted
-        color : tuple, optional
+        color : tuple or ndarray, optional
             4-element tuple, representing RGB and alpha, between 0 and 255
+            or a ndarray with n vertices x 4 to specify color of each vertex
         values : ndarray, optional
             vector with values for each vertex
         limits_c : tuple of 2 floats, optional
@@ -85,6 +86,9 @@ class Viz3(Viz):
             colormap = Colormap(name=colormap, limits=limits_c)
             vertexColors = colormap.mapToFloat(values)
             vertexColors[isnan(values)] = color
+
+        elif isinstance(color, ndarray) and color.shape[0] == surf.vert.shape[0]:
+            vertexColors = color
 
         else:
             vertexColors = tile(color, (surf.tri.shape[0], 1))
