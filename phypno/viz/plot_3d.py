@@ -1,15 +1,18 @@
 """Module to plot all the elements in 3d space.
 """
 from numpy import array, isnan, max, mean, min, tile
+from vispy.color import get_colormap
 from vispy.geometry import MeshData
 from vispy.plot import Fig
 
-from .base import Viz, Colormap, BrainMesh
+from .base import Viz, Colormap, BrainMesh, normalize
+
+
 
 CHAN_COLOR = 0, 255, 0, 255
 SKIN_COLOR = (0.94, 0.82, 0.81, 1.)
 
-SCALE_FACTOR = 130
+SCALE_FACTOR = 135
 ELEVATION = 0
 
 
@@ -36,7 +39,7 @@ class Viz3(Viz):
             surface to be plotted
         color : tuple or ndarray, optional
             4-element tuple, representing RGB and alpha, between 0 and 1
-        vertex_colors : ndarray, optional
+        vertex_colors : ndarray
             ndarray with n vertices x 4 to specify color of each vertex
         values : ndarray, optional
             vector with values for each vertex
@@ -49,16 +52,17 @@ class Viz3(Viz):
             if limits_c is None:
                 limits_c = min(values), max(values)
 
-            colormap = Colormap(name=colormap, limits=limits_c)
-            vertexColors = colormap.mapToFloat(values)
-            vertexColors[isnan(values)] = color
+            norm_values = normalize(values, *limits_c)
 
-        if color is None and vertex_colors is None:
-            color = SKIN_COLOR
+            cm = get_colormap(colormap)
+            vertex_colors = cm[norm_values].rgba  # TODO: NaN
+
+        if vertex_colors is not None:
+            color = None
 
         meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
-                            vertex_colors=c_[norma(surf.vert[:, 0]), ones(surf.vert.shape[0]), ones(surf.vert.shape[0]), ones(surf.vert.shape[0])])
-        mesh = BrainMesh(meshdata)
+                            vertex_colors=vertex_colors)
+        mesh = BrainMesh(meshdata, color)
 
         f = self._fig[0, 0]
         f._configure_3d()
