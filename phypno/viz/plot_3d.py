@@ -1,21 +1,19 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, max, mean, min, tile
+from numpy import max, mean, min
 from vispy.color import get_colormap
-from vispy.geometry import MeshData
+from vispy.geometry import create_sphere, MeshData
 from vispy.plot import Fig
+from vispy.visuals.transforms import STTransform
 
-from .base import Viz, Colormap, BrainMesh, normalize
+from .base import normalize, SimpleMesh, Viz
 
 
-
-CHAN_COLOR = 0, 255, 0, 255
-SKIN_COLOR = (0.94, 0.82, 0.81, 1.)
+CHAN_COLOR = 0., 1, 0, 1.
+SKIN_COLOR = 0.94, 0.82, 0.81, 1.
 
 SCALE_FACTOR = 135
 ELEVATION = 0
-
-
 
 
 class Viz3(Viz):
@@ -25,6 +23,8 @@ class Viz3(Viz):
         self._color = color
 
         self._fig = Fig()
+        f = self._fig[0, 0]
+        f._configure_3d()
 
         self._limits_x = None  # tuple
         self._limits_y = None  # tuple
@@ -62,10 +62,9 @@ class Viz3(Viz):
 
         meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
                             vertex_colors=vertex_colors)
-        mesh = BrainMesh(meshdata, color)
+        mesh = SimpleMesh(meshdata, color)
 
         f = self._fig[0, 0]
-        f._configure_3d()
         f.view.add(mesh)
 
         surf_center = mean(surf.vert, axis=0)
@@ -81,8 +80,8 @@ class Viz3(Viz):
 
         self._mesh = mesh
 
-    def add_chan(self, chan, color=CHAN_COLOR, values=None, limits_c=None,
-                 colormap='coolwarm'):
+    def add_chan(self, chan, color=CHAN_COLOR, chan_colors=None,
+                 values=None, limits_c=None, colormap='coolwarm'):
         """Add channels to visualization
 
         Parameters
@@ -90,7 +89,7 @@ class Viz3(Viz):
         chan : instance of Channels
             channels to plot
         color : tuple
-            4-element tuple, representing RGB and alpha, between 0 and 255
+            4-element tuple, representing RGB and alpha, between 0 and 1
         values : ndarray
             array with values for each channel
         limits_c : tuple of 2 floats, optional
@@ -98,33 +97,31 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
-        color = array(color) / 255
-
         if values is not None:
             if limits_c is None:
                 limits_c = min(values), max(values)
 
-            colormap = Colormap(name=colormap, limits=limits_c)
-            vertexColors = colormap.mapToFloat(values)
-            vertexColors[isnan(values)] = color
-        else:
-            vertexColors = tile(color, (chan.n_chan, 1))
+            norm_values = normalize(values, *limits_c)
+
+            cm = get_colormap(colormap)
+            chan_colors = cm[norm_values].rgba
+
+            color = None
 
         # larger if colors are meaningful
         if values is not None:
-            radius = 3
+            meshdata = create_sphere(radius=3, method='ico')
         else:
-            radius = 1.5
+            meshdata = create_sphere(radius=1.5, method='ico')
+
+        f = self._fig[0, 0]
 
         for i, one_chan in enumerate(chan.chan):
-            sphere = MeshData.sphere(10, 10, radius=radius)
-            sphere.setVertexColors(tile(vertexColors[i, :],
-                                        (sphere._vertexes.shape[0], 1)))
+            if chan_colors is not None:
+                chan_color = chan_colors[i, :]
+            else:
+                chan_color = color
 
-            mesh = GLMeshItem(meshdata=sphere, smooth=True,
-                              shader='shaded', glOptions='translucent')
-
-            mesh.translate(*one_chan.xyz)
-
-            self._widget.addItem(mesh)
-        self._widget.show()
+            mesh = SimpleMesh(meshdata, chan_color)
+            mesh.transform = STTransform(translate=one_chan.xyz)
+            f.view.add(mesh)

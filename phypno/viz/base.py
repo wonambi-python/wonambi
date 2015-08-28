@@ -166,7 +166,7 @@ class Colormap(ColorMap):
         super().__init__(pos, color)
 
 
-class BrainMeshVisual(Visual):
+class SimpleMeshVisual(Visual):
 
     def __init__(self, meshdata, color=None, light_vec=(1, 0, 0)):
         Visual.__init__(self, vertex_shader, fragment_shader)
@@ -200,4 +200,4 @@ class BrainMeshVisual(Visual):
         self.shared_program.vert['color'] = self._colors
         self.shared_program.frag['light_vec'] = self._light_vec
 
-BrainMesh = create_visual_node(BrainMeshVisual)
+SimpleMesh = create_visual_node(SimpleMeshVisual)
