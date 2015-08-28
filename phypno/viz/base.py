@@ -62,12 +62,31 @@ class Viz():
 
 
 def normalize(x, min_value, max_value):
+    """Normalize value between min and max values.
+    It also clips the values, so that you cannot have values higher or lower
+    than the range."""
     x = (x - min_value) / (max_value - min_value)
     return clip(x, min_value, max_value)
 
 
 class SimpleMeshVisual(Visual):
+    """Simple Visual for Mesh, with light coming from left and right.
 
+    Parameters
+    ----------
+    meshdata : instance of vispy.geometry.MeshData
+        the meshdata, with or without colors for each vertex
+    color : 3- or 4-element tuple
+        color for the whole mesh (color for each vertex should be in meshdata)
+    light_vec : 3-element tuple
+        light direction, only the axis, because light comes from both directions
+
+    Notes
+    -----
+    I decided not to use the mesh visual that comes with vispy because I don't
+    like the mirror reflection, which is really strong. Also, here I can
+    control the parameters. The hard part is that it relies on glsl above.
+    """
     def __init__(self, meshdata, color=None, light_vec=(1, 0, 0)):
         Visual.__init__(self, vertex_shader, fragment_shader)
 

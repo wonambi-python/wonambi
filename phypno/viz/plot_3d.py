@@ -90,6 +90,8 @@ class Viz3(Viz):
             channels to plot
         color : tuple
             4-element tuple, representing RGB and alpha, between 0 and 1
+        chan_colors : ndarray
+            array with colors for each channel
         values : ndarray
             array with values for each channel
         limits_c : tuple of 2 floats, optional
