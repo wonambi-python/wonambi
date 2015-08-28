@@ -18,13 +18,15 @@ ELEVATION = 0
 
 class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
+
+    There is only one canvas, so we define it at the __init__
     """
     def __init__(self, color='wk'):
         self._color = color
 
         self._fig = Fig()
-        f = self._fig[0, 0]
-        f._configure_3d()
+        self._canvas = self._fig[0, 0]
+        self._canvas._configure_3d()
 
         self._limits_x = None  # tuple
         self._limits_y = None  # tuple
@@ -64,8 +66,7 @@ class Viz3(Viz):
                             vertex_colors=vertex_colors)
         mesh = SimpleMesh(meshdata, color)
 
-        f = self._fig[0, 0]
-        f.view.add(mesh)
+        self._canvas.view.add(mesh)
 
         surf_center = mean(surf.vert, axis=0)
         if surf_center[0] < 0:
@@ -73,10 +74,10 @@ class Viz3(Viz):
         else:
             azimuth = 90
 
-        f.view.camera.azimuth = azimuth
-        f.view.camera.center = surf_center
-        f.view.camera.scale_factor = SCALE_FACTOR
-        f.view.camera.elevation = ELEVATION
+        self._canvas.view.camera.azimuth = azimuth
+        self._canvas.view.camera.center = surf_center
+        self._canvas.view.camera.scale_factor = SCALE_FACTOR
+        self._canvas.view.camera.elevation = ELEVATION
 
         self._mesh = mesh
 
@@ -116,8 +117,6 @@ class Viz3(Viz):
         else:
             meshdata = create_sphere(radius=1.5, method='ico')
 
-        f = self._fig[0, 0]
-
         for i, one_chan in enumerate(chan.chan):
             if chan_colors is not None:
                 chan_color = chan_colors[i, :]
@@ -126,4 +125,4 @@ class Viz3(Viz):
 
             mesh = SimpleMesh(meshdata, chan_color)
             mesh.transform = STTransform(translate=one_chan.xyz)
-            f.view.add(mesh)
+            self._canvas.view.add(mesh)
