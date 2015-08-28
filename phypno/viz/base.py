@@ -1,6 +1,14 @@
 """Module with helper functions for plotting
 """
-from numpy import array, linspace, c_, r_, zeros, arange, ones, float32
+from numpy import (arange,
+                   array,
+                   clip,
+                   c_,
+                   float32,
+                   linspace,
+                   ones,
+                   r_,
+                   zeros)
 from vispy.scene.visuals import create_visual_node
 from vispy.gloo import VertexBuffer
 from vispy.io.image import _make_png
@@ -26,9 +34,14 @@ varying vec4 color_vec;
 
 void main() {
     float p = dot(normal_vec, normalize(vec3($light_vec)));
-    p = p < 0. ? 0. : p * 0.9;
+    p = p < 0. ? 0. : p * 0.8;
+
+    float op = dot(normal_vec, normalize(-1 * vec3($light_vec)));
+    op = op < 0. ? 0. : op * 0.8;
+
     vec4 color = color_vec;
-    color.rgb = color.rgb * (0.2 + p);
+    color.rgb = color.rgb * (0.2 + p + op);
+
     gl_FragColor = color;
 }
 """
@@ -91,6 +104,10 @@ class Viz():
         with open(png_file, 'wb') as f:
             f.write(self._repr_png_())
 
+def normalize(x, min_value, max_value):
+    x = (x - min_value) / (max_value - min_value)
+    return clip(x, min_value, max_value)
+
 
 class Colormap(ColorMap):
     """Create colormap using predefined color scheme.
@@ -110,14 +127,6 @@ class Colormap(ColorMap):
        http://www.sandia.gov/~kmorel/documents/ColorMaps/
     jet : old-school Matlab
     hot : red-dominated sequential
-
-    Examples
-    --------
-    >>> cmap = Colormap('jet')
-    >>> from pyqtgraph import GradientWidget
-    >>> gradient = GradientWidget()
-    >>> gradient.item.setColorMap(cmap)
-    >>> gradient.show()
     """
     def __init__(self, name='coolwarm', limits=(0, 1)):
         if name == 'bwr':
@@ -159,16 +168,24 @@ class Colormap(ColorMap):
 
 class BrainMeshVisual(Visual):
 
-    def __init__(self, meshdata, light_vec=(1, 0, 0)):
+    def __init__(self, meshdata, color=None, light_vec=(1, 0, 0)):
         Visual.__init__(self, vertex_shader, fragment_shader)
 
         v = meshdata.get_vertices(indexed='faces').astype(float32)
-        v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
-        v_norm = meshdata.get_vertex_normals(indexed='faces').astype(float32)
-
         self._vertices = VertexBuffer(v)
-        self._colors = VertexBuffer(v_col)
+
+        v_norm = meshdata.get_vertex_normals(indexed='faces').astype(float32)
         self._normals = VertexBuffer(v_norm)
+
+        if color is not None:
+            if len(color) == 3:
+                color = r_[array(color), 1.]
+            self._colors = color
+
+        else:
+            v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
+            self._colors = VertexBuffer(v_col)
+
         self._light_vec = light_vec
 
         self._draw_mode = 'triangles'
