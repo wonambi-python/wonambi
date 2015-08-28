@@ -1,9 +1,37 @@
 """Module with helper functions for plotting
 """
-from numpy import array, linspace, c_, r_, zeros, arange, ones
+from numpy import array, linspace, c_, r_, zeros, arange, ones, float32
+from vispy.scene.visuals import create_visual_node
+from vispy.gloo import VertexBuffer
 from vispy.io.image import _make_png
+from vispy.visuals import Visual
+
 from pyqtgraph import ColorMap
 
+
+vertex_shader = """
+varying vec3 normal_vec;
+varying vec4 color_vec;
+
+void main() {
+    normal_vec = $normal;
+    color_vec = $color;
+    gl_Position = $transform(vec4($position, 1));
+}
+"""
+
+fragment_shader = """
+varying vec3 normal_vec;
+varying vec4 color_vec;
+
+void main() {
+    float p = dot(normal_vec, normalize(vec3($light_vec)));
+    p = p < 0. ? 0. : p * 0.9;
+    vec4 color = color_vec;
+    color.rgb = color.rgb * (0.2 + p);
+    gl_FragColor = color;
+}
+"""
 
 coolwarm = array([[59, 76, 192],
                   [68, 90, 204],
@@ -38,6 +66,30 @@ coolwarm = array([[59, 76, 192],
                   [203, 62, 56],
                   [192, 40, 47],
                   [180, 4, 38]])
+
+
+class Viz():
+
+    def _repr_png_(self):
+        """This is used by ipython to plot inline.
+        """
+        self._fig.show(False)
+        return bytes(_make_png(self._fig.render(), ))
+
+    def save(self, png_file):
+        """Save png to disk.
+
+        Parameters
+        ----------
+        png_file : path to file
+            file to write to
+
+        Notes
+        -----
+        It relies on _repr_png_, so fix issues there.
+        """
+        with open(png_file, 'wb') as f:
+            f.write(self._repr_png_())
 
 
 class Colormap(ColorMap):
@@ -105,25 +157,30 @@ class Colormap(ColorMap):
         super().__init__(pos, color)
 
 
-class Viz():
+class BrainMeshVisual(Visual):
 
-    def _repr_png_(self):
-        """This is used by ipython to plot inline.
-        """
-        self._fig.show(False)
-        return bytes(_make_png(self._fig.render(), ))
+    def __init__(self, meshdata, light_vec=(1, 0, 0)):
+        Visual.__init__(self, vertex_shader, fragment_shader)
 
-    def save(self, png_file):
-        """Save png to disk.
+        v = meshdata.get_vertices(indexed='faces').astype(float32)
+        v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
+        v_norm = meshdata.get_vertex_normals(indexed='faces').astype(float32)
 
-        Parameters
-        ----------
-        png_file : path to file
-            file to write to
+        self._vertices = VertexBuffer(v)
+        self._colors = VertexBuffer(v_col)
+        self._normals = VertexBuffer(v_norm)
+        self._light_vec = light_vec
 
-        Notes
-        -----
-        It relies on _repr_png_, so fix issues there.
-        """
-        with open(png_file, 'wb') as f:
-            f.write(self._repr_png_())
+        self._draw_mode = 'triangles'
+        self.set_gl_state('opaque', depth_test=True,  cull_face=True)
+
+    def _prepare_transforms(self, view):
+        view.view_program.vert['transform'] = view.get_transform()
+
+    def _prepare_draw(self, view):
+        self.shared_program.vert['position'] = self._vertices
+        self.shared_program.vert['normal'] = self._normals
+        self.shared_program.vert['color'] = self._colors
+        self.shared_program.frag['light_vec'] = self._light_vec
+
+BrainMesh = create_visual_node(BrainMeshVisual)

@@ -1,63 +1,33 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, max, mean, min, ndarray, tile
-from pyqtgraph import Vector
-from pyqtgraph.opengl import GLViewWidget, GLMeshItem, MeshData
-from pyqtgraph.opengl.shaders import (Shaders, ShaderProgram, VertexShader,
-                                      FragmentShader)
+from numpy import array, isnan, max, mean, min, tile
+from vispy.geometry import MeshData
+from vispy.plot import Fig
 
-from .base import Viz, Colormap
+from .base import Viz, Colormap, BrainMesh
 
 CHAN_COLOR = 0, 255, 0, 255
-SKIN_COLOR = 239, 208, 207, 255
+SKIN_COLOR = (0.94, 0.82, 0.81, 1.)
+
+SCALE_FACTOR = 130
+ELEVATION = 0
 
 
-shader = ShaderProgram('brain', [
-            VertexShader("""
-                varying vec3 normal;
-                void main() {
-                    // compute here for use in fragment shader
-                    normal = normalize(gl_NormalMatrix * gl_Normal);
-                    gl_FrontColor = gl_Color;
-                    gl_BackColor = gl_Color;
-                    gl_Position = ftransform();
-                }
-            """),
-            FragmentShader("""
-                varying vec3 normal;
-                void main() {
-                    float p = dot(normal, normalize(vec3(0.0, -2.0, -10.0)));
-                    p = p < 0. ? 0. : p * 0.8;
-                    vec4 color = gl_Color;
-                    color.x = color.x * (0.2 + p);
-                    color.y = color.y * (0.2 + p);
-                    color.z = color.z * (0.2 + p);
-                    gl_FragColor = color;
-                }
-            """)
-        ])
-Shaders.append(shader)
 
 
 class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
     """
-    def __init__(self, projection='ortho', color='wk'):
+    def __init__(self, color='wk'):
         self._color = color
 
-        self._widget = GLViewWidget()
-        self._widget.setBackgroundColor(self._color[1])
-        self._widget.setCameraPosition(elevation=10)
+        self._fig = Fig()
 
-        if projection == 'ortho':
-            # not really ortho, but pretty good
-            self._widget.opts['fov'] = 0.5
-            self._widget.opts['distance'] = 22000
-        else:
-            self._widget.opts['distance'] = 250
+        self._limits_x = None  # tuple
+        self._limits_y = None  # tuple
 
-    def add_surf(self, surf, color=SKIN_COLOR, values=None, limits_c=None,
-                 colormap='coolwarm'):
+    def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
+                 values=None, limits_c=None, colormap='coolwarm'):
         """Add surfaces to the visualization.
 
         Parameters
@@ -65,8 +35,9 @@ class Viz3(Viz):
         surf : instance of phypno.attr.anat.Surf
             surface to be plotted
         color : tuple or ndarray, optional
-            4-element tuple, representing RGB and alpha, between 0 and 255
-            or a ndarray with n vertices x 4 to specify color of each vertex
+            4-element tuple, representing RGB and alpha, between 0 and 1
+        vertex_colors : ndarray, optional
+            ndarray with n vertices x 4 to specify color of each vertex
         values : ndarray, optional
             vector with values for each vertex
         limits_c : tuple of 2 floats, optional
@@ -74,10 +45,6 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
-        color = array(color) / 255
-
-        glOptions = 'opaque'
-
         if values is not None:
             if limits_c is None:
                 limits_c = min(values), max(values)
@@ -86,31 +53,29 @@ class Viz3(Viz):
             vertexColors = colormap.mapToFloat(values)
             vertexColors[isnan(values)] = color
 
-        elif isinstance(color, ndarray) and color.shape[0] == surf.vert.shape[0]:
-            vertexColors = color
+        if color is None and vertex_colors is None:
+            color = SKIN_COLOR
 
-        else:
-            vertexColors = tile(color, (surf.tri.shape[0], 1))
-            if color[3] < 1:
-                glOptions = 'translucent'  # use this when using transparency
+        meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
+                            vertex_colors=c_[norma(surf.vert[:, 0]), ones(surf.vert.shape[0]), ones(surf.vert.shape[0]), ones(surf.vert.shape[0])])
+        mesh = BrainMesh(meshdata)
 
-        mesh = MeshData(vertexes=surf.vert, faces=surf.tri,
-                        vertexColors=vertexColors)
-
-        mesh._vertexNormals = -1 * mesh.vertexNormals()
-        self._mesh = GLMeshItem(meshdata=mesh, smooth=True, shader='brain',
-                                glOptions=glOptions)
-        self._widget.addItem(self._mesh)
+        f = self._fig[0, 0]
+        f._configure_3d()
+        f.view.add(mesh)
 
         surf_center = mean(surf.vert, axis=0)
         if surf_center[0] < 0:
-            azimuth = 180
+            azimuth = 270
         else:
-            azimuth = 0
+            azimuth = 90
 
-        self._widget.setCameraPosition(azimuth=azimuth)
-        self._widget.opts['center'] = Vector(surf_center)
-        self._widget.show()
+        f.view.camera.azimuth = azimuth
+        f.view.camera.center = surf_center
+        f.view.camera.scale_factor = SCALE_FACTOR
+        f.view.camera.elevation = ELEVATION
+
+        self._mesh = mesh
 
     def add_chan(self, chan, color=CHAN_COLOR, values=None, limits_c=None,
                  colormap='coolwarm'):
