@@ -21,10 +21,10 @@ class Viz3(Viz):
 
     There is only one canvas, so we define it at the __init__
     """
-    def __init__(self, color='wk'):
+    def __init__(self, color='wk', show=True):
         self._color = color
 
-        self._fig = Fig()
+        self._fig = Fig(show=show)
         self._canvas = self._fig[0, 0]
         self._canvas._configure_3d()
 
@@ -74,10 +74,10 @@ class Viz3(Viz):
         else:
             azimuth = 90
 
-        self._canvas.view.camera.azimuth = azimuth
         self._canvas.view.camera.center = surf_center
         self._canvas.view.camera.scale_factor = SCALE_FACTOR
         self._canvas.view.camera.elevation = ELEVATION
+        self._canvas.view.camera.azimuth = azimuth
 
         self._mesh = mesh
 
