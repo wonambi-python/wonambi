@@ -42,8 +42,15 @@ class Viz():
     def _repr_png_(self):
         """This is used by ipython to plot inline.
         """
+        try:
+            region = (10, 10,  # TODO: how to get these values
+                      int(self._canvas.view.bounds(0)[1]),
+                      int(self._canvas.view.bounds(1)[1]))
+        except AttributeError:
+            region = None
+
         self._fig.show(False)
-        return bytes(_make_png(self._fig.render(), ))
+        return bytes(_make_png(self._fig.render(region=region), ))
 
     def save(self, png_file):
         """Save png to disk.
