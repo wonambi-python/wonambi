@@ -2,6 +2,7 @@
 """
 from numpy import max, min
 from vispy.plot import Fig
+from vispy.scene.visuals import Rectangle
 
 from .base import Viz
 
@@ -58,7 +59,9 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            self._fig[cnt, 0].plot((x, dat), color=color)
+            canvas = self._fig[cnt, 0]
+            canvas.name = one_value
+            canvas.plot((x, dat), color=color)
 
         if limits_x is not None:
             min_x, max_x = limits_x
@@ -67,39 +70,40 @@ class Viz1(Viz):
 
         if limits_y is not None:
             min_y, max_y = limits_y
-        for onewidget in self._fig.plot_widgets:
-            onewidget.view.camera.set_range(y=(min_y, max_y))
+        for canvas in self._fig.plot_widgets:
+            canvas.view.camera.set_range(y=(min_y, max_y))
 
         self._limits_x = min_x, max_x
         self._limits_y = min_y, max_y
 
-    def add_graphoelement(self, graphoelement, color='r'):
+    def add_graphoelement(self, graphoelement, color='r', height=100):
         """Add graphoelements (at the moment, only spindles, but it works fine)
 
         Parameters
         ----------
         graphoelement : instance of Spindles
             the detected spindles
-        color : str
+        color : str or 3-, 4- tuple
             color to use for the area of detection.
+        height : float
+            height of the highlight area
         """
         for one_sp in graphoelement:
             chan = one_sp['chan']  # it could be over multiple channels
             start_time = one_sp['start_time']
             end_time = one_sp['end_time']
-            peak_val = one_sp['peak_val']
 
-            if chan in self._plots and end_time > self._limits_x[0] and start_time < self._limits_x[1]:
+            if end_time > self._limits_x[0] and start_time < self._limits_x[1]:
                 if start_time < self._limits_x[0]:
                     start_time = self._limits_x[0]
                 if end_time > self._limits_x[1]:
                     end_time = self._limits_x[1]
 
-                p = self._plots[chan]
-                # TODO: 2 * is arbitrary
-                up = p.plot((start_time, end_time), (3 * peak_val, 3 * peak_val),
-                            pen=color)
-                down = p.plot((start_time, end_time),
-                              (-3 * peak_val, -3 * peak_val), pen=color)
-                filled = FillBetweenItem(up, down, brush=color)
-                self._plots[chan].addItem(filled)
+                for canvas in self._fig.plot_widgets:
+                    if canvas.name and canvas.name in chan:
+                        time_center = (end_time + start_time) / 2
+                        width = end_time - time_center
+                        rect = Rectangle(center=(time_center, 0), color=color,
+                                         height=height, width=width)
+                        rect.order = -1
+                        canvas.view.add(rect)
