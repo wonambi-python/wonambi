@@ -11,13 +11,13 @@ ONE_CHANNEL_HEIGHT = 30
 
 
 class Viz1(Viz):
-    def __init__(self, color='wk'):  # white on black
+    def __init__(self, color='wk', show=True):  # white on black
         """Class to generate lines.
         TODO: describe attributes
         """
         self._color = color
 
-        self._fig = Fig()
+        self._fig = Fig(show=show)
 
         self._limits_x = None  # tuple
         self._limits_y = None  # tuple
