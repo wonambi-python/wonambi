@@ -4,8 +4,12 @@ from numpy import array, clip, float32, r_
 from vispy.scene.visuals import create_visual_node
 from vispy.gloo import VertexBuffer
 from vispy.io.image import _make_png
+from vispy.plot import Fig
 from vispy.visuals import Visual
 
+
+DPI = 90
+INCH_IN_MM = 25.4
 
 vertex_shader = """
 varying vec3 normal_vec;
@@ -38,6 +42,16 @@ void main() {
 
 
 class Viz():
+
+    def __init__(self, show=True, size_mm=None, dpi=None):
+        if dpi is None:
+            dpi = DPI
+        if size_mm is not None:
+            size = (array(size_mm) / INCH_IN_MM * dpi).astype(int)
+        else:
+            size = None
+
+        self._fig = Fig(show=show, size=size, dpi=dpi)
 
     def _repr_png_(self):
         """This is used by ipython to plot inline.

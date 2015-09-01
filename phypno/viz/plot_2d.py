@@ -1,17 +1,13 @@
 """Module to plot all the elements as flat images.
 """
 from numpy import max, min
-from vispy.plot import Fig
 
 from .base import Viz
 
 
 class Viz2(Viz):
-    def __init__(self, color='wk'):
-        """Class to generate images."""
-        self._color = color
-
-        self._fig = Fig()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def add_data(self, data, trial=0, limits_c=None):
         """

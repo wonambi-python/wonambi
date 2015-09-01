@@ -1,7 +1,6 @@
 """Module to plot all the elements as lines.
 """
 from numpy import max, min
-from vispy.plot import Fig
 from vispy.scene.visuals import Rectangle
 
 from .base import Viz
@@ -11,13 +10,8 @@ ONE_CHANNEL_HEIGHT = 30
 
 
 class Viz1(Viz):
-    def __init__(self, color='wk', show=True):  # white on black
-        """Class to generate lines.
-        TODO: describe attributes
-        """
-        self._color = color
-
-        self._fig = Fig(show=show)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         self._limits_x = None  # tuple
         self._limits_y = None  # tuple
