@@ -17,7 +17,7 @@ class Viz1(Viz):
         self._limits_y = None  # tuple
 
     def add_data(self, data, trial=0, axis_x='time', axis_subplot='chan',
-                 limits_x=None, limits_y=None, color=None):
+                 limits_x=None, limits_y=None, color='k'):
         """
         Parameters
         ----------
@@ -34,9 +34,6 @@ class Viz1(Viz):
         limits_y : tuple, optional
             limits on the y-axis (if unspecified, it's the max across subplots)
         """
-        if color is None:
-            color = self._color[0]
-
         x = data.axis[axis_x][trial]
         max_x = max(x)
         min_x = min(x)
@@ -53,9 +50,9 @@ class Viz1(Viz):
             max_y = max((max_y, max(dat)))
             min_y = min((min_y, min(dat)))
 
-            canvas = self._fig[cnt, 0]
-            canvas.name = one_value
-            canvas.plot((x, dat), color=color)
+            plt = self._fig[cnt, 0]
+            plt.name = one_value
+            plt.plot((x, dat), color=color)
 
         if limits_x is not None:
             min_x, max_x = limits_x
@@ -64,8 +61,8 @@ class Viz1(Viz):
 
         if limits_y is not None:
             min_y, max_y = limits_y
-        for canvas in self._fig.plot_widgets:
-            canvas.view.camera.set_range(y=(min_y, max_y))
+        for plt in self._fig.plot_widgets:
+            plt.view.camera.set_range(y=(min_y, max_y))
 
         self._limits_x = min_x, max_x
         self._limits_y = min_y, max_y
@@ -93,11 +90,11 @@ class Viz1(Viz):
                 if end_time > self._limits_x[1]:
                     end_time = self._limits_x[1]
 
-                for canvas in self._fig.plot_widgets:
-                    if canvas.name and canvas.name in chan:
+                for plt in self._fig.plot_widgets:
+                    if plt.name and plt.name in chan:
                         time_center = (end_time + start_time) / 2
                         width = end_time - time_center
                         rect = Rectangle(center=(time_center, 0), color=color,
                                          height=height, width=width)
                         rect.order = -1
-                        canvas.view.add(rect)
+                        plt.view.add(rect)
