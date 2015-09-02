@@ -3,7 +3,6 @@
 from numpy import max, mean, min
 from vispy.color import get_colormap
 from vispy.geometry import create_sphere, MeshData
-from vispy.plot import Fig
 from vispy.visuals.transforms import STTransform
 
 from .base import normalize, SimpleMesh, Viz

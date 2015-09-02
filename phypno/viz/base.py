@@ -44,14 +44,14 @@ void main() {
 class Viz():
 
     def __init__(self, show=True, size_mm=None, dpi=None):
-        if dpi is None:
-            dpi = DPI
-        if size_mm is not None:
-            size = (array(size_mm) / INCH_IN_MM * dpi).astype(int)
-        else:
-            size = None
 
-        self._fig = Fig(show=show, size=size, dpi=dpi)
+        kwargs = {}
+        if dpi is None:
+            kwargs['dpi'] = DPI
+        if size_mm is not None:
+            kwargs['size'] = (array(size_mm) / INCH_IN_MM * dpi).astype(int)
+
+        self._fig = Fig(show=show, **kwargs)
 
     def _repr_png_(self):
         """This is used by ipython to plot inline.
