@@ -28,13 +28,9 @@ varying vec4 color_vec;
 
 void main() {
     float p = dot(normal_vec, normalize(vec3($light_vec)));
-    p = p < 0. ? 0. : p * 0.8;
-
-    float op = dot(normal_vec, normalize(-1 * vec3($light_vec)));
-    op = op < 0. ? 0. : op * 0.8;
 
     vec4 color = color_vec;
-    color.rgb = color.rgb * (0.2 + p + op);
+    color.rgb = color.rgb * (0.2 + 0.8 * abs(p));
 
     gl_FragColor = color;
 }
