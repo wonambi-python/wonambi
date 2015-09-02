@@ -85,9 +85,9 @@ class Viz():
 def normalize(x, min_value, max_value):
     """Normalize value between min and max values.
     It also clips the values, so that you cannot have values higher or lower
-    than the range."""
+    than 0 - 1."""
     x = (x - min_value) / (max_value - min_value)
-    return clip(x, min_value, max_value)
+    return clip(x, 0, 1)
 
 
 class SimpleMeshVisual(Visual):

@@ -1,6 +1,6 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import max, mean, min
+from numpy import array, isnan, max, mean, min, nanmax, nanmin, r_
 from vispy.color import get_colormap
 from vispy.geometry import create_sphere, MeshData
 from vispy.visuals.transforms import STTransform
@@ -52,14 +52,20 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
+        if color is not None and len(color) == 3:
+            color = r_[array(color), 1.]  # make sure it's an array
+
         if values is not None:
             if limits_c is None:
-                limits_c = min(values), max(values)
+                limits_c = nanmin(values), nanmax(values)
 
             norm_values = normalize(values, *limits_c)
 
             cm = get_colormap(colormap)
-            vertex_colors = cm[norm_values].rgba  # TODO: NaN
+            vertex_colors = cm[norm_values].rgba
+
+            hasnan = isnan(vertex_colors).all(axis=1)
+            vertex_colors[hasnan, :] = color
 
         if vertex_colors is not None:
             color = None
@@ -92,7 +98,7 @@ class Viz3(Viz):
         chan : instance of Channels
             channels to plot
         color : tuple
-            4-element tuple, representing RGB and alpha, between 0 and 1
+            3-, 4-element tuple, representing RGB and alpha, between 0 and 1
         chan_colors : ndarray
             array with colors for each channel
         values : ndarray
@@ -102,6 +108,9 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
+        if color is not None and len(color) == 3:
+            color = r_[array(color), 1.]  # make sure it's an array
+
         if values is not None:
             if limits_c is None:
                 limits_c = min(values), max(values)

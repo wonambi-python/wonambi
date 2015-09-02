@@ -1,6 +1,6 @@
 """Module to plot all the elements as flat images.
 """
-from numpy import max, min
+from numpy import nanmax, nanmin
 
 from .base import Viz
 
@@ -23,8 +23,8 @@ class Viz2(Viz):
         dat = data(trial=trial)
 
         if limits_c is None:
-            max_c = max(dat)
-            min_c = min(dat)
+            max_c = nanmax(dat)
+            min_c = nanmin(dat)
         else:
             min_c, max_c = limits_c
 
