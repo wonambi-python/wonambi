@@ -86,6 +86,7 @@ class Viz3(Viz):
         self._plt.view.camera.scale_factor = SCALE_FACTOR
         self._plt.view.camera.elevation = ELEVATION
         self._plt.view.camera.azimuth = azimuth
+        self._plt.view.border_color = 'w'  # border around surf
 
         self._mesh = mesh
 
