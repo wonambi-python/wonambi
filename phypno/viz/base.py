@@ -44,8 +44,10 @@ class Viz():
         kwargs = {}
         if dpi is None:
             kwargs['dpi'] = DPI
+        else:
+            kwargs['dpi'] = dpi
         if size_mm is not None:
-            kwargs['size'] = (array(size_mm) / INCH_IN_MM * dpi).astype(int)
+            kwargs['size'] = (array(size_mm) / INCH_IN_MM * kwargs['dpi']).astype(int)
 
         self._fig = Fig(show=show, **kwargs)
 
@@ -54,8 +56,8 @@ class Viz():
         """
         try:
             region = (10, 10,  # TODO: how to get these values
-                      int(self._canvas.view.bounds(0)[1]),
-                      int(self._canvas.view.bounds(1)[1]))
+                      int(self._plt.view.bounds(0)[1]),
+                      int(self._plt.view.bounds(1)[1]))
         except AttributeError:
             region = None
 
