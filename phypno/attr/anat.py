@@ -163,7 +163,7 @@ class Surf:
         surf_vert, surf_tri = _read_geometry(self.surf_file)
         self.vert = surf_vert
         self.tri = surf_tri
-        self.n_vert = surf_vert.shape[1]
+        self.n_vert = surf_vert.shape[0]
 
 
 class Brain:
