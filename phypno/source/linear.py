@@ -36,9 +36,12 @@ class Linear:
         output.axis['surf'] = empty(data.number_of('trial'), dtype='O')
         output.data = empty(data.number_of('trial'), dtype='O')
 
+        exclude_vert = ~asarray(self.inv.sum(axis=1)).flatten().astype(bool)
+
         for i, one_trl in enumerate(data):
             output.axis['surf'][i] = arange(self.inv.shape[0])
             output.data[i] = self.inv.dot(data.data[i])
+            output.data[i][exclude_vert, ] = NaN
 
         return output
 
