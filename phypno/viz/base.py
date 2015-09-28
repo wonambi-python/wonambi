@@ -1,12 +1,15 @@
 """Module with helper functions for plotting
 """
+from vispy.app import Application
+app = Application('PyQt4')
+
 from numpy import array, clip, float32, r_
 from vispy.scene.visuals import create_visual_node
 from vispy.gloo import VertexBuffer
 from vispy.io.image import _make_png
 from vispy.plot import Fig
 from vispy.visuals import Visual
-
+from vispy.gloo.wrappers import read_pixels
 
 DPI = 90
 INCH_IN_MM = 25.4
@@ -61,8 +64,11 @@ class Viz():
         except AttributeError:
             region = None
 
+        self._fig.show(True)
+        app.process_events()
+        img = read_pixels(region)  # self._fig.render(region=region)
         self._fig.show(False)
-        return bytes(_make_png(self._fig.render(region=region), ))
+        return bytes(_make_png(img))
 
     def save(self, png_file):
         """Save png to disk.
@@ -127,7 +133,7 @@ class SimpleMeshVisual(Visual):
         self._light_vec = light_vec
 
         self._draw_mode = 'triangles'
-        self.set_gl_state('opaque', depth_test=True,  cull_face=True)
+        self.set_gl_state('opaque', depth_test=True, cull_face=True)
 
     def _prepare_transforms(self, view):
         view.view_program.vert['transform'] = view.get_transform()
