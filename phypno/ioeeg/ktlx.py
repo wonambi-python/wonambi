@@ -636,7 +636,7 @@ def _read_stc(stc_file):
         - start_stamp : First sample stamp that is found in the ERD / ETC pair
         - end_stamp : Last sample stamp that is still found in the ERD / ETC
         pair
-        - sample_num : Number of samples actually being recorded (gaps in the 
+        - sample_num : Number of samples actually being recorded (gaps in the
         data are not included in this number)
 
 
@@ -838,7 +838,7 @@ class Ktlx():
         try:
             erd_file = join(self.filename, self._basename + '.erd')
             hdr['erd'] = _read_hdr_file(erd_file)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             erd_file = join(self.filename, self._basename + '_001.erd')
             hdr['erd'] = _read_hdr_file(erd_file)
 
@@ -931,7 +931,7 @@ class Ktlx():
                                                                    begpos_rec,
                                                                    endpos_rec))
                 dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
-            except FileNotFoundError:
+            except (FileNotFoundError, PermissionError):
                 lg.warning('{} does not exist'.format(erd_file))
 
         return dat
@@ -973,7 +973,7 @@ class Ktlx():
             if not exists(ent_file):
                 ent_file = join(self.filename, self._basename + '.ent.old')
             ent_notes = _read_ent(ent_file)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             lg.warning('could not find .ent file, channels have arbitrary '
                        'names')
             chan_name = ['chan{0:03}'.format(x) for x in
@@ -992,13 +992,13 @@ class Ktlx():
         try:
             vtc_file = join(self.filename, self._basename + '.vtc')
             orig['vtc'] = _read_vtc(vtc_file)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             orig['vtc'] = None
 
         try:
             snc_file = join(self.filename, self._basename + '.snc')
             orig['snc'] = _read_snc(snc_file)
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             orig['snc'] = None
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
@@ -1014,7 +1014,7 @@ class Ktlx():
         try:
             ent_notes = _read_ent(ent_file)
 
-        except FileNotFoundError:
+        except (FileNotFoundError, PermissionError):
             markers = []
 
         else:
