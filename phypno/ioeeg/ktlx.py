@@ -835,13 +835,13 @@ class Ktlx():
         hdr = {}
 
         # use .erd because it has extra info, such as sampling freq
-        try:
-            erd_file = join(self.filename, self._basename + '.erd')
-            hdr['erd'] = _read_hdr_file(erd_file)
-        except (FileNotFoundError, PermissionError):
-            erd_file = join(self.filename, self._basename + '_001.erd')
-            hdr['erd'] = _read_hdr_file(erd_file)
-
+        # try to read any possible ERD (in case one or two ERD are missing)
+        for erd_file in glob(join(self.filename, self._basename + '*.erd')):
+            try:
+                hdr['erd'] = _read_hdr_file(erd_file)
+                break
+            except (FileNotFoundError, PermissionError):
+                pass
         stc = _read_stc(join(self.filename, self._basename + '.stc'))
         hdr['stc'], hdr['stamps'] = stc
 
