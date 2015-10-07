@@ -659,11 +659,12 @@ def _read_stc(stc_file):
     <INDEX> is formatted with "%03d" format specifier and starts at 1 (initial
     value being 0 and omitted for compatibility with the previous versions).
     """
+    hdr = _read_hdr_file(stc_file)  # read header the normal way
+
     with open(stc_file, 'rb') as f:
         f.seek(0, SEEK_END)
         endfile = f.tell()
         f.seek(352)  # end of header
-        hdr = {}
         hdr['next_segment'] = unpack('<i', f.read(4))[0]
         hdr['final'] = unpack('<i', f.read(4))[0]
         hdr['padding'] = unpack('<' + 'i' * 12, f.read(48))
@@ -962,7 +963,7 @@ class Ktlx():
             subj_id = (orig['pat_first_name'] + orig['pat_middle_name'] +
                        orig['pat_last_name'])
 
-        start_time = orig['creation_time']
+        start_time = self._hdr['stc']['creation_time']
         s_freq = orig['sample_freq']
 
         # information contained in .stc
