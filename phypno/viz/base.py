@@ -135,6 +135,9 @@ class SimpleMeshVisual(Visual):
         self._draw_mode = 'triangles'
         self.set_gl_state('opaque', depth_test=True, cull_face=True)
 
+    def update_color(self, color):
+        self._colors = color
+
     def _prepare_transforms(self, view):
         view.view_program.vert['transform'] = view.get_transform()
 

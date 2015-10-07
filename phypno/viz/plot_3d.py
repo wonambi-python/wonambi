@@ -30,8 +30,11 @@ class Viz3(Viz):
         self._plt.grid.margin = 0
         self._plt.title.stretch = 0, 0
 
-        self._limits_x = None  # tuple
-        self._limits_y = None  # tuple
+        self._surf = []
+        self._chan = []
+
+        self._chan_colormap = None
+        self._chan_limits_c = None
 
     def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
                  values=None, limits_c=None, colormap='coolwarm'):
@@ -88,7 +91,7 @@ class Viz3(Viz):
         self._plt.view.camera.azimuth = azimuth
         self._plt.view.border_color = 'w'  # border around surf
 
-        self._mesh = mesh
+        self._surf.append(mesh)
 
     def add_chan(self, chan, color=CHAN_COLOR, chan_colors=None,
                  values=None, limits_c=None, colormap='coolwarm'):
@@ -109,32 +112,93 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         """
-        if color is not None and len(color) == 3:
-            color = r_[array(color), 1.]  # make sure it's an array
-
-        if values is not None:
-            if limits_c is None:
-                limits_c = min(values), max(values)
-
-            norm_values = normalize(values, *limits_c)
-
-            cm = get_colormap(colormap)
-            chan_colors = cm[norm_values].rgba
-
-            color = None
-
         # larger if colors are meaningful
         if values is not None:
             meshdata = create_sphere(radius=3, method='ico')
         else:
             meshdata = create_sphere(radius=1.5, method='ico')
 
+        chan_colors, limits = _prepare_chan_colors(color, chan_colors, values,
+                                                   limits_c, colormap)
+
+        # store values in case we update the values
+        self._chan_colormap = colormap
+        self._chan_limits_c = limits
+
         for i, one_chan in enumerate(chan.chan):
-            if chan_colors is not None:
+            if chan_colors.ndim == 2:
                 chan_color = chan_colors[i, :]
             else:
-                chan_color = color
+                chan_color = chan_colors
 
             mesh = SimpleMesh(meshdata, chan_color)
             mesh.transform = STTransform(translate=one_chan.xyz)
             self._plt.view.add(mesh)
+            self._chan.append(mesh)
+
+    def update_chan(self, color=CHAN_COLOR, chan_colors=None, values=None):
+        """Update values or colors for channels. To change colormap or limits,
+        you need to create a new figure.
+
+        Parameters
+        ----------
+        color : tuple
+            3-, 4-element tuple, representing RGB and alpha, between 0 and 1
+        chan_colors : ndarray
+            array with colors for each channel
+        values : ndarray
+            array with values for each channel
+        """
+        chan_colors, _ = _prepare_chan_colors(color, chan_colors, values,
+                                              self._chan_limits_c,
+                                              self._chan_colormap)
+
+        for i, chan in enumerate(self._chan):
+            if chan_colors.ndim == 2:
+                chan_color = chan_colors[i, :]
+            else:
+                chan_color = chan_colors
+            chan.update_color(chan_color)
+
+        self._plt.update()
+
+
+def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
+    """Return colors for all the channels based on various inputs.
+
+    Parameters
+    ----------
+    color : tuple
+        3-, 4-element tuple, representing RGB and alpha, between 0 and 1
+    chan_colors : ndarray
+        array with colors for each channel
+    values : ndarray
+        array with values for each channel
+    limits_c : tuple of 2 floats, optional
+        min and max values to normalize the color
+    colormap : str
+        one of the colormaps in vispy
+
+    Returns
+    -------
+    1d / 2d array
+        colors for all the channels or for each channel individually
+    tuple of two float or None
+        limits for the values
+    """
+    if values is not None:
+
+        if limits_c is None:
+            limits_c = min(values), max(values)
+
+        norm_values = normalize(values, *limits_c)
+
+        cm = get_colormap(colormap)
+        colors = cm[norm_values].rgba
+
+    else:
+        colors = array(color)   # make sure it's an array
+        if len(colors) == 3:
+            colors = r_[colors, 1.]
+
+    return colors, limits_c
