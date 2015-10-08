@@ -1,17 +1,15 @@
 """Convenient module to convert data based on simple mathematical operations.
-
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
-from copy import deepcopy
 from inspect import getfullargspec
+from logging import getLogger
 
 # for Math
 from numpy import (absolute, angle, diff, exp, log, median, mean, pad, sqrt,
                    square, sum, std, unwrap)
 from scipy.signal import hilbert
 from scipy.stats import mode
+
+lg = getLogger(__name__)
 
 NOKEEPDIM = (median, mode)
 
@@ -160,7 +158,7 @@ class Math:
             When you try to operate on an axis that has already been removed.
 
         """
-        output = deepcopy(data)
+        output = data._copy()
 
         if self.axis is not None:
             idx_axis = data.index_of(self.axis)

@@ -302,6 +302,52 @@ class Data:
 
             yield output
 
+    def _copy(self, axis=True, attr=True, data=False):
+        """Create a new instance of Data, but does not copy the data
+        necessarily.
+
+        Parameters
+        ----------
+        axis : bool, optional
+            deep copy the axes (default: True)
+        attr : bool, optional
+            deep copy the attributes (default: True)
+        data : bool, optional
+            deep copy the data (default: False)
+
+        Returns
+        -------
+        instance of Data (or ChanTime, ChanFreq, ChanTimeFreq)
+            copy of the data, but without the actual data
+
+        Notes
+        -----
+        It's important that we copy all the relevant information here. If you
+        add new attributes, you should add them here.
+
+        Remember that it deep-copies all the information, so if you copy data
+        the size might become really large.
+        """
+        cdata = type(self)()  # create instance of the same class
+
+        cdata.s_freq = self.s_freq
+        cdata.start_time = self.start_time
+
+        if axis:
+            cdata.axis = deepcopy(self.axis)
+
+        if attr:
+            cdata.attr = deepcopy(self.attr)
+
+        if data:
+            cdata.data = deepcopy(self.data)
+
+        else:
+            # empty data with the correct number of trials
+            cdata.data = empty(self.number_of('trial'), dtype='O')
+
+        return cdata
+
     def export(self, filename, export_format='FieldTrip', **options):
         """Export data in other formats.
 

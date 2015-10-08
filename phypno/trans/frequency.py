@@ -14,7 +14,7 @@ except ImportError:
 
 from ..datatype import ChanFreq, ChanTimeFreq
 
-lg = getLogger('phypno')
+lg = getLogger(__name__)
 
 
 class Freq:

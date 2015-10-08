@@ -1,5 +1,7 @@
+from logging import getLogger
 from numpy import nan, nanargmax, nanargmin
-from copy import deepcopy
+
+lg = getLogger(__name__)
 
 
 class Peaks:
@@ -44,7 +46,7 @@ class Peaks:
 
         """
         idx_axis = data.index_of(self.axis)
-        output = deepcopy(data)
+        output = data._copy()
         output.axis.pop(self.axis)
 
         for trl in range(data.number_of('trial')):

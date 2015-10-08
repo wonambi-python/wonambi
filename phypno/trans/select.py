@@ -8,16 +8,14 @@ content of the data.
 
 Select should be as flexible as possible. There are quite a few cases, which
 will be added as we need them.
-
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
 from collections import Iterable
-from copy import deepcopy
+from logging import getLogger
 
 from numpy import asarray, empty, linspace, ones, setdiff1d
 from scipy.signal import resample
+
+lg = getLogger(__name__)
 
 
 class Select:
@@ -35,7 +33,6 @@ class Select:
         you can use (None, value_of_interest)
     invert : bool
         take the opposite selection
-
     """
     def __init__(self, trial=None, invert=False, **axes_to_select):
 
@@ -63,7 +60,6 @@ class Select:
         -------
         instance, same class as input
             data where selection has been applied.
-
         """
         if self.trial is None:
             trial = range(data.number_of('trial'))
@@ -73,7 +69,7 @@ class Select:
                 trial = setdiff1d(range(data.number_of('trial')), trial)
 
         # create empty axis
-        output = deepcopy(data)
+        output = data._copy(axis=False)
         for one_axis in output.axis:
             output.axis[one_axis] = empty(len(trial), dtype='O')
         output.data = empty(len(trial), dtype='O')
@@ -136,7 +132,7 @@ class Resample:
     def __call__(self, data):
         axis = self.axis
 
-        data = deepcopy(data)
+        data = data._copy()
         ratio = data.s_freq / self.s_freq
 
         for i in range(data.number_of('trial')):

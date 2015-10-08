@@ -1,14 +1,12 @@
 """Module to merge Data together, along different axis and time points.
 
 It does not merge two instances of Data together (TODO).
-
 """
 from logging import getLogger
-lg = getLogger('phypno')
-
-from copy import deepcopy
 
 from numpy import asarray, concatenate, empty, expand_dims, unique
+
+lg = getLogger(__name__)
 
 
 class Concatenate:
@@ -24,7 +22,6 @@ class Concatenate:
     If axis is 'trial', it will add one more dimension, and concatenate based
     on it. It will then create a new axis, called 'trial_axis' (not 'trial'
     because that axis is hard-coded).
-
     """
     def __init__(self, axis):
         self.axis = axis
@@ -40,11 +37,10 @@ class Concatenate:
         -------
         instace of same class as input
             the data will always have only one trial
-
         """
-        output = deepcopy(data)
+        output = data._copy(axis=False)
 
-        for axis in output.axis:
+        for axis in data.axis:
             output.axis[axis] = empty(1, dtype='O')
 
             if axis == self.axis:

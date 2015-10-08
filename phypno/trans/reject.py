@@ -1,9 +1,8 @@
 """Module to reject bad channels and bad epochs.
-
 """
 from logging import getLogger
 
-lg = getLogger('phypno')
+lg = getLogger(__name__)
 
 
 class RejectBadChan:

@@ -1,15 +1,13 @@
 """Module to filter the data.
-
 """
 from logging import getLogger
-lg = getLogger('phypno')
 
-from copy import deepcopy
 from itertools import product
 
 from numpy import ix_, expand_dims, squeeze
-from numpy.linalg import norm
 from scipy.signal import iirfilter, filtfilt, get_window, fftconvolve
+
+lg = getLogger(__name__)
 
 
 class Filter:
@@ -50,7 +48,6 @@ class Filter:
     ------
     ValueError
         if the cutoff frequency is larger than the Nyquist frequency.
-
     """
     def __init__(self, low_cut=None, high_cut=None, order=4, ftype='butter',
                  s_freq=None, Rs=None):
@@ -123,7 +120,7 @@ class Filter:
             filtered data
 
         """
-        fdata = deepcopy(data)
+        fdata = data._copy()
         for i in range(data.number_of('trial')):
             fdata.data[i] = filtfilt(self.b, self.a,
                                      data.data[i],
@@ -184,7 +181,7 @@ class Convolve:
         so we need to redefine it here. It's pretty slow too.
 
         """
-        fdata = deepcopy(data)
+        fdata = data._copy()
         idx_axis = data.index_of(axis)
 
         for i in range(data.number_of('trial')):

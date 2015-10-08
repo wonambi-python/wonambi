@@ -1,5 +1,4 @@
 from logging import getLogger
-from copy import deepcopy
 
 from numpy import asarray, dot, zeros, where, c_, mean
 from numpy.linalg import norm
@@ -70,7 +69,7 @@ class Montage:
             chan, trans = create_bipolar_chan(chan, self.bipolar)
             data.attr['chan'] = chan
 
-        mdata = deepcopy(data)
+        mdata = data._copy()
 
         if self.ref_to_avg or self.ref_chan or self.bipolar:
 
