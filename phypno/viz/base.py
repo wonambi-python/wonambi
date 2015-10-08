@@ -13,6 +13,8 @@ from vispy.gloo.wrappers import read_pixels
 
 DPI = 90
 INCH_IN_MM = 25.4
+COLORMAP = 'coolwarm'
+
 
 vertex_shader = """
 varying vec3 normal_vec;

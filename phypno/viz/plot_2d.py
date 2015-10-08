@@ -2,14 +2,14 @@
 """
 from numpy import nanmax, nanmin
 
-from .base import Viz
+from .base import COLORMAP, Viz
 
 
 class Viz2(Viz):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def add_data(self, data, trial=0, limits_c=None):
+    def add_data(self, data, trial=0, limits_c=None, colormap=COLORMAP):
         """
         Parameters
         ----------
@@ -28,5 +28,9 @@ class Viz2(Viz):
         else:
             min_c, max_c = limits_c
 
-        for cnt in range(1):
-            self._fig[cnt, 0].plot(dat, clim=(min_c, max_c))
+        plt = self._fig[0, 0]
+        plt.image(dat, clim=(min_c, max_c), cmap=colormap)
+        plt.view.camera.aspect = None
+        plt.xaxis.axis.domain = (data.axis['time'][trial][0],
+                                 data.axis['time'][trial][-1])
+        self._plt = plt

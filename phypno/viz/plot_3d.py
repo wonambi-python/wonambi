@@ -5,7 +5,7 @@ from vispy.color import get_colormap
 from vispy.geometry import create_sphere, MeshData
 from vispy.visuals.transforms import STTransform
 
-from .base import normalize, SimpleMesh, Viz
+from .base import COLORMAP, normalize, SimpleMesh, Viz
 
 
 CHAN_COLOR = 0., 1, 0, 1.
@@ -37,7 +37,7 @@ class Viz3(Viz):
         self._chan_limits_c = None
 
     def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
-                 values=None, limits_c=None, colormap='coolwarm'):
+                 values=None, limits_c=None, colormap=COLORMAP):
         """Add surfaces to the visualization.
 
         Parameters
