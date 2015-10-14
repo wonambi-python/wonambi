@@ -68,7 +68,7 @@ class Viz():
 
         self._fig.show(True)
         app.process_events()
-        img = read_pixels(region=region)  # self._fig.render(region=region)
+        img = read_pixels(viewport=region)  # self._fig.render(region=region)
         self._fig.show(False)
         return bytes(_make_png(img))
 
