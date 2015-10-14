@@ -85,7 +85,6 @@ class Math:
 
     >>> def func(x, axis, keepdims=None):
     >>>     return nanmax(x, axis=axis)
-
     """
     def __init__(self, operator=None, operator_name=None,
                  axis=None):
@@ -156,7 +155,6 @@ class Math:
         ------
         ValueError
             When you try to operate on an axis that has already been removed.
-
         """
         output = data._copy()
 
@@ -173,7 +171,7 @@ class Math:
             for i in range(output.number_of('trial')):
                 if op['on_axis']:
                     try:
-                        x = output(trial=i)
+                        x = data(trial=i)
                         if func == diff:
                             lg.debug('Diff has one-point of zero padding')
                             x = _pad_one_axis_one_value(x, idx_axis)
@@ -182,10 +180,10 @@ class Math:
                     except IndexError:
                         raise ValueError('The axis ' + self.axis + ' does not '
                                          'exist in [' +
-                                         ', '.join(list(output.axis.keys()))
+                                         ', '.join(list(data.axis.keys()))
                                          + ']')
                 else:
-                    output.data[i] = func(output(trial=i))
+                    output.data[i] = func(data(trial=i))
 
             if op['on_axis'] and not op['keepdims']:
                 del output.axis[self.axis]

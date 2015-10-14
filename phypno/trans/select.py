@@ -132,20 +132,21 @@ class Resample:
     def __call__(self, data):
         axis = self.axis
 
-        data = data._copy()
+        output = data._copy()
         ratio = data.s_freq / self.s_freq
 
         for i in range(data.number_of('trial')):
 
             # force convertion to int
             n_samples = int(data.axis[axis][i].shape[0] / ratio)
-            data.axis[axis][i] = linspace(data.axis[axis][i][0],
-                                          data.axis[axis][i][-1] +
-                                          1 / data.s_freq,
-                                          n_samples)
+            output.axis[axis][i] = linspace(data.axis[axis][i][0],
+                                            data.axis[axis][i][-1] +
+                                            1 / data.s_freq,
+                                            n_samples)
 
-            data.data[i] = resample(data.data[i], n_samples,
-                                    axis=data.index_of(axis))
-            data.s_freq = self.s_freq
+            output.data[i] = resample(data.data[i], n_samples,
+                                      axis=data.index_of(axis))
 
-        return data
+        output.s_freq = self.s_freq / ratio
+
+        return output

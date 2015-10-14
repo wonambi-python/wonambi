@@ -78,8 +78,8 @@ class Montage:
                     if self.ref_to_avg:
                         self.ref_chan = data.axis['chan'][0]
 
-                    ref_data = mdata(trial=i, chan=self.ref_chan)
-                    mdata.data[i] = (mdata(trial=i) -
+                    ref_data = data(trial=i, chan=self.ref_chan)
+                    mdata.data[i] = (data(trial=i) -
                                      mean(ref_data,
                                           axis=mdata.index_of('chan')))
 
@@ -88,7 +88,7 @@ class Montage:
                     if not data.index_of('chan') == 0:
                         raise ValueError('For matrix multiplication to work, '
                                          'the first dimension should be chan')
-                    mdata.data[i] = dot(trans, mdata(trial=i))
+                    mdata.data[i] = dot(trans, data(trial=i))
                     mdata.axis['chan'][i] = asarray(chan.return_label(),
                                                     dtype='U')
 
