@@ -60,7 +60,7 @@ class Viz():
         """This is used by ipython to plot inline.
         """
         try:
-            region = (10, 10,  # TODO: how to get these values
+            region = (0, 0,  # TODO: how to get these values
                       int(self._plt.view.bounds(0)[1]),
                       int(self._plt.view.bounds(1)[1]))
         except AttributeError:
@@ -68,7 +68,7 @@ class Viz():
 
         self._fig.show(True)
         app.process_events()
-        img = read_pixels(region)  # self._fig.render(region=region)
+        img = read_pixels(region=region)  # self._fig.render(region=region)
         self._fig.show(False)
         return bytes(_make_png(img))
 
