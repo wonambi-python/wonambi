@@ -194,6 +194,10 @@ class Info(QWidget):
                                                 ' cannot be read')
             return
 
+        except Exception as err:
+            self.parent.statusBar().showMessage(str(err))
+            raise err
+
         self.parent.statusBar().showMessage('')
 
         self.display_dataset()
