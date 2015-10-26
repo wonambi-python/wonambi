@@ -10,7 +10,7 @@ except ImportError:
     lg.warning('scipy (optional dependency) is not installed. You will not '
                'be able to read and write in FieldTrip format.')
 
-VAR = 'data'
+VAR = 'rawdata'
 
 
 class FieldTrip:
@@ -60,7 +60,8 @@ class FieldTrip:
             ft_data = loadmat(self.filename, struct_as_record=True,
                               squeeze_me=True)
             if VAR not in ft_data:
-                raise KeyError('Save the FieldTrip variable as ''data''')
+                raise KeyError('Save the FieldTrip variable as ''{}'''
+                               ''.format(VAR))
             ft_data = ft_data[VAR]
 
             s_freq = ft_data['fsample'].astype('float64').item()
@@ -73,15 +74,16 @@ class FieldTrip:
             with File(self.filename) as f:
 
                 if VAR not in f.keys():
-                    raise KeyError('Save the FieldTrip variable as ''data''')
+                    raise KeyError('Save the FieldTrip variable as ''{}'''
+                                   ''.format(VAR))
 
                 s_freq = around(f[VAR]['fsample'].value.squeeze())
 
                 # some hdf5 magic
                 # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
                 chan_name = []
-                for l in f[VAR]['label']:
-                    chan_name.append(''.join([chr(x) for x in f[l.item()].value]))
+                for l in f[VAR]['label'].value.flat:  # convert to np for flat
+                    chan_name.append(''.join([chr(x) for x in f[l].value]))
 
                 n_smp = f[VAR]['sampleinfo'][1] - f[VAR]['sampleinfo'][0] + 1
                 n_samples = around(n_smp).astype('int')
