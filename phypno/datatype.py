@@ -275,6 +275,29 @@ class Data:
 
             return output
 
+    def __getattr__(self, possible_axis):
+        """Return the axis with a shorter syntax.
+
+        Parameters
+        ----------
+        possible_axis : str
+            one of the axes
+
+        Returns
+        -------
+        value of the axis of interest
+
+        Raises
+        ------
+        AttributeError
+            instead of KeyError. AttributeError however has a slightly
+            different message from the default python AttributeError.
+        """
+        if possible_axis in self.axis:
+            return self.axis[possible_axis]
+        else:  # otherwise we get confusing error message
+            raise AttributeError(possible_axis)
+
     def __iter__(self):
         """Implement generator for each trial.
 
