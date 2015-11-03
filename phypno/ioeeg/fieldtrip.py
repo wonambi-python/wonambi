@@ -10,7 +10,7 @@ except ImportError:
     lg.warning('scipy (optional dependency) is not installed. You will not '
                'be able to read and write in FieldTrip format.')
 
-VAR = 'rawdata'
+VAR = 'data'
 
 
 class FieldTrip:
