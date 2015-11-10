@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
              '<a href="https://github.com/gpiantoni/phypno">'
              'https://github.com/gpiantoni/phypno</a>.'
              '</p><p>'
-             'Copyright &copy; 2013-2014 '
+             'Copyright &copy; 2013-2015 '
              '<a href="http://www.gpiantoni.com">Gio Piantoni</a>'
              '</p><p>'
              'This program is free software: you can redistribute it '

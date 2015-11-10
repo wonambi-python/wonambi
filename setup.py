@@ -10,7 +10,7 @@ with open(path.join(here, 'readme.md'), encoding='utf-8') as f:
 setup(
     name='phypno',
 
-    version='13.3.0',
+    version='13.4.0',
 
     description='Tools for electrophysiology, especially for sleep',
     long_description=long_description,
