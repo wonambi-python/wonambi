@@ -57,6 +57,9 @@ class Montage:
         filtered_data : instance of DataRaw
             filtered data
 
+        Notes
+        -----
+        If you don't change anything, it returns the same instance of data.
         """
         if self.bipolar:
             if not data.attr['chan']:
@@ -69,9 +72,8 @@ class Montage:
             chan, trans = create_bipolar_chan(chan, self.bipolar)
             data.attr['chan'] = chan
 
-        mdata = data._copy()
-
         if self.ref_to_avg or self.ref_chan or self.bipolar:
+            mdata = data._copy()
 
             for i in range(mdata.number_of('trial')):
                 if self.ref_to_avg or self.ref_chan:
@@ -91,6 +93,9 @@ class Montage:
                     mdata.data[i] = dot(trans, data(trial=i))
                     mdata.axis['chan'][i] = asarray(chan.return_label(),
                                                     dtype='U')
+
+        else:
+            mdata = data
 
         return mdata
 

@@ -10,7 +10,7 @@ with open(path.join(here, 'readme.md'), encoding='utf-8') as f:
 setup(
     name='phypno',
 
-    version='13.2.0',
+    version='13.4.0',
 
     description='Tools for electrophysiology, especially for sleep',
     long_description=long_description,
@@ -18,7 +18,7 @@ setup(
     url='https://github.com/gpiantoni/phypno',
 
     author='Gio Piantoni',
-    author_email='pypa-dev@googlegroups.com',
+    author_email='phypno@gpiantoni.com',
 
     license='GPLv3',
 
@@ -33,14 +33,13 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-
+        'Programming Language :: Python :: 3.5',
     ],
 
     keywords='neuroscience analysis sleep EEG ECoG',
 
-    packages=find_packages(exclude=['data', 'doc', 'test', 'var']),
+    packages=find_packages(exclude=['data', 'doc', 'test']),
 
     extras_require={
         'analysis': ['scipy'],
@@ -52,6 +51,10 @@ setup(
                 'nibabel',
                 'pyqtgraph',
                 ]
+    },
+
+    package_data={
+        'phypno': ['widgets/icons/oxygen/*.png'],
     },
 
     entry_points={

@@ -1,5 +1,4 @@
 """Various functions used for the GUI.
-
 """
 from logging import getLogger
 lg = getLogger(__name__)
@@ -10,6 +9,7 @@ from os.path import dirname, join, realpath
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import (QBrush,
                          QColor,
+                         QCommonStyle,
                          QGraphicsItem,
                          QGraphicsSimpleTextItem,
                          QMessageBox,
@@ -19,7 +19,10 @@ from PyQt4.QtGui import (QBrush,
 
 MAX_LENGTH = 20
 
-icon_path = join(dirname(realpath(__file__)), '..', '..', 'var', 'icons')
+stdicon = QCommonStyle.standardIcon
+
+
+icon_path = join(dirname(realpath(__file__)), 'icons')
 oxy_path = join(icon_path, 'oxygen')
 
 ICON = {'open_rec': join(oxy_path, 'document-open.png'),
