@@ -171,7 +171,7 @@ def write_fieldtrip(data, filename):
         trial[trl] = data.data[trl]
         time[trl] = data.axis['time'][trl]
 
-    ft_data = {'fsample': data.s_freq,
+    ft_data = {'fsample': float(data.s_freq),
                'label': data.axis['chan'][0].astype('O'),
                'trial': trial,
                'time': time,
