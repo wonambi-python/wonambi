@@ -77,7 +77,7 @@ class FieldTrip:
                     raise KeyError('Save the FieldTrip variable as ''{}'''
                                    ''.format(VAR))
 
-                s_freq = around(f[VAR]['fsample'].value.squeeze())
+                s_freq = int(f[VAR]['fsample'].value.squeeze())
 
                 # some hdf5 magic
                 # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
@@ -86,7 +86,7 @@ class FieldTrip:
                     chan_name.append(''.join([chr(x) for x in f[l].value]))
 
                 n_smp = f[VAR]['sampleinfo'][1] - f[VAR]['sampleinfo'][0] + 1
-                n_samples = around(n_smp).astype('int')
+                n_samples = int(around(n_smp))
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -120,7 +120,7 @@ class FieldTrip:
             from h5py import File
 
             with File(self.filename) as f:
-                data = f[f[VAR]['trial'][TRL].item()].value
+                data = f[f[VAR]['trial'][TRL].item()].value.T
 
         return data[chan, begsam:endsam]
 
