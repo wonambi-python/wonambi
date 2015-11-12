@@ -289,14 +289,10 @@ class Data:
 
         Raises
         ------
-        AttributeError
-            instead of KeyError. AttributeError however has a slightly
-            different message from the default python AttributeError.
+        KeyError
+            instead of AttributeError.
         """
-        if possible_axis in self.axis:
-            return self.axis[possible_axis]
-        else:  # otherwise we get confusing error message
-            raise AttributeError(possible_axis)
+        return self.axis[possible_axis]
 
     def __iter__(self):
         """Implement generator for each trial.
