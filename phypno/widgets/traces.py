@@ -1,6 +1,5 @@
 """Definition of the main widgets, with recordings.
 """
-from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from logging import getLogger
@@ -898,10 +897,10 @@ def _select_channels(data, channels):
     that we have one trial, and that channel is the first dimension.
 
     """
-    data = deepcopy(data)
+    output = data._copy()
     chan_list = list(data.axis['chan'][0])
     idx_chan = [chan_list.index(i_chan) for i_chan in channels]
-    data.data[0] = data.data[0][idx_chan, :]
-    data.axis['chan'][0] = asarray(channels)
+    output.data[0] = data.data[0][idx_chan, :]
+    output.axis['chan'][0] = asarray(channels)
 
-    return data
+    return output
