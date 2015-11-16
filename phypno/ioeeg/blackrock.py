@@ -1,13 +1,11 @@
-from datetime import datetime
-from logging import getLogger
+from datetime import datetime, timezone
+from logging import getLogger, NOTSET, WARNING, disable
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
 
 from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones,
                    reshape, where)
-
-from ..utils.timezone import Eastern, utc
 
 lg = getLogger(__name__)
 
@@ -88,7 +86,9 @@ class BlackRock:
 
             nev_file = splitext(self.filename)[0] + '.nev'
             try:
+                disable(WARNING)
                 nev_orig = _read_neuralev(nev_file)
+                disable(NOTSET)
             except FileNotFoundError:
                 pass
 
@@ -98,7 +98,7 @@ class BlackRock:
 
         elif file_header == b'NEURALSG':
             orig = _read_neuralsg(self.filename)
-            raise NotImplementedError('This implementation needs to be updated')
+            # raise NotImplementedError('This implementation needs to be updated')
 
             s_freq = orig['SamplingFreq']
             n_samples = orig['DataPoints']
@@ -245,6 +245,7 @@ def _read_neuralsg(filename):
         time = unpack('<' + 'H' * 8, f.read(16))
 
     hdr['DateTimeRaw'] = time
+    lg.warning('DateTime is in local time')
     hdr['DateTime'] = datetime(time[0], time[1], time[3],
                                time[4], time[5], time[6], time[7] * 1000)
 
@@ -259,9 +260,10 @@ def _read_neuralcd(filename):
 
     Notes
     -----
-    For some reason, the time stamps are stored in UTC here (but in local
-    time in the NEV file). So we need to take that into account
-
+    The time stamps are stored in UTC in the NSx files. However, time stamps
+    in the NEV files are stored as local time up to Central 6.03 included and
+    stored as UTC after Central 6.05. It's impossible to know the version of
+    Central from the header.
     """
     hdr = {}
     with open(filename, 'rb') as f:
@@ -272,15 +274,16 @@ def _read_neuralcd(filename):
         hdr['FileSpec'] = str(filespec[0]) + '.' + str(filespec[1])
         hdr['HeaderBytes'] = unpack('<I', BasicHdr[2:6])[0]
         hdr['SamplingLabel'] = _str(BasicHdr[6:22].decode('utf-8'))
-        # hdr['Comment'] = _str(BasicHdr[22:278].decode('utf-8'))
+        hdr['Comment'] = _str(BasicHdr[22:278].decode('utf-8', 'ignore'))
         hdr['TimeRes'] = unpack('<I', BasicHdr[282:286])[0]
         hdr['SamplingFreq'] = int(hdr['TimeRes'] /
                                   unpack('<i', BasicHdr[278:282])[0])
         time = unpack('<' + 'H' * 8, BasicHdr[286:302])
         hdr['DateTimeRaw'] = time
-        d = datetime(time[0], time[1], time[3], time[4], time[5], time[6],
-                     time[7] * 1000, utc)
-        hdr['DateTime'] = d.astimezone(Eastern).replace(tzinfo=None)
+        lg.warning('DateTime is in UTC time')
+        hdr['DateTime'] = datetime(time[0], time[1], time[3], time[4], time[5],
+                                   time[6], time[7] * 1000,
+                                   tzinfo=timezone.utc)
         hdr['ChannelCount'] = unpack('<I', BasicHdr[302:306])[0]
 
         ExtHdrLength = 66
@@ -402,6 +405,11 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
 
     It returns triggers as strings (format of EDFBrowser), but it does not read
     the othe types of events (waveforms, videos, etc).
+
+    The time stamps are stored in UTC in the NSx files. However, time stamps
+    in the NEV files are stored as local time up to Central 6.03 included and
+    stored as UTC after Central 6.05. It's impossible to know the version of
+    Central from the header.
     """
     hdr = {}
     with open(filename, 'rb') as f:
@@ -427,6 +435,8 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
         i0, i1 = i1, i1 + 16
         time = unpack('<' + 'H' * 8, BasicHdr[i0:i1])
         hdr['DateTimeRaw'] = time
+        lg.warning('DateTime is in local time with Central version <= 6.03'
+                   ' and in UTC with Central version > 6.05')
         hdr['DateTime'] = datetime(time[0], time[1], time[3],
                                    time[4], time[5], time[6], time[7] * 1000)
         i0, i1 = i1, i1 + 32

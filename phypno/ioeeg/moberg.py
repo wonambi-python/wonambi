@@ -1,15 +1,13 @@
 from os.path import getsize, join
 from xml.etree.ElementTree import parse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from numpy import reshape, zeros
-
-from ..utils.timezone import utc
 
 # note that the time is in "local" Unix Time, which is in the local time zone,
 # so we read it as "UTC" (meaning, do not apply timezone transformation) and
 # then remove timezone info.
-TIMEZONE = utc
+TIMEZONE = timezone.utc
 # 24bit precision
 DATA_PRECISION = 3
 
