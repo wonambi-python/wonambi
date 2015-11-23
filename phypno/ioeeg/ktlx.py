@@ -21,7 +21,7 @@ from glob import glob
 from logging import getLogger
 from math import ceil
 from os import environ, makedirs, SEEK_END
-from os.path import basename, expanduser, join, exists, splitext
+from os.path import basename, expanduser, join, exists, relpath, splitext
 from platform import system
 from re import sub
 from struct import unpack
@@ -35,6 +35,8 @@ BITS_IN_BYTE = 8
 # How To Convert a UNIX time_t to a Win32 FILETIME or SYSTEMTIME
 EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
 HUNDREDS_OF_NANOSECONDS = 10000000
+
+START_TIME_TOL = 10
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
@@ -279,6 +281,53 @@ def _find_channels(note):
     chan_end = note.index(')', chan_beg)
     note_with_chan = note[chan_beg + 1:chan_end]
     return [x.strip('" ') for x in note_with_chan.split(',')]
+
+
+def _find_start_time(hdr, s_freq):
+    """Find the start time, usually in STC, but if that's not correct, use ERD
+
+    Parameters
+    ----------
+    hdr : dict
+        header with stc (and stamps) and erd
+    s_freq : int
+        sampling frequency
+
+    Returns
+    -------
+    datetime
+        either from stc or from erd
+
+    Notes
+    -----
+    Sometimes, but rather rarely, there is a mismatch between the time in the
+    stc and the time in the erd. For some reason, the time in the stc is way
+    off (by hours), which is clearly not correct.
+
+    We can try to reconstruct the actual time, but looking at the ERD time
+    (of any file apart from the first one) and compute the original time back
+    based on the offset of the number of samples in stc. For some reason, this
+    is not the same for all the ERD, but the jitter is in the order of 1-2s
+    which is acceptable for our purposes (probably, but be careful about the
+    notes).
+    """
+    start_time = hdr['stc']['creation_time']
+
+    for one_stamp in hdr['stamps']:
+        if one_stamp['segment_name'] == hdr['erd']['filename']:
+            offset = one_stamp['start_stamp']
+            break
+
+    erd_time = (hdr['erd']['creation_time'] -
+                timedelta(seconds=offset / s_freq)).replace(microsecond=0)
+
+    stc_erd_diff = (start_time - erd_time).total_seconds()
+    if stc_erd_diff > START_TIME_TOL:
+        lg.warn('Time difference between ERD and STC is {} s so using ERD time'
+                ' at {}'.format(stc_erd_diff, erd_time))
+        start_time = erd_time
+
+    return start_time
 
 
 def _make_str(t_in):
@@ -806,9 +855,14 @@ class Ktlx():
 
         # use .erd because it has extra info, such as sampling freq
         # try to read any possible ERD (in case one or two ERD are missing)
-        for erd_file in glob(join(self.filename, self._basename + '*.erd')):
+        # don't read very first erd because creation_time is slightly off
+        for erd_file in glob(join(self.filename, self._basename + '_*.erd')):
             try:
                 hdr['erd'] = _read_hdr_file(erd_file)
+
+                # we need this to look up stc
+                erd_file = splitext(relpath(erd_file, self.filename))[0]
+                hdr['erd'].update({'filename': erd_file})
                 break
             except (FileNotFoundError, PermissionError):
                 pass
@@ -925,8 +979,8 @@ class Ktlx():
             subj_id = (orig['pat_first_name'] + orig['pat_middle_name'] +
                        orig['pat_last_name'])
 
-        start_time = self._hdr['stc']['creation_time']
         s_freq = orig['sample_freq']
+        start_time = _find_start_time(self._hdr, s_freq)
 
         # information contained in .stc
         n_samples = self._hdr['stamps'][-1]['end_stamp']
