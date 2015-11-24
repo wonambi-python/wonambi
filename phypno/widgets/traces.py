@@ -710,7 +710,7 @@ class Traces(QGraphicsView):
                                            time=time_of_interest)
             n_data = len(data)
             n_pad = (power(2, ceil(log2(n_data))) - n_data) / 2
-            data = pad(data, (ceil(n_pad), floor(n_pad)), 'constant')
+            data = pad(data, (int(ceil(n_pad)), int(floor(n_pad))), 'constant')
 
             self.parent.spectrum.display(data)
 
