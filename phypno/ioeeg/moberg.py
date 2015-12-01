@@ -102,6 +102,10 @@ class Moberg:
         -------
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
+
+        TODO
+        ----
+        It should return NaN if the time window is not in range.
         """
         first_sam = DATA_PRECISION * self.n_chan * begsam
         toread_sam = DATA_PRECISION * self.n_chan * (endsam - begsam)

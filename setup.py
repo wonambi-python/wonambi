@@ -4,13 +4,16 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
+with open(path.join(here, 'phypno', 'VERSION')) as f:
+    VERSION = f.read()
+
 with open(path.join(here, 'readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
     name='phypno',
 
-    version='13.4.0',
+    version=VERSION,
 
     description='Tools for electrophysiology, especially for sleep',
     long_description=long_description,
@@ -42,19 +45,20 @@ setup(
     packages=find_packages(exclude=['data', 'doc', 'test']),
 
     extras_require={
-        'analysis': ['scipy'],
+        'analysis': ['scipy'],  # numpy
         'gui': ['scipy'],  # pyqt4
-        'viz': ['pyqtgraph'],
+        'viz': ['vispy'],
         'test': ['coverage'],
         'all': ['scipy',
                 'mne',
                 'nibabel',
-                'pyqtgraph',
+                'vispy',
                 ]
     },
 
     package_data={
-        'phypno': ['widgets/icons/oxygen/*.png'],
+        'phypno': ['widgets/icons/oxygen/*.png',
+                   'VERSION'],
     },
 
     entry_points={

@@ -6,7 +6,7 @@ from logging import getLogger
 # for Math
 from numpy import (absolute, angle, diff, exp, log, median, mean, pad, sqrt,
                    square, sum, std, unwrap)
-from scipy.signal import hilbert
+from scipy.signal import detrend, hilbert
 from scipy.stats import mode
 
 lg = getLogger(__name__)

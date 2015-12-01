@@ -130,10 +130,10 @@ class Overview(QGraphicsView):
 
         elif self.parent.notes.annot is not None:
             # read from annotations
-            dataset = self.parent.notes.annot.dataset
-            self.minimum = dataset['first_second']
-            self.maximum = dataset['last_second']
-            self.start_time = dataset['start_time']
+            annot = self.parent.notes.annot
+            self.minimum = annot.first_second
+            self.maximum = annot.last_second
+            self.start_time = annot.start_time
 
         # make it time-zone unaware
         self.start_time = self.start_time.replace(tzinfo=None)

@@ -29,7 +29,8 @@ from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
 settings = QSettings("phypno", "scroll_data")
-VERSION = '13.2'  # check this
+with open('VERSION') as f:
+    VERSION = f.read()
 
 
 class MainWindow(QMainWindow):

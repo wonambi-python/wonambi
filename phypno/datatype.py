@@ -80,7 +80,8 @@ class Data:
     data : ndarray (dtype='O')
         the data as trials. Each trial is a ndarray (dtype='d' or 'f')
     axis : OrderedDict
-        dictionary with axiss (standard names are 'chan', 'time', 'freq')
+        dictionary with axiss (standard names are 'chan', 'time', 'freq');
+        values should be numpy array
     s_freq : int
         sampling frequency
     start_time : instance of datetime.datetime
@@ -108,6 +109,10 @@ class Data:
             self.data = array((1, ), dtype='O')
             self.data[0] = data
 
+        """TODO: order is important but inverse
+        Starting in version 3.5 Python will preserve the order of keyword
+        arguments as passed to a function.
+        """
         self.axis = OrderedDict()
         for axis, value in axes.items():
             self.axis[axis] = array((1,), dtype='O')
