@@ -17,6 +17,7 @@ lg.addHandler(handler)
 
 lg.setLevel(INFO)
 
+from os.path import abspath, dirname, join
 from types import MethodType
 
 from numpy import arange
@@ -29,7 +30,8 @@ from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
 settings = QSettings("phypno", "scroll_data")
-with open('VERSION') as f:
+here = abspath(dirname(__file__))
+with open(join(here, 'VERSION')) as f:
     VERSION = f.read()
 
 

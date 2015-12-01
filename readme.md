@@ -12,12 +12,13 @@ Numpy
 (not specified in setup.py because `numpy` does not like to be installed as dependency, see  [this bug](https://github.com/numpy/numpy/issues/2434))
 
 ## Optional
-You can install other depene
+You can install other dependencies, depending on what you need:
+
 scipy (to filter recordings, frequency analysis, read matlab files)
 
 pyqt4 (for graphical user interface)
 
-pyqtgraph (for visualization)
+vispy (for visualization)
 
 nibabel (to read freesurfer surfaces)
 
