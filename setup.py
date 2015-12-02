@@ -4,6 +4,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
+# make sure that VERSION can be converted to float
 with open(path.join(here, 'phypno', 'VERSION')) as f:
     VERSION = f.read()
 

@@ -380,11 +380,15 @@ class Data:
         filename : path to file
             file to write
         export_format : str, optional
-            supported export format is currently EDF, FieldTrip and FIFF
+            supported export format is currently EDF, FieldTrip, FIFF, Phypno
 
         Notes
         -----
         EDF takes an optional argument "physical_max", see write_edf.
+
+        Phypno takes an optional argument "subj_id", see write_phypno.
+        Phypno format creates two files, one .phy with the dataset info as json
+        file and one .dat with the memmap recordings.
         """
         if export_format == 'EDF':
             from .ioeeg import write_edf  # avoid circular import
@@ -398,6 +402,10 @@ class Data:
 
             from .ioeeg import write_mnefiff
             write_mnefiff(self, filename)
+
+        elif export_format == 'phypno':
+            from .ioeeg import write_phypno
+            write_phypno(self, filename, **options)
 
         else:
             raise ValueError('Cannot export to ' + export_format)

@@ -9,7 +9,7 @@ from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Moberg
+from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Moberg, Phypno
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -76,6 +76,9 @@ def detect_format(filename):
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
     else:
+        if filename.endswith('.phy'):
+            return Phypno
+
         with open(filename, 'rb') as f:
             file_header = f.read(8)
             if file_header == b'0       ':
