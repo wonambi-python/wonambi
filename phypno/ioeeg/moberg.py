@@ -2,7 +2,7 @@ from os.path import getsize, join
 from xml.etree.ElementTree import parse
 from datetime import datetime, timedelta, timezone
 
-from numpy import reshape, zeros
+from numpy import NaN, pad, reshape, zeros
 
 # note that the time is in "local" Unix Time, which is in the local time zone,
 # so we read it as "UTC" (meaning, do not apply timezone transformation) and
@@ -26,6 +26,7 @@ class Moberg:
     def __init__(self, filename):
         self.filename = filename
         self.n_chan = None
+        self.n_smp = None
 
     def return_hdr(self):
         """Return the header for further use.
@@ -64,6 +65,7 @@ class Moberg:
 
         data_size = getsize(join(self.filename, EEG_FILE))
         n_samples = int(data_size / DATA_PRECISION / len(chan_name))
+        self.n_smp = n_samples
 
         self.n_chan = len(chan_name)
         settings = parse(join(self.filename, SETTINGS_FILE))
@@ -102,11 +104,19 @@ class Moberg:
         -------
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
-
-        TODO
-        ----
-        It should return NaN if the time window is not in range.
         """
+        if begsam < 0:
+            begpad = -1 * begsam
+            begsam = 0
+        else:
+            begpad = 0
+
+        if endsam > self.n_smp:
+            endpad = endsam - self.n_smp
+            endsam = self.n_smp
+        else:
+            endpad = 0
+
         first_sam = DATA_PRECISION * self.n_chan * begsam
         toread_sam = DATA_PRECISION * self.n_chan * (endsam - begsam)
 
@@ -116,8 +126,11 @@ class Moberg:
 
         dat = _read_dat(x)
         dat = reshape(dat, (self.n_chan, -1), 'F')
+        dat = self.convertion(dat[chan, :])
+        dat = pad(dat, ((0, 0), (begpad, endpad)),
+                  mode='constant', constant_values=NaN)
 
-        return self.convertion(dat[chan, :])
+        return dat
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
