@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from PyQt4.QtGui import QApplication
+from PyQt5.QtWidgets import QApplication
 
 from logging import getLogger, INFO, StreamHandler, Formatter
 
@@ -21,8 +21,8 @@ from os.path import abspath, dirname, join
 from types import MethodType
 
 from numpy import arange
-from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import QMainWindow, QMessageBox
+from PyQt5.QtCore import QSettings
+from PyQt5.QtWidgets import QMainWindow, QMessageBox
 
 from .widgets.creation import (create_menubar, create_toolbar,
                                create_actions, create_widgets)

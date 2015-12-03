@@ -6,17 +6,17 @@ from datetime import timedelta
 from functools import partial
 from os.path import basename, dirname
 
-from PyQt4.QtGui import (QAction,
-                         QFormLayout,
-                         QGroupBox,
-                         QIcon,
-                         QKeySequence,
-                         QLabel,
-                         QFileDialog,
-                         QPushButton,
-                         QVBoxLayout,
-                         QWidget,
-                         )
+
+from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtWidgets import (QAction,
+                             QFormLayout,
+                             QGroupBox,
+                             QLabel,
+                             QFileDialog,
+                             QPushButton,
+                             QVBoxLayout,
+                             QWidget,
+                             )
 
 from .. import Dataset
 from .utils import (short_strings, ICON, keep_recent_datasets,
@@ -171,12 +171,12 @@ class Info(QWidget):
 
             file_or_dir = choose_file_or_dir()
             if file_or_dir == 'dir':
-                filename = QFileDialog.getExistingDirectory(self,
-                                                            'Open directory',
-                                                            dir_name)
+                filename, _ = QFileDialog.getExistingDirectory(self,
+                                                               'Open directory',
+                                                               dir_name)
             elif file_or_dir == 'file':
-                filename = QFileDialog.getOpenFileName(self, 'Open file',
-                                                       dir_name)
+                filename, _ = QFileDialog.getOpenFileName(self, 'Open file',
+                                                          dir_name)
             elif file_or_dir == 'abort':
                 return
 

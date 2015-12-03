@@ -4,16 +4,16 @@ from logging import getLogger
 
 from numpy import log, ceil, floor, min
 from scipy.signal import welch
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QComboBox,
-                         QFormLayout,
-                         QGraphicsView,
-                         QGraphicsScene,
-                         QGroupBox,
-                         QPen,
-                         QVBoxLayout,
-                         QWidget,
-                         )
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPen
+from PyQt5.QtWidgets import (QComboBox,
+                             QFormLayout,
+                             QGraphicsView,
+                             QGraphicsScene,
+                             QGroupBox,
+                             QVBoxLayout,
+                             QWidget,
+                             )
 
 from .utils import Path
 from .settings import Config, FormFloat, FormBool

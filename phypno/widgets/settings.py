@@ -3,22 +3,22 @@
 from ast import literal_eval
 from logging import getLogger
 
-from PyQt4.QtCore import QSettings, Qt
-from PyQt4.QtGui import (QCheckBox,
-                         QDialogButtonBox,
-                         QDialog,
-                         QFileDialog,
-                         QFormLayout,
-                         QGroupBox,
-                         QHBoxLayout,
-                         QLineEdit,
-                         QListWidget,
-                         QPushButton,
-                         QSplitter,
-                         QStackedWidget,
-                         QVBoxLayout,
-                         QWidget,
-                         )
+from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtWidgets import (QCheckBox,
+                             QDialogButtonBox,
+                             QDialog,
+                             QFileDialog,
+                             QFormLayout,
+                             QGroupBox,
+                             QHBoxLayout,
+                             QLineEdit,
+                             QListWidget,
+                             QPushButton,
+                             QSplitter,
+                             QStackedWidget,
+                             QVBoxLayout,
+                             QWidget,
+                             )
 
 lg = getLogger(__name__)
 

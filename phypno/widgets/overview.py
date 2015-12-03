@@ -5,18 +5,20 @@ from datetime import timedelta
 from logging import getLogger
 from math import ceil, floor
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QBrush,
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import (QBrush,
                          QColor,
-                         QFormLayout,
-                         QGraphicsItem,
-                         QGraphicsRectItem,
-                         QGraphicsScene,
-                         QGraphicsView,
-                         QGroupBox,
                          QPen,
-                         QVBoxLayout,
                          )
+
+from PyQt5.QtWidgets import (QFormLayout,
+                             QGraphicsItem,
+                             QGraphicsRectItem,
+                             QGraphicsScene,
+                             QGraphicsView,
+                             QGroupBox,
+                             QVBoxLayout,
+                             )
 
 from .settings import Config, FormInt
 from .utils import convert_name_to_color
@@ -340,7 +342,8 @@ class Overview(QGraphicsView):
         old_score = self.scene.itemAt(start_time + length / 2,
                                       y_pos +
                                       STAGES[stage_name]['pos0'] +
-                                      STAGES[stage_name]['pos1'] - 1)
+                                      STAGES[stage_name]['pos1'] - 1,
+                                      self.transform())
 
         # check we are not removing the black border
         if old_score is not None and old_score.pen() == NoPen:

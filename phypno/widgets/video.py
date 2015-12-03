@@ -7,16 +7,16 @@ lg = getLogger(__name__)
 from os.path import join
 from subprocess import call
 
-from PyQt4.QtGui import (QFormLayout,
-                         QGroupBox,
-                         QLabel,
-                         QPushButton,
-                         QVBoxLayout,
-                         QWidget,
-                         )
+from PyQt5.QtWidgets import (QFormLayout,
+                             QGroupBox,
+                             QLabel,
+                             QPushButton,
+                             QVBoxLayout,
+                             QWidget,
+                             )
 try:
-    from PyQt4.phonon import Phonon
-    from PyQt4.QtCore import QCoreApplication
+    from PyQt5.phonon import Phonon
+    from PyQt5.QtCore import QCoreApplication
     QCoreApplication.setApplicationName('phonon')
 
 except ImportError:

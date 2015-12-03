@@ -6,15 +6,16 @@ lg = getLogger(__name__)
 from math import ceil, floor
 from os.path import dirname, join, realpath
 
-from PyQt4.QtCore import QSettings, Qt
-from PyQt4.QtGui import (QBrush,
+from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtGui import (QBrush,
                          QColor,
-                         QCommonStyle,
-                         QGraphicsItem,
-                         QGraphicsSimpleTextItem,
-                         QMessageBox,
                          QPainterPath,
                          )
+from PyQt5.QtWidgets import (QGraphicsItem,
+                             QGraphicsSimpleTextItem,
+                             QMessageBox,
+                             QCommonStyle,
+                             )
 
 
 MAX_LENGTH = 20

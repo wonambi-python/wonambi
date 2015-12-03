@@ -6,22 +6,23 @@ from logging import getLogger
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, in1d,
                    max, min, linspace, log2, pad, power)
-from PyQt4.QtCore import QPointF, Qt, QRectF
-from PyQt4.QtGui import (QAction,
-                         QBrush,
+from PyQt5.QtCore import QPointF, Qt, QRectF
+from PyQt5.QtGui import (QBrush,
                          QColor,
-                         QFormLayout,
-                         QGraphicsItem,
-                         QGraphicsRectItem,
-                         QGraphicsScene,
-                         QGraphicsSimpleTextItem,
-                         QGraphicsView,
-                         QGroupBox,
                          QIcon,
                          QKeySequence,
                          QPen,
-                         QVBoxLayout,
                          )
+from PyQt5.QtWidgets import (QAction,
+                             QFormLayout,
+                             QGraphicsItem,
+                             QGraphicsRectItem,
+                             QGraphicsScene,
+                             QGraphicsSimpleTextItem,
+                             QGraphicsView,
+                             QGroupBox,
+                             QVBoxLayout,
+                             )
 
 from .. import ChanTime
 from ..trans import Montage, Filter

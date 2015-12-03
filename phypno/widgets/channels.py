@@ -4,24 +4,26 @@ from copy import deepcopy
 from json import dump, load
 from os.path import splitext
 
-from PyQt4.QtGui import (QAbstractItemView,
-                         QAction,
-                         QColor,
-                         QColorDialog,
-                         QDoubleSpinBox,
-                         QFileDialog,
-                         QFormLayout,
-                         QGridLayout,
-                         QGroupBox,
-                         QHBoxLayout,
-                         QInputDialog,
-                         QListWidget,
-                         QListWidgetItem,
-                         QPushButton,
-                         QVBoxLayout,
-                         QTabWidget,
-                         QWidget
+from PyQt5.QtGui import (QColor,
                          )
+
+from PyQt5.QtWidgets import (QAbstractItemView,
+                             QAction,
+                             QColorDialog,
+                             QDoubleSpinBox,
+                             QFileDialog,
+                             QFormLayout,
+                             QGridLayout,
+                             QGroupBox,
+                             QHBoxLayout,
+                             QInputDialog,
+                             QListWidget,
+                             QListWidgetItem,
+                             QPushButton,
+                             QVBoxLayout,
+                             QTabWidget,
+                             QWidget
+                             )
 
 
 from .settings import Config, FormFloat, FormStr
@@ -393,10 +395,10 @@ class Channels(QWidget):
             else:
                 filename = None
 
-            filename = QFileDialog.getOpenFileName(self,
-                                                   'Open Channels Montage',
-                                                   filename,
-                                                   'Channels File (*.json)')
+            filename, _ = QFileDialog.getOpenFileName(self,
+                                                      'Open Channels Montage',
+                                                      filename,
+                                                      'Channels File (*.json)')
             if filename == '':
                 return
 
@@ -435,9 +437,10 @@ class Channels(QWidget):
         else:
             filename = None
 
-        filename = QFileDialog.getSaveFileName(self, 'Save Channels Montage',
-                                               filename,
-                                               'Channels File (*.json)')
+        filename, _ = QFileDialog.getSaveFileName(self,
+                                                  'Save Channels Montage',
+                                                  filename,
+                                                  'Channels File (*.json)')
         if filename == '':
             return
 

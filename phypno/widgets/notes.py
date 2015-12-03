@@ -11,27 +11,26 @@ from logging import getLogger
 from math import floor
 from os.path import basename, splitext
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QAbstractItemView,
-                         QAction,
-                         QCheckBox,
-                         QColor,
-                         QComboBox,
-                         QFileDialog,
-                         QFormLayout,
-                         QGroupBox,
-                         QIcon,
-                         QInputDialog,
-                         QLabel,
-                         QMessageBox,
-                         QPushButton,
-                         QTableWidget,
-                         QTableWidgetItem,
-                         QTabWidget,
-                         QVBoxLayout,
-                         QWidget,
-                         QScrollArea,
-                         )
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtWidgets import (QAbstractItemView,
+                             QAction,
+                             QCheckBox,
+                             QComboBox,
+                             QFileDialog,
+                             QFormLayout,
+                             QGroupBox,
+                             QInputDialog,
+                             QLabel,
+                             QMessageBox,
+                             QPushButton,
+                             QTableWidget,
+                             QTableWidgetItem,
+                             QTabWidget,
+                             QVBoxLayout,
+                             QWidget,
+                             QScrollArea,
+                             )
 
 from ..attr import Annotations, create_empty_annotations
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool
@@ -608,9 +607,9 @@ class Notes(QTabWidget):
             return
 
         filename = splitext(self.parent.info.filename)[0] + '_scores.xml'
-        filename = QFileDialog.getSaveFileName(self, 'Create annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
+        filename, _ = QFileDialog.getSaveFileName(self, 'Create annotation file',
+                                                  filename,
+                                                  'Annotation File (*.xml)')
         if filename == '':
             return
 
@@ -623,9 +622,9 @@ class Notes(QTabWidget):
         else:
             filename = None
 
-        filename = QFileDialog.getOpenFileName(self, 'Load annotation file',
-                                               filename,
-                                               'Annotation File (*.xml)')
+        filename, _ = QFileDialog.getOpenFileName(self, 'Load annotation file',
+                                                  filename,
+                                                  'Annotation File (*.xml)')
 
         if filename == '':
             return
@@ -710,9 +709,9 @@ class Notes(QTabWidget):
     def export(self):
         """action: export annotations to CSV."""
         filename = splitext(self.annot.xml_file)[0] + '.csv'
-        filename = QFileDialog.getSaveFileName(self, 'Export stages',
-                                               filename,
-                                               'Sleep stages (*.csv)')
+        filename, _ = QFileDialog.getSaveFileName(self, 'Export stages',
+                                                  filename,
+                                                  'Sleep stages (*.csv)')
         if filename == '':
             return
 

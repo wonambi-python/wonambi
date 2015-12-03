@@ -6,12 +6,12 @@ lg = getLogger(__name__)
 
 from functools import partial
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import (QAction,
-                         QDockWidget,
-                         QIcon,
-                         QMessageBox,
-                         )
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QAction,
+                             QDockWidget,
+                             QMessageBox,
+                             )
 
 from .settings import Settings  # has to be first
 from .utils import ICON  # has to be second
