@@ -2,8 +2,6 @@
 
 """
 from logging import getLogger
-lg = getLogger('phypno')
-
 from numpy import (absolute, arange, argmax, asarray, cos, diff, exp, empty,
                    hstack, insert, invert, linspace, mean, median, nan, ones,
                    pi, sqrt, std, vstack, where, zeros)
@@ -12,6 +10,7 @@ from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
 
 from phypno.graphoelement import Spindles
 
+lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50
 
 
@@ -541,7 +540,7 @@ def define_threshold(dat, s_freq, method, value):
     elif method == 'median':
         value = value * median(dat)
     elif method == 'std':
-        value = value * mean(dat)
+        value = value * std(dat)
     elif method == 'mean+std':
         value = mean(dat) + value * std(dat)
     elif method == 'median+std':

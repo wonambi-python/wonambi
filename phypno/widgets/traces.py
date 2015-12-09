@@ -5,7 +5,7 @@ from functools import partial
 from logging import getLogger
 
 from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, in1d,
-                   max, min, linspace, log2, pad, power)
+                   max, min, linspace, log2, nanmean, pad, power)
 from PyQt5.QtCore import QPointF, Qt, QRectF
 from PyQt5.QtGui import (QBrush,
                          QColor,
@@ -868,6 +868,7 @@ def _create_data_to_plot(data, chan_groups):
             all_chan_grp_name.append(chan_grp_name)
 
             dat = data1(chan=chan, trial=0)
+            dat = dat - nanmean(dat)
             output.data[0][i_ch, :] = dat * one_grp['scale']
             i_ch += 1
 
