@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (QFormLayout,
                              )
 
 from .settings import Config, FormInt
-from .utils import convert_name_to_color
+from .utils import convert_name_to_color, LINE_WIDTH
 
 lg = getLogger(__name__)
 
@@ -306,15 +306,15 @@ class Overview(QGraphicsView):
             rect = QGraphicsRectItem(annot['start'],
                                      BARS['annot']['pos0'],
                                      annot['end'] - annot['start'],
-                                     BARS['annot']['pos1'],
-                                     scene=self.scene)
+                                     BARS['annot']['pos1'])
+            self.scene.addItem(rect)
 
             if annot in bookmarks:
                 color = self.parent.value('annot_bookmark_color')
             if annot in events:
                 color = convert_name_to_color(annot['name'])
 
-            rect.setPen(QPen(QColor(color)))
+            rect.setPen(QPen(QColor(color), LINE_WIDTH))
             rect.setBrush(QBrush(QColor(color)))
             rect.setZValue(-5)
             self.idx_annot.append(rect)

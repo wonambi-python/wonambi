@@ -18,6 +18,10 @@ from PyQt5.QtWidgets import (QGraphicsItem,
                              )
 
 
+LINE_WIDTH = 0  # COSMETIC LINE
+LINE_COLOR = 'black'
+
+
 MAX_LENGTH = 20
 
 stdicon = QCommonStyle.standardIcon

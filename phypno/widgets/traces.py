@@ -27,11 +27,16 @@ from PyQt5.QtWidgets import (QAction,
 from .. import ChanTime
 from ..trans import Montage, Filter
 from .settings import Config, FormFloat, FormInt, FormBool
-from .utils import convert_name_to_color, ICON, Path, TextItem_with_BG
+from .utils import (convert_name_to_color,
+                    ICON,
+                    LINE_COLOR,
+                    LINE_WIDTH,
+                    Path,
+                    TextItem_with_BG,
+                    )
 
 
 lg = getLogger(__name__)
-
 
 # undo the chan + (group) naming
 take_raw_name = lambda x: ' ('.join(x.split(' (')[:-1])
@@ -400,7 +405,7 @@ class Traces(QGraphicsView):
                 dat *= -1  # flip data, upside down
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
-                path.setPen(QPen(QColor(one_grp['color'])))
+                path.setPen(QPen(QColor(one_grp['color']), LINE_WIDTH))
 
                 # adjust position
                 chan_pos = y_distance * row + y_distance / 2
@@ -425,14 +430,15 @@ class Traces(QGraphicsView):
                 y_pos = [0,
                          self.parent.value('y_distance') * len(self.idx_label)]
                 path = self.scene.addPath(Path(x_pos, y_pos))
-                path.setPen(QPen(Qt.DotLine))
+                path.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH,
+                                 Qt.DotLine))
 
         if self.parent.value('grid_y'):
             for one_label_item in self.idx_label:
                 x_pos = [window_start, window_end]
                 y_pos = [one_label_item.y(), one_label_item.y()]
                 path = self.scene.addPath(Path(x_pos, y_pos))
-                path.setPen(QPen(Qt.DotLine))
+                path.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH, Qt.DotLine))
 
     def display_markers(self):
         """Add markers on top of first plot."""
@@ -682,6 +688,7 @@ class Traces(QGraphicsView):
                      xy_scene.x() - self.sel_xy[0],
                      xy_scene.y() - self.sel_xy[1])
         self.idx_sel = QGraphicsRectItem(pos.normalized())
+        self.idx_sel.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH))
         self.scene.addItem(self.idx_sel)
 
         if self.idx_info in self.scene.items():

@@ -404,9 +404,9 @@ class Notes(QTabWidget):
             item_name = QTableWidgetItem(mrk['name'])
 
             color = self.parent.value('marker_color')
-            item_time.setTextColor(QColor(color))
-            item_duration.setTextColor(QColor(color))
-            item_name.setTextColor(QColor(color))
+            item_time.setForeground(QColor(color))
+            item_duration.setForeground(QColor(color))
+            item_name.setForeground(QColor(color))
 
             self.idx_marker.setItem(i, 0, item_time)
             self.idx_marker.setItem(i, 1, item_duration)
@@ -503,10 +503,10 @@ class Notes(QTabWidget):
                 item_type = QTableWidgetItem('event')
                 color = convert_name_to_color(mrk['name'])
 
-            item_time.setTextColor(QColor(color))
-            item_duration.setTextColor(QColor(color))
-            item_name.setTextColor(QColor(color))
-            item_type.setTextColor(QColor(color))
+            item_time.setForeground(QColor(color))
+            item_duration.setForeground(QColor(color))
+            item_name.setForeground(QColor(color))
+            item_type.setForeground(QColor(color))
 
             self.idx_annot_list.setItem(i, 0, item_time)
             self.idx_annot_list.setItem(i, 1, item_duration)

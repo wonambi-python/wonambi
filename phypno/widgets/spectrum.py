@@ -5,7 +5,9 @@ from logging import getLogger
 from numpy import log, ceil, floor, min
 from scipy.signal import welch
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPen
+from PyQt5.QtGui import (QColor,
+                         QPen,
+                         )
 from PyQt5.QtWidgets import (QComboBox,
                              QFormLayout,
                              QGraphicsView,
@@ -15,7 +17,7 @@ from PyQt5.QtWidgets import (QComboBox,
                              QWidget,
                              )
 
-from .utils import Path
+from .utils import Path, LINE_WIDTH, LINE_COLOR
 from .settings import Config, FormFloat, FormBool
 
 lg = getLogger(__name__)
@@ -183,7 +185,8 @@ class Spectrum(QWidget):
         else:
             Pxx_to_plot = Pxx[freq_limit]
 
-        self.scene.addPath(Path(f[freq_limit], Pxx_to_plot))
+        self.scene.addPath(Path(f[freq_limit], Pxx_to_plot),
+                           QPen(QColor(LINE_COLOR), LINE_WIDTH))
 
     def add_grid(self):
         """Add axis and ticks to figure.
@@ -200,33 +203,39 @@ class Spectrum(QWidget):
         # X-AXIS
         # x-bottom
         self.scene.addLine(value['x_min'], value['y_min'],
-                           value['x_min'], value['y_max'])
+                           value['x_min'], value['y_max'],
+                           QPen(QColor(LINE_COLOR), LINE_WIDTH))
         # at y = 0, dashed
         self.scene.addLine(value['x_min'], 0,
-                           value['x_max'], 0, QPen(Qt.DashLine))
+                           value['x_max'], 0,
+                           QPen(QColor(LINE_COLOR), LINE_WIDTH, Qt.DashLine))
         # ticks on y-axis
         y_high = int(floor(value['y_max']))
         y_low = int(ceil(value['y_min']))
         x_length = (value['x_max'] - value['x_min']) / value['x_tick']
         for y in range(y_low, y_high):
             self.scene.addLine(value['x_min'], y,
-                               value['x_min'] + x_length, y)
+                               value['x_min'] + x_length, y,
+                               QPen(QColor(LINE_COLOR), LINE_WIDTH))
         # Y-AXIS
         # left axis
         self.scene.addLine(value['x_min'], value['y_min'],
-                           value['x_max'], value['y_min'])
+                           value['x_max'], value['y_min'],
+                           QPen(QColor(LINE_COLOR), LINE_WIDTH))
         # larger ticks on x-axis every 10 Hz
         x_high = int(floor(value['x_max']))
         x_low = int(ceil(value['x_min']))
         y_length = (value['y_max'] - value['y_min']) / value['y_tick']
         for x in range(x_low, x_high, 10):
             self.scene.addLine(x, value['y_min'],
-                               x, value['y_min'] + y_length)
+                               x, value['y_min'] + y_length,
+                               QPen(QColor(LINE_COLOR), LINE_WIDTH))
         # smaller ticks on x-axis every 10 Hz
         y_length = (value['y_max'] - value['y_min']) / value['y_tick'] / 2
         for x in range(x_low, x_high, 5):
             self.scene.addLine(x, value['y_min'],
-                               x, value['y_min'] + y_length)
+                               x, value['y_min'] + y_length,
+                               QPen(QColor(LINE_COLOR), LINE_WIDTH))
 
     def resizeEvent(self, event):
         """Fit the whole scene in view.
