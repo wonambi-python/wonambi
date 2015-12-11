@@ -280,7 +280,7 @@ class Data:
 
             return output
 
-    def __getattr__(self, possible_axis):
+    def __getattrx__(self, possible_axis):
         """Return the axis with a shorter syntax.
 
         Parameters
