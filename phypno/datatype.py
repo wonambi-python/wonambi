@@ -99,7 +99,7 @@ class Data:
     (meaning String) it creates strings of type bytes\_.
 
     """
-    def __init__(self, data=None, s_freq=None, **axes):
+    def __init__(self, data=None, s_freq=None, **kwargs):
 
         self.s_freq = s_freq
 
@@ -109,10 +109,20 @@ class Data:
             self.data = array((1, ), dtype='O')
             self.data[0] = data
 
-        """TODO: order is important but inverse
-        Starting in version 3.5 Python will preserve the order of keyword
-        arguments as passed to a function.
+        """temporary solution until PEP0468
+        kwargs is a dict, so no order. We try to reconstruct order based
+        on number of values for each value, but not 100% reliable.
         """
+        count_kwargs = {len(v): k for k, v in kwargs.items()}
+        if len(set(count_kwargs)) == len(list(count_kwargs)):
+            lg.warn('Some arguments have the same length, so the order of '
+                    'the axes might be incorrect')
+
+        axes = OrderedDict()
+        for n_dim in data.shape:
+            axis_with_right_ndim = count_kwargs[n_dim]
+            axes[axis_with_right_ndim] = kwargs[axis_with_right_ndim]
+
         self.axis = OrderedDict()
         for axis, value in axes.items():
             self.axis[axis] = array((1,), dtype='O')
@@ -280,7 +290,7 @@ class Data:
 
             return output
 
-    def __getattrx__(self, possible_axis):
+    def __getattr__(self, possible_axis):
         """Return the axis with a shorter syntax.
 
         Parameters
