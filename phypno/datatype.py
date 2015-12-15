@@ -109,24 +109,26 @@ class Data:
             self.data = array((1, ), dtype='O')
             self.data[0] = data
 
-        """temporary solution until PEP0468
-        kwargs is a dict, so no order. We try to reconstruct order based
-        on number of values for each value, but not 100% reliable.
-        """
-        count_kwargs = {len(v): k for k, v in kwargs.items()}
-        if len(set(count_kwargs)) == len(list(count_kwargs)):
-            lg.warn('Some arguments have the same length, so the order of '
-                    'the axes might be incorrect')
-
-        axes = OrderedDict()
-        for n_dim in data.shape:
-            axis_with_right_ndim = count_kwargs[n_dim]
-            axes[axis_with_right_ndim] = kwargs[axis_with_right_ndim]
-
         self.axis = OrderedDict()
-        for axis, value in axes.items():
-            self.axis[axis] = array((1,), dtype='O')
-            self.axis[axis][0] = value
+        if data is not None:
+
+            """temporary solution until PEP0468
+            kwargs is a dict, so no order. We try to reconstruct order based
+            on number of values for each value, but not 100% reliable.
+            """
+            count_kwargs = {len(v): k for k, v in kwargs.items()}
+            if len(set(count_kwargs)) == len(list(count_kwargs)):
+                lg.warn('Some arguments have the same length, so the order of '
+                        'the axes might be incorrect')
+            axes = OrderedDict()
+            for n_dim in data.shape:
+                axis_with_right_ndim = count_kwargs[n_dim]
+                axes[axis_with_right_ndim] = kwargs[axis_with_right_ndim]
+
+            for axis, value in axes.items():
+                self.axis[axis] = array((1,), dtype='O')
+                self.axis[axis][0] = value
+
         self.start_time = None
 
         self.attr = {'surf': None,
