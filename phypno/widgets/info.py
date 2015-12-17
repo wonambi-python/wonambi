@@ -171,9 +171,9 @@ class Info(QWidget):
 
             file_or_dir = choose_file_or_dir()
             if file_or_dir == 'dir':
-                filename, _ = QFileDialog.getExistingDirectory(self,
-                                                               'Open directory',
-                                                               dir_name)
+                filename = QFileDialog.getExistingDirectory(self,
+                                                            'Open directory',
+                                                            dir_name)
             elif file_or_dir == 'file':
                 filename, _ = QFileDialog.getOpenFileName(self, 'Open file',
                                                           dir_name)

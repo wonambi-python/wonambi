@@ -166,6 +166,31 @@ class Dataset:
         """Return the markers."""
         return self.dataset.return_markers()
 
+    def read_videos(self, begtime=None, endtime=None):
+        """Return list of videos with start and end times for a period.
+
+        Parameters
+        ----------
+        TODO:
+
+        Raises
+        ------
+        OSError
+            when there are no video files at all
+        IndexError
+            when there are video files, but the interval of interest is not in
+            the list of files.
+        """
+
+        videos = self.dataset.return_videos(begtime, endtime)
+        """
+        try
+        except AttributeError:
+            lg.debug('This format does not have video')
+            videos = None
+        """
+        return videos
+
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
                   endsam=None):
         """Read the data and creates a ChanTime instance

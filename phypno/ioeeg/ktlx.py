@@ -1080,3 +1080,43 @@ class Ktlx():
                 markers.append(m)
 
         return markers
+
+    def return_videos(self, begtime, endtime):
+        s_freq = self._hdr['erd']['sample_freq']
+        snc = self._hdr['erd']['snc']
+        vtc = self._hdr['erd']['vtc']
+
+        beg_sam = begtime * s_freq
+        end_sam = endtime * s_freq
+        lg.info('Samples {}-{} (based on s_freq only)'.format(beg_sam,
+                                                              end_sam))
+
+        # time in
+        beg_snc = convert_sample_to_video_time(beg_sam, s_freq, *snc)
+        end_snc = convert_sample_to_video_time(end_sam, s_freq, *snc)
+        beg_snc_str = beg_snc.strftime('%H:%M:%S')
+        end_snc_str = end_snc.strftime('%H:%M:%S')
+        lg.info('Time ' + beg_snc_str + '-' + end_snc_str +
+                ' (based on s_freq only)')
+
+        if vtc is None:
+            raise OSError('No VTC file (and presumably no avi files)')
+        mpgfile, start_time, end_time = vtc
+
+        beg_avi = get_date_idx(beg_snc, start_time, end_time)
+        end_avi = get_date_idx(end_snc, start_time, end_time)
+        if beg_avi is None or end_avi is None:
+            raise IndexError('No video file for time range ' + beg_snc_str +
+                             ' - ' + end_snc_str)
+
+        lg.debug('First Video (#{}) {}'.format(beg_avi, mpgfile[beg_avi]))
+        lg.debug('Last Video (#{}) {}'.format(end_avi, mpgfile[end_avi]))
+        mpgfiles = mpgfile[beg_avi:end_avi + 1]
+        full_mpgfiles = [join(self.filename, one_mpg) for one_mpg in mpgfiles]
+
+        beg_diff = (beg_snc - start_time[beg_avi]).total_seconds()
+        end_diff = (end_snc - start_time[end_avi]).total_seconds()
+        lg.debug('First Video (#{}) starts at {}'.format(beg_avi, beg_diff))
+        lg.debug('Last Video (#{}) ends at {}'.format(end_avi, end_diff))
+
+        return full_mpgfiles, beg_diff, end_diff

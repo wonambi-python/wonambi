@@ -271,8 +271,8 @@ class Overview(QGraphicsView):
             rect = QGraphicsRectItem(mrk['start'],
                                      BARS['markers']['pos0'],
                                      mrk['end'] - mrk['start'],
-                                     BARS['markers']['pos1'],
-                                     scene=self.scene)
+                                     BARS['markers']['pos1'])
+            self.scene.addItem(rect)
 
             color = self.parent.value('marker_color')
             rect.setPen(QPen(QColor(color)))

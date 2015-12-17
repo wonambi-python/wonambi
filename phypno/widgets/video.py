@@ -2,29 +2,22 @@
 
 """
 from logging import getLogger
-lg = getLogger(__name__)
+from platform import system
 
-from os.path import join
-from subprocess import call
-
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (QFormLayout,
+                             QFrame,
                              QGroupBox,
                              QLabel,
                              QPushButton,
                              QVBoxLayout,
                              QWidget,
                              )
-try:
-    from PyQt5.phonon import Phonon
-    from PyQt5.QtCore import QCoreApplication
-    QCoreApplication.setApplicationName('phonon')
 
-except ImportError:
-    Phonon = False
-
-from ..ioeeg.ktlx import convert_sample_to_video_time, get_date_idx
-
+import phypno.utils.ext.vlc as vlc  # make relative
 from .settings import Config, FormInt, FormStr
+
+lg = getLogger(__name__)
 
 
 class ConfigVideo(Config):
@@ -83,54 +76,45 @@ class Video(QWidget):
         the video to show.
     idx_button : instance of QPushButton
         button which starts and stops the video.
-
     """
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigVideo(self.update_video)
+        self.config = ConfigVideo(self.update_video)  # necessary?
 
-        self.beg_diff = 0
-        self.end_diff = 0
         self.cnt_video = 0
         self.n_video = 0
+        self.mediaplayer = None
 
-        self.video = None
         self.idx_button = None
-
-        if Phonon:
-            availableMimeTypes = Phonon.BackendCapabilities.availableMimeTypes()
-            lg.debug('Phonon MimeTypes: ' + ', '.join(availableMimeTypes))
-
-        if Phonon and availableMimeTypes:
-            self.phonon = True
-        else:
-            self.phonon = False
 
         self.create_video()
 
     def create_video(self):
         """Create video widget."""
 
-        if self.phonon:
-            video_widget = Phonon.VideoWidget()
-            self.video = Phonon.MediaObject()
-            Phonon.createPath(self.video, video_widget)
+        self.instance = vlc.Instance()
 
-            self.video.currentSourceChanged.connect(self.next_video)
-            self.video.setTickInterval(100)
-            self.video.tick.connect(self.stop_video)
-
+        video_widget = QFrame()
+        self.mediaplayer = self.instance.media_player_new()
+        if system() == 'Linux':
+            self.mediaplayer.set_xwindow(video_widget.winId())
+        elif system() == 'Windows':
+            self.mediaplayer.set_hwnd(video_widget.winId())
+        elif system() == 'darwin':  # to test
+            self.mediaplayer.set_nsobject(video_widget.winId())
         else:
-            layout = QVBoxLayout()
-            layout.addWidget(QLabel('Embedded video is not available'))
-            layout.addWidget(QLabel('VLC will be used instead'))
-            layout.addStretch(1)
+            lg.warning('unsupported system for video widget')
+            return
 
-            video_widget = QWidget()
-            video_widget.setLayout(layout)
+        self.medialistplayer = vlc.MediaListPlayer()
+        self.medialistplayer.set_media_player(self.mediaplayer)
+        event_manager = self.medialistplayer.event_manager()
+        event_manager.event_attach(vlc.EventType.MediaListPlayerNextItemSet,
+                                   self.next_video)
 
-        self.idx_button = QPushButton('Start')
+        self.idx_button = QPushButton()
+        self.idx_button.setText('Start')
         self.idx_button.clicked.connect(self.start_stop_video)
 
         layout = QVBoxLayout()
@@ -146,18 +130,18 @@ class Video(QWidget):
         tick : int
             time in ms from the beginning of the file
 
-        Notes
-        -----
-        I cannot get prefinishmark to work, this implementation might not be
-        as precise (according to the doc), but works fine. It checks that the
-        file we are showing is the last one and it's after the time of
-        interest.
-
+        useless?
         """
         if self.cnt_video == self.n_video:
             if tick >= self.end_diff:
                 self.idx_button.setText('Start')
                 self.video.stop()
+
+    def check_if_finished(self):
+        if self.cnt_video == self.n_video:
+            if self.mediaplayer.get_time() > self.endsec * 1000:
+                self.medialistplayer.stop()
+                self.t.stop()
 
     def next_video(self, _):
         """Also runs when file is loaded, so index starts at 2."""
@@ -166,24 +150,17 @@ class Video(QWidget):
 
     def start_stop_video(self):
         """Start and stop the video, and change the button.
-
-        Notes
-        -----
-        It catches expection when video is not in index.
-
-        If it uses VLC, it never changes the button to "STOP", because the
-        video works in an external window.
-
         """
         if self.parent.info.dataset is None:
             self.parent.statusBar().showMessage('No Dataset Loaded')
             return
 
-        if 'Start' in self.idx_button.text():
+        print(self.idx_button.text())
+        if 'Start' in self.idx_button.text() or 'Sta&rt' in self.idx_button.text():
+            self.update_video()
+            self.idx_button.setText('Start')
             try:
-                self.update_video()
-                # in case it has one indexerror once before
-                self.idx_button.setText('Start')
+                assert True
             except IndexError as er:
                 lg.debug(er)
                 self.idx_button.setText('Not Available / Start')
@@ -193,99 +170,31 @@ class Video(QWidget):
                 self.idx_button.setText('NO VIDEO for this dataset')
                 return
 
-            if self.phonon:
-                self.idx_button.setText('Stop')
-                self.video.play()
-                self.video.seek(self.beg_diff)
+            self.idx_button.setText('Stop')
 
         elif 'Stop' in self.idx_button.text():
             self.idx_button.setText('Start')
-            self.video.stop()
+            self.medialistplayer.stop()
 
     def update_video(self):
         """Read list of files, convert to video time, and add video to queue.
-
-        Notes
-        -----
-        Implementation depends on a couple of functions in ioeeg.ktlx. I wish I
-        could make it more general, but I don't have other examples and already
-        this implementation is pretty complicated as it is.
-
         """
-        d = self.parent.info.dataset
-
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
+        d = self.parent.info.dataset
 
-        s_freq = d.header['s_freq']
-        orig = d.header['orig']
+        videos, begsec, endsec = d.read_videos(window_start,
+                                               window_start + window_length)
+        self.endsec = endsec
+        medialist = vlc.MediaList(videos)
+        self.medialistplayer.set_media_list(medialist)
 
-        beg_sam = window_start * s_freq
-        end_sam = beg_sam + window_length * s_freq
-        lg.info('Samples {}-{} (based on s_freq only)'.format(beg_sam,
-                                                              end_sam))
+        self.cnt_video = 0
+        self.n_video = len(videos)
 
-        # time in
-        beg_snc = convert_sample_to_video_time(beg_sam, s_freq, *orig['snc'])
-        end_snc = convert_sample_to_video_time(end_sam, s_freq, *orig['snc'])
-        beg_snc_str = beg_snc.strftime('%H:%M:%S')
-        end_snc_str = end_snc.strftime('%H:%M:%S')
-        lg.info('Time ' + beg_snc_str + '-' + end_snc_str +
-                ' (based on s_freq only)')
+        self.t = QTimer()
+        self.t.timeout.connect(self.check_if_finished)
+        self.t.start(100)
 
-        if orig['vtc'] is None:
-            raise OSError('No VTC file (and presumably no avi files)')
-        mpgfile, start_time, end_time = orig['vtc']
-
-        beg_avi = get_date_idx(beg_snc, start_time, end_time)
-        end_avi = get_date_idx(end_snc, start_time, end_time)
-        if beg_avi is None or end_avi is None:
-            raise IndexError('No video file for time range ' + beg_snc_str +
-                             ' - ' + end_snc_str)
-
-        lg.debug('First Video (#{}) {}'.format(beg_avi, mpgfile[beg_avi]))
-        lg.debug('Last Video (#{}) {}'.format(end_avi, mpgfile[end_avi]))
-        mpgfiles = mpgfile[beg_avi:end_avi + 1]
-        full_mpgfiles = [join(d.filename, one_mpg) for one_mpg in mpgfiles]
-
-        beg_diff = (beg_snc - start_time[beg_avi]).total_seconds()
-        end_diff = (end_snc - start_time[end_avi]).total_seconds()
-        lg.debug('First Video (#{}) starts at {}'.format(beg_avi, beg_diff))
-        lg.debug('Last Video (#{}) ends at {}'.format(end_avi, end_diff))
-
-        if self.phonon:
-            self.beg_diff = beg_diff * 1e3
-            self.end_diff = end_diff * 1e3
-
-            self.video.clear()
-            source = []
-            for one_mpg in full_mpgfiles:
-                source.append(Phonon.MediaSource(one_mpg))
-
-            self.video.enqueue(source)
-
-            self.cnt_video = 0
-            self.n_video = len(full_mpgfiles) + 1
-
-        else:
-            vlc_exe = self.parent.value('vlc_exe')
-            vlc_width = self.parent.value('vlc_width')
-            vlc_height = self.parent.value('vlc_height')
-
-            vlc_cmd = '"' + vlc_exe + '" '
-            vlc_cmd += '--no-video-title '
-
-            # first file has start time
-            vlc_cmd += '"file:///' + full_mpgfiles[0] + '" '
-            vlc_cmd += ':start-time=' + str(beg_diff) + ' '
-
-            for one_mpg in full_mpgfiles[1:]:
-                vlc_cmd += '"file:///' + one_mpg + '" '
-
-            vlc_cmd += ':stop-time=' + str(end_diff) + ' '
-            vlc_cmd += '--width=' + str(vlc_width) + ' '
-            vlc_cmd += '--height=' + str(vlc_height) + ' '
-            vlc_cmd += '--autoscale '
-            vlc_cmd += 'vlc://quit'
-            lg.debug(vlc_cmd)
-            call(vlc_cmd, shell=True)
+        self.medialistplayer.play()
+        self.mediaplayer.set_time(int(begsec * 1000))
