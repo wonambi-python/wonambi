@@ -6,12 +6,12 @@ use this package to transform to other classes. If you want to transform to
 basic elements, use the package "detect" for example.
 
 """
-from .filter import Filter, Convolve
-from .select import Select, Resample
-from .frequency import Freq, TimeFreq
-from .merge import Concatenate
-from .math import Math
-from .montage import Montage
-from .peaks import Peaks
-from .reject import RejectBadChan
+from .filter import filter_, convolve
+from .select import select, resample
+from .frequency import freq, timefreq
+from .merge import concatenate
+from .math import math
+from .montage import montage
+from .peaks import peaks
+from .reject import rejectbadchan
 

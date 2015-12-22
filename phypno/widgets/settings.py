@@ -69,10 +69,7 @@ DEFAULTS['settings'] = {'max_dataset_history': 20,
                         'read_intervals': 10 * 60.,
                         'recording_dir': '/home/gio/recordings',
                         }
-DEFAULTS['video'] = {'vlc_exe': 'C:/Program Files (x86)/VideoLAN/VLC/vlc.exe',
-                     'vlc_width': 640,
-                     'vlc_height': 480,
-                     }
+DEFAULTS['video'] = {}
 
 
 class Settings(QDialog):

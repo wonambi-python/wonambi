@@ -5,54 +5,30 @@ from logging import getLogger
 from platform import system
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import (QFormLayout,
-                             QFrame,
+from PyQt5.QtWidgets import (QFrame,
                              QGroupBox,
-                             QLabel,
                              QPushButton,
                              QVBoxLayout,
                              QWidget,
                              )
 
 import phypno.utils.ext.vlc as vlc  # make relative
-from .settings import Config, FormInt, FormStr
+from .settings import Config
 
 lg = getLogger(__name__)
 
 
 class ConfigVideo(Config):
 
-    def __init__(self, update_widget):
-        super().__init__('video', update_widget)
+    def __init__(self):
+        super().__init__('video', None)
 
     def create_config(self):
 
         box0 = QGroupBox('Video')
 
-        box1 = QGroupBox('Fallback Video')
-        fallback_text = QLabel('When the embedded video is not available, ' +
-                               'it uses VLC as external window.')
-        form_layout = QFormLayout()
-
-        self.index['vlc_exe'] = FormStr()  # TODO: FormOpenFile
-        self.index['vlc_width'] = FormInt()
-        self.index['vlc_height'] = FormInt()
-
-        form_layout = QFormLayout()
-        form_layout.addRow('Path to VLC executable', self.index['vlc_exe'])
-        form_layout.addRow('VLC width', self.index['vlc_width'])
-        form_layout.addRow('VLC height', self.index['vlc_height'])
-
-        fallback_layout = QVBoxLayout()
-        fallback_layout.addWidget(fallback_text)
-        fallback_layout.addLayout(form_layout)
-
-        box1.setLayout(fallback_layout)
-
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
-        main_layout.addWidget(box1)
-        main_layout.addStretch(1)
 
         self.setLayout(main_layout)
 
@@ -80,7 +56,7 @@ class Video(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.config = ConfigVideo(self.update_video)  # necessary?
+        self.config = ConfigVideo()
 
         self.cnt_video = 0
         self.n_video = 0

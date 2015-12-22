@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (QAction,
                              )
 
 from .. import ChanTime
-from ..trans import Montage, Filter
+from ..trans import montage, filter_
 from .settings import Config, FormFloat, FormInt, FormBool
 from .utils import (convert_name_to_color,
                     ICON,
@@ -568,8 +568,8 @@ class Traces(QGraphicsView):
 
     def page_next(self):
         """Go to the next page."""
-        window_start = (self.parent.value('window_start')
-                        + self.parent.value('window_length'))
+        window_start = (self.parent.value('window_start') +
+                        self.parent.value('window_length'))
         self.parent.overview.update_position(window_start)
 
     def add_time(self, extra_time):
@@ -858,18 +858,13 @@ def _create_data_to_plot(data, chan_groups):
         sel_data = _select_channels(data,
                                     one_grp['chan_to_plot'] +
                                     one_grp['ref_chan'])
-        mont = Montage(ref_chan=one_grp['ref_chan'])
-        data1 = mont(sel_data)
+        data1 = montage(sel_data, ref_chan=one_grp['ref_chan'])
 
         if one_grp['hp'] is not None:
-            hpfilt = Filter(low_cut=one_grp['hp'],
-                            s_freq=data.s_freq)
-            data1 = hpfilt(data1)
+            data1 = filter_(data1, low_cut=one_grp['hp'])
 
         if one_grp['lp'] is not None:
-            lpfilt = Filter(high_cut=one_grp['lp'],
-                            s_freq=data.s_freq)
-            data1 = lpfilt(data1)
+            data1 = filter_(data1, high_cut=one_grp['lp'])
 
         for chan in one_grp['chan_to_plot']:
             chan_grp_name = chan + ' (' + one_grp['name'] + ')'
@@ -902,7 +897,7 @@ def _select_channels(data, channels):
 
     Notes
     -----
-    This function does the same as phypno.trans.Select, but it's much faster.
+    This function does the same as phypno.trans.select, but it's much faster.
     phypno.trans.Select needs to flexible for any data type, here we assume
     that we have one trial, and that channel is the first dimension.
 

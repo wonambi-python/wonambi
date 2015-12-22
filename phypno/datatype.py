@@ -319,12 +319,10 @@ class Data:
 
         Examples
         --------
-        >>> from phypno.trans import Math
-        >>> take_mean = Math(operator_name='mean', axis='time')
+        >>> from phypno.trans import math
         >>> for one_trial in iter(data):
-        >>>     one_mean = take_mean(one_trial)
+        >>>     one_mean = math(one_trial, operator_name='mean', axis='time')
         >>>     print(one_mean.data[0])
-
         """
         for trial in range(self.number_of('trial')):
             output = deepcopy(self)

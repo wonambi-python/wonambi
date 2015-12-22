@@ -8,11 +8,13 @@ from ..attr import Channels
 lg = getLogger(__name__)
 
 
-class Montage:
+def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None):
     """Apply linear transformation to the channels.
 
     Parameters
     ----------
+    data : instance of DataRaw
+        the data to filter
     ref_chan : list of str
         list of channels used as reference
     ref_to_avg : bool
@@ -21,83 +23,64 @@ class Montage:
         distance in mm to consider two channels as neighbors and then compute
         the bipolar montage between them.
 
-    Attributes
-    ----------
+    Returns
+    -------
+    filtered_data : instance of DataRaw
+        filtered data
 
     Notes
     -----
-
+    If you don't change anything, it returns the same instance of data.
     """
-    def __init__(self, ref_chan=None, ref_to_avg=False, bipolar=None):
-        if ref_to_avg and ref_chan is not None:
-            raise TypeError('You cannot specify reference to the average and '
-                            'the channels to use as reference')
+    if ref_to_avg and ref_chan is not None:
+        raise TypeError('You cannot specify reference to the average and '
+                        'the channels to use as reference')
 
-        if ref_chan is not None:
-            if (not isinstance(ref_chan, (list, tuple)) or
-                not all(isinstance(x, str) for x in ref_chan)):
-                    raise TypeError('chan should be a list of strings')
+    if ref_chan is not None:
+        if (not isinstance(ref_chan, (list, tuple)) or
+            not all(isinstance(x, str) for x in ref_chan)):
+                raise TypeError('chan should be a list of strings')
 
-        if ref_chan is None:
-            ref_chan = []  # TODO: check bool for ref_chan
-        self.ref_chan = ref_chan
-        self.ref_to_avg = ref_to_avg
-        self.bipolar = bipolar
+    if ref_chan is None:
+        ref_chan = []  # TODO: check bool for ref_chan
 
-    def __call__(self, data):
-        """Apply the montage to the data.
+    if bipolar:
+        if not data.attr['chan']:
+            raise ValueError('Data should have Chan information in attr')
 
-        Parameters
-        ----------
-        data : instance of DataRaw
-            the data to filter
+        _assert_equal_channels(data.axis['chan'])
+        chan_in_data = data.axis['chan'][0]
+        chan = data.attr['chan']
+        chan = chan(lambda x: x.label in chan_in_data)
+        chan, trans = create_bipolar_chan(chan, bipolar)
+        data.attr['chan'] = chan
 
-        Returns
-        -------
-        filtered_data : instance of DataRaw
-            filtered data
+    if ref_to_avg or ref_chan or bipolar:
+        mdata = data._copy()
 
-        Notes
-        -----
-        If you don't change anything, it returns the same instance of data.
-        """
-        if self.bipolar:
-            if not data.attr['chan']:
-                raise ValueError('Data should have Chan information in attr')
+        for i in range(mdata.number_of('trial')):
+            if ref_to_avg or ref_chan:
+                if ref_to_avg:
+                    ref_chan = data.axis['chan'][0]
 
-            _assert_equal_channels(data.axis['chan'])
-            chan_in_data = data.axis['chan'][0]
-            chan = data.attr['chan']
-            chan = chan(lambda x: x.label in chan_in_data)
-            chan, trans = create_bipolar_chan(chan, self.bipolar)
-            data.attr['chan'] = chan
+                ref_data = data(trial=i, chan=ref_chan)
+                mdata.data[i] = (data(trial=i) -
+                                 mean(ref_data,
+                                      axis=mdata.index_of('chan')))
 
-        if self.ref_to_avg or self.ref_chan or self.bipolar:
-            mdata = data._copy()
+            elif bipolar:
 
-            for i in range(mdata.number_of('trial')):
-                if self.ref_to_avg or self.ref_chan:
-                    if self.ref_to_avg:
-                        self.ref_chan = data.axis['chan'][0]
+                if not data.index_of('chan') == 0:
+                    raise ValueError('For matrix multiplication to work, '
+                                     'the first dimension should be chan')
+                mdata.data[i] = dot(trans, data(trial=i))
+                mdata.axis['chan'][i] = asarray(chan.return_label(),
+                                                dtype='U')
 
-                    ref_data = data(trial=i, chan=self.ref_chan)
-                    mdata.data[i] = (data(trial=i) -
-                                     mean(ref_data,
-                                          axis=mdata.index_of('chan')))
+    else:
+        mdata = data
 
-                elif self.bipolar:
-
-                    if not data.index_of('chan') == 0:
-                        raise ValueError('For matrix multiplication to work, '
-                                         'the first dimension should be chan')
-                    mdata.data[i] = dot(trans, data(trial=i))
-                    mdata.axis['chan'][i] = asarray(chan.return_label(),
-                                                    dtype='U')
-
-        else:
-            mdata = data
-
-        return mdata
+    return mdata
 
 
 def _assert_equal_channels(axis):

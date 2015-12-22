@@ -5,11 +5,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 
-class RejectBadChan:
+def rejectbadchan():
     """Class to reject bad channels.
-
     """
-    def __init__(self):
-        pass
-
-
+    pass

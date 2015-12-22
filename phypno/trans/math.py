@@ -14,11 +14,13 @@ lg = getLogger(__name__)
 NOKEEPDIM = (median, mode)
 
 
-class Math:
+def math(data, operator=None, operator_name=None, axis=None):
     """Apply mathematical operation to each trial and channel individually.
 
     Parameters
     ----------
+    data : instance of DataTime, DataFreq, or DataTimeFreq
+
     operator : function or tuple of functions, optional
         function(s) to run on the data.
     operator_name : str or tuple of str, optional
@@ -26,18 +28,17 @@ class Math:
     axis : str, optional
         for functions that accept it, which axis you should run it on.
 
-    Attributes
-    ----------
-    operations : list of dict
-        operations to apply. Stored as (ordered) list, where dict has 'name'
-        (the name of function), 'func' (the actual function), 'on_axis' (bool,
-        if it accepts an 'axis' argument), 'keepdims' (bool, if it accepts a
-        'keepdims' argument).
+    Returns
+    -------
+    instance of Data
+        data where the trials underwent operator.
 
     Raises
     ------
     TypeError
         If you pass both operator and operator_name.
+    ValueError
+        When you try to operate on an axis that has already been removed.
 
     Notes
     -----
@@ -86,109 +87,85 @@ class Math:
     >>> def func(x, axis, keepdims=None):
     >>>     return nanmax(x, axis=axis)
     """
-    def __init__(self, operator=None, operator_name=None,
-                 axis=None):
+    if operator is not None and operator_name is not None:
+        raise TypeError('Parameters "operator" and "operator_name" are '
+                        'mutually exclusive')
 
-        if operator is not None and operator_name is not None:
-            raise TypeError('Parameters "operator" and "operator_name" are '
-                            'mutually exclusive')
+    # turn input into a tuple of functions in operators
+    if operator_name is not None:
+        if isinstance(operator_name, str):
+            operator_name = (operator_name, )
 
-        # turn input into a tuple of functions in self.operators
-        if operator_name is not None:
-            if isinstance(operator_name, str):
-                operator_name = (operator_name, )
+        operators = []
+        for one_operator_name in operator_name:
+            operators.append(eval(one_operator_name))
+        operator = tuple(operators)
 
-            operators = []
-            for one_operator_name in operator_name:
-                operators.append(eval(one_operator_name))
-            operator = tuple(operators)
+    # make it an iterable
+    if callable(operator):
+        operator = (operator, )
 
-        # make it an iterable
-        if callable(operator):
-            operator = (operator, )
+    operations = []
+    for one_operator in operator:
+        on_axis = False
+        keepdims = True
 
-        self.axis = axis
+        try:
+            args = getfullargspec(one_operator).args
+        except TypeError:
+            lg.debug('func ' + str(one_operator) + ' is not a Python '
+                     'function')
+        else:
+            if 'axis' in args:
+                on_axis = True
 
-        operations = []
-        for one_operator in operator:
-            on_axis = False
-            keepdims = True
+                if axis is None:
+                    raise TypeError('You need to specify an axis if you '
+                                    'use ' + one_operator.__name__ +
+                                    '(which applies to an axis)')
 
-            try:
-                args = getfullargspec(one_operator).args
-            except TypeError:
-                lg.debug('func ' + str(one_operator) + ' is not a Python '
-                         'function')
+            if 'keepdims' in args or one_operator in NOKEEPDIM:
+                keepdims = False
+
+        operations.append({'name': one_operator.__name__,
+                           'func': one_operator,
+                           'on_axis': on_axis,
+                           'keepdims': keepdims,
+                           })
+
+    operations = operations
+    output = data._copy()
+
+    if axis is not None:
+        idx_axis = data.index_of(axis)
+
+    for op in operations:
+        lg.info('running operator: ' + op['name'])
+        func = op['func']
+
+        if func == mode:
+            func = lambda x, axis: mode(x, axis=axis)[0]
+
+        for i in range(output.number_of('trial')):
+            if op['on_axis']:
+                try:
+                    x = data(trial=i)
+                    if func == diff:
+                        lg.debug('Diff has one-point of zero padding')
+                        x = _pad_one_axis_one_value(x, idx_axis)
+
+                    output.data[i] = func(x, axis=idx_axis)
+                except IndexError:
+                    raise ValueError('The axis ' + axis + ' does not '
+                                     'exist in [' +
+                                     ', '.join(list(data.axis.keys())) + ']')
             else:
-                if 'axis' in args:
-                    on_axis = True
+                output.data[i] = func(data(trial=i))
 
-                    if axis is None:
-                        raise TypeError('You need to specify an axis if you '
-                                        'use ' + one_operator.__name__ +
-                                        '(which applies to an axis)')
+        if op['on_axis'] and not op['keepdims']:
+            del output.axis[axis]
 
-                if 'keepdims' in args or one_operator in NOKEEPDIM:
-                    keepdims = False
-
-            operations.append({'name': one_operator.__name__,
-                               'func': one_operator,
-                               'on_axis': on_axis,
-                               'keepdims': keepdims,
-                               })
-
-        self.operations = operations
-
-    def __call__(self, data):
-        """Apply mathematical operators to the data.
-
-        Parameters
-        ----------
-        data : instance of DataTime, DataFreq, or DataTimeFreq
-
-        Returns
-        -------
-        instance of Data
-            data where the trials underwent operator.
-
-        Raises
-        ------
-        ValueError
-            When you try to operate on an axis that has already been removed.
-        """
-        output = data._copy()
-
-        if self.axis is not None:
-            idx_axis = data.index_of(self.axis)
-
-        for op in self.operations:
-            lg.info('running operator: ' + op['name'])
-            func = op['func']
-
-            if func == mode:
-                func = lambda x, axis: mode(x, axis=axis)[0]
-
-            for i in range(output.number_of('trial')):
-                if op['on_axis']:
-                    try:
-                        x = data(trial=i)
-                        if func == diff:
-                            lg.debug('Diff has one-point of zero padding')
-                            x = _pad_one_axis_one_value(x, idx_axis)
-
-                        output.data[i] = func(x, axis=idx_axis)
-                    except IndexError:
-                        raise ValueError('The axis ' + self.axis + ' does not '
-                                         'exist in [' +
-                                         ', '.join(list(data.axis.keys()))
-                                         + ']')
-                else:
-                    output.data[i] = func(data(trial=i))
-
-            if op['on_axis'] and not op['keepdims']:
-                del output.axis[self.axis]
-
-        return output
+    return output
 
 
 def _pad_one_axis_one_value(x, idx_axis):

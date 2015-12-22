@@ -17,109 +17,99 @@ from ..datatype import ChanFreq, ChanTimeFreq
 lg = getLogger(__name__)
 
 
-class Freq:
+def freq(data, method='welch', **options):
     """Compute the power spectrum.
 
     Parameters
     ----------
     method : str
         the method to compute the power spectrum, such as 'welch'
+    data : instance of ChanTime
+        one of the datatypes
+
+    Returns
+    -------
+    instance of ChanFreq
+
+    Raises
+    ------
+    TypeError
+        If the data does not have a 'time' axis. It might work in the
+        future on other axes, but I cannot imagine how.
 
     Notes
     -----
+    It uses sampling frequency as specified in s_freq, it does not
+    recompute the sampling frequency based on the time axis.
+
     TODO: check that power does not change if duration becomes longer
     """
-    def __init__(self, method='welch', **options):
-        implemented_methods = ('welch', 'multitaper')
 
-        if method not in implemented_methods:
-            raise ValueError('Method ' + method + ' is not implemented yet.\n'
-                             'Currently implemented methods are ' +
-                             ', '.join(implemented_methods))
+    implemented_methods = ('welch', 'multitaper')
 
+    if method not in implemented_methods:
+        raise ValueError('Method ' + method + ' is not implemented yet.\n'
+                         'Currently implemented methods are ' +
+                         ', '.join(implemented_methods))
+
+    if method == 'welch':
+        default_options = {'duration': 2,
+                           'overlap': .5,
+                           'scaling': 'density',
+                           }
+
+    elif method == 'multitaper':
+        default_options = {'fmin': 0,
+                           'fmax': inf,
+                           'bandwidth': None,
+                           'adaptive': False,
+                           'low_bias': True,
+                           'normalization': 'full',
+                           }
+
+    default_options.update(options)
+    options = default_options
+
+    if 'time' not in data.list_of_axes:
+        raise TypeError('\'time\' is not in the axis ' +
+                        str(data.list_of_axes))
+    idx_time = data.index_of('time')
+
+    freq = ChanFreq()
+    freq.s_freq = data.s_freq
+    freq.start_time = data.start_time
+    freq.axis['chan'] = data.axis['chan']
+    freq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
+    freq.data = empty(data.number_of('trial'), dtype='O')
+
+    for i in range(data.number_of('trial')):
         if method == 'welch':
-            default_options = {'duration': 2,
-                               'overlap': .5,
-                               'scaling': 'density',
-                               }
+            f, Pxx = welch(data(trial=i),
+                           fs=data.s_freq,
+                           nperseg=int(data.s_freq *
+                                       options['duration']),
+                           noverlap=int(data.s_freq *
+                                        options['overlap']),
+                           scaling=options['scaling'],
+                           axis=idx_time)
 
         elif method == 'multitaper':
-            default_options = {'fmin': 0,
-                               'fmax': inf,
-                               'bandwidth': None,
-                               'adaptive': False,
-                               'low_bias': True,
-                               'normalization': 'full',
-                               }
+            Pxx, f = multitaper_psd(data(trial=i),
+                                    sfreq=data.s_freq,
+                                    fmin=options['fmin'],
+                                    fmax=options['fmax'],
+                                    bandwidth=options['bandwidth'],
+                                    adaptive=options['adaptive'],
+                                    low_bias=options['low_bias'],
+                                    normalization=options['normalization'],
+                                    n_jobs=2)
+        freq.axis['freq'][i] = f
+        freq.data[i] = Pxx
 
-        self.method = method
-        default_options.update(options)
-        self.options = default_options
-
-    def __call__(self, data):
-        """Calculate power on the data.
-
-        Parameters
-        ----------
-        data : instance of ChanTime
-            one of the datatypes
-
-        Returns
-        -------
-        instance of ChanFreq
-
-        Notes
-        -----
-        It uses sampling frequency as specified in s_freq, it does not
-        recompute the sampling frequency based on the time axis.
-
-        Raises
-        ------
-        TypeError
-            If the data does not have a 'time' axis. It might work in the
-            future on other axes, but I cannot imagine how.
-
-        """
-        if 'time' not in data.list_of_axes:
-            raise TypeError('\'time\' is not in the axis ' +
-                            str(data.list_of_axes))
-        idx_time = data.index_of('time')
-
-        freq = ChanFreq()
-        freq.s_freq = data.s_freq
-        freq.start_time = data.start_time
-        freq.axis['chan'] = data.axis['chan']
-        freq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
-        freq.data = empty(data.number_of('trial'), dtype='O')
-
-        for i in range(data.number_of('trial')):
-            if self.method == 'welch':
-                f, Pxx = welch(data(trial=i),
-                               fs=data.s_freq,
-                               nperseg=int(data.s_freq *
-                                           self.options['duration']),
-                               noverlap=int(data.s_freq *
-                                            self.options['overlap']),
-                               scaling=self.options['scaling'],
-                               axis=idx_time)
-
-            elif self.method == 'multitaper':
-                Pxx, f = multitaper_psd(data(trial=i),
-                                        sfreq=data.s_freq,
-                                        fmin=self.options['fmin'],
-                                        fmax=self.options['fmax'],
-                                        bandwidth=self.options['bandwidth'],
-                                        adaptive=self.options['adaptive'],
-                                        low_bias=self.options['low_bias'],
-                                        normalization=self.options['normalization'],
-                                        n_jobs=2)
-            freq.axis['freq'][i] = f
-            freq.data[i] = Pxx
-
-        return freq
+    return freq
 
 
-class TimeFreq:
+def timefreq(data, method='morlet', **options):
     """Compute the power spectrum over time.
 
     Parameters
@@ -130,6 +120,24 @@ class TimeFreq:
         power spectrum for each window, but it does not average them)
     options : dict
         Options depends on the method.
+    data : instance of ChanTime
+        data to analyze
+
+    Returns
+    -------
+    instance of ChanTimeFreq
+        data in time-frequency representation.
+
+    Examples
+    --------
+    The data in ChanTimeFreq are complex and they should stay that way. You
+    can also get the magnitude or power the easy way using Math.
+
+    >>> from phypno.trans import math, timefreq
+    >>> tf = timefreq(data, foi=(8, 10))
+    >>> tf_abs = math(tf, operator_name='abs')
+    >>> tf_abs.data[0][0, 0, 0]
+    1737.4662329214384)
 
     Notes
     -----
@@ -159,129 +167,99 @@ class TimeFreq:
             duration of the window to compute the power spectrum, in s
         overlap : int
             amount of overlap between windows
-
     """
-    def __init__(self, method='morlet', **options):
-        implemented_methods = ('morlet', 'welch')
+    implemented_methods = ('morlet', 'welch')
 
-        if method not in implemented_methods:
-            raise ValueError('Method ' + method + ' is not implemented yet.\n'
-                             'Currently implemented methods are ' +
-                             ', '.join(implemented_methods))
+    if method not in implemented_methods:
+        raise ValueError('Method ' + method + ' is not implemented yet.\n'
+                         'Currently implemented methods are ' +
+                         ', '.join(implemented_methods))
 
-        if method == 'morlet':
-            default_options = {'foi': None,
-                               'ratio': 5,
-                               'sigma_f': None,
-                               'dur_in_sd': 4,
-                               'dur_in_s': None,
-                               'normalization': 'area',
-                               'zero_mean': False,
-                               }
-        elif method == 'welch':
-            default_options = {'duration': 1,
-                               'overlap': .5,
-                               }
+    if method == 'morlet':
+        default_options = {'foi': None,
+                           'ratio': 5,
+                           'sigma_f': None,
+                           'dur_in_sd': 4,
+                           'dur_in_s': None,
+                           'normalization': 'area',
+                           'zero_mean': False,
+                           }
+    elif method == 'welch':
+        default_options = {'duration': 1,
+                           'overlap': .5,
+                           }
 
-        self.method = method
-        default_options.update(options)
-        self.options = default_options
+    default_options.update(options)
+    options = default_options
 
-    def __call__(self, data):
-        """Compute the time-frequency analysis.
+    idx_time = data.index_of('time')
 
-        Parameters
-        ----------
-        data : instance of ChanTime
-            data to analyze
+    timefreq = ChanTimeFreq()
+    timefreq.s_freq = data.s_freq
+    timefreq.start_time = data.start_time
+    timefreq.axis['chan'] = data.axis['chan']
+    timefreq.axis['time'] = empty(data.number_of('trial'), dtype='O')
+    timefreq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
+    timefreq.data = empty(data.number_of('trial'), dtype='O')
 
-        Returns
-        -------
-        instance of ChanTimeFreq
-            data in time-frequency representation.
+    if method == 'morlet':
 
-        Examples
-        --------
-        The data in ChanTimeFreq are complex and they should stay that way. You
-        can also get the magnitude or power the easy way using Math.
+        wavelets = _create_morlet(deepcopy(options), data.s_freq)
 
-        >>> from phypno.trans import Math, TimeFreq
-        >>> calc_tf = TimeFreq(foi=(8, 10))
-        >>> tf = calc_tf(data)
-        >>> make_abs = Math(operator_name='abs')
-        >>> tf_abs = make_abs(tf)
-        >>> tf_abs.data[0][0, 0, 0]
-        1737.4662329214384)
+        for i in range(data.number_of('trial')):
+            lg.info('Processing trial # {0: 6}'.format(i))
+            timefreq.axis['freq'][i] = array(options['foi'])
+            timefreq.axis['time'][i] = data.axis['time'][i]
 
-        """
-        idx_time = data.index_of('time')
+            timefreq.data[i] = empty((data.number_of('chan')[i],
+                                      data.number_of('time')[i],
+                                      len(options['foi'])),
+                                     dtype='complex')
+            for i_c, chan in enumerate(data.axis['chan'][i]):
+                dat = data(trial=i, chan=chan)
+                for i_f, wavelet in enumerate(wavelets):
+                    tf = fftconvolve(dat, wavelet, 'same')
+                    timefreq.data[i][i_c, :, i_f] = tf
 
-        timefreq = ChanTimeFreq()
-        timefreq.s_freq = data.s_freq
-        timefreq.start_time = data.start_time
-        timefreq.axis['chan'] = data.axis['chan']
-        timefreq.axis['time'] = empty(data.number_of('trial'), dtype='O')
-        timefreq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
-        timefreq.data = empty(data.number_of('trial'), dtype='O')
+    elif method == 'welch':
 
-        if self.method == 'morlet':
+        for i, trial in enumerate(data):
+            time_in_trl = trial.axis['time'][0]
+            half_duration = options['duration'] / 2
+            overlap = options['overlap'] * half_duration
+            windows = arange(time_in_trl[0], time_in_trl[-1], overlap)
 
-            wavelets = _create_morlet(deepcopy(self.options), data.s_freq)
+            good_win = (windows - half_duration) > time_in_trl[0]
+            windows = windows[good_win]
+            good_win = (windows + half_duration) < time_in_trl[-1]
+            windows = windows[good_win]
 
-            for i in range(data.number_of('trial')):
-                lg.info('Processing trial # {0: 6}'.format(i))
-                timefreq.axis['freq'][i] = array(self.options['foi'])
-                timefreq.axis['time'][i] = data.axis['time'][i]
+            timefreq.axis['time'][i] = windows
 
-                timefreq.data[i] = empty((data.number_of('chan')[i],
-                                          data.number_of('time')[i],
-                                          len(self.options['foi'])),
-                                         dtype='complex')
-                for i_c, chan in enumerate(data.axis['chan'][i]):
-                    dat = data(trial=i, chan=chan)
-                    for i_f, wavelet in enumerate(wavelets):
-                        tf = fftconvolve(dat, wavelet, 'same')
-                        timefreq.data[i][i_c, :, i_f] = tf
+            n_sel_time = options['duration'] * data.s_freq
+            n_freq = n_sel_time / 2 + 1
 
-        elif self.method == 'welch':
+            timefreq.data[i] = empty((data.number_of('chan')[i],
+                                      len(windows), n_freq))
 
-            for i, trial in enumerate(data):
-                time_in_trl = trial.axis['time'][0]
-                half_duration = self.options['duration'] / 2
-                overlap = self.options['overlap'] * half_duration
-                windows = arange(time_in_trl[0], time_in_trl[-1], overlap)
+            for i_win, win_value in enumerate(windows):
+                # this is necessary to go around the floating point errors
+                # instead of checking the intervals with >= and <,
+                # we first find the first point and move from there
+                time0 = win_value - options['duration'] / 2
+                i_time0 = where(time_in_trl >= time0)[0][0]
+                i_time1 = i_time0 + n_sel_time
 
-                good_win = (windows - half_duration) > time_in_trl[0]
-                windows = windows[good_win]
-                good_win = (windows + half_duration) < time_in_trl[-1]
-                windows = windows[good_win]
+                x = trial(trial=0, time=time_in_trl[i_time0:i_time1])
+                f, Pxx = welch(x,
+                               fs=data.s_freq,
+                               nperseg=x.shape[idx_time],
+                               axis=idx_time)
+                timefreq.data[i][:, i_win, :] = Pxx
 
-                timefreq.axis['time'][i] = windows
+            timefreq.axis['freq'][i] = f
 
-                n_sel_time = self.options['duration'] * data.s_freq
-                n_freq = n_sel_time / 2 + 1
-
-                timefreq.data[i] = empty((data.number_of('chan')[i],
-                                          len(windows), n_freq))
-
-                for i_win, win_value in enumerate(windows):
-                    # this is necessary to go around the floating point errors
-                    # instead of checking the intervals with >= and <,
-                    # we first find the first point and move from there
-                    time0 = win_value - self.options['duration'] / 2
-                    i_time0 = where(time_in_trl >= time0)[0][0]
-                    i_time1 = i_time0 + n_sel_time
-
-                    x = trial(trial=0, time=time_in_trl[i_time0:i_time1])
-                    f, Pxx = welch(x,
-                                   fs=data.s_freq,
-                                   nperseg=x.shape[idx_time],
-                                   axis=idx_time)
-                    timefreq.data[i][:, i_win, :] = Pxx
-
-                timefreq.axis['freq'][i] = f
-
-        return timefreq
+    return timefreq
 
 
 def _create_morlet(options, s_freq):
