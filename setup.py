@@ -27,12 +27,14 @@ setup(
     license='GPLv3',
 
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
+        'Environment :: X11 Applications :: Qt',
 
         'Intended Audience :: Healthcare Industry',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
+        'Topic :: Scientific/Engineering :: Visualization',
 
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
@@ -47,7 +49,7 @@ setup(
 
     extras_require={
         'analysis': ['scipy'],  # numpy
-        'gui': ['scipy'],  # pyqt4
+        'gui': ['scipy'],  # pyqt5
         'viz': ['vispy'],
         'test': ['coverage'],
         'all': ['scipy',
