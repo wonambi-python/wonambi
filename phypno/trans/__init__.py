@@ -8,7 +8,7 @@ basic elements, use the package "detect" for example.
 """
 from .filter import filter_, convolve
 from .select import select, resample
-from .frequency import freq, timefreq
+from .frequency import frequency, timefrequency
 from .merge import concatenate
 from .math import math
 from .montage import montage

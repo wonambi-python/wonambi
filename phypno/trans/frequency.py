@@ -17,7 +17,7 @@ from ..datatype import ChanFreq, ChanTimeFreq
 lg = getLogger(__name__)
 
 
-def freq(data, method='welch', **options):
+def frequency(data, method='welch', **options):
     """Compute the power spectrum.
 
     Parameters
@@ -109,7 +109,7 @@ def freq(data, method='welch', **options):
     return freq
 
 
-def timefreq(data, method='morlet', **options):
+def timefrequency(data, method='morlet', **options):
     """Compute the power spectrum over time.
 
     Parameters

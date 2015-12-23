@@ -52,17 +52,14 @@ class Viz1(Viz):
 
             plt = self._fig[cnt, 0]
             plt.name = one_value
-            plt.plot((x, dat), color=color)
+            plt.plot((x, dat), color=color, ylabel=one_value)
 
         if limits_x is not None:
             min_x, max_x = limits_x
-        for onewidget in self._fig.plot_widgets:
-            onewidget.view.camera.set_range(x=(min_x, max_x))
-
         if limits_y is not None:
             min_y, max_y = limits_y
         for plt in self._fig.plot_widgets:
-            plt.view.camera.set_range(y=(min_y, max_y))
+            plt.view.camera.set_range(x=(min_x, max_x), y=(min_y, max_y))
 
         self._limits_x = min_x, max_x
         self._limits_y = min_y, max_y

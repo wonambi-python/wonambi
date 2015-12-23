@@ -53,7 +53,7 @@ def math(data, operator=None, operator_name=None, axis=None):
     'absolute', 'angle', 'exp', 'log', 'sqrt', 'square', 'unwrap'
 
     The operator_name's that need an axis, but do not remove it:
-    'hilbert', 'diff'
+    'hilbert', 'diff', 'detrend'
 
     The operator_name's that need an axis and remove it:
     'mean', 'median', 'mode', 'std'
@@ -63,19 +63,18 @@ def math(data, operator=None, operator_name=None, axis=None):
     You can pass a single value or a tuple. The order starts from left to
     right, so abs of the hilbert transform, should be:
 
-    >>> rms = Math(operator_name=('hilbert', 'abs'), axis='time')
+    >>> rms = math(data, operator_name=('hilbert', 'abs'), axis='time')
 
     If you want to pass the power of three, use lambda (or partial):
 
     >>> p3 = lambda x: power(x, 3)
-    >>> apply_p3 = Math(operator=p3)
-    >>> data = apply_p3(data)
+    >>> data_p3 = math(data, operator=p3)
 
     Note that lambdas are fine with point-wise operation, but if you want them
     to operate on axis, you need to pass ''axis'' as well, so that:
 
     >>> std_ddof = lambda x, axis: std(x, axis, ddof=1)
-    >>> apply_std = Math(operator=std_ddof)
+    >>> data_std = math(data, operator=std_ddof)
 
     If you don't pass 'axis' in lambda, it'll never know on which axis the
     function should be applied and you'll get unpredictable results.

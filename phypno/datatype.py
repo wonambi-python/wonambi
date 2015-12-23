@@ -3,62 +3,14 @@
 The main class is Data, all the other classes should depend on it. The other
 classes are given only as convenience, but they should not overwride
 Data.__call__, which needs to be very general.
-
 """
-from logging import getLogger
-lg = getLogger('phypno')
-
 from collections import OrderedDict, Iterable
 from copy import deepcopy
+from logging import getLogger
 
 from numpy import arange, array, empty, ix_, NaN, squeeze, where
 
-
-def _get_indices(values, selected, tolerance):
-    """Get indices based on user-selected values.
-
-    Parameters
-    ----------
-    values : ndarray (any dtype)
-        values present in the axis.
-    selected : ndarray (any dtype) or tuple or list
-        values selected by the user
-    tolerance : float
-        avoid rounding errors.
-
-    Returns
-    -------
-    idx_data : list of int
-        indices of row/column to select the data
-    idx_output : list of int
-        indices of row/column to copy into output
-
-    Notes
-    -----
-    This function is probably not very fast, but it's pretty robust. It keeps
-    the order, which is extremely important.
-
-    If you use values in the self.axis, you don't need to specify tolerance.
-    However, if you specify arbitrary points, floating point errors might
-    affect the actual values. Of course, using tolerance is much slower.
-
-    Maybe tolerance should be part of Select instead of here.
-
-    """
-    idx_data = []
-    idx_output = []
-    for idx_of_selected, one_selected in enumerate(selected):
-
-        if tolerance is None or values.dtype.kind == 'U':
-            idx_of_data = where(values == one_selected)[0]
-        else:
-            idx_of_data = where(abs(values - one_selected) <= tolerance)[0] # actual use min
-
-        if len(idx_of_data) > 0:
-            idx_data.append(idx_of_data[0])
-            idx_output.append(idx_of_selected)
-
-    return idx_data, idx_output
+lg = getLogger()
 
 
 class Data:
@@ -97,7 +49,6 @@ class Data:
     Something which is not immediately clear for chan. dtype='U' (meaning
     Unicode) actually creates string of type str\_, while if you use dtype='S'
     (meaning String) it creates strings of type bytes\_.
-
     """
     def __init__(self, data=None, s_freq=None, **kwargs):
 
@@ -111,19 +62,22 @@ class Data:
 
         self.axis = OrderedDict()
         if data is not None:
-
             """temporary solution until PEP0468
             kwargs is a dict, so no order. We try to reconstruct order based
             on number of values for each value, but not 100% reliable.
             """
             count_kwargs = {len(v): k for k, v in kwargs.items()}
-            if len(set(count_kwargs)) == len(list(count_kwargs)):
-                lg.warn('Some arguments have the same length, so the order of '
-                        'the axes might be incorrect')
+            if len(set(count_kwargs)) != len(list(count_kwargs)):
+                lg.warning('Some arguments have the same length, so the order '
+                           'of the axes might be incorrect')
             axes = OrderedDict()
             for n_dim in data.shape:
-                axis_with_right_ndim = count_kwargs[n_dim]
-                axes[axis_with_right_ndim] = kwargs[axis_with_right_ndim]
+                try:
+                    axis_with_right_ndim = count_kwargs[n_dim]
+                    axes[axis_with_right_ndim] = kwargs[axis_with_right_ndim]
+                except KeyError:
+                    raise ValueError('Number of dimensions in axis does not '
+                                     'match number of dimensions in data')
 
             for axis, value in axes.items():
                 self.axis[axis] = array((1,), dtype='O')
@@ -474,3 +428,50 @@ class ChanTimeFreq(Data):
         self.axis['chan'] = array([], dtype='O')
         self.axis['time'] = array([], dtype='O')
         self.axis['freq'] = array([], dtype='O')
+
+
+def _get_indices(values, selected, tolerance):
+    """Get indices based on user-selected values.
+
+    Parameters
+    ----------
+    values : ndarray (any dtype)
+        values present in the axis.
+    selected : ndarray (any dtype) or tuple or list
+        values selected by the user
+    tolerance : float
+        avoid rounding errors.
+
+    Returns
+    -------
+    idx_data : list of int
+        indices of row/column to select the data
+    idx_output : list of int
+        indices of row/column to copy into output
+
+    Notes
+    -----
+    This function is probably not very fast, but it's pretty robust. It keeps
+    the order, which is extremely important.
+
+    If you use values in the self.axis, you don't need to specify tolerance.
+    However, if you specify arbitrary points, floating point errors might
+    affect the actual values. Of course, using tolerance is much slower.
+
+    Maybe tolerance should be part of Select instead of here.
+
+    """
+    idx_data = []
+    idx_output = []
+    for idx_of_selected, one_selected in enumerate(selected):
+
+        if tolerance is None or values.dtype.kind == 'U':
+            idx_of_data = where(values == one_selected)[0]
+        else:
+            idx_of_data = where(abs(values - one_selected) <= tolerance)[0] # actual use min
+
+        if len(idx_of_data) > 0:
+            idx_data.append(idx_of_data[0])
+            idx_output.append(idx_of_selected)
+
+    return idx_data, idx_output
