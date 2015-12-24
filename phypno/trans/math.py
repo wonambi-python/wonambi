@@ -132,7 +132,6 @@ def math(data, operator=None, operator_name=None, axis=None):
                            'keepdims': keepdims,
                            })
 
-    operations = operations
     output = data._copy()
 
     if axis is not None:
