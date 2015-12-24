@@ -96,14 +96,14 @@ def select(data, trial=None, invert=False, **axes_to_select):
                 lg.debug('In axis {0}, selecting {1: 6} '
                          'values'.format(one_axis,
                                          len(selected_values)))
-
+                to_select[one_axis] = selected_values
             else:
                 lg.debug('In axis ' + one_axis + ', selecting all the '
                          'values')
                 selected_values = data.axis[one_axis][i]
 
             output.axis[one_axis][cnt] = selected_values
-            to_select[one_axis] = selected_values
+
 
         output.data[cnt] = data(trial=i, **to_select)
 
