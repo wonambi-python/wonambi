@@ -1,6 +1,6 @@
 """Module to plot all the elements as lines.
 """
-from numpy import max, min
+from numpy import nanmax, nanmin
 from vispy.scene.visuals import Rectangle
 
 from .base import Viz
@@ -35,8 +35,8 @@ class Viz1(Viz):
             limits on the y-axis (if unspecified, it's the max across subplots)
         """
         x = data.axis[axis_x][trial]
-        max_x = max(x)
-        min_x = min(x)
+        max_x = nanmax(x)
+        min_x = nanmin(x)
 
         subplot_values = data.axis[axis_subplot][trial]
 
@@ -47,8 +47,8 @@ class Viz1(Viz):
             selected_axis = {axis_subplot: one_value}
             dat = data(trial=trial, **selected_axis)
 
-            max_y = max((max_y, max(dat)))
-            min_y = min((min_y, min(dat)))
+            max_y = nanmax((max_y, nanmax(dat)))
+            min_y = nanmin((min_y, nanmin(dat)))
 
             plt = self._fig[cnt, 0]
             plt.name = one_value

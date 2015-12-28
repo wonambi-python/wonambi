@@ -1,7 +1,5 @@
-from logging import getLogger
-lg = getLogger('phypno')
-
 from datetime import datetime
+from logging import getLogger
 
 from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
                    real, tile, zeros)
@@ -9,6 +7,9 @@ from numpy.random import random, randn
 from numpy.fft import fft, ifft
 
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
+
+
+lg = getLogger(__name__)
 
 
 def create_data(datatype='ChanTime', start_time=None, n_trial=None,
