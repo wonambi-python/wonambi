@@ -44,7 +44,6 @@ def frequency(data, method='welch', **options):
 
     TODO: check that power does not change if duration becomes longer
     """
-
     implemented_methods = ('welch', 'multitaper')
 
     if method not in implemented_methods:
@@ -154,6 +153,9 @@ def timefrequency(data, method='morlet', **options):
         dur_in_s : float
             total duration of the wavelet, two-sided (i.e. from start to
             finish)
+        time_skip : int, in samples
+            number of time points to skip (it runs convolution on all the
+            data points, but you don't need to store them all)
         normalization : str
             'area' means that energy is normalized to 1, 'peak' means that the
             peak is set at 1, 'max' is a normalization used by nitime that I
@@ -181,6 +183,7 @@ def timefrequency(data, method='morlet', **options):
                            'sigma_f': None,
                            'dur_in_sd': 4,
                            'dur_in_s': None,
+                           'time_skip': 1,
                            'normalization': 'area',
                            'zero_mean': False,
                            }
@@ -191,6 +194,7 @@ def timefrequency(data, method='morlet', **options):
 
     default_options.update(options)
     options = default_options
+    time_skip = options['time_skip']
 
     idx_time = data.index_of('time')
 
@@ -204,22 +208,23 @@ def timefrequency(data, method='morlet', **options):
 
     if method == 'morlet':
 
+        time_skip = options.pop('time_skip')
         wavelets = _create_morlet(deepcopy(options), data.s_freq)
 
         for i in range(data.number_of('trial')):
             lg.info('Processing trial # {0: 6}'.format(i))
             timefreq.axis['freq'][i] = array(options['foi'])
-            timefreq.axis['time'][i] = data.axis['time'][i]
+            timefreq.axis['time'][i] = data.axis['time'][i][::time_skip]
 
             timefreq.data[i] = empty((data.number_of('chan')[i],
-                                      data.number_of('time')[i],
+                                      data.number_of('time')[i] // time_skip,
                                       len(options['foi'])),
                                      dtype='complex')
             for i_c, chan in enumerate(data.axis['chan'][i]):
                 dat = data(trial=i, chan=chan)
                 for i_f, wavelet in enumerate(wavelets):
                     tf = fftconvolve(dat, wavelet, 'same')
-                    timefreq.data[i][i_c, :, i_f] = tf
+                    timefreq.data[i][i_c, :, i_f] = tf[::time_skip]
 
     elif method == 'welch':
 
@@ -360,11 +365,10 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
     elif normalization == 'peak':
         pass
 
-    if lg.level == DEBUG:
-        lg.debug('At freq {0:.2f}Hz, sigma_f={1:.2f}Hz, sigma_t={2:.3f}s, '
-                 'total duration={3:.3f}s'.format(freq, sigma_f, sigma_t,
-                                                  dur_in_s))
-        lg.debug('    Real peak={0:.3f}, Mean={1:.6f}, '
-                 'Energy={2:.3f}'.format(max(real(w)), mean(w), norm(w) ** 2))
+    lg.info('At freq {0: 9.3f}Hz, sigma_f={1: 9.3f}Hz, sigma_t={2: 9.3f}s, '
+            'total duration={3: 9.3f}s'.format(freq, sigma_f, sigma_t,
+                                               dur_in_s))
+    lg.debug('    Real peak={0: 9.3f}, Mean={1: 12.6f}, '
+             'Energy={2: 9.3f}'.format(max(real(w)), mean(w), norm(w) ** 2))
 
     return w
