@@ -94,7 +94,8 @@ class Viz3(Viz):
         self._surf.append(mesh)
 
     def add_chan(self, chan, color=CHAN_COLOR, chan_colors=None,
-                 values=None, limits_c=None, colormap='coolwarm'):
+                 values=None, limits_c=None, colormap='coolwarm',
+                 shift=(0, 0, 0)):
         """Add channels to visualization
 
         Parameters
@@ -111,6 +112,9 @@ class Viz3(Viz):
             min and max values to normalize the color
         colormap : str
             one of the colormaps in vispy
+        shift : tuple of 3 floats
+            shift all electrodes by this amount (unit and order depend on
+            xyz coordinates of the electrodes)
         """
         # larger if colors are meaningful
         if values is not None:
@@ -132,7 +136,7 @@ class Viz3(Viz):
                 chan_color = chan_colors
 
             mesh = SimpleMesh(meshdata, chan_color)
-            mesh.transform = STTransform(translate=one_chan.xyz)
+            mesh.transform = STTransform(translate=one_chan.xyz + shift)
             self._plt.view.add(mesh)
             self._chan.append(mesh)
 
