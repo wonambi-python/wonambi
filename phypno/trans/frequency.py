@@ -335,7 +335,6 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
     total duration (from start to finish) of the window. 'dur_in_sd' calculates
     the total duration as the length in standard deviations in the time domain:
     dur_in_s = dur_in_sd * 2 * sigma_t, with sigma_t = 1 / (2 * pi * sigma_f)
-
     """
     if sigma_f is None:
         sigma_f = freq / ratio

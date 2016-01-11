@@ -9,7 +9,8 @@ class Viz2(Viz):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def add_data(self, data, trial=0, limits_c=None, colormap=COLORMAP):
+    def add_data(self, data, trial=0, limits_c=None, colormap=COLORMAP,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -20,7 +21,9 @@ class Viz2(Viz):
         limits_c : tuple, optional
             limits on the z-axis (if unspecified, it's the max across subplots)
         """
-        dat = data(trial=trial)
+        kwargs.update({'trial': trial})
+
+        dat = data(**kwargs)
 
         if limits_c is None:
             max_c = nanmax(dat)
@@ -28,8 +31,11 @@ class Viz2(Viz):
         else:
             min_c, max_c = limits_c
 
+        print(min_c)
+        print(max_c)
+
         plt = self._fig[0, 0]
-        plt.image(dat, clim=(min_c, max_c), cmap=colormap)
+        plt.image(dat.T, clim=(min_c, max_c), cmap=colormap)
         plt.view.camera.aspect = None
         plt.xaxis.axis.domain = (data.axis['time'][trial][0],
                                  data.axis['time'][trial][-1])
