@@ -147,6 +147,6 @@ class Resample:
             output.data[i] = resample(data.data[i], n_samples,
                                       axis=data.index_of(axis))
 
-        output.s_freq = self.s_freq / ratio
+        output.s_freq = self.s_freq
 
         return output
