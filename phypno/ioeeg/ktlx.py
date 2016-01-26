@@ -14,14 +14,11 @@ is not _000 but there is no extension, for backwards compatibility.
 
 This module contains functions to read each of the files, the files are called
 _read_EXT where EXT is one of the extensions.
-
 """
-from logging import getLogger
-lg = getLogger(__name__)
-
 from binascii import hexlify
 from datetime import timedelta, datetime
 from glob import glob
+from logging import getLogger
 from math import ceil
 from os import environ, makedirs, SEEK_END
 from os.path import basename, expanduser, join, exists, splitext
@@ -30,6 +27,8 @@ from re import sub
 from struct import unpack
 from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
                    memmap, int32)
+
+lg = getLogger(__name__)
 
 BITS_IN_BYTE = 8
 # http://support.microsoft.com/kb/167296
@@ -50,30 +49,6 @@ elif system() == 'Linux':
     cache_dir = join(home, 'projects/temp')
 
 lg.info('Temporary Directory with data: ' + cache_dir)
-
-
-def get_erd(sample, all_beg, all_end):
-    """Get the ERD for one specific sample.
-
-    Parameters
-    ----------
-    sample : int
-        sample of interest
-    all_beg : ndarray
-        vector of the first sampling points
-    all_end : ndarray
-        vector of the last sampling points
-
-    Returns
-    -------
-    int or None
-        index of the ERD containing the sample (or None if not found)
-
-    """
-    try:
-        return where((all_beg <= sample) & (sample <= all_end))[0][0]
-    except IndexError:
-        return None
 
 
 def get_date_idx(time_of_interest, start_time, end_time):
@@ -885,19 +860,11 @@ class Ktlx():
         all_beg = asarray([x['start_stamp'] for x in all_stamp])
         all_end = asarray([x['end_stamp'] for x in all_stamp])
 
-        begrec = get_erd(begsam, all_beg, all_end)
-        endrec = get_erd(endsam, all_beg, all_end)
-        if begrec is None and endrec is None:
+        try:
+            begrec = where((all_end >= begsam))[0][0]
+            endrec = where((all_beg <= endsam))[0][-1]
+        except IndexError:
             return dat
-
-        if begrec is None:
-            begrec = endrec - 1
-            if begrec < 0:
-                begrec = 0
-        if endrec is None:
-            endrec = begrec + 1
-            if endrec >= len(all_stamp):
-                endrec = len(all_stamp) - 1
 
         lg.debug('Reading from recording #{} ({})'.format(begrec,
                                                           all_erd[begrec]) +
