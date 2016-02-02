@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from json import dump, load
 from pathlib import Path
-from numpy import memmap
+from numpy import c_, empty, NaN, memmap
 
 from numpy import float64 as FORMAT
 
@@ -70,6 +70,13 @@ class Phypno:
         ------
         FileNotFoundError
             if .dat file is not in the same directory, with the same name.
+
+        Notes
+        -----
+        When asking for an interval outside the data boundaries, it returns NaN
+        for those values. It then converts the memmap to a normal numpy array,
+        I think, and so it reads the data into memory. However, I'm not 100%
+        sure that this is what happens.
         """
         memmap_file = Path(self.filename).with_suffix('.dat')
         if not memmap_file.exists():
@@ -77,7 +84,22 @@ class Phypno:
 
         data = memmap(str(memmap_file), FORMAT, mode='c', shape=self.memshape)
 
-        return data[chan, begsam:endsam]
+        n_smp = self.memshape[1]
+        dat = data[chan, max((begsam, 0)):min((endsam, n_smp))]
+
+        if begsam < 0:
+
+            pad = empty((dat.shape[0], 0 - begsam))
+            pad.fill(NaN)
+            dat = c_[pad, dat]
+
+        if endsam >= n_smp:
+
+            pad = empty((dat.shape[0], endsam - n_smp))
+            pad.fill(NaN)
+            dat = c_[dat, pad]
+
+        return dat
 
     def return_markers(self):
         """This format doesn't have markers.
