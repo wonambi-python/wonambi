@@ -24,7 +24,7 @@ def _convert_time_to_sample(abs_time, dataset):
     ----------
     abs_time : dat
         if it's int or float, it's assumed it's s;
-        if it's datedelta, it's assumed from the start of the recording;
+        if it's timedelta, it's assumed from the start of the recording;
         if it's datetime, it's assumed it's absolute time.
     dataset : instance of phypno.Dataset
         dataset to get sampling frequency and start time
@@ -171,7 +171,29 @@ class Dataset:
 
         Parameters
         ----------
-        TODO:
+        begtime : int or datedelta or datetime or list
+            start of the data to read;
+            if it's int, it's assumed it's s;
+            if it's datedelta, it's assumed from the start of the recording;
+            if it's datetime, it's assumed it's absolute time.
+            It can also be a list of any of the above type.
+        endtime : int or datedelta or datetime
+            end of the data to read;
+            if it's int, it's assumed it's s;
+            if it's datedelta, it's assumed from the start of the recording;
+            if it's datetime, it's assumed it's absolute time.
+            It can also be a list of any of the above type.
+
+        Returns
+        -------
+        list of path
+            list of absolute paths (as str) to the movie files
+        float
+            time in s from the beginning of the first movie when the part of
+            interest starts
+        float
+            time in s from the beginning of the last movie when the part of
+            interest ends
 
         Raises
         ------
@@ -181,6 +203,14 @@ class Dataset:
             when there are video files, but the interval of interest is not in
             the list of files.
         """
+        if isinstance(begtime, datetime):
+            begtime = begtime - self.header['start_time']
+        if isinstance(begtime, timedelta):
+            begtime = begtime.total_seconds()
+        if isinstance(endtime, datetime):
+            endtime = endtime - self.header['start_time']
+        if isinstance(endtime, timedelta):
+            endtime = endtime.total_seconds()
 
         videos = self.dataset.return_videos(begtime, endtime)
         """
@@ -202,13 +232,13 @@ class Dataset:
         begtime : int or datedelta or datetime or list
             start of the data to read;
             if it's int, it's assumed it's s;
-            if it's datedelta, it's assumed from the start of the recording;
+            if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
         endtime : int or datedelta or datetime
             end of the data to read;
             if it's int, it's assumed it's s;
-            if it's datedelta, it's assumed from the start of the recording;
+            if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
         begsam : int
