@@ -13,7 +13,7 @@ from collections import Iterable
 from logging import getLogger
 
 from numpy import asarray, empty, linspace, ones, setdiff1d
-from scipy.signal import resample as sci_resample
+from scipy.signal import decimate
 
 lg = getLogger(__name__)
 
@@ -104,31 +104,45 @@ def select(data, trial=None, invert=False, **axes_to_select):
 
             output.axis[one_axis][cnt] = selected_values
 
-
         output.data[cnt] = data(trial=i, **to_select)
 
     return output
 
 
-def resample(data, s_freq=None, axis='time'):
+def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
+    """Downsample the data after applying a filter.
 
-    # force convertion to int
-    s_freq = int(s_freq)
+    Parameters
+    ----------
+    data : instance of Data
+        data to downsample
+    s_freq : int or float
+        desired sampling frequency
+    axis : str
+        axis you want to apply downsample on (most likely 'time')
+    ftype : str
+        filter type to apply. The default here is 'fir', like Matlab but unlike
+        the default in scipy, because it works better
+    n : int
+        The order of the filter (1 less than the length for ‘fir’).
 
+    Returns
+    -------
+    instance of Data
+        downsampled data
+    """
     output = data._copy()
-    ratio = data.s_freq / s_freq
+    ratio = int(data.s_freq / s_freq)
 
     for i in range(data.number_of('trial')):
+        output.data[i] = decimate(data.data[i], ratio,
+                                  axis=data.index_of(axis))
 
-        # force convertion to int
-        n_samples = int(data.axis[axis][i].shape[0] / ratio)
+        n_samples = output.data[i].shape[data.index_of(axis)]
         output.axis[axis][i] = linspace(data.axis[axis][i][0],
                                         data.axis[axis][i][-1] +
                                         1 / data.s_freq,
                                         n_samples)
-
-        output.data[i] = sci_resample(data.data[i], n_samples,
-                                      axis=data.index_of(axis))
 
     output.s_freq = s_freq
 
