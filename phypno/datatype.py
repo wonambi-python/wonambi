@@ -279,8 +279,10 @@ class Data:
         >>>     print(one_mean.data[0])
         """
         for trial in range(self.number_of('trial')):
-            output = deepcopy(self)
-            for one_axis in output.axis:
+
+            output = self._copy(axis=False)
+
+            for one_axis in self.axis:
                 output.axis[one_axis] = empty(1, dtype='O')
             output.data = empty(1, dtype='O')
 
