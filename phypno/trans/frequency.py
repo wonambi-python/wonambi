@@ -1,12 +1,12 @@
 """Module to compute frequency representation.
 """
 from copy import deepcopy
-from logging import getLogger, DEBUG
+from logging import getLogger
 
 from numpy import (arange, array, empty, exp, inf, max, mean, pi, real, sqrt,
                    where)
 from numpy.linalg import norm
-from scipy.signal import welch, fftconvolve
+from scipy.signal import welch, fftconvolve, spectrogram
 try:
     from mne.time_frequency.multitaper import multitaper_psd
 except ImportError:
@@ -170,7 +170,7 @@ def timefrequency(data, method='morlet', **options):
         overlap : int
             amount of overlap between windows
     """
-    implemented_methods = ('morlet', 'welch')
+    implemented_methods = ('morlet', 'welch', 'spectrogram')
 
     if method not in implemented_methods:
         raise ValueError('Method ' + method + ' is not implemented yet.\n'
@@ -190,6 +190,13 @@ def timefrequency(data, method='morlet', **options):
     elif method == 'welch':
         default_options = {'duration': 1,
                            'overlap': .5,
+                           }
+    elif method == 'spectrogram':
+        default_options = {'duration': 1,
+                           'overlap': 0.5,
+                           'window': 'hann',
+                           'detrend': 'constant',
+                           'scaling': 'density',
                            }
 
     default_options.update(options)
@@ -263,6 +270,25 @@ def timefrequency(data, method='morlet', **options):
                 timefreq.data[i][:, i_win, :] = Pxx
 
             timefreq.axis['freq'][i] = f
+
+    elif method == 'spectrogram':
+        nperseg = int(options['duration'] * data.s_freq)
+        noverlap = int(options['overlap'] * nperseg)
+
+        for i, trial in enumerate(data):
+            f, t, Sxx = spectrogram(trial(0), fs=data.s_freq,
+                                    window=options['window'],
+                                    nperseg=nperseg,
+                                    noverlap=noverlap,
+                                    detrend=options['detrend'],
+                                    scaling=options['scaling'],
+                                    mode='complex',
+                                    axis=data.index_of('time'))
+
+            timefreq.data[i] = Sxx[..., ::time_skip]
+            timefreq.axis['freq'][i] = f
+            i_time = data.axis['time'][i][t[::time_skip].astype(int)]
+            timefreq.axis['time'][i] = i_time
 
     return timefreq
 
