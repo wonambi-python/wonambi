@@ -108,7 +108,7 @@ def frequency(data, method='welch', **options):
     return freq
 
 
-def timefrequency(data, method='morlet', **options):
+def timefrequency(data, method='morlet', time_skip=1, **options):
     """Compute the power spectrum over time.
 
     Parameters
@@ -116,7 +116,8 @@ def timefrequency(data, method='morlet', **options):
     method : str, optional
         the method to compute the time-frequency representation, such as
         'morlet' (wavelet using complex morlet window), 'welch' (compute
-        power spectrum for each window, but it does not average them)
+        power spectrum for each window, but it does not average them),
+        'spectrogram' (relies on scipy implementation)
     options : dict
         Options depends on the method.
     data : instance of ChanTime
@@ -183,7 +184,6 @@ def timefrequency(data, method='morlet', **options):
                            'sigma_f': None,
                            'dur_in_sd': 4,
                            'dur_in_s': None,
-                           'time_skip': 1,
                            'normalization': 'area',
                            'zero_mean': False,
                            }
@@ -201,7 +201,6 @@ def timefrequency(data, method='morlet', **options):
 
     default_options.update(options)
     options = default_options
-    time_skip = options['time_skip']
 
     idx_time = data.index_of('time')
 
@@ -215,7 +214,6 @@ def timefrequency(data, method='morlet', **options):
 
     if method == 'morlet':
 
-        time_skip = options.pop('time_skip')
         wavelets = _create_morlet(deepcopy(options), data.s_freq)
 
         for i in range(data.number_of('trial')):
@@ -287,8 +285,7 @@ def timefrequency(data, method='morlet', **options):
 
             timefreq.data[i] = Sxx[..., ::time_skip]
             timefreq.axis['freq'][i] = f
-            i_time = data.axis['time'][i][t[::time_skip].astype(int)]
-            timefreq.axis['time'][i] = i_time
+            timefreq.axis['time'][i] = t[::time_skip]
 
     return timefreq
 
