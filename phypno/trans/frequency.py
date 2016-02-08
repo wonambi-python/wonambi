@@ -4,7 +4,7 @@ from copy import deepcopy
 from logging import getLogger
 
 from numpy import (arange, array, empty, exp, inf, max, mean, pi, real, sqrt,
-                   where)
+                   swapaxes, where)
 from numpy.linalg import norm
 from scipy.signal import welch, fftconvolve, spectrogram
 try:
@@ -42,7 +42,17 @@ def frequency(data, method='welch', **options):
     It uses sampling frequency as specified in s_freq, it does not
     recompute the sampling frequency based on the time axis.
 
-    TODO: check that power does not change if duration becomes longer
+    For method 'welch', the following options should be specified:
+        duraton : int
+            duration of the window to compute the power spectrum, in s
+        overlap : int
+            amount of overlap (0 -> no overlap, 1 -> full overlap)
+        window : str or tuple or array
+            desired window to use
+        detrend : str or function or False
+            specifies how to detrend each segment
+        scaling : str
+            you can choose between density (V**2/Hz) or spectrum (V**2)
     """
     implemented_methods = ('welch', 'multitaper')
 
@@ -52,8 +62,10 @@ def frequency(data, method='welch', **options):
                          ', '.join(implemented_methods))
 
     if method == 'welch':
-        default_options = {'duration': 2,
-                           'overlap': .5,
+        default_options = {'duration': 1,
+                           'overlap': 0.5,
+                           'window': 'hann',
+                           'detrend': 'constant',
                            'scaling': 'density',
                            }
 
@@ -83,12 +95,12 @@ def frequency(data, method='welch', **options):
 
     for i in range(data.number_of('trial')):
         if method == 'welch':
+            nperseg = int(options['duration'] * data.s_freq)
+            noverlap = int(options['overlap'] * nperseg)
             f, Pxx = welch(data(trial=i),
                            fs=data.s_freq,
-                           nperseg=int(data.s_freq *
-                                       options['duration']),
-                           noverlap=int(data.s_freq *
-                                        options['overlap']),
+                           nperseg=nperseg,
+                           noverlap=noverlap,
                            scaling=options['scaling'],
                            axis=idx_time)
 
@@ -115,9 +127,8 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     ----------
     method : str, optional
         the method to compute the time-frequency representation, such as
-        'morlet' (wavelet using complex morlet window), 'welch' (compute
-        power spectrum for each window, but it does not average them),
-        'spectrogram' (relies on scipy implementation)
+        'morlet' (wavelet using complex morlet window), 'spectrogram' (relies
+        on scipy implementation)
     options : dict
         Options depends on the method.
     data : instance of ChanTime
@@ -165,13 +176,19 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
             make sure that the wavelet has zero mean (only relevant if ratio
             < 5)
 
-    For method 'welch', the following options should be specified:
+    For method 'spectrogram', the following options should be specified:
         duraton : int
             duration of the window to compute the power spectrum, in s
         overlap : int
-            amount of overlap between windows
+            amount of overlap (0 -> no overlap, 1 -> full overlap)
+        window : str or tuple or array
+            desired window to use
+        detrend : str or function or False
+            specifies how to detrend each segment
+        scaling : str
+            you can choose between density (V**2/Hz) or spectrum (V**2)
     """
-    implemented_methods = ('morlet', 'welch', 'spectrogram')
+    implemented_methods = ('morlet', 'spectrogram')
 
     if method not in implemented_methods:
         raise ValueError('Method ' + method + ' is not implemented yet.\n'
@@ -187,10 +204,6 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
                            'normalization': 'area',
                            'zero_mean': False,
                            }
-    elif method == 'welch':
-        default_options = {'duration': 1,
-                           'overlap': .5,
-                           }
     elif method == 'spectrogram':
         default_options = {'duration': 1,
                            'overlap': 0.5,
@@ -201,8 +214,6 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
 
     default_options.update(options)
     options = default_options
-
-    idx_time = data.index_of('time')
 
     timefreq = ChanTimeFreq()
     timefreq.s_freq = data.s_freq
@@ -231,44 +242,6 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
                     tf = fftconvolve(dat, wavelet, 'same')
                     timefreq.data[i][i_c, :, i_f] = tf[::time_skip]
 
-    elif method == 'welch':
-
-        for i, trial in enumerate(data):
-            time_in_trl = trial.axis['time'][0]
-            half_duration = options['duration'] / 2
-            overlap = options['overlap'] * half_duration
-            windows = arange(time_in_trl[0], time_in_trl[-1], overlap)
-
-            good_win = (windows - half_duration) > time_in_trl[0]
-            windows = windows[good_win]
-            good_win = (windows + half_duration) < time_in_trl[-1]
-            windows = windows[good_win]
-
-            timefreq.axis['time'][i] = windows
-
-            n_sel_time = options['duration'] * data.s_freq
-            n_freq = n_sel_time / 2 + 1
-
-            timefreq.data[i] = empty((data.number_of('chan')[i],
-                                      len(windows), n_freq))
-
-            for i_win, win_value in enumerate(windows):
-                # this is necessary to go around the floating point errors
-                # instead of checking the intervals with >= and <,
-                # we first find the first point and move from there
-                time0 = win_value - options['duration'] / 2
-                i_time0 = where(time_in_trl >= time0)[0][0]
-                i_time1 = i_time0 + n_sel_time
-
-                x = trial(trial=0, time=time_in_trl[i_time0:i_time1])
-                f, Pxx = welch(x,
-                               fs=data.s_freq,
-                               nperseg=x.shape[idx_time],
-                               axis=idx_time)
-                timefreq.data[i][:, i_win, :] = Pxx
-
-            timefreq.axis['freq'][i] = f
-
     elif method == 'spectrogram':
         nperseg = int(options['duration'] * data.s_freq)
         noverlap = int(options['overlap'] * nperseg)
@@ -283,9 +256,10 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
                                     mode='complex',
                                     axis=data.index_of('time'))
 
-            timefreq.data[i] = Sxx[..., ::time_skip]
-            timefreq.axis['freq'][i] = f
+            # the last axis of Sxx corresponds to the segment times
+            timefreq.data[i] = swapaxes(Sxx[..., ::time_skip], -1, -2)
             timefreq.axis['time'][i] = t[::time_skip]
+            timefreq.axis['freq'][i] = f
 
     return timefreq
 
