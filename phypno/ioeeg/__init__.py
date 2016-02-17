@@ -99,4 +99,5 @@ from .moberg import Moberg
 from .mnefiff import write_mnefiff
 from .fieldtrip import FieldTrip, write_fieldtrip
 from .phypno import Phypno, write_phypno
+from .ieeg_org import IEEG_org
 # from .eeglab import Eeglab, write_eeglab

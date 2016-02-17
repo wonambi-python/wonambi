@@ -56,6 +56,7 @@ setup(
                 'mne',
                 'nibabel',
                 'vispy',
+                'request',  # to read ieeg.org dataset
                 ]
     },
 

@@ -140,13 +140,15 @@ def choose_file_or_dir():
     Returns
     -------
     str
-        'dir' or 'file' or 'abort'
+        'dir' or 'file' or 'ieegorg' or 'abort'
 
     """
     question = QMessageBox(QMessageBox.Information, 'Open Dataset',
-                           'Do you want to open a file or a directory?')
+                           'Do you want to open a file, a directory or a '
+                           'remote ieeg.org dataset?')
     dir_button = question.addButton('Directory', QMessageBox.YesRole)
     file_button = question.addButton('File', QMessageBox.NoRole)
+    remote_button = question.addButton('Remote Dataset', QMessageBox.NoRole)
     question.addButton(QMessageBox.Cancel)
     question.exec_()
     response = question.clickedButton()
@@ -155,6 +157,8 @@ def choose_file_or_dir():
         return 'dir'
     elif response == file_button:
         return 'file'
+    elif response == remote_button:
+        return 'remote'
     else:
         return 'abort'
 

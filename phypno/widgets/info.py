@@ -177,6 +177,9 @@ class Info(QWidget):
             elif file_or_dir == 'file':
                 filename, _ = QFileDialog.getOpenFileName(self, 'Open file',
                                                           dir_name)
+            elif file_or_dir == 'remote':
+                filename = 'I001_P019_D01'
+
             elif file_or_dir == 'abort':
                 return
 

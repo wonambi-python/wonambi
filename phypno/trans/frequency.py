@@ -53,6 +53,9 @@ def frequency(data, method='welch', **options):
             specifies how to detrend each segment
         scaling : str
             you can choose between density (V**2/Hz) or spectrum (V**2)
+
+        The output is real PSD, not complex, because of
+        https://github.com/scipy/scipy/issues/5757
     """
     implemented_methods = ('welch', 'multitaper')
 
@@ -258,7 +261,8 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
 
             # the last axis of Sxx corresponds to the segment times
             timefreq.data[i] = swapaxes(Sxx[..., ::time_skip], -1, -2)
-            timefreq.axis['time'][i] = t[::time_skip]
+            # add offset
+            timefreq.axis['time'][i] = t[::time_skip] + data.axis['time'][i][0]
             timefreq.axis['freq'][i] = f
 
     return timefreq

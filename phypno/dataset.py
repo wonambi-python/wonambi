@@ -5,11 +5,12 @@ from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
-from os.path import isdir, join
+from os.path import isdir, isfile, join
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import Edf, Ktlx, BlackRock, EgiMff, FieldTrip, Moberg, Phypno
+from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
+                    Moberg, Phypno)
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -75,7 +76,7 @@ def detect_format(filename):
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      filename)
-    else:
+    elif isfile(filename):
         if filename.endswith('.phy'):
             return Phypno
 
@@ -97,6 +98,9 @@ def detect_format(filename):
             else:
                 raise UnrecognizedFormat('Unrecognized format for file ' +
                                          filename)
+
+    else:
+        return IEEG_org
 
 
 class Dataset:
