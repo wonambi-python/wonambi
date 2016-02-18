@@ -81,13 +81,18 @@ class IEEG_org:
 
 
 class Session:
-    def __init__(self, username=None, password=None):
+    def __init__(self, username=None, password=None, password_md5=None):
         if username is None:
             username = input('ieeg.org username:')
-        if password is None:
-            password = getpass('ieeg.org password:')
         self.username = username
-        self.password = _md5(password)
+
+        if password is None and password_md5 is None:
+            password = getpass('ieeg.org password:')
+
+        if password:
+            self.password = md5(password)
+        elif password_md5:
+            self.password = password_md5
 
     def get_snapshot(self, name):
         return self._get_info(URL_ID + name)
@@ -149,7 +154,7 @@ def _prepare_xml_str(chan_id):
     return s
 
 
-def _md5(s):
+def md5(s):
     """ Returns MD5 hashed string """
     m = hashlib.md5(s.encode())
     return m.hexdigest()

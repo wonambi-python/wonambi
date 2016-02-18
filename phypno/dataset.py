@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
-from os.path import isdir, isfile, join
+from os.path import isdir, join
 
 from numpy import arange, asarray, empty, int64
 
@@ -53,7 +53,7 @@ def _convert_time_to_sample(abs_time, dataset):
     return sample
 
 
-def detect_format(filename):
+def detect_format(filename, server=None):
     """Detect file format.
 
     Parameters
@@ -66,41 +66,47 @@ def detect_format(filename):
     class used to read the data.
 
     """
-    if isdir(filename):
-        if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
-            return Ktlx
-        elif glob(join(filename, 'patient.info')):
-            return Moberg
-        elif glob(join(filename, 'info.xml')):
-            return EgiMff
-        else:
-            raise UnrecognizedFormat('Unrecognized format for directory ' +
-                                     filename)
-    elif isfile(filename):
-        if filename.endswith('.phy'):
-            return Phypno
+    if server is None:
 
-        with open(filename, 'rb') as f:
-            file_header = f.read(8)
-            if file_header == b'0       ':
-                f.seek(192)
-                edf_type = f.read(5)
-                if edf_type == b'EDF+C':
-                    return 'EDF+C'
-                elif edf_type == b'EDF+D':
-                    return 'EDF+D'
-                else:
-                    return Edf
-            elif file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
-                return BlackRock
-            elif file_header[:6] == b'MATLAB':  # we might need to read more
-                return FieldTrip
+        if isdir(filename):
+            if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
+                return Ktlx
+            elif glob(join(filename, 'patient.info')):
+                return Moberg
+            elif glob(join(filename, 'info.xml')):
+                return EgiMff
             else:
-                raise UnrecognizedFormat('Unrecognized format for file ' +
+                raise UnrecognizedFormat('Unrecognized format for directory ' +
                                          filename)
+        else:
+            if filename.endswith('.phy'):
+                return Phypno
+
+            with open(filename, 'rb') as f:
+                file_header = f.read(8)
+                if file_header == b'0       ':
+                    f.seek(192)
+                    edf_type = f.read(5)
+                    if edf_type == b'EDF+C':
+                        return 'EDF+C'
+                    elif edf_type == b'EDF+D':
+                        return 'EDF+D'
+                    else:
+                        return Edf
+                elif file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
+                    return BlackRock
+                elif file_header[:6] == b'MATLAB':  # we might need to read more
+                    return FieldTrip
+                else:
+                    raise UnrecognizedFormat('Unrecognized format for file ' +
+                                             filename)
 
     else:
-        return IEEG_org
+        if server == 'ieeg.org':
+            return IEEG_org
+        else:
+            raise UnrecognizedFormat('Unrecognized remote repository for ' +
+                                     filename)
 
 
 class Dataset:
@@ -110,8 +116,10 @@ class Dataset:
     ----------
     filename : str
         name of the file
-    memmap : bool, optional
-        whether to use memory mapping for the file
+    IOClass : class
+        one of the classes of phypno.ioeeg
+    server : str
+        remote repository ('ieeg.org')
 
     Attributes
     ----------
@@ -145,15 +153,14 @@ class Dataset:
     while the latter is the file that you really read. There might be
     differences, for example, if the argument points to a file within a
     directory, or if the file is mapped to memory.
-
     """
-    def __init__(self, filename, IOClass=None, memmap=False):
+    def __init__(self, filename, IOClass=None, server=None):
         self.filename = filename
 
         if IOClass is not None:
             self.IOClass = IOClass
         else:
-            self.IOClass = detect_format(filename)
+            self.IOClass = detect_format(filename, server)
 
         self.dataset = self.IOClass(self.filename)
         output = self.dataset.return_hdr()

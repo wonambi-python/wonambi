@@ -1,26 +1,33 @@
 """Widget with general information about the dataset."""
-from logging import getLogger
-lg = getLogger(__name__)
-
 from datetime import timedelta
 from functools import partial
+from logging import getLogger
 from os.path import basename, dirname
 
-
+from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtWidgets import (QAction,
+                             QCheckBox,
+                             QComboBox,
+                             QDialog,
+                             QDialogButtonBox,
+                             QFileDialog,
                              QFormLayout,
                              QGroupBox,
                              QLabel,
-                             QFileDialog,
+                             QLineEdit,
                              QPushButton,
                              QVBoxLayout,
                              QWidget,
                              )
 
 from .. import Dataset
+from ..ioeeg import ieeg_org
 from .utils import (short_strings, ICON, keep_recent_datasets,
                     choose_file_or_dir)
+
+lg = getLogger(__name__)
+settings = QSettings("phypno", "scroll_data")
 
 
 class Info(QWidget):
@@ -61,6 +68,7 @@ class Info(QWidget):
         self.parent = parent
 
         self.filename = None
+        self.repo = None
         self.dataset = None
         self.markers = []
 
@@ -157,13 +165,32 @@ class Info(QWidget):
         recent : path to file
             one of the recent datasets to read
 
+        Notes
+        -----
+        recent was created by keep_recent_datasets. It has format:
+        STUDY (ieeg.org) when using remote data
         """
         if self.dataset is not None:
             self.parent.reset()
 
         if recent:
-            filename = recent
+            if recent[-1] == ')':  # remote server name, as STUDY (ieeg.org)
+                filename = recent[:recent.rfind('(') - 1]
+                repo = recent[recent.rfind('(') + 1:-1]
+                username = settings.value('remote/username')
+                password = settings.value('remote/password')
+                if username is None or password is None:
+                    msg = ('no stored values for username and password for ' +
+                           repo)
+                    self.parent.statusBar().showMessage(msg)
+                    return
+
+            else:
+                filename = recent
+
         else:
+            repo = None
+
             try:
                 dir_name = dirname(self.filename)
             except (AttributeError, TypeError):
@@ -178,7 +205,15 @@ class Info(QWidget):
                 filename, _ = QFileDialog.getOpenFileName(self, 'Open file',
                                                           dir_name)
             elif file_or_dir == 'remote':
-                filename = 'I001_P019_D01'
+                remote_dialog = Remote()
+                answer = remote_dialog.exec_()
+
+                if answer == QDialog.Rejected:
+                    return
+
+                filename = remote_dialog.subjid.text()
+                repo = remote_dialog.server.currentText()
+                username, password = remote_dialog.output
 
             elif file_or_dir == 'abort':
                 return
@@ -190,7 +225,12 @@ class Info(QWidget):
                                             basename(filename))
         try:
             self.filename = filename
-            self.dataset = Dataset(filename)
+            self.repo = repo
+            if repo == 'ieeg.org':
+                ieeg_org.SESS = ieeg_org.Session(username=username,
+                                                 password_md5=password)
+
+            self.dataset = Dataset(filename, server=repo)
 
         except FileNotFoundError:
             self.parent.statusBar().showMessage('File ' + basename(filename) +
@@ -251,3 +291,72 @@ class Info(QWidget):
         self.idx_amplitude.setText('')
         self.idx_distance.setText('')
         self.idx_length.setText('')
+
+
+class Remote(QDialog):
+
+    def __init__(self):
+        super().__init__()
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+
+        bbox.clicked.connect(self.button_clicked)
+
+        username = settings.value('remote/username', '')
+        password = settings.value('remote/password')
+
+        if password is None:
+            self.password_md5 = False
+        else:
+            self.password_md5 = password
+
+        self.username = QLineEdit(username)
+        self.password = QLineEdit(password)
+        self.password.setEchoMode(QLineEdit.Password)
+
+        self.remember = QCheckBox('Store Values')
+        self.remember.setToolTip('Password is stored as unsalted md5 hash')
+        if password is None:
+            self.remember.setCheckState(Qt.Unchecked)
+        else:
+            self.remember.setCheckState(Qt.Checked)
+
+        self.subjid = QLineEdit()
+
+        self.server = QComboBox()
+        self.server.addItem('ieeg.org')  # not implemented, also not in settings
+
+        f = QFormLayout()
+        f.addRow('Repository', self.server)
+        f.addRow('Username', self.username)
+        f.addRow('Password', self.password)
+        f.addRow(self.remember)
+        f.addRow('Subject ID', self.subjid)
+        f.addRow(bbox)
+
+        self.setLayout(f)
+        self.show()
+
+    def button_clicked(self, button):
+        if button == self.idx_ok:
+
+            username = self.username.text()
+            new_password = self.password.text()
+            if self.password_md5 == new_password:  # it was not changed
+                password = self.password_md5
+            else:
+                password = ieeg_org.md5(new_password)
+
+            if self.remember.isChecked():
+                settings.setValue('remote/username', username)
+                settings.setValue('remote/password', password)
+            else:
+                settings.remove('remote/username')
+                settings.remove('remote/password')
+
+            self.output = username, password
+            self.accept()
+
+        elif button == self.idx_cancel:
+            self.reject()

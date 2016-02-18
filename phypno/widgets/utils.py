@@ -1,8 +1,6 @@
 """Various functions used for the GUI.
 """
 from logging import getLogger
-lg = getLogger(__name__)
-
 from math import ceil, floor
 from os.path import dirname, join, realpath
 
@@ -17,6 +15,7 @@ from PyQt5.QtWidgets import (QGraphicsItem,
                              QCommonStyle,
                              )
 
+lg = getLogger(__name__)
 
 LINE_WIDTH = 0  # COSMETIC LINE
 LINE_COLOR = 'black'
@@ -55,7 +54,7 @@ ICON = {'open_rec': join(oxy_path, 'document-open.png'),
         'del_eventtype': join(oxy_path, 'edit-table-delete-column.png'),
         }
 
-config = QSettings("phypno", "scroll_data")
+settings = QSettings("phypno", "scroll_data")
 
 
 class Path(QPainterPath):
@@ -98,14 +97,14 @@ class TextItem_with_BG(QGraphicsSimpleTextItem):
         super().paint(painter, option, widget)
 
 
-def keep_recent_datasets(max_dataset_history, new_dataset=None):
+def keep_recent_datasets(max_dataset_history, info=None):
     """Keep track of the most recent recordings.
 
     Parameters
     ----------
     max_dataset_history : int
         maximum number of datasets to remember
-    new_dataset : str, optional
+    info : str, optional TODO
         path to file
 
     Returns
@@ -114,11 +113,17 @@ def keep_recent_datasets(max_dataset_history, new_dataset=None):
         paths to most recent datasets (only if you don't specify
         new_dataset)
     """
-    history = config.value('recent_recordings', [])
+    history = settings.value('recent_recordings', [])
     if isinstance(history, str):
         history = [history]
 
-    if new_dataset is not None:
+    if info is not None and info.filename is not None:
+        if info.repo is not None:
+            # this will parsed by self.info.open_dataset()
+            new_dataset = info.filename + ' (' + info.repo + ')'
+        else:
+            new_dataset = info.filename
+
         if new_dataset in history:
             lg.debug(new_dataset + ' already present, will be replaced')
             history.remove(new_dataset)
@@ -128,8 +133,9 @@ def keep_recent_datasets(max_dataset_history, new_dataset=None):
 
         lg.info('Adding ' + new_dataset + ' to list of recent datasets')
         history.insert(0, new_dataset)
-        config.setValue('recent_recordings', history)
+        settings.setValue('recent_recordings', history)
         return None
+
     else:
         return history
 

@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
 
         # store current dataset
         max_dataset_history = self.value('max_dataset_history')
-        keep_recent_datasets(max_dataset_history, self.info.filename)
+        keep_recent_datasets(max_dataset_history, self.info)
 
         # reset all the widgets
         self.channels.reset()
@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """save the name of the last open dataset."""
         max_dataset_history = self.value('max_dataset_history')
-        keep_recent_datasets(max_dataset_history, self.info.filename)
+        keep_recent_datasets(max_dataset_history, self.info)
 
         settings.setValue('window/geometry', self.saveGeometry())
         settings.setValue('window/state', self.saveState(float(VERSION)))
