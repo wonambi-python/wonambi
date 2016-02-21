@@ -120,7 +120,7 @@ class Session:
                    'Content-Type': 'application/xml'}
         url = urljoin(HTTP + HOST, path)
 
-        if isinstance(requests, str):
+        if isinstance(requests, BaseException):
             raise requests  # import error
 
         r = requests.get(url, headers=headers)

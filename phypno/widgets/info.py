@@ -237,9 +237,9 @@ class Info(QWidget):
                                                 ' cannot be read')
             return
 
-        except Exception as err:
+        except BaseException as err:
             self.parent.statusBar().showMessage(str(err))
-            raise err
+            return
 
         self.parent.statusBar().showMessage('')
 
