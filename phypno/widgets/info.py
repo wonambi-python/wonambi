@@ -187,6 +187,7 @@ class Info(QWidget):
 
             else:
                 filename = recent
+                repo = None
 
         else:
             repo = None
