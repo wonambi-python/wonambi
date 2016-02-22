@@ -201,12 +201,14 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
-def main():
+app = None
 
+
+def main():
+    global app
     app = QApplication([])
 
     q = MainWindow()
     q.show()
 
     app.exec_()
-    app.deleteLater()  # so that it kills the figure in the right order
