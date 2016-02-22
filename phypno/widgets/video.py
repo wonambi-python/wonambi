@@ -131,12 +131,10 @@ class Video(QWidget):
             self.parent.statusBar().showMessage('No Dataset Loaded')
             return
 
-        print(self.idx_button.text())
-        if 'Start' in self.idx_button.text() or 'Sta&rt' in self.idx_button.text():
-            self.update_video()
-            self.idx_button.setText('Start')
+        # & is added automatically by PyQt, it seems
+        if 'Start' in self.idx_button.text().replace('&', ''):
             try:
-                assert True
+                self.update_video()
             except IndexError as er:
                 lg.debug(er)
                 self.idx_button.setText('Not Available / Start')
