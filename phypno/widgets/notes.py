@@ -4,6 +4,12 @@
     exclusive, have variable duration
   - events are not unique, are not mutually exclusive, have variable duration
   - stages are not unique, are mutually exclusive, have fixed duration
+
+
+TODO:
+    maybe it's better to disable options related to annotations, but it's a bit
+    too complicated. If you do that, you can remove all "if self.annot is None"
+    that are marked with "# remove if buttons are disabled"
 """
 from datetime import timedelta
 from functools import partial
@@ -369,6 +375,10 @@ class Notes(QTabWidget):
         time : tuple of float
             start and end of the new bookmark, in s
         """
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
         answer = QInputDialog.getText(self, 'New Bookmark',
                                       'Enter bookmark\'s name')
         if answer[1]:
@@ -567,8 +577,11 @@ class Notes(QTabWidget):
         ----------
         stage : str
             string with the name of the sleep stage.
-
         """
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
 
@@ -655,6 +668,10 @@ class Notes(QTabWidget):
         First argument, if not specified, is a bool/False:
         http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
         """
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
         answer = QInputDialog.getText(self, 'New Rater',
                                       'Enter rater\'s name')
         if answer[1]:
@@ -685,6 +702,10 @@ class Notes(QTabWidget):
 
     def new_eventtype(self):
         """Action: create dialog to add new event type."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
         answer = QInputDialog.getText(self, 'New Event Type',
                                       'Enter new event\'s name')
         if answer[1]:
@@ -708,6 +729,10 @@ class Notes(QTabWidget):
 
     def export(self):
         """action: export annotations to CSV."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
         filename = splitext(self.annot.xml_file)[0] + '.csv'
         filename, _ = QFileDialog.getSaveFileName(self, 'Export stages',
                                                   filename,
