@@ -90,7 +90,6 @@ def convert_sample_to_video_time(sample, orig_s_freq, sampleStamp,
     not take into account the time zone (that'd explain the 4 or 5
     depending on summertime). This time is only used to get the right video
     so we call this "video time".
-
     """
     if sample < sampleStamp[0]:
         s_freq = orig_s_freq
@@ -244,7 +243,6 @@ def _calculate_conversion(hdr):
 def _filetime_to_dt(ft):
     """Converts a Microsoft filetime number to a Python datetime. The new
     datetime object is time zone-naive but is equivalent to tzinfo=utc.
-
     """
     # Get seconds and remainder in terms of Unix epoch
     s, ns100 = divmod(ft - EPOCH_AS_FILETIME, HUNDREDS_OF_NANOSECONDS)
@@ -304,7 +302,6 @@ def _read_eeg(eeg_file):
     The patient information file consists of a single null terminated string
     following the generic file header. The string encodes all the patient
     information in a list format defined by a hierarchy of name value pairs.
-
     """
     pass
 
@@ -336,7 +333,6 @@ def _read_ent(ent_file):
     electrodes (I think they called it "montage") cannot be parsed, because
     it's too complicated. If it cannot be converted into a dict, the whole
     string is passed as value.
-
     """
     with open(ent_file, 'rb') as f:
         f.seek(352)  # end of header
@@ -425,7 +421,6 @@ def _read_erd(erd_file, n_samples):
     When we save the data as memory-mapped, we only save the real channels.
     However, the data in the output have both shorted and non-shorted channels.
     Shorted channels have NaN's only.
-
     """
     makedirs(cache_dir, exist_ok=True)
 
@@ -535,12 +530,11 @@ def _read_etc(etc_file):
     ETC contains only 4 4-bytes, I cannot make sense of it. The EEG file format
     does not have an explanation for ETC, it says it's similar to the end of
     STC, which has 4 int, but the values don't match.
-
     """
     with open(etc_file, 'rb') as f:
         f.seek(352)  # end of header
         v1 = unpack('<i', f.read(4))[0]
-        v2 = unpack('<i', f.read(4))[0]
+        v2 = unpack('<i', f.read(4))[0]  # index of first sample
         v3 = unpack('<i', f.read(4))[0]  # always zero?
         v4_a = unpack('<h', f.read(2))[0]  # they look like two values
         v4_b = unpack('<h', f.read(2))[0]  # maybe this one is unsigned (H)
@@ -849,6 +843,18 @@ class Ktlx():
         actual acquisition starts. STC takes the offset into account. This has
         the counterintuitive result that if you call read_data, the first few
         hundreds samples are nan.
+
+        It's not clear how to handle data when there is a break. The STC
+        gives the absolute sample indices, so even if there is a break, we can
+        assign the correct data for preceding or following erd files that don't
+        have the break. If one erd has a break, the stc only gives the index
+        of the first and last absolute samples in the recordings and the number
+        of actual samples ("span") that were stored. If there is a break, the
+        difference between last and first samples will be different from the
+        number of actual samples. However, I couldn't find the information that
+        specifies WHEN the break is inside the ERD file. It now assumes that
+        the break is at the begining of the ERD file, but it could be in the
+        middle or at the end.
         """
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
@@ -857,7 +863,7 @@ class Ktlx():
                                         '.stc'))
 
         all_erd = [x['segment_name'] for x in all_stamp]
-        all_beg = asarray([x['start_stamp'] for x in all_stamp])
+        all_beg = asarray([x['end_stamp'] - x['sample_span'] + 1 for x in all_stamp])
         all_end = asarray([x['end_stamp'] for x in all_stamp])
 
         try:
@@ -871,26 +877,15 @@ class Ktlx():
                  ' to recording #{} ({})'.format(endrec, all_erd[endrec]))
 
         for rec in range(begrec, endrec + 1):
-            begpos_rec = begsam - all_stamp[rec]['start_stamp']
-            if begpos_rec < 0:
-                begpos_rec = 0
+            begpos_rec = begsam - all_beg[rec]
+            endpos_rec = endsam - all_beg[rec]
 
-            # this line seems crazy, but in some weird cases, you can have:
-            # 'sample_span': 578508, 'start_stamp': 772, 'end_stamp': 6117999,
-            if begpos_rec > all_stamp[rec]['sample_span']:
-                begpos_rec = all_stamp[rec]['sample_span']
-
-            endpos_rec = endsam - all_stamp[rec]['start_stamp']
-            if endpos_rec > all_stamp[rec]['sample_span']:
-                endpos_rec = all_stamp[rec]['sample_span']
-
-            if endpos_rec < 0:
-                endpos_rec = 0
-
+            begpos_rec = max(begpos_rec, 0)
+            endpos_rec = min(endpos_rec, all_end[rec] - all_beg[rec])
             # this looks weird, but it takes into account whether the values
             # are outside of the limits of the file
-            d1 = begpos_rec + all_stamp[rec]['start_stamp'] - begsam
-            d2 = endpos_rec + all_stamp[rec]['start_stamp'] - begsam
+            d1 = begpos_rec + all_beg[rec] - begsam
+            d2 = endpos_rec + all_beg[rec] - begsam
 
             erd_file = join(self.filename, all_erd[rec] + '.erd')
             try:
