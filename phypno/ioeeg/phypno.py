@@ -3,9 +3,7 @@
 from datetime import datetime, timedelta
 from json import dump, load
 from pathlib import Path
-from numpy import c_, empty, NaN, memmap
-
-from numpy import float64 as FORMAT
+from numpy import c_, empty, float64, NaN, memmap
 
 
 class Phypno:
@@ -44,6 +42,7 @@ class Phypno:
                                        '%Y-%m-%d %H:%M:%S.%f')
         self.memshape = (len(orig['chan_name']),
                          orig['n_samples'])
+        self.dtype = orig.get('dtype', 'float64')
 
         return (orig['subj_id'], start_time, orig['s_freq'], orig['chan_name'],
                 orig['n_samples'], orig)
@@ -82,10 +81,11 @@ class Phypno:
         if not memmap_file.exists():
             raise FileNotFoundError('Could not find ' + str(memmap_file))
 
-        data = memmap(str(memmap_file), FORMAT, mode='c', shape=self.memshape)
+        data = memmap(str(memmap_file), self.dtype, mode='c',
+                      shape=self.memshape)
 
         n_smp = self.memshape[1]
-        dat = data[chan, max((begsam, 0)):min((endsam, n_smp))]
+        dat = data[chan, max((begsam, 0)):min((endsam, n_smp))].astype(float64)
 
         if begsam < 0:
 
@@ -117,7 +117,7 @@ class Phypno:
         return []
 
 
-def write_phypno(data, filename, subj_id=''):
+def write_phypno(data, filename, subj_id='', dtype='float64'):
     """Write file in simple phypno format.
 
     Parameters
@@ -128,6 +128,8 @@ def write_phypno(data, filename, subj_id=''):
         file to export to (the extensions .phy and .dat will be added)
     subj_id : str
         subject id
+    dtype : str
+        numpy dtype in which you want to save the data
 
     Notes
     -----
@@ -148,6 +150,7 @@ def write_phypno(data, filename, subj_id=''):
                's_freq': data.s_freq,
                'chan_name': list(data.axis['chan'][0]),
                'n_samples': int(data.number_of('time')[0]),
+               'dtype': dtype,
                }
 
     with json_file.open('w') as f:
@@ -156,7 +159,7 @@ def write_phypno(data, filename, subj_id=''):
     memshape = (len(dataset['chan_name']),
                 dataset['n_samples'])
 
-    mem = memmap(str(memmap_file), FORMAT, mode='w+',
+    mem = memmap(str(memmap_file), dtype, mode='w+',
                  shape=memshape)
     mem[:, :] = data.data[0]
     mem.flush()  # not sure if necessary
