@@ -20,13 +20,22 @@ from datetime import timedelta, datetime
 from glob import glob
 from logging import getLogger
 from math import ceil
-from os import environ, makedirs, SEEK_END
+from os import environ, makedirs
 from os.path import basename, expanduser, join, exists, relpath, splitext
 from platform import system
 from re import sub
 from struct import unpack
-from numpy import (NaN, ones, concatenate, expand_dims, where, asarray, empty,
-                   memmap, int32)
+from numpy import (NaN,
+                   ones,
+                   fromfile,
+                   dtype,
+                   concatenate,
+                   expand_dims,
+                   where,
+                   asarray,
+                   empty,
+                   memmap,
+                   int32)
 
 lg = getLogger(__name__)
 
@@ -574,23 +583,19 @@ def _read_erd(erd_file, n_samples):
 
 
 def _read_etc(etc_file):
-    """Return information about etc.
-
-    ETC contains only 4 4-bytes, I cannot make sense of it. The EEG file format
-    does not have an explanation for ETC, it says it's similar to the end of
-    STC, which has 4 int, but the values don't match.
+    """Return information about table of content for each erd.
     """
+    etc_type = dtype([('offset', '<i'),
+                      ('samplestamp', '<i'),
+                      ('sample_num', '<i'),
+                      ('sample_span', '<h'),
+                      ('unknown', '<h')])
+
     with open(etc_file, 'rb') as f:
         f.seek(352)  # end of header
-        v1 = unpack('<i', f.read(4))[0]
-        v2 = unpack('<i', f.read(4))[0]  # index of first sample
-        v3 = unpack('<i', f.read(4))[0]  # always zero?
-        v4_a = unpack('<h', f.read(2))[0]  # they look like two values
-        v4_b = unpack('<h', f.read(2))[0]  # maybe this one is unsigned (H)
+        etc = fromfile(f, dtype=etc_type)
 
-        f.seek(352)  # end of header
-        # lg.debug(hexlify(f.read(16)))
-    return v1, v2, v3, (v4_a, v4_b)
+    return etc
 
 
 def _read_snc(snc_file):
@@ -598,6 +603,7 @@ def _read_snc(snc_file):
 
     Returns
     -------
+    structuredArray with:
     sampleStamp : list of int
         Sample number from start of study
     sampleTime : list of datetime.datetime
@@ -621,22 +627,23 @@ def _read_snc(snc_file):
     vise-versa). Currently, the only use for this conversion process is to
     enable correlation of EEG (sample_stamp) data with other sources of data
     such as Video (which works in FILETIME).
-
     """
+    snc_raw_dtype = dtype([('sampleStamp', '<i'),
+                           ('sampleTime', '<q')])
+
     with open(snc_file, 'rb') as f:
-        filebytes = f.read()
-    i = 352  # end of header
+        f.seek(352)  # end of header
+        snc_raw = fromfile(f, dtype=snc_raw_dtype)
 
-    sampleStamp = []
-    sampleTime = []
-    while i < len(filebytes):
-        sampleStamp.append(unpack('<i', filebytes[i:(i + 4)])[0])
-        i += 4
-        sampleTime.append(_filetime_to_dt(unpack('<q',
-                                                 filebytes[i:(i + 8)])[0]))
-        i += 8
+    # structured array
+    snc_dtype = dtype([('sampleStamp', '<i'),
+                       ('sampleTime', 'O')])
+    snc = empty(len(snc_raw), dtype=snc_dtype)
+    snc['sampleStamp'] = snc_raw['sampleStamp']
+    snc['sampleTime'] = asarray([_filetime_to_dt(x)
+                                 for x in snc_raw['sampleTime']])
 
-    return sampleStamp, sampleTime
+    return snc
 
 
 def _read_stc(stc_file):
@@ -649,14 +656,14 @@ def _read_stc(stc_file):
         - final : Number of channels stored
         - padding : Padding
 
-    all_stamp : list of dict
+    stamps : ndarray of dtype
         - segment_name : Name of ERD / ETC file segment
         - start_stamp : First sample stamp that is found in the ERD / ETC pair
         - end_stamp : Last sample stamp that is still found in the ERD / ETC
         pair
         - sample_num : Number of samples actually being recorded (gaps in the
         data are not included in this number)
-
+        - sample_span : Number of samples in that .erd file
 
     Notes
     -----
@@ -679,29 +686,23 @@ def _read_stc(stc_file):
     """
     hdr = _read_hdr_file(stc_file)  # read header the normal way
 
+    dtype = np.dtype([('segment_name', 'a256'),
+                      ('start_stamp', '<i'),
+                      ('end_stamp', '<i'),
+                      ('sample_num', '<i'),
+                      ('sample_span', '<i')])
+
     with open(stc_file, 'rb') as f:
-        f.seek(0, SEEK_END)
-        endfile = f.tell()
         f.seek(352)  # end of header
         hdr['next_segment'] = unpack('<i', f.read(4))[0]
         hdr['final'] = unpack('<i', f.read(4))[0]
         hdr['padding'] = unpack('<' + 'i' * 12, f.read(48))
 
-        all_stamp = []
+        stamps = np.fromfile(f, dtype=dtype)
 
-        while True:
-            if f.tell() == endfile:
-                break
-            stamp = {}
-            stamp['segment_name'] = _make_str(unpack('c' * 256, f.read(256)))
-            stamp['start_stamp'] = unpack('<i', f.read(4))[0]
-            stamp['end_stamp'] = unpack('<i', f.read(4))[0]
-            stamp['sample_num'] = unpack('<i', f.read(4))[0]
-            stamp['sample_span'] = unpack('<i', f.read(4))[0]
+    stamps['segment_name'] = np.char.decode(stamps['segment_name'], 'utf-8')
 
-            all_stamp.append(stamp)
-
-    return hdr, all_stamp
+    return hdr, stamps
 
 
 def _read_vtc(vtc_file):
