@@ -469,7 +469,7 @@ def _read_packet(f, pos, n_smp, n_allchan, abs_delta):
         deltamask = unpackbits(array(byte_deltamask[::-1], dtype ='uint8'))
         deltamask = deltamask[:-n_allchan-1:-1]
 
-        n_bytes = int(sum(deltamask)) + deltamask.shape[0]
+        n_bytes = int(deltamask.sum()) + deltamask.shape[0]
 
         delta_dtype = deltamask.astype('U')
         delta_dtype[delta_dtype == '1'] = 'h'
@@ -479,7 +479,7 @@ def _read_packet(f, pos, n_smp, n_allchan, abs_delta):
         read_abs = (delta_dtype == 'h') & (relval == abs_delta)
 
         dat[~read_abs, i] = dat[~read_abs, i - 1] + relval[~read_abs]
-        dat[read_abs, i] = fromfile(f, 'i', count=sum(read_abs))
+        dat[read_abs, i] = fromfile(f, 'i', count=read_abs.sum())
 
     return dat
 

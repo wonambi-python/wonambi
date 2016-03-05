@@ -4,7 +4,6 @@ It allows for visualization of the results and for a GUI that can be used to sco
 
 # Installation
 Make sure to have `numpy` installed because it's impossible to have it as dependency in `setup.py`.
-You can install it 
 
 # Dependencies
 ## Required
@@ -16,7 +15,7 @@ You can install other dependencies, depending on what you need:
 
 scipy (to filter recordings, frequency analysis, read matlab files)
 
-pyqt4 (for graphical user interface)
+pyqt5 (for graphical user interface)
 
 vispy (for visualization)
 
