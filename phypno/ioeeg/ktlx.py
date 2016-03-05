@@ -17,7 +17,6 @@ _read_EXT where EXT is one of the extensions.
 """
 from binascii import hexlify
 from datetime import timedelta, datetime
-from glob import glob
 from logging import getLogger
 from math import ceil
 from pathlib import Path
@@ -25,7 +24,6 @@ from re import sub
 from struct import unpack
 from numpy import (unpackbits,
                    array,
-                   char,
                    NaN,
                    ones,
                    fromfile,
@@ -999,26 +997,25 @@ class Ktlx():
 
         try:
             begrec = where((all_end >= begsam))[0][0]
-            endrec = where((all_beg <= endsam))[0][-1]
+            endrec = where((all_beg < endsam))[0][-1]
         except IndexError:
             return dat
 
         for rec in range(begrec, endrec + 1):
 
-            # absolute values
             begpos_rec = max(begsam, all_beg[rec])
-            endpos_rec = min(endsam, all_end[rec])
+            endpos_rec = min(endsam, all_end[rec] + 1)  # check + 1
+
             # this looks weird, but it takes into account whether the values
             # are outside of the limits of the file
-            d1 = begpos_rec + all_beg[rec] - begsam
-            d2 = endpos_rec + all_beg[rec] - begsam
+            d1 = begpos_rec - begsam
+            d2 = endpos_rec - begsam
 
             erd_file = (Path(self.filename) / all_erd[rec]).with_suffix('.erd')
 
             try:
                 dat_rec = _read_erd(erd_file, begpos_rec, endpos_rec)
-                dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
-
+                dat[:, d1:d2] = dat_rec[chan, :]
             except (FileNotFoundError, PermissionError):
                 lg.warning('{} does not exist'.format(erd_file))
 
