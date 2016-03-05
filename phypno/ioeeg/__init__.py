@@ -7,7 +7,6 @@ class IOEEG:
     ----------
     filename : path to file
         the name of the filename or directory
-
     \"""
     def __init__(self, filename):
         self.filename = filename
@@ -29,7 +28,6 @@ class IOEEG:
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
-
         \"""
         subj_id = str()
         start_time = datetime.datetime
@@ -48,15 +46,19 @@ class IOEEG:
         chan : int or list
             index (indices) of the channels to read
         begsam : int
-            index of the first sample
+            first sample (this sample will be included)
         endsam : int
-            index of the last sample
+            last sample (this sample will NOT be included)
 
         Returns
         -------
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
 
+        Notes
+        -----
+        begsam and endsam follow Python convention, which starts at zero,
+        includes begsam but DOES NOT include endsam.
         \"""
         data = rand(10, 100)
         return data[chan, begsam:endsam]
@@ -83,13 +85,6 @@ class IOEEG:
                     'chan': ['chan1', 'chan2'],  # or None
                     }]
         return markers
-
-Biosig has a very large library of tools to read various formats. I think it's
-best to use it in general. However, it has bindings only for Python2 and running
-Makefile/swig using python3 is tricky. Use pure python for EDF, and maybe other
-common format (fiff, fieldtrip, eeglab) in python3, then if necessary use
-python2 as script using biosig for all the other formats.
-
 """
 from .edf import Edf, write_edf
 from .ktlx import Ktlx

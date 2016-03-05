@@ -253,9 +253,9 @@ class Dataset:
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
         begsam : int
-            first sample to read
+            first sample (this sample will be included)
         endsam : int
-            last sample to read
+            last sample (this sample will NOT be included)
 
         Returns
         -------

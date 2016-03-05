@@ -20,12 +20,13 @@ from datetime import timedelta, datetime
 from glob import glob
 from logging import getLogger
 from math import ceil
-from os import environ, makedirs
-from os.path import basename, expanduser, join, exists, relpath, splitext
-from platform import system
+from pathlib import Path
 from re import sub
 from struct import unpack
-from numpy import (NaN,
+from numpy import (unpackbits,
+                   array,
+                   char,
+                   NaN,
                    ones,
                    fromfile,
                    dtype,
@@ -34,7 +35,6 @@ from numpy import (NaN,
                    where,
                    asarray,
                    empty,
-                   memmap,
                    int32)
 
 lg = getLogger(__name__)
@@ -49,17 +49,6 @@ START_TIME_TOL = 10
 
 ZERO = timedelta(0)
 HOUR = timedelta(hours=1)
-
-if system() == 'Windows':
-    APPDATA = environ['APPDATA']
-    cache_dir = join(APPDATA, 'phypno_cache')
-
-elif system() == 'Linux':
-    # only for Gio's Linux, it should more general in the future
-    home = expanduser('~')
-    cache_dir = join(home, 'projects/temp')
-
-lg.info('Temporary Directory with data: ' + cache_dir)
 
 
 def get_date_idx(time_of_interest, start_time, end_time):
@@ -323,7 +312,7 @@ def _find_start_time(hdr, s_freq):
     start_time = hdr['stc']['creation_time']
 
     for one_stamp in hdr['stamps']:
-        if one_stamp['segment_name'] == hdr['erd']['filename']:
+        if one_stamp['segment_name'].decode() == hdr['erd']['filename']:
             offset = one_stamp['start_stamp']
             break
 
@@ -392,7 +381,7 @@ def _read_ent(ent_file):
     it's too complicated. If it cannot be converted into a dict, the whole
     string is passed as value.
     """
-    with open(ent_file, 'rb') as f:
+    with ent_file.open('rb') as f:
         f.seek(352)  # end of header
 
         note_hdr_length = 16
@@ -428,7 +417,115 @@ def _read_ent(ent_file):
     return allnote
 
 
-def _read_erd(erd_file, n_samples):
+def _read_packet(f, pos, n_smp, n_allchan, l_deltamask):
+    """
+    l_deltamask : int or None
+        if int, file scheme is 8 or 9, if None, file scheme is 7
+
+    TODO: shorted chan
+    TODO: scheme 7
+    """
+    dat = empty((n_allchan, n_smp), dtype=int32)
+    f.seek(pos)
+
+    for i in range(n_smp):
+        eventbite = f.read(1)
+
+        try:
+            assert eventbite in (b'\x00', b'\x01')
+        except:
+            raise Exception('at pos ' + str(i) +
+                            ', eventbite (should be x00 or x01): ' +
+                            str(eventbite))
+
+        if l_deltamask is None:  # schema 7
+            raise NotImplementedError
+
+        else:
+            byte_deltamask = unpack('<' + 'B' * l_deltamask, f.read(l_deltamask))
+            deltamask = unpackbits(array(byte_deltamask[::-1], dtype ='uint8'))
+            deltamask = deltamask[:-n_allchan-1:-1]
+
+            n_bytes = int(sum(deltamask)) + deltamask.shape[0]
+
+            delta_dtype = deltamask.astype('U')
+            delta_dtype[delta_dtype == '1'] = 'h'
+            delta_dtype[delta_dtype == '0'] = 'b'
+            relval = array(unpack('<' + ''.join(delta_dtype), f.read(n_bytes)))
+
+            read_abs = (delta_dtype == 'h') & (relval == -1)  # TODO: abs_delta
+
+        dat[~read_abs, i] = dat[~read_abs, i - 1] + relval[~read_abs]
+        dat[read_abs, i] = fromfile(f, 'i', count=sum(read_abs))
+
+    return dat
+
+
+def _read_erd(erd_file, begsam, endsam):
+    """
+    TODO:
+    # fill up the output data, put NaN for shorted channels
+    if n_shorted > 0:
+        full_channels = where(asarray([x == 0 for x in shorted]))[0]
+        output = empty((n_allchan, n_samples))
+        output.fill(NaN)
+        output[full_channels, :] = dat
+    else:
+        output = dat
+
+    factor = _calculate_conversion(hdr)
+    return expand_dims(factor, 1) * output
+    """
+    # [begsam, endsam)
+
+    hdr = _read_hdr_file(erd_file)
+    n_allchan = hdr['num_channels']
+    shorted = hdr['shorted']  # does this exist for Schema 7 at all?
+    n_shorted = sum(shorted)
+    n_chan = n_allchan - n_shorted
+    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
+
+    n_smp = endsam - begsam
+    data = empty((n_allchan, n_smp))
+    data.fill(NaN)
+
+    # it includes the sample in both cases
+    etc = _read_etc(erd_file.with_suffix('.etc'))
+    all_beg = etc['samplestamp']
+    all_end = etc['samplestamp'] + etc['sample_span'] - 1
+
+    # [begrec, endrec]
+    # print('{: 10d}-{: 10d}'.format(begsam, endsam))
+    # print(', '.join('{: 5d}'.format(x) for x in all_beg))
+    # print(', '.join('{: 5d}'.format(x) for x in all_end))
+    try:
+        begrec = where((all_end >= begsam))[0][0]
+        endrec = where((all_beg < endsam))[0][-1]
+    except IndexError:
+        return data
+
+    with erd_file.open('rb') as f:
+        for rec in range(begrec, endrec + 1):
+
+            # [begpos_rec, endpos_rec]
+            begpos_rec = begsam - all_beg[rec]
+            endpos_rec = endsam - all_beg[rec]
+
+            begpos_rec = max(begpos_rec, 0)
+            endpos_rec = min(endpos_rec, all_end[rec] - all_beg[rec] + 1)
+
+            # [d1, d2)
+            d1 = begpos_rec + all_beg[rec] - begsam
+            d2 = endpos_rec + all_beg[rec] - begsam
+
+            dat = _read_packet(f, etc['offset'][rec], endpos_rec, n_allchan,
+                               l_deltamask)
+            data[:, d1:d2] = dat[:, begpos_rec:endpos_rec]
+
+    return data
+
+
+def _read_erd_old(erd_file, n_samples):
     """Read the raw data and return a matrix, converted to microvolts.
 
     Parameters
@@ -480,94 +577,84 @@ def _read_erd(erd_file, n_samples):
     However, the data in the output have both shorted and non-shorted channels.
     Shorted channels have NaN's only.
     """
-    makedirs(cache_dir, exist_ok=True)
-
     hdr = _read_hdr_file(erd_file)
     n_allchan = hdr['num_channels']
     shorted = hdr['shorted']  # does this exist for Schema 7 at all?
     n_shorted = sum(shorted)
     n_chan = n_allchan - n_shorted
-    safe_name = "".join([x if x.isalnum() else "_" for x in basename(erd_file)])
-    memmap_file = join(cache_dir, safe_name)
-    if exists(memmap_file):
-        lg.info('Reading existing file: ' + memmap_file)
-        dat = memmap(memmap_file, mode='c', shape=(n_chan, n_samples),
-                     dtype=int32)
-    else:
-        lg.info('Writing new file: ' + memmap_file)
-        dat = memmap(memmap_file, mode='w+', shape=(n_chan, n_samples),
-                     dtype=int32)
 
-        # deltamask length (use all channels)
-        l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
-        with open(erd_file, 'rb') as f:
-            filebytes = f.read()
+    dat = empty((n_chan, n_samples), dtype=int32)
 
+    # deltamask length (use all channels)
+    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
+    with open(erd_file, 'rb') as f:
+        filebytes = f.read()
+
+    if hdr['file_schema'] in (7,):
+        i = 4560
+        abs_delta = b'\x80'  # one byte: 10000000
+
+    if hdr['file_schema'] in (8, 9):
+        i = 8656
+        abs_delta = b'\xff\xff'
+
+    for sam in range(n_samples):
+
+        # Event Byte
+        eventbite = filebytes[i:i + 1]
+        i += 1
+        if eventbite == b'':
+            break
+        try:
+            assert eventbite in (b'\x00', b'\x01')
+        except:
+            raise Exception('at pos ' + str(i) +
+                            ', eventbite (should be x00 or x01): ' +
+                            str(eventbite))
+
+        # Delta Information
         if hdr['file_schema'] in (7,):
-            i = 4560
-            abs_delta = b'\x80'  # one byte: 10000000
+            deltamask = '0' * n_chan
 
         if hdr['file_schema'] in (8, 9):
-            i = 8656
-            abs_delta = b'\xff\xff'
+            # read single bits as they appear, one by one
+            byte_deltamask = unpack('<' + 'B' * l_deltamask,
+                                    filebytes[i:i + l_deltamask])
+            i += l_deltamask
+            deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
+            deltamask = ''.join(deltamask)
 
-        for sam in range(n_samples):
+        i_chan = 0  # excluding the shorted channels
+        read_absvalue = [False] * n_chan
 
-            # Event Byte
-            eventbite = filebytes[i:i + 1]
-            i += 1
-            if eventbite == b'':
-                break
-            try:
-                assert eventbite in (b'\x00', b'\x01')
-            except:
-                raise Exception('at pos ' + str(i) +
-                                ', eventbite (should be x00 or x01): ' +
-                                str(eventbite))
+        for i_allchan, m in enumerate(deltamask[:n_allchan]):
 
-            # Delta Information
-            if hdr['file_schema'] in (7,):
-                deltamask = '0' * n_chan
+            if shorted[i_allchan]:
+                continue
 
-            if hdr['file_schema'] in (8, 9):
-                # read single bits as they appear, one by one
-                byte_deltamask = unpack('<' + 'B' * l_deltamask,
-                                        filebytes[i:i + l_deltamask])
-                i += l_deltamask
-                deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
-                deltamask = ''.join(deltamask)
+            if m == '1':
+                val = filebytes[i:i + 2]
+                i += 2
+            elif m == '0':
+                val = filebytes[i:i + 1]
+                i += 1
 
-            i_chan = 0  # excluding the shorted channels
-            read_absvalue = [False] * n_chan
-
-            for i_allchan, m in enumerate(deltamask[:n_allchan]):
-
-                if shorted[i_allchan]:
-                    continue
-
+            if val == abs_delta:
+                read_absvalue[i_chan] = True
+            else:
                 if m == '1':
-                    val = filebytes[i:i + 2]
-                    i += 2
+                    dat[i_chan, sam] = (dat[i_chan, sam - 1] +
+                                        unpack('<h', val)[0])
                 elif m == '0':
-                    val = filebytes[i:i + 1]
-                    i += 1
+                    dat[i_chan, sam] = (dat[i_chan, sam - 1] +
+                                        unpack('<b', val)[0])
 
-                if val == abs_delta:
-                    read_absvalue[i_chan] = True
-                else:
-                    if m == '1':
-                        dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                            unpack('<h', val)[0])
-                    elif m == '0':
-                        dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                            unpack('<b', val)[0])
+            i_chan += 1
 
-                i_chan += 1
-
-            for i_chan, to_read in enumerate(read_absvalue):
-                if to_read:
-                    dat[i_chan, sam] = unpack('<i', filebytes[i:i + 4])[0]
-                    i += 4
+        for i_chan, to_read in enumerate(read_absvalue):
+            if to_read:
+                dat[i_chan, sam] = unpack('<i', filebytes[i:i + 4])[0]
+                i += 4
 
     # fill up the output data, put NaN for shorted channels
     if n_shorted > 0:
@@ -591,7 +678,7 @@ def _read_etc(etc_file):
                       ('sample_span', '<h'),
                       ('unknown', '<h')])
 
-    with open(etc_file, 'rb') as f:
+    with etc_file.open('rb') as f:
         f.seek(352)  # end of header
         etc = fromfile(f, dtype=etc_type)
 
@@ -631,7 +718,7 @@ def _read_snc(snc_file):
     snc_raw_dtype = dtype([('sampleStamp', '<i'),
                            ('sampleTime', '<q')])
 
-    with open(snc_file, 'rb') as f:
+    with snc_file.open('rb') as f:
         f.seek(352)  # end of header
         snc_raw = fromfile(f, dtype=snc_raw_dtype)
 
@@ -686,21 +773,19 @@ def _read_stc(stc_file):
     """
     hdr = _read_hdr_file(stc_file)  # read header the normal way
 
-    dtype = np.dtype([('segment_name', 'a256'),
-                      ('start_stamp', '<i'),
-                      ('end_stamp', '<i'),
-                      ('sample_num', '<i'),
-                      ('sample_span', '<i')])
+    stc_dtype = dtype([('segment_name', 'a256'),
+                       ('start_stamp', '<i'),
+                       ('end_stamp', '<i'),
+                       ('sample_num', '<i'),
+                       ('sample_span', '<i')])
 
-    with open(stc_file, 'rb') as f:
+    with stc_file.open('rb') as f:
         f.seek(352)  # end of header
         hdr['next_segment'] = unpack('<i', f.read(4))[0]
         hdr['final'] = unpack('<i', f.read(4))[0]
         hdr['padding'] = unpack('<' + 'i' * 12, f.read(48))
 
-        stamps = np.fromfile(f, dtype=dtype)
-
-    stamps['segment_name'] = np.char.decode(stamps['segment_name'], 'utf-8')
+        stamps = fromfile(f, dtype=stc_dtype)
 
     return hdr, stamps
 
@@ -722,7 +807,7 @@ def _read_vtc(vtc_file):
     end_time : list of datetime
         list of end time of the avi files
     """
-    with open(vtc_file, 'rb') as f:
+    with vtc_file.open('rb') as f:
         filebytes = f.read()
 
     hdr = {}
@@ -755,7 +840,7 @@ def _read_hdr_file(ktlx_file):
 
     Parameters
     ----------
-    ktlx_file : str
+    ktlx_file : Path
         name of one of the ktlx files inside the directory (absolute path)
 
     Returns
@@ -769,7 +854,7 @@ def _read_hdr_file(ktlx_file):
 
     GUID is correct, BUT little/big endian problems somewhere
     """
-    with open(ktlx_file, 'rb') as f:
+    with ktlx_file.open('rb') as f:
 
         hdr = {}
         assert f.tell() == 0
@@ -823,6 +908,7 @@ class Ktlx():
         if isinstance(ktlx_dir, str):
             lg.info('Reading ' + ktlx_dir)
             self.filename = ktlx_dir
+            self._filename = None  # Path of dir and filename stem
             self._hdr = self._read_hdr_dir()
 
     def _read_hdr_dir(self):
@@ -836,38 +922,41 @@ class Ktlx():
           - 'stamps' : time stamp for each file
 
         Also, it adds the attribute
-        _basename : str
+        _basename : Path
             the name of the files inside the directory
         """
-        eeg_file = join(self.filename, basename(self.filename) + '.stc')
-        if exists(eeg_file):
-            self._basename = splitext(basename(self.filename))[0]
+        foldername = Path(self.filename)
+        stc_file = foldername / (foldername.stem + '.stc')
+
+        if stc_file.exists():
+            self._filename = stc_file.with_suffix('')
+
         else:  # if the folder was renamed
-            eeg_file = glob(join(self.filename, '*.stc'))
-            if len(eeg_file) == 1:
-                self._basename = splitext(basename(eeg_file[0]))[0]
-            elif len(eeg_file) == 0:
+            stc_file = list(foldername.glob('*.stc'))
+            if len(stc_file) == 1:
+                self._filename = foldername / stc_file[0].stem
+            elif len(stc_file) == 0:
                 raise FileNotFoundError('Could not find any .stc file.')
             else:
                 raise OSError('Found too many .stc files: ' +
-                              '\n'.join(eeg_file))
+                              '\n'.join(str(x) for x in stc_file))
 
         hdr = {}
-
         # use .erd because it has extra info, such as sampling freq
         # try to read any possible ERD (in case one or two ERD are missing)
         # don't read very first erd because creation_time is slightly off
-        for erd_file in glob(join(self.filename, self._basename + '_*.erd')):
+        for erd_file in foldername.glob(self._filename.stem + '_*.erd'):
             try:
                 hdr['erd'] = _read_hdr_file(erd_file)
-
                 # we need this to look up stc
-                erd_file = splitext(relpath(erd_file, self.filename))[0]
-                hdr['erd'].update({'filename': erd_file})
+                hdr['erd'].update({'filename': erd_file.stem})
                 break
+
             except (FileNotFoundError, PermissionError):
                 pass
-        stc = _read_stc(join(self.filename, self._basename + '.stc'))
+
+        stc = _read_stc(self._filename.with_suffix('.stc'))
+
         hdr['stc'], hdr['stamps'] = stc
 
         return hdr
@@ -898,28 +987,15 @@ class Ktlx():
         actual acquisition starts. STC takes the offset into account. This has
         the counterintuitive result that if you call read_data, the first few
         hundreds samples are nan.
-
-        It's not clear how to handle data when there is a break. The STC
-        gives the absolute sample indices, so even if there is a break, we can
-        assign the correct data for preceding or following erd files that don't
-        have the break. If one erd has a break, the stc only gives the index
-        of the first and last absolute samples in the recordings and the number
-        of actual samples ("span") that were stored. If there is a break, the
-        difference between last and first samples will be different from the
-        number of actual samples. However, I couldn't find the information that
-        specifies WHEN the break is inside the ERD file. It now assumes that
-        the break is at the begining of the ERD file, but it could be in the
-        middle or at the end.
         """
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
 
-        stc, all_stamp = _read_stc(join(self.filename, self._basename +
-                                        '.stc'))
+        stc, all_stamp = _read_stc(self._filename.with_suffix('.stc'))
 
-        all_erd = [x['segment_name'] for x in all_stamp]
-        all_beg = asarray([x['end_stamp'] - x['sample_span'] + 1 for x in all_stamp])
-        all_end = asarray([x['end_stamp'] for x in all_stamp])
+        all_erd = all_stamp['segment_name'].astype('U')  # convert to str
+        all_beg = all_stamp['start_stamp']
+        all_end = all_stamp['end_stamp']
 
         try:
             begrec = where((all_end >= begsam))[0][0]
@@ -927,28 +1003,22 @@ class Ktlx():
         except IndexError:
             return dat
 
-        lg.debug('Reading from recording #{} ({})'.format(begrec,
-                                                          all_erd[begrec]) +
-                 ' to recording #{} ({})'.format(endrec, all_erd[endrec]))
-
         for rec in range(begrec, endrec + 1):
-            begpos_rec = begsam - all_beg[rec]
-            endpos_rec = endsam - all_beg[rec]
 
-            begpos_rec = max(begpos_rec, 0)
-            endpos_rec = min(endpos_rec, all_end[rec] - all_beg[rec])
+            # absolute values
+            begpos_rec = max(begsam, all_beg[rec])
+            endpos_rec = min(endsam, all_end[rec])
             # this looks weird, but it takes into account whether the values
             # are outside of the limits of the file
             d1 = begpos_rec + all_beg[rec] - begsam
             d2 = endpos_rec + all_beg[rec] - begsam
 
-            erd_file = join(self.filename, all_erd[rec] + '.erd')
+            erd_file = (Path(self.filename) / all_erd[rec]).with_suffix('.erd')
+
             try:
-                dat_rec = _read_erd(erd_file, all_stamp[rec]['sample_span'])
-                lg.debug('From {}, selecting samples {}-{}'.format(all_erd[rec],
-                                                                   begpos_rec,
-                                                                   endpos_rec))
+                dat_rec = _read_erd(erd_file, begpos_rec, endpos_rec)
                 dat[:, d1:d2] = dat_rec[chan, begpos_rec:endpos_rec]
+
             except (FileNotFoundError, PermissionError):
                 lg.warning('{} does not exist'.format(erd_file))
 
@@ -987,9 +1057,9 @@ class Ktlx():
         n_samples = self._hdr['stamps'][-1]['end_stamp']
 
         try:
-            ent_file = join(self.filename, self._basename + '.ent')
-            if not exists(ent_file):
-                ent_file = join(self.filename, self._basename + '.ent.old')
+            ent_file = self._filename.with_suffix('.ent')
+            if not ent_file.exists():
+                ent_file = self._filename.with_suffix('.ent.old')
             ent_notes = _read_ent(ent_file)
         except (FileNotFoundError, PermissionError):
             lg.warning('could not find .ent file, channels have arbitrary '
@@ -1008,13 +1078,13 @@ class Ktlx():
                     break
 
         try:
-            vtc_file = join(self.filename, self._basename + '.vtc')
+            vtc_file = self._filename.with_suffix('.vtc')
             orig['vtc'] = _read_vtc(vtc_file)
         except (FileNotFoundError, PermissionError):
             orig['vtc'] = None
 
         try:
-            snc_file = join(self.filename, self._basename + '.snc')
+            snc_file = self._filename.with_suffix('.snc')
             orig['snc'] = _read_snc(snc_file)
         except (FileNotFoundError, PermissionError):
             orig['snc'] = None
@@ -1023,11 +1093,10 @@ class Ktlx():
 
     def return_markers(self):
         """Reads the notes of the Ktlx recordings.
-
         """
-        ent_file = join(self.filename, self._basename + '.ent')
-        if not exists(ent_file):
-            ent_file = join(self.filename, self._basename + '.ent.old')
+        ent_file = self._filename.with_suffix('.ent')
+        if not ent_file.exists():
+            ent_file = self._filename.with_suffix('.ent.old')
 
         try:
             ent_notes = _read_ent(ent_file)
