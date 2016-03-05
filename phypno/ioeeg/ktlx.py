@@ -19,6 +19,7 @@ from binascii import hexlify
 from datetime import timedelta, datetime
 from logging import getLogger
 from math import ceil
+from os.path import join
 from pathlib import Path
 from re import sub
 from struct import unpack
@@ -446,22 +447,22 @@ def _read_packet(f, pos, n_smp, n_allchan, abs_delta):
     TODO: implement schema 7, which is slightly different, but I don't remember
     where exactly.
     """
-    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
     if len(abs_delta) == 1:  # schema 7
         abs_delta = unpack('b', abs_delta)[0]
     else:  # schema 8, 9
         abs_delta = unpack('h', abs_delta)[0]
 
+    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
     dat = empty((n_allchan, n_smp), dtype=int32)
     f.seek(pos)
 
-    for i in range(n_smp):
+    for i_smp in range(n_smp):
         eventbite = f.read(1)
 
         try:
             assert eventbite in (b'\x00', b'\x01')
         except:
-            raise Exception('at pos ' + str(i) +
+            raise Exception('at pos ' + str(i_smp) +
                             ', eventbite (should be x00 or x01): ' +
                             str(eventbite))
 
@@ -471,15 +472,19 @@ def _read_packet(f, pos, n_smp, n_allchan, abs_delta):
 
         n_bytes = int(deltamask.sum()) + deltamask.shape[0]
 
-        delta_dtype = deltamask.astype('U')
-        delta_dtype[delta_dtype == '1'] = 'h'
-        delta_dtype[delta_dtype == '0'] = 'b'
-        relval = array(unpack('<' + ''.join(delta_dtype), f.read(n_bytes)))
+        deltamask = deltamask.astype('bool')
+        # numpy has a weird way of handling string/bytes.
+        # We create a byte representation, because then tostring() works fine
+        delta_dtype = empty(n_allchan, dtype='a1')
+        delta_dtype[deltamask] = 'h'
+        delta_dtype[~deltamask] = 'b'
+        relval = array(unpack('<' + delta_dtype.tostring().decode(),
+                              f.read(n_bytes)))
 
-        read_abs = (delta_dtype == 'h') & (relval == abs_delta)
+        read_abs = (delta_dtype == b'h') & (relval == abs_delta)
 
-        dat[~read_abs, i] = dat[~read_abs, i - 1] + relval[~read_abs]
-        dat[read_abs, i] = fromfile(f, 'i', count=read_abs.sum())
+        dat[~read_abs, i_smp] = dat[~read_abs, i_smp - 1] + relval[~read_abs]
+        dat[read_abs, i_smp] = fromfile(f, 'i', count=read_abs.sum())
 
     return dat
 
