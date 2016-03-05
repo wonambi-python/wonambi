@@ -22,18 +22,19 @@ from math import ceil
 from pathlib import Path
 from re import sub
 from struct import unpack
-from numpy import (unpackbits,
-                   array,
+from numpy import (array,
+                   asarray,
+                   concatenate,
+                   dtype,
+                   empty,
+                   expand_dims,
+                   fromfile,
+                   int32,
                    NaN,
                    ones,
-                   fromfile,
-                   dtype,
-                   concatenate,
-                   expand_dims,
+                   unpackbits,
                    where,
-                   asarray,
-                   empty,
-                   int32)
+                   )
 
 lg = getLogger(__name__)
 
@@ -44,9 +45,6 @@ EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
 HUNDREDS_OF_NANOSECONDS = 10000000
 
 START_TIME_TOL = 10
-
-ZERO = timedelta(0)
-HOUR = timedelta(hours=1)
 
 
 def get_date_idx(time_of_interest, start_time, end_time):
@@ -415,14 +413,45 @@ def _read_ent(ent_file):
     return allnote
 
 
-def _read_packet(f, pos, n_smp, n_allchan, l_deltamask):
+def _read_packet(f, pos, n_smp, n_allchan, abs_delta):
     """
-    l_deltamask : int or None
-        if int, file scheme is 8 or 9, if None, file scheme is 7
+    Read a packet of compressed data
 
-    TODO: shorted chan
-    TODO: scheme 7
+    Parameters
+    ----------
+    f : instance of opened file
+        erd file
+    pos : int
+        index of the start of the packet in the file (in bytes from beginning
+        of the file)
+    n_smp : int
+        number of samples to read
+    n_allchan : int
+        number of channels (we should specify if shorted or not)
+    abs_delta: byte
+        if the delta has this value, it means that you should read the absolute
+        value at the end of packet. If schema is 7, the length is 1; if schema
+        is 8 or 9, the length is 2.
+
+    Returns
+    -------
+    ndarray
+        data read in the packet up to n_smp.
+
+    Notes
+    -----
+    TODO: shorted chan. If I remember correctly, deltamask includes all the
+    channels, but the absolute values are only used for not-shorted channels
+
+    TODO: implement schema 7, which is slightly different, but I don't remember
+    where exactly.
     """
+    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
+    if len(abs_delta) == 1:  # schema 7
+        abs_delta = unpack('b', abs_delta)[0]
+    else:  # schema 8, 9
+        abs_delta = unpack('h', abs_delta)[0]
+
     dat = empty((n_allchan, n_smp), dtype=int32)
     f.seek(pos)
 
@@ -436,22 +465,18 @@ def _read_packet(f, pos, n_smp, n_allchan, l_deltamask):
                             ', eventbite (should be x00 or x01): ' +
                             str(eventbite))
 
-        if l_deltamask is None:  # schema 7
-            raise NotImplementedError
+        byte_deltamask = unpack('<' + 'B' * l_deltamask, f.read(l_deltamask))
+        deltamask = unpackbits(array(byte_deltamask[::-1], dtype ='uint8'))
+        deltamask = deltamask[:-n_allchan-1:-1]
 
-        else:
-            byte_deltamask = unpack('<' + 'B' * l_deltamask, f.read(l_deltamask))
-            deltamask = unpackbits(array(byte_deltamask[::-1], dtype ='uint8'))
-            deltamask = deltamask[:-n_allchan-1:-1]
+        n_bytes = int(sum(deltamask)) + deltamask.shape[0]
 
-            n_bytes = int(sum(deltamask)) + deltamask.shape[0]
+        delta_dtype = deltamask.astype('U')
+        delta_dtype[delta_dtype == '1'] = 'h'
+        delta_dtype[delta_dtype == '0'] = 'b'
+        relval = array(unpack('<' + ''.join(delta_dtype), f.read(n_bytes)))
 
-            delta_dtype = deltamask.astype('U')
-            delta_dtype[delta_dtype == '1'] = 'h'
-            delta_dtype[delta_dtype == '0'] = 'b'
-            relval = array(unpack('<' + ''.join(delta_dtype), f.read(n_bytes)))
-
-            read_abs = (delta_dtype == 'h') & (relval == -1)  # TODO: abs_delta
+        read_abs = (delta_dtype == 'h') & (relval == abs_delta)
 
         dat[~read_abs, i] = dat[~read_abs, i - 1] + relval[~read_abs]
         dat[read_abs, i] = fromfile(f, 'i', count=sum(read_abs))
@@ -460,82 +485,20 @@ def _read_packet(f, pos, n_smp, n_allchan, l_deltamask):
 
 
 def _read_erd(erd_file, begsam, endsam):
-    """
-    TODO:
-    # fill up the output data, put NaN for shorted channels
-    if n_shorted > 0:
-        full_channels = where(asarray([x == 0 for x in shorted]))[0]
-        output = empty((n_allchan, n_samples))
-        output.fill(NaN)
-        output[full_channels, :] = dat
-    else:
-        output = dat
-
-    factor = _calculate_conversion(hdr)
-    return expand_dims(factor, 1) * output
-    """
-    # [begsam, endsam)
-
-    hdr = _read_hdr_file(erd_file)
-    n_allchan = hdr['num_channels']
-    shorted = hdr['shorted']  # does this exist for Schema 7 at all?
-    n_shorted = sum(shorted)
-    n_chan = n_allchan - n_shorted
-    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
-
-    n_smp = endsam - begsam
-    data = empty((n_allchan, n_smp))
-    data.fill(NaN)
-
-    # it includes the sample in both cases
-    etc = _read_etc(erd_file.with_suffix('.etc'))
-    all_beg = etc['samplestamp']
-    all_end = etc['samplestamp'] + etc['sample_span'] - 1
-
-    # [begrec, endrec]
-    # print('{: 10d}-{: 10d}'.format(begsam, endsam))
-    # print(', '.join('{: 5d}'.format(x) for x in all_beg))
-    # print(', '.join('{: 5d}'.format(x) for x in all_end))
-    try:
-        begrec = where((all_end >= begsam))[0][0]
-        endrec = where((all_beg < endsam))[0][-1]
-    except IndexError:
-        return data
-
-    with erd_file.open('rb') as f:
-        for rec in range(begrec, endrec + 1):
-
-            # [begpos_rec, endpos_rec]
-            begpos_rec = begsam - all_beg[rec]
-            endpos_rec = endsam - all_beg[rec]
-
-            begpos_rec = max(begpos_rec, 0)
-            endpos_rec = min(endpos_rec, all_end[rec] - all_beg[rec] + 1)
-
-            # [d1, d2)
-            d1 = begpos_rec + all_beg[rec] - begsam
-            d2 = endpos_rec + all_beg[rec] - begsam
-
-            dat = _read_packet(f, etc['offset'][rec], endpos_rec, n_allchan,
-                               l_deltamask)
-            data[:, d1:d2] = dat[:, begpos_rec:endpos_rec]
-
-    return data
-
-
-def _read_erd_old(erd_file, n_samples):
     """Read the raw data and return a matrix, converted to microvolts.
 
     Parameters
     ----------
     erd_file : str
         one of the .erd files to read
-    n_samples : int
-        the number of samples to read, based on .stc
+    begsam : int
+        index of the first sample to read
+    endsam : int
+        index of the last sample (excluded, per python convention)
 
     Returns
     -------
-    data : numpy.ndarray
+    numpy.ndarray
         2d matrix with the data, as read from the file
 
     Error
@@ -574,94 +537,66 @@ def _read_erd_old(erd_file, n_samples):
     When we save the data as memory-mapped, we only save the real channels.
     However, the data in the output have both shorted and non-shorted channels.
     Shorted channels have NaN's only.
+
+    About the actual implementation, we always follow the python convention
+    that the first sample is included and the last sample is not.
     """
     hdr = _read_hdr_file(erd_file)
     n_allchan = hdr['num_channels']
     shorted = hdr['shorted']  # does this exist for Schema 7 at all?
     n_shorted = sum(shorted)
-    n_chan = n_allchan - n_shorted
-
-    dat = empty((n_chan, n_samples), dtype=int32)
-
-    # deltamask length (use all channels)
-    l_deltamask = int(ceil(n_allchan / BITS_IN_BYTE))
-    with open(erd_file, 'rb') as f:
-        filebytes = f.read()
+    if n_shorted > 0:
+        raise NotImplementedError('shorted channels not tested yet')
 
     if hdr['file_schema'] in (7,):
-        i = 4560
         abs_delta = b'\x80'  # one byte: 10000000
+        raise NotImplementedError('schema 7 not tested yet')
 
     if hdr['file_schema'] in (8, 9):
-        i = 8656
         abs_delta = b'\xff\xff'
 
-    for sam in range(n_samples):
+    n_smp = endsam - begsam
+    data = empty((n_allchan, n_smp))
+    data.fill(NaN)
 
-        # Event Byte
-        eventbite = filebytes[i:i + 1]
-        i += 1
-        if eventbite == b'':
-            break
-        try:
-            assert eventbite in (b'\x00', b'\x01')
-        except:
-            raise Exception('at pos ' + str(i) +
-                            ', eventbite (should be x00 or x01): ' +
-                            str(eventbite))
+    # it includes the sample in both cases
+    etc = _read_etc(erd_file.with_suffix('.etc'))
+    all_beg = etc['samplestamp']
+    all_end = etc['samplestamp'] + etc['sample_span'] - 1
 
-        # Delta Information
-        if hdr['file_schema'] in (7,):
-            deltamask = '0' * n_chan
+    try:
+        begrec = where((all_end >= begsam))[0][0]
+        endrec = where((all_beg < endsam))[0][-1]
+    except IndexError:
+        return data
 
-        if hdr['file_schema'] in (8, 9):
-            # read single bits as they appear, one by one
-            byte_deltamask = unpack('<' + 'B' * l_deltamask,
-                                    filebytes[i:i + l_deltamask])
-            i += l_deltamask
-            deltamask = ['{0:08b}'.format(x)[::-1] for x in byte_deltamask]
-            deltamask = ''.join(deltamask)
+    with erd_file.open('rb') as f:
+        for rec in range(begrec, endrec + 1):
 
-        i_chan = 0  # excluding the shorted channels
-        read_absvalue = [False] * n_chan
+            # [begpos_rec, endpos_rec]
+            begpos_rec = begsam - all_beg[rec]
+            endpos_rec = endsam - all_beg[rec]
 
-        for i_allchan, m in enumerate(deltamask[:n_allchan]):
+            begpos_rec = max(begpos_rec, 0)
+            endpos_rec = min(endpos_rec, all_end[rec] - all_beg[rec] + 1)
 
-            if shorted[i_allchan]:
-                continue
+            # [d1, d2)
+            d1 = begpos_rec + all_beg[rec] - begsam
+            d2 = endpos_rec + all_beg[rec] - begsam
 
-            if m == '1':
-                val = filebytes[i:i + 2]
-                i += 2
-            elif m == '0':
-                val = filebytes[i:i + 1]
-                i += 1
+            dat = _read_packet(f, etc['offset'][rec], endpos_rec, n_allchan,
+                               abs_delta)
+            data[:, d1:d2] = dat[:, begpos_rec:endpos_rec]
 
-            if val == abs_delta:
-                read_absvalue[i_chan] = True
-            else:
-                if m == '1':
-                    dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                        unpack('<h', val)[0])
-                elif m == '0':
-                    dat[i_chan, sam] = (dat[i_chan, sam - 1] +
-                                        unpack('<b', val)[0])
-
-            i_chan += 1
-
-        for i_chan, to_read in enumerate(read_absvalue):
-            if to_read:
-                dat[i_chan, sam] = unpack('<i', filebytes[i:i + 4])[0]
-                i += 4
 
     # fill up the output data, put NaN for shorted channels
     if n_shorted > 0:
         full_channels = where(asarray([x == 0 for x in shorted]))[0]
-        output = empty((n_allchan, n_samples))
+        output = empty((n_allchan, n_smp))
         output.fill(NaN)
-        output[full_channels, :] = dat
+        output[full_channels, :] = data
     else:
-        output = dat
+        output = data
 
     factor = _calculate_conversion(hdr)
     return expand_dims(factor, 1) * output
