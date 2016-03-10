@@ -628,7 +628,6 @@ def _read_snc(snc_file):
 
     Returns
     -------
-    structuredArray with:
     sampleStamp : list of int
         Sample number from start of study
     sampleTime : list of datetime.datetime
@@ -660,15 +659,10 @@ def _read_snc(snc_file):
         f.seek(352)  # end of header
         snc_raw = fromfile(f, dtype=snc_raw_dtype)
 
-    # structured array
-    snc_dtype = dtype([('sampleStamp', '<i'),
-                       ('sampleTime', 'O')])
-    snc = empty(len(snc_raw), dtype=snc_dtype)
-    snc['sampleStamp'] = snc_raw['sampleStamp']
-    snc['sampleTime'] = asarray([_filetime_to_dt(x)
-                                 for x in snc_raw['sampleTime']])
+    sampleStamp = snc_raw['sampleStamp']
+    sampleTime = asarray([_filetime_to_dt(x) for x in snc_raw['sampleTime']])
 
-    return snc
+    return sampleStamp, sampleTime
 
 
 def _read_stc(stc_file):
