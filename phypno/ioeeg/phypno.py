@@ -82,7 +82,7 @@ class Phypno:
             raise FileNotFoundError('Could not find ' + str(memmap_file))
 
         data = memmap(str(memmap_file), self.dtype, mode='c',
-                      shape=self.memshape)
+                      shape=self.memshape, order='F')
 
         n_smp = self.memshape[1]
         dat = data[chan, max((begsam, 0)):min((endsam, n_smp))].astype(float64)
@@ -137,6 +137,9 @@ def write_phypno(data, filename, subj_id='', dtype='float64'):
     file and one .dat with the memmap recordings.
 
     It will happily overwrite any existing file with the same name.
+
+    Memory-mapped matrices are column-major, Fortran-style, to be compatible
+    with Matlab.
     """
     filename = Path(filename)
 
@@ -159,7 +162,6 @@ def write_phypno(data, filename, subj_id='', dtype='float64'):
     memshape = (len(dataset['chan_name']),
                 dataset['n_samples'])
 
-    mem = memmap(str(memmap_file), dtype, mode='w+',
-                 shape=memshape)
+    mem = memmap(str(memmap_file), dtype, mode='w+', shape=memshape, order='F')
     mem[:, :] = data.data[0]
     mem.flush()  # not sure if necessary
