@@ -12,7 +12,11 @@ from PyQt5.QtWidgets import (QFrame,
                              QWidget,
                              )
 
-import phypno.utils.ext.vlc as vlc  # make relative
+try:
+    import phypno.utils.ext.vlc as vlc  # make relative
+except:
+    vlc = False
+
 from .settings import Config
 
 lg = getLogger(__name__)
@@ -64,7 +68,8 @@ class Video(QWidget):
 
         self.idx_button = None
 
-        self.create_video()
+        if vlc:
+            self.create_video()
 
     def create_video(self):
         """Create video widget."""
