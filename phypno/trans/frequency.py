@@ -173,8 +173,9 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
             data points, but you don't need to store them all)
         normalization : str
             'area' means that energy is normalized to 1, 'peak' means that the
-            peak is set at 1, 'max' is a normalization used by nitime that I
-            don't understand.
+            peak of the wavelet is set at 1, 'max' is a normalization used by 
+            nitime where the max value of the output of the convolution remains
+            the same even if you change the sigma_f.
         zero_mean : bool
             make sure that the wavelet has zero mean (only relevant if ratio
             < 5)
@@ -315,8 +316,8 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
         total duration of the wavelet, two-sided (i.e. from start to finish)
     normalization : str
         'area' means that energy is normalized to 1, 'peak' means that the peak
-        is set at 1, 'max' is a normalization used by nitime that I don't
-        understand.
+        is set at 1, 'max' is a normalization used by nitime which does not 
+        change max value of output when you change sigma_f.
     zero_mean : bool
         make sure that the wavelet has zero mean (only relevant if ratio < 5)
 
