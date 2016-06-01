@@ -4,7 +4,7 @@ from logging import getLogger
 
 from itertools import product
 
-from numpy import ix_, expand_dims, squeeze
+from numpy import empty, ix_, expand_dims, squeeze
 from scipy.signal import iirfilter, filtfilt, get_window, fftconvolve
 
 lg = getLogger(__name__)
@@ -94,26 +94,24 @@ def filter_(data, axis='time', low_cut=None, high_cut=None, order=4,
     return fdata
 
 
-def convolve(data, window, axis='time', length=1, s_freq=None):
+def convolve(data, window, axis='time', length=1):
     """Design taper and convolve it with the signal.
 
     Parameters
     ----------
+    data : instance of Data
+        the data to filter.
     window : str
         one of the windows in scipy, using get_window
     length : float, optional
         length of the window
-    s_freq : float, optional
-        sampling frequency
-    data : instance of Data
-        the data to filter.
     axis : str, optional
         axis to apply the filter on.
 
     Returns
     -------
-    filtered_data : instance of DataRaw
-        filtered data
+    instance of DataRaw
+        data after convolution
 
     Notes
     -----
@@ -128,16 +126,18 @@ def convolve(data, window, axis='time', length=1, s_freq=None):
     --------
     scipy.signal.get_window : function used to create windows
     """
-    taper = get_window(window, length * s_freq)
-    self.taper = taper / sum(taper)
+    taper = get_window(window, length * data.s_freq)
+    taper = taper / sum(taper)
 
     fdata = data._copy()
     idx_axis = data.index_of(axis)
 
     for i in range(data.number_of('trial')):
+        orig_dat = data.data[i]
 
         sel_dim = []
         i_dim = []
+        dat = empty(orig_dat.shape, dtype=orig_dat.dtype)
         for i_axis, one_axis in enumerate(data.list_of_axes):
             if one_axis != axis:
                 i_dim.append(i_axis)
@@ -147,16 +147,16 @@ def convolve(data, window, axis='time', length=1, s_freq=None):
             # create the numpy indices for one value per dimension,
             # except for the dimension of interest
             idx = [[x] for x in one_iter]
-            idx.insert(idx_axis, range(data.number_of(axis)[0]))
+            idx.insert(idx_axis, range(data.number_of(axis)[i]))
             indices = ix_(*idx)
 
-            d_1dim = squeeze(data.data[0][indices],
-                             axis=i_dim)
+            d_1dim = squeeze(orig_dat[indices], axis=i_dim)
 
-            d_1dim = fftconvolve(d_1dim, self.taper, 'same')
+            d_1dim = fftconvolve(d_1dim, taper, 'same')
 
             for to_squeeze in i_dim:
                 d_1dim = expand_dims(d_1dim, axis=to_squeeze)
-            fdata.data[0][indices] = d_1dim
+                dat[indices] = d_1dim
+        fdata.data[0] = dat
 
     return fdata
