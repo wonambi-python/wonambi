@@ -168,9 +168,11 @@ class MainWindow(QMainWindow):
         s = ('<b>PHYPNO Version {version}</b><br />'
              '<p>You can download the latest version at '
              '<a href="https://github.com/gpiantoni/phypno">'
-             'https://github.com/gpiantoni/phypno</a>.'
+             'https://github.com/gpiantoni/phypno</a>'
+             'or you can upgrade to the latest version with:'
+             'pip install --upgrade phypno'
              '</p><p>'
-             'Copyright &copy; 2013-2015 '
+             'Copyright &copy; 2013-2016 '
              '<a href="http://www.gpiantoni.com">Gio Piantoni</a>'
              '</p><p>'
              'This program is free software: you can redistribute it '
@@ -187,6 +189,8 @@ class MainWindow(QMainWindow):
              'License along with this program.  If not, see '
              '<a href="http://www.gnu.org/licenses/">'
              'http://www.gnu.org/licenses/</a>.'
+             '</p><p>'
+             'Other licenses available, contact the author'
              '</p>')
         QMessageBox.about(self, 'PHYPNO', s.format(version=VERSION))
 
