@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QFrame,
                              )
 
 try:
-    import phypno.utils.ext.vlc as vlc  # make relative
+    import vlc
 except:
     vlc = False
 
