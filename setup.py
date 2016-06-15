@@ -43,6 +43,7 @@ setup(
         'all': ['scipy',
                 'mne',
                 'nibabel',
+                'python-vlc',  # for videos, to avoid problems with backends
                 'request',  # to read ieeg.org dataset
                 ]
     },

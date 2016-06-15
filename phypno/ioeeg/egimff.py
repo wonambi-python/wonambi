@@ -1,5 +1,6 @@
 from datetime import datetime
 from glob import glob
+from logging import getLogger
 from os import SEEK_CUR
 from os.path import basename, join, splitext
 from struct import unpack
@@ -9,6 +10,8 @@ from numpy import (append, asarray, cumsum, diff, empty, NaN, reshape, sum,
                    where)
 
 shorttime = lambda x: x[:26] + x[29:32] + x[33:]
+lg = getLogger(__name__)
+
 
 
 class EgiMff:
@@ -70,6 +73,9 @@ class EgiMff:
         start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
                                        '%Y-%m-%dT%H:%M:%S.%f%z')
 
+        videos = sorted(glob(join(self.filename, '*.mp4')))
+        if len(videos) > 1:
+            lg.
         # it only works if they have all the same sampling frequency
         s_freq = [x[0]['freq'][0] for x in self._block_hdr]
         assert all([x == s_freq[0] for x in s_freq])
@@ -189,6 +195,10 @@ class EgiMff:
 
         return markers
 
+    def return_videos(self, begtime, endtime):
+        mp4_file = ['/home/gio/BIAL_0004_nap1.mff/Recording 40.mov']
+
+        return mp4_file, begtime, endtime
 
 def _read_block(filename, block_hdr, i):
     f = filename
