@@ -295,14 +295,21 @@ def parse_xml(xml_file):
     return xml2list(root)
 
 
-# remove namespace
-ns = lambda s: '}'.join(s.split('}')[1:])
+def ns(s):
+    """remove namespace, but only it there is a namespace to begin with"""
+    if '}' in s:
+        return '}'.join(s.split('}')[1:])
+    else:
+        return s
 
 
 def xml2list(root):
     output = []
+
     for element in root:
+
         if element:
+
             if element[0].tag != element[-1].tag:
                 output.append(xml2dict(element))
             else:
