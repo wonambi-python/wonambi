@@ -13,7 +13,6 @@ shorttime = lambda x: x[:26] + x[29:32] + x[33:]
 lg = getLogger(__name__)
 
 
-
 class EgiMff:
     """Basic class to read the data.
 
@@ -73,9 +72,13 @@ class EgiMff:
         start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
                                        '%Y-%m-%dT%H:%M:%S.%f%z')
 
-        videos = sorted(glob(join(self.filename, '*.mp4')))
+        videos = glob(join(self.filename, '*.mp4'))  # as described in specs
+        videos.extend(glob(join(self.filename, '*.mov')))  # actual example
+
         if len(videos) > 1:
-            lg.
+            lg.warning('More than one video present: ' + ', '.join(videos))
+        self._videos = videos
+
         # it only works if they have all the same sampling frequency
         s_freq = [x[0]['freq'][0] for x in self._block_hdr]
         assert all([x == s_freq[0] for x in s_freq])
@@ -196,9 +199,43 @@ class EgiMff:
         return markers
 
     def return_videos(self, begtime, endtime):
-        mp4_file = ['/home/gio/BIAL_0004_nap1.mff/Recording 40.mov']
+        """It returns the videos and beginning and end time of the video
+        segment. The MFF video format is not well documented. As far as I can
+        see, the manual 20150805 says that there might be multiple .mp4 files
+        but I only see one .mov file (and no way to specify which video file to
+        read). In addition, there is a file "po_videoSyncups.xml" which seems
+        to contain some time information, but the sampleTime does not start at
+        zero, but at a large number. I don't know how to use the info in
+        po_videoSyncups.xml.
+
+        Parameters
+        ----------
+        begtime : float
+            start time of the period of interest
+        endtime : float
+            end time of the period of interest
+
+        Returns
+        -------
+        list of one path
+            list with only one element
+        float
+            start time of the video
+        float
+            end time of the video
+        """
+        try:
+            self._orig['po_videoSyncups']
+        except KeyError:
+            raise OSError('No po_videoSyncups.xml in folder to sync videos')
+
+        if not self._videos:
+            raise OSError('No mp4 video files')
+
+        mp4_file = self._videos[:1]  # make clear we only use the first video
 
         return mp4_file, begtime, endtime
+
 
 def _read_block(filename, block_hdr, i):
     f = filename
