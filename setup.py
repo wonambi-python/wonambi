@@ -8,7 +8,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'phypno', 'VERSION')) as f:
     VERSION = f.read()
 
-with open(path.join(here, 'README'), encoding='utf-8') as f:
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
@@ -16,7 +16,7 @@ setup(
     version=VERSION,
     description='Tools for EEG, ECoG, iEEG, especially for sleep',
     long_description=long_description,
-    url='https://github.com/gpiantoni/phypno',
+    url='http://phypno.readthedocs.io',
     author='Gio Piantoni',
     author_email='phypno@gpiantoni.com',
     license='GPLv3',
@@ -34,7 +34,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
-    packages=find_packages(exclude=['data', 'doc', 'test']),
+    packages=find_packages(exclude=['data', 'docs', 'tests']),
     install_requires=['numpy', 'scipy'],
     extras_require={
         'gui': ['scipy', 'pyqt5'],
