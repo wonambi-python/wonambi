@@ -12,14 +12,14 @@ Contents:
    :maxdepth: 2
 
    installation
-   changelog
    auto_examples/index
+   Modules, classes, functions<api/phypno>
+   changelog
+   todo
 
 
 Indices and tables
 ==================
 
-* :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
-
+* :ref:`genindex`
