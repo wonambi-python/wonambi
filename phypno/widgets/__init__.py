@@ -15,7 +15,7 @@ from logging import getLogger
 lg = getLogger(__name__)
 
 then import packages that are in the Python library, additional packages (in
-this order: numpy, scipy, PyQt4), relative imports (leave an empty
+this order: numpy, scipy, PyQt5), relative imports (leave an empty
 line between each group of imports).
 
 """

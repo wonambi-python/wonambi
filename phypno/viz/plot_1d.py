@@ -75,6 +75,10 @@ class Viz1(Viz):
             color to use for the area of detection.
         height : float
             height of the highlight area
+
+        Todo
+        ----
+            testing todo
         """
         for one_sp in graphoelement:
             chan = one_sp['chan']  # it could be over multiple channels

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Module to work with channels.
 
 It provides a general class to work with channels. Channels is the general term
@@ -73,8 +72,11 @@ def _convert_unit(unit):
 
 
 def _read_separated_values(elec_file, sep):
-    """TODO:documentation
+    """
 
+    TODO
+    ----
+    add documentation to _read_separated_values
     """
     chan_label = []
     with open(elec_file) as f:
