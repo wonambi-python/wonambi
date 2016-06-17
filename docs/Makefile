@@ -47,11 +47,15 @@ help:
 
 # generate apidoc (gp, 2016/06/17)
 apidoc:
-	sphinx-apidoc -f -M -e -o ../docs/source ../phypno ../phypno/widgets ../phypno/scroll_data.py
+	sphinx-apidoc -f -M -e -o ../docs/source/api ../phypno ../phypno/widgets ../phypno/scroll_data.py
 
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
+	rm source/auto_examples -fr
+	rm source/modules -fr
+	rm examples -fr
+	rm modules -fr
 
 .PHONY: html
 html:

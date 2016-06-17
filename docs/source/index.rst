@@ -13,7 +13,7 @@ Contents:
 
    installation
    changelog
-
+   auto_examples/index
 
 
 Indices and tables

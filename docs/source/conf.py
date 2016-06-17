@@ -8,31 +8,36 @@
 #
 import os
 import sys
+import sphinx_gallery
 
 # Read root path
 root = os.path.abspath(os.path.join(os.pardir, os.pardir))
 
 # add module path
-sys.path.insert(0, root)
+# sys.path.insert(0, root)
 
-import phypno
+# import phypno
 
 # make sure that VERSION can be converted to float
 with open(os.path.join(root, 'phypno', 'VERSION')) as f:
-    VERSION = f.read()
+    VERSION = f.read().strip('\n')  # newline breaks search function in sphinx!!!
 
 # -- General configuration ------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+"""
+
+"""
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'sphinx.ext.doctest',
     'sphinx.ext.todo',
-    'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
+    'sphinx.ext.mathjax',
+    'sphinx_gallery.gen_gallery',
 ]
 
 # autodoc options
@@ -42,6 +47,25 @@ autodoc_default_flags = ['inherited-members']
 # Napoleon settings
 napoleon_include_private_with_doc = False
 napoleon_include_special_with_doc = True
+
+# mathjax settings
+mathjax_path = '//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML'
+
+# todo settings
+todo_include_todos = True
+todo_link_only = True
+
+# sphinx-gallery settings
+sphinx_gallery_conf = {
+    'doc_module': ('phypno',),
+    'examples_dirs': '../../examples',
+    'gallery_dirs': 'auto_examples',
+    'mod_example_dir': os.path.join('modules', 'generated'),
+}
+# to fix one of the main bugs in sphinx-gallery due to relative paths
+os.makedirs(os.path.join(root, 'docs', 'source',
+                         sphinx_gallery_conf['mod_example_dir']),
+            exist_ok=True)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -85,7 +109,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', ]
+exclude_patterns = ['_build', '**/generated']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

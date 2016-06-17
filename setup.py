@@ -9,7 +9,7 @@ with open(path.join(here, 'phypno', 'VERSION')) as f:
     VERSION = f.read()
 
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+    long_description = f.read().strip('\n')  # editors love to add newline
 
 setup(
     name='phypno',
