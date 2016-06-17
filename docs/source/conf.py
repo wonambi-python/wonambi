@@ -8,7 +8,6 @@
 #
 import os
 import sys
-import sphinx_gallery
 
 # Read root path
 root = os.path.abspath(os.path.join(os.pardir, os.pardir))
