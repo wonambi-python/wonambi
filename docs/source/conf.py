@@ -6,9 +6,20 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+
+# Read root path
+root = os.path.abspath(os.path.join(os.pardir, os.pardir))
+
+# add module path
+sys.path.insert(0, root)
+
+import phypno
+
+# make sure that VERSION can be converted to float
+with open(os.path.join(root, 'phypno', 'VERSION')) as f:
+    VERSION = f.read()
 
 # -- General configuration ------------------------------------------------
 
@@ -17,11 +28,20 @@
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
 ]
+
+# autodoc options
+autosummary_generate = True
+autodoc_default_flags = ['inherited-members']
+
+# Napoleon settings
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -45,7 +65,7 @@ author = 'Gio Piantoni'
 # built documents.
 #
 # The short X.Y version.
-version = '16.1'
+version = VERSION
 # The full version, including alpha/beta/rc tags.
 release = version
 

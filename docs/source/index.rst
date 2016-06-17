@@ -4,12 +4,15 @@
    contain the root `toctree` directive.
 
 Welcome to phypno's documentation!
-===============================
+==================================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
+
+   installation
+   changelog
 
 
 

@@ -44,6 +44,11 @@ help:
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 	@echo "  dummy      to check syntax errors of document sources"
 
+
+# generate apidoc (gp, 2016/06/17)
+apidoc:
+	sphinx-apidoc -f -M -e -o ../docs/source ../phypno ../phypno/widgets ../phypno/scroll_data.py
+
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
