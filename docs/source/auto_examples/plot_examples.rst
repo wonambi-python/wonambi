@@ -42,7 +42,7 @@ and script license continued by the import modules instructions.
     from phypno import Dataset
 
 **Total running time of the script:**
-(0 minutes 1.044 seconds)
+(0 minutes 0.613 seconds)
 
 
 
