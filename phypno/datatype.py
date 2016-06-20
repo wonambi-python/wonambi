@@ -246,7 +246,7 @@ class Data:
 
             return output
 
-    def __getattr__(self, possible_axis):
+    def __getattrxxx__(self, possible_axis):
         """Return the axis with a shorter syntax.
 
         Parameters
@@ -356,11 +356,12 @@ class Data:
         Phypno format creates two files, one .phy with the dataset info as json
         file and one .dat with the memmap recordings.
         """
-        if export_format == 'EDF':
+        export_format = export_format.lower()
+        if export_format == 'edf':
             from .ioeeg import write_edf  # avoid circular import
             write_edf(self, filename, **options)
 
-        elif export_format == 'FieldTrip':
+        elif export_format == 'fieldtrip':
             from .ioeeg import write_fieldtrip  # avoid circular import
             write_fieldtrip(self, filename)
 
