@@ -13,9 +13,9 @@ Examples Gallery
 
 .. only:: html
 
-    .. figure:: /auto_examples/images/thumb/sphx_glr_plot_examples_thumb.png
+    .. figure:: /auto_examples/images/thumb/sphx_glr_plot_import_data_thumb.png
 
-        :ref:`sphx_glr_auto_examples_plot_examples.py`
+        :ref:`sphx_glr_auto_examples_plot_import_data.py`
 
 .. raw:: html
 
@@ -25,7 +25,7 @@ Examples Gallery
 .. toctree::
    :hidden:
 
-   /auto_examples/plot_examples
+   /auto_examples/plot_import_data
 .. raw:: html
 
     <div style='clear:both'></div>

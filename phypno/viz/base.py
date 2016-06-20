@@ -1,7 +1,7 @@
 """Module with helper functions for plotting
 """
 from vispy.app import Application
-app = Application()
+app = Application('pyqt5')
 
 from numpy import array, clip, float32, r_
 from vispy.scene.visuals import create_visual_node

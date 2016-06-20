@@ -31,6 +31,7 @@ with open(os.path.join(root, 'phypno', 'VERSION')) as f:
 """
 
 extensions = [
+    'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
@@ -61,6 +62,8 @@ sphinx_gallery_conf = {
     'gallery_dirs': 'auto_examples',
     'mod_example_dir': os.path.join('modules', 'generated'),
 }
+# reference_url generates error (dbm.error: db type could not be determined
+
 # to fix one of the main bugs in sphinx-gallery due to relative paths
 os.makedirs(os.path.join(root, 'docs', 'source',
                          sphinx_gallery_conf['mod_example_dir']),
