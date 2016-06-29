@@ -34,7 +34,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
-    packages=find_packages(),  # exclude does not work for me, don't use __init__.py
+    packages=find_packages(exclude=('test', )),
     install_requires=['numpy', 'scipy'],
     extras_require={
         'gui': ['scipy', 'pyqt5'],
