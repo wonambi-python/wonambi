@@ -19,5 +19,6 @@ Submodules
    phypno.ioeeg.ktlx
    phypno.ioeeg.mnefiff
    phypno.ioeeg.moberg
+   phypno.ioeeg.opbox
    phypno.ioeeg.phypno
 
