@@ -45,7 +45,7 @@ class OpBox:
             no additional info present
         """
         with open(self.filename, 'rb') as f:
-            s_freq, n_anlg, n_dgtl, first_sec = unpack('<iiid', f.read(20))
+            s_freq, n_anlg, n_dgtl = unpack('<iii', f.read(12))
             f.seek(0, SEEK_END)
             eof = f.tell()
         s_freq = float(s_freq)
@@ -58,8 +58,6 @@ class OpBox:
             # if it can't parse info from name, use arbitrary info
             subj_id = ''
             start_time = datetime(1900, 1, 1, 0, 0, 0)
-
-        start_time = start_time + timedelta(seconds=first_sec)
 
         n_chan = n_anlg + n_dgtl
         n_chan_in_dat = n_chan + 1  # add timestamp
@@ -133,4 +131,3 @@ class OpBox:
             exceptions).
         """
         return []
-

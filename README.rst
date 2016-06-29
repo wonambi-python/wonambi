@@ -23,11 +23,11 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
 Documentation
 -------------
-See `Documentation  <http://www.gpiantoni.com/phypno>`_
+See `Documentation <http://www.gpiantoni.com/phypno>`_
 
 Change Log
 ----------
-See `Documentation  <http://www.gpiantoni.com/phypno/changelog.html>`_
+See `Change Log <http://www.gpiantoni.com/phypno/changelog.html>`_
 
 Requirements
 ------------
