@@ -10,7 +10,7 @@ from os.path import isdir, join
 from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
-                    Moberg, Phypno)
+                    Moberg, Phypno, OpBox)
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -34,7 +34,6 @@ def _convert_time_to_sample(abs_time, dataset):
     -------
     int
         sample (from the starting of the recording).
-
     """
     if isinstance(abs_time, datetime):
         abs_time = abs_time - dataset.header['start_time']
@@ -64,7 +63,6 @@ def detect_format(filename, server=None):
     Returns
     -------
     class used to read the data.
-
     """
     if server is None:
 
@@ -81,6 +79,9 @@ def detect_format(filename, server=None):
         else:
             if filename.endswith('.phy'):
                 return Phypno
+
+            if filename.endswith('.bin'):  # very general
+                return OpBox
 
             with open(filename, 'rb') as f:
                 file_header = f.read(8)
