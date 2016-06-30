@@ -21,7 +21,7 @@ help:
 	@echo "  share      upload documentation"
 	@echo "  test       run tests"
 
-.PHONY: dist
+.PHONY: sdist
 dist:
 	python setup.py sdist
 
