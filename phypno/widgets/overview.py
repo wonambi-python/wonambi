@@ -10,7 +10,6 @@ from PyQt5.QtGui import (QBrush,
                          QColor,
                          QPen,
                          )
-
 from PyQt5.QtWidgets import (QFormLayout,
                              QGraphicsItem,
                              QGraphicsRectItem,
@@ -45,7 +44,6 @@ BARS = {'markers': {'pos0': 15, 'pos1': 10, 'tip': 'Markers in Dataset'},
         'annot': {'pos0': 30, 'pos1': 10,
                   'tip': 'Annotations (bookmarks and events)'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
-        'available': {'pos0': 80, 'pos1': 10, 'tip': 'Available Recordings'},
         }
 CURR = {'pos0': 0, 'pos1': 90}
 TIME_HEIGHT = 92
@@ -359,24 +357,6 @@ class Overview(QGraphicsView):
         rect.setBrush(STAGES[stage_name]['color'])
         self.scene.addItem(rect)
         self.idx_annot.append(rect)
-
-    def mark_downloaded(self, start_value, end_value):
-        """Set the value of the progress bar.
-
-        Parameters
-        ----------
-        start_value : int
-            beginning of the window that was read.
-        end_value : int
-            end of the window that was read.
-        """
-        avail = self.scene.addRect(start_value,
-                                   BARS['available']['pos0'],
-                                   end_value - start_value,
-                                   BARS['available']['pos1'])
-        avail.setZValue(-5)  # behind the lines
-        avail.setPen(NoPen)
-        avail.setBrush(QBrush(Qt.green))
 
     def mousePressEvent(self, event):
         """Jump to window when user clicks on overview.

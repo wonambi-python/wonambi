@@ -283,7 +283,6 @@ class Traces(QGraphicsView):
             data.s_freq = int(data.s_freq / q)
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
-        self.parent.overview.mark_downloaded(window_start, window_end)
 
     def display(self):
         """Display the recordings."""

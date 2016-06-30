@@ -66,7 +66,6 @@ DEFAULTS['settings'] = {'max_dataset_history': 20,
                         'y_distance_presets': [20., 30., 40., 50., 100., 200.],
                         'y_scale_presets': [.1, .2, .5, 1, 2, 5, 10],
                         'window_length_presets': [1., 5., 10., 20., 30., 60.],
-                        'read_intervals': 10 * 60.,
                         'recording_dir': '/home/gio/recordings',
                         }
 DEFAULTS['video'] = {}
@@ -304,18 +303,9 @@ class ConfigUtils(Config):
                            self.index['window_length_presets'])
         box1.setLayout(form_layout)
 
-        box2 = QGroupBox('Download Data')
-        self.index['read_intervals'] = FormFloat()
-
-        form_layout = QFormLayout()
-        form_layout.addRow('Read intervals (in s)',
-                           self.index['read_intervals'])
-        box2.setLayout(form_layout)
-
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
         main_layout.addWidget(box1)
-        main_layout.addWidget(box2)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)

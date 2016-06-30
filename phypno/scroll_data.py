@@ -103,7 +103,6 @@ class MainWindow(QMainWindow):
         It's important to maintain an organized dict in DEFAULTS which has to
         correspond to the values in the widgets, also the name of the widget.
         DEFAULTS is used like a look-up table.
-
         """
         for widget_name, values in DEFAULTS.items():
             if parameter in values.keys():
@@ -130,28 +129,6 @@ class MainWindow(QMainWindow):
         self.overview.reset()
         self.spectrum.reset()
         self.traces.reset()
-
-    def action_download(self, length=None):
-        """Check if the dataset is available.
-
-        Parameters
-        ----------
-        length : int, optional
-            amount of data to download, in seconds
-        """
-        dataset = self.info.dataset
-        if length is None or length > self.overview.maximum:
-            length = self.overview.maximum
-
-        steps = arange(self.value('window_start'),
-                       self.value('window_start') + length,
-                       self.value('read_intervals'))
-        one_chan = dataset.header['chan_name'][0]
-        for begtime, endtime in zip(steps[:-1], steps[1:]):
-            dataset.read_data(chan=[one_chan],
-                              begtime=begtime,
-                              endtime=endtime)
-            self.overview.mark_downloaded(begtime, endtime)
 
     def show_settings(self):
         """Open the Setting windows, after updating the values in GUI. """

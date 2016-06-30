@@ -2,8 +2,6 @@
 
 """
 from logging import getLogger
-lg = getLogger(__name__)
-
 from functools import partial
 
 from PyQt5.QtCore import Qt
@@ -22,6 +20,9 @@ from .notes import Notes
 from .spectrum import Spectrum
 from .traces import Traces
 from .video import Video
+
+
+lg = getLogger(__name__)
 
 
 def create_widgets(MAIN):
@@ -131,19 +132,6 @@ def create_menubar(MAIN):
     menu_file.addAction(MAIN.info.action['open_dataset'])
     submenu_recent = menu_file.addMenu('Recent Datasets')
     submenu_recent.addActions(MAIN.info.action['open_recent'])
-
-    menu_download = menu_file.addMenu('Download File')
-    menu_download.setIcon(QIcon(ICON['download']))
-    act = menu_download.addAction('Whole File')
-    act.triggered.connect(MAIN.action_download)
-    act = menu_download.addAction('30 Minutes')
-    act.triggered.connect(partial(MAIN.action_download, 30 * 60))
-    act = menu_download.addAction('1 Hour')
-    act.triggered.connect(partial(MAIN.action_download, 60 * 60))
-    act = menu_download.addAction('3 Hours')
-    act.triggered.connect(partial(MAIN.action_download, 3 * 60 * 60))
-    act = menu_download.addAction('6 Hours')
-    act.triggered.connect(partial(MAIN.action_download, 6 * 60 * 60))
 
     menu_file.addSeparator()
     menu_file.addAction(actions['open_settings'])
