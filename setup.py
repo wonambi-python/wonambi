@@ -6,17 +6,17 @@ here = path.abspath(path.dirname(__file__))
 
 # make sure that VERSION can be converted to float
 with open(path.join(here, 'phypno', 'VERSION')) as f:
-    VERSION = f.read()
+    VERSION = f.read().strip('\n')  # editors love to add newline
 
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read().strip('\n')  # editors love to add newline
+    long_description = f.read()
 
 setup(
     name='phypno',
     version=VERSION,
     description='Tools for EEG, ECoG, iEEG, especially for sleep',
     long_description=long_description,
-    url='http://phypno.readthedocs.io',
+    url='http://www.gpiantoni.com/phypno',
     author='Gio Piantoni',
     author_email='phypno@gpiantoni.com',
     license='GPLv3',
@@ -34,12 +34,11 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
-    packages=find_packages(exclude=['data', 'docs', 'tests']),
+    packages=find_packages(exclude=('test', )),
     install_requires=['numpy', 'scipy'],
     extras_require={
         'gui': ['scipy', 'pyqt5'],
         'viz': ['plotly', 'vispy'],
-        'test': ['coverage'],
         'all': ['scipy',
                 'mne',
                 'nibabel',

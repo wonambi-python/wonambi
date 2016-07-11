@@ -9,7 +9,7 @@ Examples Gallery
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="The gallery is capable of transforming Python files into reStructuredText files with a notebook...">
+    <div class="sphx-glr-thumbcontainer" tooltip="You can import data from a variety of native formats, such as EDF, MNE-FIFF, EGI MFF, and Matla...">
 
 .. only:: html
 

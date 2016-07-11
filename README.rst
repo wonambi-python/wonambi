@@ -9,21 +9,25 @@ Features
 - Interface for Sleep Scoring
 - Pure Python
 
-Documentation
--------------
-See `Documentation  <http://phypno.readthedocs.org/>`_
-
 Installation
 ------------
 Install phypno by running:
 
     pip install phypno
 
-See `Installation for details <https://phypno.readthedocs.io/en/latest/installation.html/>`_
+See `Installation for details <http://www.gpiantoni.com/phypno/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
     scroll_data
+
+Documentation
+-------------
+See `Documentation <http://www.gpiantoni.com/phypno>`_
+
+Change Log
+----------
+See `Change Log <http://www.gpiantoni.com/phypno/changelog.html>`_
 
 Requirements
 ------------
