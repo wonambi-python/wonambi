@@ -37,7 +37,6 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
-    'sphinx_gallery.gen_gallery',
 ]
 
 # autodoc options
@@ -54,20 +53,6 @@ mathjax_path = '//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CH
 # todo settings
 todo_include_todos = True
 todo_link_only = True
-
-# sphinx-gallery settings
-sphinx_gallery_conf = {
-    'doc_module': ('phypno',),
-    'examples_dirs': '../../examples',
-    'gallery_dirs': 'auto_examples',
-    'mod_example_dir': os.path.join('modules', 'generated'),
-}
-# reference_url generates error (dbm.error: db type could not be determined
-
-# to fix one of the main bugs in sphinx-gallery due to relative paths
-os.makedirs(os.path.join(root, 'docs', 'source',
-                         sphinx_gallery_conf['mod_example_dir']),
-            exist_ok=True)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
