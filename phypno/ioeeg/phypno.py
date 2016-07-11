@@ -148,8 +148,9 @@ def write_phypno(data, filename, subj_id='', dtype='float64'):
 
     start_time = data.start_time + timedelta(seconds=data.axis['time'][0][0])
 
+    start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')
     dataset = {'subj_id': subj_id,
-               'start_time': str(start_time),
+               'start_time': start_time_str,
                's_freq': data.s_freq,
                'chan_name': list(data.axis['chan'][0]),
                'n_samples': int(data.number_of('time')[0]),

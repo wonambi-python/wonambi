@@ -246,7 +246,7 @@ class Data:
 
             return output
 
-    def __getattrxxx__(self, possible_axis):
+    def __getattr__(self, possible_axis):
         """Return the axis with a shorter syntax.
 
         Parameters
@@ -346,7 +346,7 @@ class Data:
         filename : path to file
             file to write
         export_format : str, optional
-            supported export format is currently EDF, FieldTrip, FIFF, Phypno
+            supported export format is currently FieldTrip, EDF, FIFF, Phypno
 
         Notes
         -----
