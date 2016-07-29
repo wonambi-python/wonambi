@@ -54,4 +54,4 @@ upload_doc:
 
 .PHONY: test
 test:
-	py.test tests
+	cd tests; py.test --cov=phypno --cov-report html
