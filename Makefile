@@ -5,6 +5,7 @@
 DOCSDIR       = docs
 BUILDDIR      = $(DOCSDIR)/build
 SOURCEDIR     = $(DOCSDIR)/source
+TESTDIR       = tests
 
 
 # Internal variables.
@@ -18,11 +19,11 @@ help:
 	@echo "  clean      to clean the whole directory"
 	@echo "  apidoc     generate api from functions"
 	@echo "  html       to make standalone HTML files"
-	@echo "  share      upload documentation"
+	@echo "  upload_doc upload documentation"
 	@echo "  test       run tests"
 
 .PHONY: sdist
-dist:
+sdist:
 	python setup.py sdist
 
 .PHONY: upload
@@ -47,10 +48,10 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-.PHONY: ftp
-ftp:
+.PHONY: upload_doc	
+upload_doc:
 	scp -r $(BUILDDIR)/* gpiantoni:public_html/phypno
 
 .PHONY: test
 test:
-	@echo "Run tests"
+	py.test tests
