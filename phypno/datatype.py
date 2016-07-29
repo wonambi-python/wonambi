@@ -258,12 +258,18 @@ class Data:
         -------
         value of the axis of interest
 
-        Raises
+        Notes
         ------
-        KeyError
-            instead of AttributeError.
+        The if-statement "startswith" is necessary to avoid recursionerror
+        when loading the class.
         """
-        return self.axis[possible_axis]
+        if possible_axis.startswith('__'):
+            raise AttributeError(possible_axis)
+
+        try:
+            return self.axis[possible_axis]
+        except KeyError:
+            raise AttributeError(possible_axis)
 
     def __iter__(self):
         """Implement generator for each trial.
