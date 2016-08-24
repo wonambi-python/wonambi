@@ -155,6 +155,9 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
 
     Notes
     -----
+    It uses sampling frequency as specified in s_freq, it does not
+    recompute the sampling frequency based on the time axis.
+
     For method 'morlet', the following options should be specified:
         foi : ndarray or list or tuple
             vector with frequency of interest
@@ -173,7 +176,7 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
             data points, but you don't need to store them all)
         normalization : str
             'area' means that energy is normalized to 1, 'peak' means that the
-            peak of the wavelet is set at 1, 'max' is a normalization used by 
+            peak of the wavelet is set at 1, 'max' is a normalization used by
             nitime where the max value of the output of the convolution remains
             the same even if you change the sigma_f.
         zero_mean : bool
@@ -246,6 +249,11 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
                     tf = fftconvolve(dat, wavelet, 'same')
                     timefreq.data[i][i_c, :, i_f] = tf[::time_skip]
 
+        if time_skip != 1:
+            lg.warn('sampling frequency in s_freq refers to the input data, '
+                    'not to the timefrequency output')
+
+
     elif method == 'spectrogram':
         nperseg = int(options['duration'] * data.s_freq)
         noverlap = int(options['overlap'] * nperseg)
@@ -316,7 +324,7 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
         total duration of the wavelet, two-sided (i.e. from start to finish)
     normalization : str
         'area' means that energy is normalized to 1, 'peak' means that the peak
-        is set at 1, 'max' is a normalization used by nitime which does not 
+        is set at 1, 'max' is a normalization used by nitime which does not
         change max value of output when you change sigma_f.
     zero_mean : bool
         make sure that the wavelet has zero mean (only relevant if ratio < 5)
