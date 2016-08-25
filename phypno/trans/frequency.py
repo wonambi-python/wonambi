@@ -2,6 +2,7 @@
 """
 from copy import deepcopy
 from logging import getLogger
+from warnings import warn
 
 from numpy import (arange, array, empty, exp, inf, max, mean, pi, real, sqrt,
                    swapaxes)
@@ -250,8 +251,8 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
                     timefreq.data[i][i_c, :, i_f] = tf[::time_skip]
 
         if time_skip != 1:
-            lg.warning('sampling frequency in s_freq refers to the input data, '
-                       'not to the timefrequency output')
+            warn('sampling frequency in s_freq refers to the input data, '
+                 'not to the timefrequency output')
 
     elif method == 'spectrogram':
         nperseg = int(options['duration'] * data.s_freq)
