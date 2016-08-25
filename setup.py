@@ -16,7 +16,7 @@ setup(
     version=VERSION,
     description='Tools for EEG, ECoG, iEEG, especially for sleep',
     long_description=long_description,
-    url='http://www.gpiantoni.com/phypno',
+    url='https://github.com/gpiantoni/phypno',
     author='Gio Piantoni',
     author_email='phypno@gpiantoni.com',
     license='GPLv3',

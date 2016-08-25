@@ -48,10 +48,6 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-.PHONY: upload_doc	
-upload_doc:
-	scp -r $(BUILDDIR)/* gpiantoni:public_html/phypno
-
 .PHONY: test
 test:
 	cd tests; py.test --cov=phypno --cov-report html

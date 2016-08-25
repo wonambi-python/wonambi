@@ -7,6 +7,7 @@ Features
 --------
 - Reader and writer for EDF, EGI MFF, Fieldtrip, FIFF file formats
 - Interface for Sleep Scoring
+- Computes frequency analysis (spectrogram), time-frequency analysis (Morlet wavelet)
 - Pure Python
 
 Installation
@@ -15,7 +16,7 @@ Install phypno by running:
 
     pip install phypno
 
-See `Installation for details <http://www.gpiantoni.com/phypno/installation.html>`_
+See `Installation for details <http://phypno.readthedocs.io/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
@@ -23,11 +24,11 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
 Documentation
 -------------
-See `Documentation <http://www.gpiantoni.com/phypno>`_
+See `Documentation <http://phypno.readthedocs.io>`_
 
 Change Log
 ----------
-See `Change Log <http://www.gpiantoni.com/phypno/changelog.html>`_
+See `Change Log <http://phypno.readthedocs.io/changelog.html>`_
 
 Requirements
 ------------
