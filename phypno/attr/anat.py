@@ -319,7 +319,7 @@ class Freesurfer:
             seg_mri = load(seg_file)
         except NameError:
             raise ImportError('nibabel needs to be installed for this function')
-        seg_aff = seg_mri.get_affine()
+        seg_aff = seg_mri.affine
         seg_dat = seg_mri.get_data()
         return seg_dat, seg_aff
 
