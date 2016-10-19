@@ -167,7 +167,15 @@ class Annotations():
         self.save()
 
     def add_bookmark(self, name, time, chan=''):
-        """
+        """Add a new bookmark
+
+        Parameters
+        ----------
+        name : str
+            name of the bookmark
+        time : (float, float)
+            float with start and end time in s
+
         Raises
         ------
         IndexError
