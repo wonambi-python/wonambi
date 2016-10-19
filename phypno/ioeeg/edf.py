@@ -267,6 +267,8 @@ def write_edf(data, filename, physical_max=1000):
 
     where DIGITAL_MAX is 32767.
     """
+    if data.start_time is None:
+        raise ValueError('Data should contain a valid start_time (as datetime)')
     start_time = data.start_time + timedelta(seconds=data.axis['time'][0][0])
 
     if physical_max is None:
