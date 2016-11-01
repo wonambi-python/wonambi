@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 from glob import glob
 from math import ceil
 from logging import getLogger
-from os.path import isdir, join
+from pathlib import Path
 
 from numpy import arange, asarray, empty, int64
 
@@ -57,7 +57,7 @@ def detect_format(filename, server=None):
 
     Parameters
     ----------
-    filename : str
+    filename : str or Path
         name of the filename or directory.
 
     Returns
@@ -65,25 +65,26 @@ def detect_format(filename, server=None):
     class used to read the data.
     """
     if server is None:
+        filename = Path(filename)
 
-        if isdir(filename):
-            if glob(join(filename, '*.stc')) and glob(join(filename, '*.erd')):
+        if filename.is_dir():
+            if filename.glob('*.stc') and filename.glob('*.erd'):
                 return Ktlx
-            elif glob(join(filename, 'patient.info')):
+            elif (filename / 'patient.info').exists():
                 return Moberg
-            elif glob(join(filename, 'info.xml')):
+            elif (filename / 'info.xml').exists():
                 return EgiMff
             else:
                 raise UnrecognizedFormat('Unrecognized format for directory ' +
-                                         filename)
+                                         str(filename))
         else:
-            if filename.endswith('.phy'):
+            if filename.suffix == '.phy':
                 return Phypno
 
-            if filename.endswith('.bin'):  # very general
+            if filename.suffix == '.bin':  # very general
                 return OpBox
 
-            with open(filename, 'rb') as f:
+            with filename.open('rb') as f:
                 file_header = f.read(8)
                 if file_header == b'0       ':
                     f.seek(192)
@@ -100,7 +101,7 @@ def detect_format(filename, server=None):
                     return FieldTrip
                 else:
                     raise UnrecognizedFormat('Unrecognized format for file ' +
-                                             filename)
+                                             str(filename))
 
     else:
         if server == 'ieeg.org':
@@ -115,7 +116,7 @@ class Dataset:
 
     Parameters
     ----------
-    filename : str
+    filename : str or Path
         name of the file
     IOClass : class
         one of the classes of phypno.ioeeg
@@ -156,7 +157,7 @@ class Dataset:
     directory, or if the file is mapped to memory.
     """
     def __init__(self, filename, IOClass=None, server=None):
-        self.filename = filename
+        self.filename = str(filename)
 
         if IOClass is not None:
             self.IOClass = IOClass

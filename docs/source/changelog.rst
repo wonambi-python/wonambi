@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 17
 ----------
+- **17.11**: Dataset accepts str or Path
 - **17.10**: Documentation in readthedocs.io
 - **17.9**: Make clear that s_freq refers to input data
 - **17.8**: Start again with tests
