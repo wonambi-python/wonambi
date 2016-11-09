@@ -2,7 +2,6 @@
 
 """
 from datetime import timedelta, datetime
-from glob import glob
 from math import ceil
 from logging import getLogger
 from pathlib import Path
@@ -68,7 +67,7 @@ def detect_format(filename, server=None):
         filename = Path(filename)
 
         if filename.is_dir():
-            if filename.glob('*.stc') and filename.glob('*.erd'):
+            if list(filename.glob('*.stc')) and list(filename.glob('*.erd')):
                 return Ktlx
             elif (filename / 'patient.info').exists():
                 return Moberg
