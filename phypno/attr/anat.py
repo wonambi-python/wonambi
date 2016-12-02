@@ -241,18 +241,17 @@ class Freesurfer:
         detection.
         Minimal value is 0, which means only if the electrode is in the
         precise location.
+
+        If you want to exclude white matter regions with 'aparc', use
+            exclude_regions = ('White', 'WM', 'Unknown')
+        and with 'aparc.a2009s', use:
+            exclude_regions = ('White-Matter')
         """
         # convert to freesurfer coordinates of the MRI
         pos = around(dot(FS_AFFINE, append(abs_pos, 1)))[:3].astype(int)
         lg.debug('Position in the MRI matrix: {}'.format(pos))
 
         mri_dat, _ = self.read_seg(parc_type)
-
-        if exclude_regions is None:
-            if parc_type == 'aparc':
-                exclude_regions = ('White', 'WM', 'Unknown')
-            elif parc_type == 'aparc.a2009s':
-                exclude_regions = ('White-Matter')
 
         if max_approx is None:
             max_approx = 3
