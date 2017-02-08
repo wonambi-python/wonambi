@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 17
 ----------
+- **17.14**: Moberg montage.xml might not have channel names
 - **17.13**: Assign to white matter by default (now code and doc agree)
 - **17.12**: BUGFIX when using Dataset as Path
 - **17.11**: Dataset accepts str or Path

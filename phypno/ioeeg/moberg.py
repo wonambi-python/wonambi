@@ -59,9 +59,9 @@ class Moberg:
         s_freq = 256  # could not find it in the text files
 
         montage = parse(join(self.filename, 'Montage.xml'))
-        chan_str = montage.findall('MontageChannels')[0].text.strip()
-        chan_list = chan_str.split(',')
-        chan_name = [x.replace(';', ' - ') for x in chan_list]
+        mont = montage.find('Montage')
+        chan_name = [chan.get('lead') for chan in mont.findall('Channel')
+                     if chan.get('role') == 'REFERENTIAL_INPUT']
 
         data_size = getsize(join(self.filename, EEG_FILE))
         n_samples = int(data_size / DATA_PRECISION / len(chan_name))
