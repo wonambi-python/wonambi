@@ -4,9 +4,6 @@ from datetime import datetime, timedelta, timezone
 
 from numpy import NaN, pad, reshape, zeros
 
-# note that the time is in "local" Unix Time, which is in the local time zone,
-# so we read it as "UTC" (meaning, do not apply timezone transformation) and
-# then remove timezone info.
 TIMEZONE = timezone.utc
 # 24bit precision
 DATA_PRECISION = 3
@@ -45,6 +42,17 @@ class Moberg:
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
+
+        Notes
+        -----
+        the time is probably in "local" Unix Time, which is in the local time
+        zone, so we read it as "UTC" (meaning, do not apply timezone
+        transformation) and then remove timezone info.
+        The only doubt I have is how to interpret the "SystemOffset" time.
+        I assume it's in s, and that would fix most of the time zone problems,
+        but it does not take into account DST. Or maybe "SystemOffset" is in
+        micros and we need to apply the correct time zone to TimeStamp Unix
+        time. This needs to be tested with a Moberg system.
         """
         subj_id = str()
         patient = parse(join(self.filename, 'patient.info'))
