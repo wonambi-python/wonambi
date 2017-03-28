@@ -136,7 +136,8 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
 
     for i in range(data.number_of('trial')):
         output.data[i] = decimate(data.data[i], ratio,
-                                  axis=data.index_of(axis))
+                                  axis=data.index_of(axis),
+                                  zero_phase=True)
 
         n_samples = output.data[i].shape[data.index_of(axis)]
         output.axis[axis][i] = linspace(data.axis[axis][i][0],
