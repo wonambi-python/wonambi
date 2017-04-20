@@ -14,7 +14,6 @@ Plugin 'ervandew/supertab'
 
 Plugin 'vim-pandoc/vim-pandoc'
 Plugin 'vim-pandoc/vim-pandoc-syntax'
-Plugin 'majutsushi/tagbar'
 Plugin 'tpope/vim-fugitive'
 
 Plugin 'vim-airline/vim-airline'
@@ -125,15 +124,6 @@ let g:syntastic_python_checkers = ['python', 'pyflakes']
 " E501: 2 spaces before function def
 " E123: indent
 let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123'
-
-" TAGBAR:
-nmap <F8> :TagbarToggle<CR>
-
-" TAGBAR: hide the help part at the top
-let g:tagbar_compact = 1
-
-" TAGBAR: show it automatically for supported files
-autocmd VimEnter * nested :call tagbar#autoopen(1)
 
 " vim-jedi, hide top-window with doc
 let g:jedi#show_call_signatures = 0
