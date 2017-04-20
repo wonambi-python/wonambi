@@ -1,0 +1,13 @@
+[user]
+    email = github@gpiantoni.com
+    name = Gio at UMCU
+
+[alias]
+    wdiff = diff --color-words -w
+    tree = log --graph --pretty='%C(yellow)%t%Creset%x09%C(cyan)%ad%C(reset) %C(auto)%d%C(reset) %s' --date=local --all
+    amend = commit -a --amend --no-edit
+
+[core]
+    excludesfile = ~/.gitignore
+    pager = less -S --shift 4
+    editor = vim
