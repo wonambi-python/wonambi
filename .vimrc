@@ -57,6 +57,9 @@ nnoremap <leader>sv :source $MYVIMRC<cr>
 noremap <silent> <Up> gk
 noremap <silent> <Down> gj
 
+" swapfiles in ~ and not local
+set directory=~/.vim/swapfiles//
+
 " Line numbers
 set number
 set relativenumber
