@@ -11,3 +11,6 @@
     excludesfile = ~/.gitignore
     pager = less -S --shift 4
     editor = vim
+
+[push]
+    default = simple
