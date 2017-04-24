@@ -8,7 +8,6 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
-Plugin 'davidhalter/jedi-vim'
 Plugin 'scrooloose/syntastic'
 Plugin 'ervandew/supertab'
 
@@ -127,11 +126,6 @@ let g:syntastic_python_checkers = ['python', 'pyflakes']
 " E501: 2 spaces before function def
 " E123: indent
 let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123'
-
-" vim-jedi, hide top-window with doc
-let g:jedi#show_call_signatures = 0
-let g:jedi#use_tabs_not_buffers = 1
-let g:jedi#smart_auto_mappings = 0
 
 " FUNCTIONS
 " remove trailing whitespaces
