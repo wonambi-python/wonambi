@@ -9,7 +9,7 @@ from pathlib import Path
 from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
-                    Moberg, Phypno, OpBox)
+                    Moberg, Phypno, OpBox, Micromed)
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -79,6 +79,9 @@ def detect_format(filename, server=None):
         else:
             if filename.suffix == '.phy':
                 return Phypno
+
+            if filename.suffix.lower() == '.trc':
+                return Micromed
 
             if filename.suffix == '.bin':  # very general
                 return OpBox
