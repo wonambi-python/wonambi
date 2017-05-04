@@ -9,7 +9,7 @@ from pathlib import Path
 from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
-                    Moberg, Phypno, OpBox, Micromed)
+                    Moberg, Phypno, OpBox, Micromed, BCI2000)
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -85,6 +85,9 @@ def detect_format(filename, server=None):
 
             if filename.suffix == '.bin':  # very general
                 return OpBox
+
+            if filename.suffix == '.dat':  # very general
+                return BCI2000
 
             with filename.open('rb') as f:
                 file_header = f.read(8)

@@ -12,4 +12,5 @@ from .phypno import Phypno, write_phypno
 from .ieeg_org import IEEG_org
 from .opbox import OpBox
 from .micromed import Micromed
+from .bci2000 import BCI2000
 # from .eeglab import Eeglab, write_eeglab
