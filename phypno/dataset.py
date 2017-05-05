@@ -10,6 +10,7 @@ from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
                     Moberg, Phypno, OpBox, Micromed, BCI2000)
+from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
@@ -87,7 +88,14 @@ def detect_format(filename, server=None):
                 return OpBox
 
             if filename.suffix == '.dat':  # very general
-                return BCI2000
+                try:
+                    _read_header_length(filename)
+
+                except AttributeError:  # there is no HeaderLen
+                    pass
+
+                else:
+                    return BCI2000
 
             with filename.open('rb') as f:
                 file_header = f.read(8)
@@ -162,7 +170,7 @@ class Dataset:
     directory, or if the file is mapped to memory.
     """
     def __init__(self, filename, IOClass=None, server=None):
-        self.filename = str(filename)
+        self.filename = filename
 
         if IOClass is not None:
             self.IOClass = IOClass

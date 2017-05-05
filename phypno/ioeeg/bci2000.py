@@ -1,7 +1,6 @@
 from os import SEEK_SET, SEEK_END
 from re import search, finditer, match
 from datetime import datetime
-from struct import unpack
 
 from numpy import fromfile, dtype
 
@@ -47,7 +46,11 @@ class BCI2000:
 
         s_freq = int(orig['Parameter']['SamplingRate'])
         storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
-        start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
+        try:  # newer version
+            start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
+        except:
+            start_time = datetime.strptime(storagetime, '%Y-%m-%dT%H:%M:%S')
+
         subj_id = orig['Parameter']['SubjectName']
 
         self.dtype = dtype([(chan, chan_dtype) for chan in chan_name]
@@ -92,7 +95,7 @@ class BCI2000:
 
         BEGSAMPLE = 0
 
-        with open(filename, 'rb') as f:
+        with self.filename.open('rb') as f:
             f.seek(14627, SEEK_SET)  # skip header
 
             f.seek(DTYPE.itemsize * BEGSAMPLE, SEEK_CUR)
@@ -126,10 +129,18 @@ def _read_header(filename):
     """
     header = _read_header_text(filename)
     first_row = header[0]
+    EXTRA_ROWS = 3  # drop DefaultValue1 LowRange1 HighRange1
 
     hdr = {}
     for group in finditer('(\w*)= ([\w.]*)', first_row):
         hdr[group.group(1)] = group.group(2)
+
+    if first_row.startswith('BCI2000V'):
+        VERSION = hdr['BCI2000V']
+
+    else:
+        VERSION = '1'
+        hdr['DataFormat'] = 'int16'
 
     for row in header[1:]:
         if row.startswith('['):  # remove '[ ... Definition ]'
@@ -149,12 +160,12 @@ def _read_header(filename):
             hdr[section].append(statevector)
 
         else:
-            group = match('(?P<subsection>[\w:]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*) // ', row)
+            group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*) // ', row)
             onerow = group.groupdict()
 
             values = onerow['value'].split(' ')
-            if len(values) >= 4:
-                value = ' '.join(onerow['value'].split(' ')[:-3])  # drop DefaultValue1 LowRange1 HighRange1
+            if len(values) > EXTRA_ROWS:
+                value = ' '.join(onerow['value'].split(' ')[:-EXTRA_ROWS])
             else:
                 value = ' '.join(values)
 
@@ -164,16 +175,17 @@ def _read_header(filename):
 
 
 def _read_header_length(filename):
-    with open(filename, 'rb') as f:
+    with filename.open('rb') as f:
         firstchar = f.read(100)  # should be enough to read the HeaderLen
         found = search('HeaderLen= (\d*) ', firstchar.decode())
         HeaderLen = int(found.group(1))
+
     return HeaderLen
 
 
 def _read_header_text(filename):
     HeaderLen = _read_header_length(filename)
-    with open(filename, 'rb') as f:
+    with filename.open('rb') as f:
         header = f.read(HeaderLen).decode().split('\r\n')
 
     return header
