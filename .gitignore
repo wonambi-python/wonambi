@@ -1,10 +1,8 @@
-# vim swap
-[._]*.s[a-w][a-z]
-[._]s[a-w][a-z]
+# ignore all expect some files
+*
+!.bashrc
+!.gitconfig
+!.gitignore
+!.jupyter/custom/custom.css
+!.vimrc
 
-# auto-generated tag files
-tags
-
-# python
-__pycache__/
-*.egg-info/
