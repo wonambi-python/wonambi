@@ -8,7 +8,7 @@
     amend = commit -a --amend --no-edit
 
 [core]
-    excludesfile = ~/.gitignore
+    excludesfile = ~/.gitignore_shared
     pager = less -S --shift 4
     editor = vim
 
