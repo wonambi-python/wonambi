@@ -19,4 +19,4 @@ Then install matlab_kernel:
 python -m matlab_kernel install
 ```
 ### matlab 2016b
-Once we have access to matlab 2016b, maybe it's best to use (https://github.com/imatlab/imatlab)[imatlab], so that we can use plotly for interactive plots.
+Once we have access to matlab 2016b, maybe it's best to use [imatlab](https://github.com/imatlab/imatlab), so that we can use plotly for interactive plots.
