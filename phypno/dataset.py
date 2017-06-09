@@ -91,7 +91,7 @@ def detect_format(filename, server=None):
                 try:
                     _read_header_length(filename)
 
-                except AttributeError:  # there is no HeaderLen
+                except (AttributeError, ValueError):  # there is no HeaderLen
                     pass
 
                 else:
@@ -170,7 +170,7 @@ class Dataset:
     directory, or if the file is mapped to memory.
     """
     def __init__(self, filename, IOClass=None, server=None):
-        self.filename = filename
+        self.filename = Path(filename)
 
         if IOClass is not None:
             self.IOClass = IOClass

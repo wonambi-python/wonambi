@@ -44,7 +44,7 @@ class Micromed:
         """
         N_ZONES = 15
         orig = {}
-        with open(self.filename, 'rb') as f:
+        with self.filename.open('rb') as f:
 
             f.seek(64, SEEK_SET)
             orig['surname'] = f.read(22).decode('utf-8').strip()
