@@ -10,7 +10,7 @@ export FRIDGE=/Fridge/users/giovanni
 
 # added by Miniconda3 4.3.11 installer
 export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
-source activate py34
+source activate py36
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
