@@ -150,9 +150,15 @@ class BCI2000:
             exceptions).
         """
         markers = []
-        all_states = self._read_states()
+        try:
+            all_states = self._read_states()
+        except ValueError:  # cryptic error when reading states
+            return markers
 
-        x = all_states[state]
+        try:
+            x = all_states[state]
+        except KeyError:
+            return markers
 
         markers = []
         i_mrk = hstack((0, where(diff(x))[0] + 1, len(x)))
