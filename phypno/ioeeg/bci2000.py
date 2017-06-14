@@ -81,6 +81,8 @@ class BCI2000:
         self.header_len = int(orig['HeaderLen'])
         self.n_samples = int(n_samples)
         self.statevectors = _prepare_statevectors(orig['StateVector'])
+        # TODO: a better way to parse header
+        self.gain = array([float(x) for x in orig['Parameter']['SourceChGain'].split(' ')[1:]])
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -126,7 +128,7 @@ class BCI2000:
             pad.fill(NaN)
             dat = c_[dat, pad]
 
-        return dat
+        return dat[chan, :] * self.gain[chan][:, None]  # apply gain
 
     def return_markers(self, state='MicromedCode'):
         """Return all the markers (also called triggers or events).
