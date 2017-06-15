@@ -121,9 +121,6 @@ class EgiMff:
         data = empty((len(chan), endsam - begsam))
         data.fill(NaN)
 
-        begsam = float(begsam)
-        endsam = float(endsam)
-
         chan = asarray(chan)
 
         # we assume there are only two signals
