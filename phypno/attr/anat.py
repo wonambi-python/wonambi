@@ -207,10 +207,13 @@ class Freesurfer:
             lut = import_freesurfer_LUT(fs_lut)
             self.lookuptable = {'index': lut[0], 'label': lut[1],
                                 'RGBA': lut[2]}
-        except OSError:
+        except OSError as err:
             self.lookuptable = None
-            lg.warning('Could not find lookup table, some functions that rely '
-                       'on it might complain or crash.')
+            lg.warning('Could not find lookup table (see below for explanation)'
+                       '. Some functions that rely on it might complain or '
+                       'crash.')
+            lg.warning(err)
+
 
     def find_brain_region(self, abs_pos, parc_type='aparc', max_approx=None,
                           exclude_regions=None):
