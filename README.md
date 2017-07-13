@@ -27,13 +27,12 @@ Once we have access to matlab 2016b, maybe it's best to use [imatlab](https://gi
 
 ```bash
 conda create -n pyqt5
-conda activate pyqt5
+source activate pyqt5
 conda install numpy cython
 ```
 The trick is NOT using pyqt5 from conda, because it comes with QT5 which in conda does NOT have opengl.
 
 ```bash
-pip install pyqt5 sip triangle glumpy -t /Fridge/users/giovanni/tools/miniconda3/envs/pyqt5/lib/python3.6/site-packages
+pip install pyqt5 sip triangle glumpy
 ```
-You need to specify target directory, because that path is in `sys.path`, but pip installs packages in another directory (which is NOT in `sys.path`).
 
