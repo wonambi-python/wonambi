@@ -33,6 +33,35 @@ conda install numpy cython
 The trick is NOT using pyqt5 from conda, because it comes with QT5 which in conda does NOT have opengl.
 
 ```bash
-pip install pyqt5 sip triangle glumpy
+pip install sip pyqt5  triangle glumpy
+```
+### use vispy
+
+```bash
+conda create -n vispy
+source activate vispy
+conda install numpy
+```
+The trick is NOT using pyqt5 from conda, because it comes with QT5 which in conda does NOT have opengl.
+
+```bash
+pip install sip pyqt5 vispy
+```
+### all together
+
+```bash
+conda create -n py36
+source activate py36
+conda install numpy scipy jupyter 
 ```
 
+Install all dependencies of jupyter (including qt and pyqt5), then remove them.
+The trick is NOT using pyqt5 from conda, because it comes with QT5 which in conda does NOT have opengl.
+
+```bash
+conda uninstall qt sip pyqt5
+```
+
+```bash
+pip install sip pyqt5 vispy phypno
+```
