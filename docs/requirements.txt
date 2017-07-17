@@ -2,3 +2,7 @@ setuptools
 numpy
 scipy
 phypno
+matplotlib
+pillow
+sphinx
+sphinx-gallery

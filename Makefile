@@ -12,8 +12,9 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SOURCEDIR)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  sdist      prepare distribution of package"
-	@echo "  upload     sdist and upload to pypi"
+	@echo "  release    edit CHANGES.rst and upload to github/pypi"
+	@echo "  tag        edit CHANGES.rst and upload a new tag"
+	@echo "  sdist      sdist and upload to pypi"
 	@echo "  clean      to clean the whole directory"
 	@echo "  apidoc     generate api from functions"
 	@echo "  html       to make standalone HTML files"
@@ -21,15 +22,15 @@ help:
 	@echo "  test       run tests"
 
 
-release:
+release: tag sdist
+
+tag:
 	echo $(VERSION) > phypno/VERSION
 	git amend
 	git tag -a v$(VERSION) -m "$(COMMENT)"
+	git push origin --tags
 
 sdist:
-	python setup.py sdist
-
-upload:
 	python setup.py sdist upload
 
 clean:
