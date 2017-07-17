@@ -39,7 +39,8 @@ Requirements
 
 Status
 ------
-[![Build Status](https://travis-ci.org/gpiantoni/phypno.svg?branch=master)](https://travis-ci.org/gpiantoni/phypno)
+.. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
+    :target: https://travis-ci.org/gpiantoni/phypno
 
 License
 -------
