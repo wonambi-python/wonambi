@@ -110,14 +110,22 @@ class BCI2000:
         dat_endsam = min(endsam, self.n_samples)
         dur = dat_endsam - dat_begsam
 
-        with self.filename.open('rb') as f:
-            f.seek(self.header_len, SEEK_SET)  # skip header
+        dtype_onlychan = dtype({k: v for k, v in self.dtype.fields.items() if v[0].kind != 'S'})
 
-            f.seek(self.dtype.itemsize * dat_begsam, SEEK_CUR)
-            dat = fromfile(f, dtype=self.dtype, count=dur)
+        # make sure we read some data at least, otherwise segfault
+        if dat_begsam < self.n_samples and dat_endsam > 0:
 
-        dtype_onlychan = dtype({k: v for k, v in dat.dtype.fields.items() if v[0].kind != 'S'})
-        dat = ndarray(dat.shape, dtype_onlychan, dat, 0, dat.strides).view((dtype_onlychan[0], len(dtype_onlychan.names))).T
+            with self.filename.open('rb') as f:
+                f.seek(self.header_len, SEEK_SET)  # skip header
+
+                f.seek(self.dtype.itemsize * dat_begsam, SEEK_CUR)
+                dat = fromfile(f, dtype=self.dtype, count=dur)
+
+            dat = ndarray(dat.shape, dtype_onlychan, dat, 0, dat.strides).view((dtype_onlychan[0], len(dtype_onlychan.names))).T
+
+        else:
+            n_chan = len(dtype_onlychan.names)
+            dat = empty((n_chan, 0))
 
         if begsam < 0:
 
@@ -164,8 +172,8 @@ class BCI2000:
         i_mrk = hstack((0, where(diff(x))[0] + 1, len(x)))
         for i0, i1 in zip(i_mrk[:-1], i_mrk[1:]):
             marker = {'name': str(x[i0]),
-                      'start': (i0) / 256,
-                      'end': i1 / 256,
+                      'start': (i0) / self.s_freq,
+                      'end': i1 / self.s_freq,
                      }
             markers.append(marker)
 

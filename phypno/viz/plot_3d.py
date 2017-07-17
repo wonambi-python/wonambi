@@ -27,8 +27,8 @@ class Viz3(Viz):
         self._plt._configure_3d()
 
         # remove white space around the main plot
-        self._plt.grid.margin = 0
-        self._plt.title.stretch = 0, 0
+        # self._plt.grid.margin = 0
+        # self._plt.title.stretch = 0, 0
 
         self._surf = []
         self._chan = []
