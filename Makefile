@@ -1,17 +1,15 @@
-# Makefile for phypno upload and documentation
-#
+PHONY = help release sdist upload clean apidoc html test
 
-# You can set these variables from the command line.
+# Makefile for phypno upload and documentation
+
 DOCSDIR       = docs
 BUILDDIR      = $(DOCSDIR)/build
 SOURCEDIR     = $(DOCSDIR)/source
 TESTDIR       = tests
-
-
-# Internal variables.
+VERSION       = $(shell grep -Eow "[0-9]+.[0-9]+" -m 1 CHANGES.rst)
+COMMENT       = $(subst : ,,$(shell grep -Eo ": .*" -m 1 CHANGES.rst))
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SOURCEDIR)
 
-.PHONY: help
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  sdist      prepare distribution of package"
@@ -22,15 +20,18 @@ help:
 	@echo "  upload_doc upload documentation"
 	@echo "  test       run tests"
 
-.PHONY: sdist
+
+release:
+	echo $(VERSION) > phypno/VERSION
+	git amend
+	git tag -a v$(VERSION) -m "$(COMMENT)"
+
 sdist:
 	python setup.py sdist
 
-.PHONY: upload
 upload:
 	python setup.py sdist upload
 
-.PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm $(SOURCEDIR)/auto_examples -fr
@@ -38,16 +39,13 @@ clean:
 	rm $(DOCSDIR)/examples -fr
 	rm $(DOCSDIR)/modules -fr
 
-.PHONY: apidoc
 apidoc:
 	sphinx-apidoc -f -M -e -o $(SOURCEDIR)/api phypno phypno/widgets phypno/scroll_data.py
 
-.PHONY: html
 html:
 	sphinx-build -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-.PHONY: test
 test:
 	cd tests; py.test --cov=phypno --cov-report html
