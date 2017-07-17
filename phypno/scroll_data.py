@@ -17,22 +17,21 @@ lg.addHandler(handler)
 
 lg.setLevel(INFO)
 
-from os.path import abspath, dirname, join
+from datetime import datetime
+now = datetime.now()
 from types import MethodType
 
 from numpy import arange
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 
+from . import __version__
 from .widgets.creation import (create_menubar, create_toolbar,
                                create_actions, create_widgets)
 from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
 settings = QSettings("phypno", "scroll_data")
-here = abspath(dirname(__file__))
-with open(join(here, 'VERSION')) as f:
-    VERSION = f.read()
 
 
 class MainWindow(QMainWindow):
@@ -66,14 +65,14 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
 
         self.statusBar()
-        self.setWindowTitle('PHYPNO v' + VERSION)
+        self.setWindowTitle('PHYPNO v' + __version__)
 
         window_geometry = settings.value('window/geometry')
         if window_geometry is not None:
             self.restoreGeometry(window_geometry)
         window_state = settings.value('window/state')
         if window_state is not None:
-            self.restoreState(window_state, float(VERSION))
+            self.restoreState(window_state, float(__version__))
 
         self.show()
 
@@ -150,7 +149,7 @@ class MainWindow(QMainWindow):
              '</p><p>'
              '<code>pip install --upgrade phypno</code>'
              '</p><p>'
-             'Copyright &copy; 2013-2016 '
+             'Copyright &copy; 2013-{year} '
              '<a href="http://www.gpiantoni.com">Gio Piantoni</a>'
              '</p><p>'
              'This program is free software: you can redistribute it '
@@ -170,7 +169,8 @@ class MainWindow(QMainWindow):
              '</p><p>'
              'Other licenses available, contact the author'
              '</p>')
-        QMessageBox.about(self, 'PHYPNO', s.format(version=VERSION))
+        QMessageBox.about(self, 'PHYPNO', s.format(version=__version__,
+                                                   year=now.year))
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""
@@ -178,7 +178,7 @@ class MainWindow(QMainWindow):
         keep_recent_datasets(max_dataset_history, self.info)
 
         settings.setValue('window/geometry', self.saveGeometry())
-        settings.setValue('window/state', self.saveState(float(VERSION)))
+        settings.setValue('window/state', self.saveState(float(__version__)))
 
         event.accept()
 

@@ -3,8 +3,6 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-
-# make sure that VERSION can be converted to float
 with open(path.join(here, 'phypno', 'VERSION')) as f:
     VERSION = f.read().strip('\n')  # editors love to add newline
 
@@ -30,8 +28,8 @@ setup(
         'Topic :: Scientific/Engineering :: Visualization',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
     packages=find_packages(exclude=('test', )),
