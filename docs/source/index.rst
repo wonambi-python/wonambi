@@ -12,8 +12,8 @@ Contents:
    :maxdepth: 2
 
    installation
-   auto_examples/index
    Modules, classes, functions<api/phypno>
+   auto_examples/index
    changelog
    todo
 

@@ -349,3 +349,16 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
+
+def run_apidoc(_):
+    from sphinx.apidoc import main
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    module = '.'
+    output_path = os.path.join(cur_dir, 'api')
+    main(['-f', '-M', '-e', '-o', output_path, 'phypno', 'phypno/widgets', 'phypno/scroll_data.py'])
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)

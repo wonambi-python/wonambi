@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 18
 ----------
+- **18.03**: set up readthedocs
 - **18.02**: floats for mff
 - **18.01**: use sphinx-gallery again
 
