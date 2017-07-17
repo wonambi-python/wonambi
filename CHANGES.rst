@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 19
+----------
+- **19.01**: travis with simple tests
+
 Version 18
 ----------
 - **18.04**: readthedcos working fine, also with gallery
