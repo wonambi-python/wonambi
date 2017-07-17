@@ -11,25 +11,18 @@ import sys
 
 # Read root path
 root = os.path.abspath(os.path.join(os.pardir, os.pardir))
+print(root)
 
 # add module path
-# sys.path.insert(0, root)
+sys.path.append(root)
 
-# import phypno
-
-# make sure that VERSION can be converted to float
-with open(os.path.join(root, 'phypno', 'VERSION')) as f:
-    VERSION = f.read().strip('\n')  # newline breaks search function in sphinx!!!
+import phypno
 
 # -- General configuration ------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-"""
-
-"""
-
 extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
@@ -84,7 +77,7 @@ author = 'Gio Piantoni'
 # built documents.
 #
 # The short X.Y version.
-version = VERSION
+version = phypno.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -349,14 +342,9 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
-
 def run_apidoc(_):
     from sphinx.apidoc import main
-    import os
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = '.'
     output_path = os.path.join(cur_dir, 'api')
     main(['-f', '-M', '-e', '-o', output_path, 'phypno', 'phypno/widgets', 'phypno/scroll_data.py'])
 

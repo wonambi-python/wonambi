@@ -37,8 +37,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm $(SOURCEDIR)/auto_examples -fr
 	rm $(SOURCEDIR)/modules -fr
-	rm $(DOCSDIR)/examples -fr
-	rm $(DOCSDIR)/modules -fr
+	rm $(SOURCEDIR)/api -fr
 
 apidoc:
 	sphinx-apidoc -f -M -e -o $(SOURCEDIR)/api phypno phypno/widgets phypno/scroll_data.py
