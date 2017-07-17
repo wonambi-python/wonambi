@@ -1,7 +1,6 @@
 setuptools
 numpy
 scipy
-vispy
 phypno
 matplotlib
 pillow

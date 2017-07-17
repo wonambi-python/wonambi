@@ -343,10 +343,11 @@ texinfo_documents = [
 #
 # texinfo_no_detailmenu = False
 def run_apidoc(_):
+    print('test')
     from sphinx.apidoc import main
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     output_path = os.path.join(cur_dir, 'api')
-    main(['-f', '-M', '-e', '-o', output_path, 'phypno', 'phypno/widgets', 'phypno/scroll_data.py'])
+    main(['-f', '-M', '-e', '-o', output_path, 'phypno', 'phypno/viz', 'phypno/widgets', 'phypno/scroll_data.py'])
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
