@@ -37,6 +37,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
+    'sphinx_gallery.gen_gallery',
 ]
 
 # autodoc options
@@ -57,6 +58,13 @@ todo_link_only = True
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+sphinx_gallery_conf = {
+        # path to your examples scripts
+        'examples_dirs' : '../../examples',
+        # path where to save gallery generated examples
+        'gallery_dirs'  : 'auto_examples',
+        'backreferences_dir': False,
+        }
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
@@ -68,7 +76,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'phypno'
-copyright = '2013-2016, Gio Piantoni'
+copyright = '2013-2017, Gio Piantoni'
 author = 'Gio Piantoni'
 
 # The version info for the project you're documenting, acts as replacement for
