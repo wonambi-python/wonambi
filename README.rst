@@ -43,7 +43,7 @@ Status
     :target: https://travis-ci.org/gpiantoni/phypno
 
 .. image:: https://readthedocs.org/projects/phypno/badge/
-    :target: https://phypno.readthedocs.io/en/latest/?badge=latest
+    :target: https://phypno.readthedocs.io/
 
 License
 -------
