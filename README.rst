@@ -42,6 +42,9 @@ Status
 .. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
     :target: https://travis-ci.org/gpiantoni/phypno
 
+.. image:: https://readthedocs.org/projects/phypno/badge/
+    :target: https://phypno.readthedocs.io/en/latest/?badge=latest
+
 License
 -------
 The project is licensed under the GPLv3 license.
