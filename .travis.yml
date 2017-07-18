@@ -1,13 +1,24 @@
-language: python
+language:
+ - python
 
 python:
-  - "3.6"
+ - "3.6"
 
-# command to install dependencies
-install: "pip install ."
+cache:
+ - pip
 
-# command to run tests
-script: "pytest tests"
+before_install:
+ - pip install pytest pytest-cov
+ - pip install coveralls
+
+install: 
+ - pip install .
+
+script:
+ - pytest tests
+
+after_success:
+ - coveralls
 
 notifications:
-    email: false
+ email: false
