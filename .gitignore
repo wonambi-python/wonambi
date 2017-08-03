@@ -34,9 +34,12 @@ pip-delete-this-directory.txt
 .cache
 nosetests.xml
 coverage.xml
+htmlcov/
 
 # Translations
 *.mo
 
 # Sphinx documentation
 docs/_build/
+docs/source/api/
+docs/source/auto_examples/

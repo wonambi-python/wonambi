@@ -1,0 +1,23 @@
+language: python
+
+cache: pip
+
+python:
+ - "3.6"
+
+before_install:
+ - pip install pytest pytest-cov
+ - pip install coveralls
+ - pip install nibabel
+
+install: 
+ - pip install -e .
+
+script:
+ - pytest --cov=phypno -s tests/
+
+after_success:
+ - coveralls
+
+notifications:
+ email: false

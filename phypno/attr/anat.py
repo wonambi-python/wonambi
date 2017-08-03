@@ -5,7 +5,7 @@
 from collections import Counter
 from logging import getLogger
 from os import environ
-from os.path import exists, join
+from pathlib import Path
 from re import compile
 from struct import unpack
 
@@ -100,7 +100,7 @@ def import_freesurfer_LUT(fs_lut=None):
 
     Parameters
     ----------
-    fs_lut : str
+    fs_lut : str or Path
         path to file called FreeSurferColorLUT.txt
 
     Returns
@@ -121,7 +121,7 @@ def import_freesurfer_LUT(fs_lut=None):
             raise OSError('Freesurfer is not installed or FREESURFER_HOME is '
                           'not defined as environmental variable')
         else:
-            fs_lut = join(fs_home, 'FreeSurferColorLUT.txt')
+            fs_lut = Path(fs_home) / 'FreeSurferColorLUT.txt'
             lg.info('Reading lookuptable in FREESURFER_HOME {}'.format(fs_lut))
 
     idx = []
@@ -146,7 +146,7 @@ class Surf:
 
     Parameters
     ----------
-    surf_file : path to file
+    surf_file : str or Path
         freesurfer file containing the surface
 
     Attributes
@@ -178,8 +178,10 @@ class Brain:
     """
     def __init__(self, freesurfer_dir, surf_type='pial'):
 
+        freesurfer_dir = Path(freesurfer_dir)
+
         for hemi in HEMISPHERES:
-            surf_file = join(freesurfer_dir, 'surf', hemi + '.' + surf_type)
+            surf_file = freesurfer_dir / 'surf' / (hemi + '.' + surf_type)
             setattr(self, hemi, Surf(surf_file))
 
 
@@ -200,8 +202,10 @@ class Freesurfer:
 
     """
     def __init__(self, freesurfer_dir, fs_lut=None):
-        if not exists(freesurfer_dir):
-            raise OSError(freesurfer_dir + ' does not exist')
+        freesurfer_dir = Path(freesurfer_dir)
+        if not freesurfer_dir.exists():
+            raise OSError(str(freesurfer_dir) + ' does not exist')
+
         self.dir = freesurfer_dir
         try:
             lut = import_freesurfer_LUT(fs_lut)
@@ -293,7 +297,7 @@ class Freesurfer:
         list of str
             names of the labels
         """
-        parc_file = join(self.dir, 'label', hemi + '.' + parc_type + '.annot')
+        parc_file = self.dir / 'label' / (hemi + '.' + parc_type + '.annot')
         try:
             vert_val, region_color, region_name = read_annot(parc_file)
         except NameError:
@@ -316,7 +320,8 @@ class Freesurfer:
         numpy.ndarray
             4x4 affine matrix
         """
-        seg_file = join(self.dir, 'mri', parc_type + '+aseg.mgz')
+        print(parc_type)
+        seg_file = self.dir / 'mri' / (parc_type + '+aseg.mgz')
         try:
             seg_mri = load(seg_file)
         except NameError:

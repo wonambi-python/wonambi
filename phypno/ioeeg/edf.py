@@ -47,9 +47,8 @@ class Edf:
     """
 
     def __init__(self, edffile):
-        if isinstance(edffile, str):
-            self.filename = edffile
-            self._read_hdr()
+        self.filename = edffile
+        self._read_hdr()
 
     def _read_hdr(self):
         """Read header from EDF file.
@@ -57,7 +56,6 @@ class Edf:
         It only reads the header for internal purposes and adds a hdr.
 
         """
-
         with open(self.filename, 'rb') as f:
 
             hdr = {}
@@ -125,7 +123,6 @@ class Edf:
             additional information taken directly from the header
 
         """
-
         subj_id = self.hdr['subject_id']
         start_time = self.hdr['start_time']
         _assert_all_the_same(self.hdr['n_samples_per_record'])

@@ -32,10 +32,18 @@ See `Change Log <http://phypno.readthedocs.io/changelog.html>`_
 
 Requirements
 ------------
-- Python 3.5
+- Python 3.6
 - numpy
 - scipy
 - (optional for sleep scoring GUI) PyQt5
+
+Status
+------
+.. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
+    :target: https://travis-ci.org/gpiantoni/phypno
+
+.. image:: https://readthedocs.org/projects/phypno/badge/
+    :target: https://phypno.readthedocs.io/
 
 License
 -------

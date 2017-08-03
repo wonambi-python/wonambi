@@ -1,6 +1,7 @@
 """Module with helper functions for plotting
 """
 from vispy.app import Application
+from PyQt5.QtWidgets import QApplication
 app = Application('pyqt5')
 
 from numpy import array, clip, float32, r_
@@ -55,10 +56,14 @@ class Viz():
             kwargs['size'] = (array(size_mm) / INCH_IN_MM * kwargs['dpi']).astype(int)
 
         self._fig = Fig(show=show, **kwargs)
+        app.process_events()
+        QApplication.processEvents()
 
     def _repr_png_(self):
         """This is used by ipython to plot inline.
         """
+        app.process_events()
+        QApplication.processEvents()
         try:
             region = (0, 0,  # TODO: how to get these values
                       int(self._plt.view.bounds(0)[1]),
@@ -66,10 +71,15 @@ class Viz():
         except AttributeError:
             region = None
 
+        app.process_events()
+        QApplication.processEvents()
         self._fig.show(True)
         app.process_events()
+        QApplication.processEvents()
         img = read_pixels(viewport=region)  # self._fig.render(region=region)
         self._fig.show(False)
+        app.process_events()
+        QApplication.processEvents()
         return bytes(_make_png(img))
 
     def save(self, png_file):

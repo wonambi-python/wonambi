@@ -162,9 +162,9 @@ def _color_noise(x, s_freq, coef=0):
     # create new power spectrum
     m1 = zeros(len(m))
     # leave zero alone, and multiply the rest by the function
-    m1[1:len(m) / 2] = m[1:len(m) / 2] * f(freq, coef)
+    m1[1:int(len(m) / 2)] = m[1:int(len(m) / 2)] * f(freq, coef)
     # simmetric around nyquist freq
-    m1[len(m1) / 2 + 1:] = m1[1:len(m1) / 2][::-1]
+    m1[int(len(m1) / 2 + 1):] = m1[1:int(len(m1) / 2)][::-1]
 
     # reconstruct the signal
     y1 = m1 * exp(1j * ph)

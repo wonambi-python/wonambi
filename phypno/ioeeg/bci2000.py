@@ -1,8 +1,26 @@
-from os import SEEK_SET, SEEK_END
+from os import SEEK_CUR, SEEK_SET, SEEK_END
 from re import search, finditer, match
 from datetime import datetime
 
-from numpy import fromfile, dtype
+from numpy import (fromfile,
+                   fromstring,
+                   asmatrix,
+                   array,
+                   arange,
+                   c_,
+                   diff,
+                   empty,
+                   hstack,
+                   ndarray,
+                   NaN,
+                   pad,
+                   vstack,
+                   where,
+                   dtype,
+                   float64,
+                   int32,
+                   uint8,
+                   )
 
 STATEVECTOR = ['Name', 'Length',  'Value', 'ByteLocation', 'BitLocation']
 
@@ -42,7 +60,7 @@ class BCI2000:
         nchan = int(orig['SourceCh'])
         chan_name = ['ch{:03d}'.format(i) for i in range(nchan)]
         chan_dtype = dtype(orig['DataFormat'])
-        StatevectorLen = int(orig['StatevectorLen'])
+        self.statevector_len = int(orig['StatevectorLen'])
 
         s_freq = int(orig['Parameter']['SamplingRate'])
         storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
@@ -54,13 +72,20 @@ class BCI2000:
         subj_id = orig['Parameter']['SubjectName']
 
         self.dtype = dtype([(chan, chan_dtype) for chan in chan_name]
-                            + [('statevector', 'S', StatevectorLen)])
+                            + [('statevector', 'S', self.statevector_len)])
 
         # compute n_samples based on file size - header
         with open(self.filename, 'rb') as f:
             f.seek(0, SEEK_END)
             EOData = f.tell()
         n_samples = (EOData - int(orig['HeaderLen'])) / self.dtype.itemsize
+
+        self.s_freq = s_freq
+        self.header_len = int(orig['HeaderLen'])
+        self.n_samples = int(n_samples)
+        self.statevectors = _prepare_statevectors(orig['StateVector'])
+        # TODO: a better way to parse header
+        self.gain = array([float(x) for x in orig['Parameter']['SourceChGain'].split(' ')[1:]])
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -81,29 +106,42 @@ class BCI2000:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
+        dat_begsam = max(begsam, 0)
+        dat_endsam = min(endsam, self.n_samples)
+        dur = dat_endsam - dat_begsam
+
+        dtype_onlychan = dtype({k: v for k, v in self.dtype.fields.items() if v[0].kind != 'S'})
+
+        # make sure we read some data at least, otherwise segfault
+        if dat_begsam < self.n_samples and dat_endsam > 0:
+
+            with self.filename.open('rb') as f:
+                f.seek(self.header_len, SEEK_SET)  # skip header
+
+                f.seek(self.dtype.itemsize * dat_begsam, SEEK_CUR)
+                dat = fromfile(f, dtype=self.dtype, count=dur)
+
+            dat = ndarray(dat.shape, dtype_onlychan, dat, 0, dat.strides).view((dtype_onlychan[0], len(dtype_onlychan.names))).T
+
+        else:
+            n_chan = len(dtype_onlychan.names)
+            dat = empty((n_chan, 0))
+
         if begsam < 0:
-            begpad = -1 * begsam
-            begsam = 0
-        else:
-            begpad = 0
 
-        if endsam > self.n_smp:
-            endpad = endsam - self.n_smp
-            endsam = self.n_smp
-        else:
-            endpad = 0
+            pad = empty((dat.shape[0], 0 - begsam))
+            pad.fill(NaN)
+            dat = c_[pad, dat]
 
-        BEGSAMPLE = 0
+        if endsam >= self.n_samples:
 
-        with self.filename.open('rb') as f:
-            f.seek(14627, SEEK_SET)  # skip header
+            pad = empty((dat.shape[0], endsam - self.n_samples))
+            pad.fill(NaN)
+            dat = c_[dat, pad]
 
-            f.seek(DTYPE.itemsize * BEGSAMPLE, SEEK_CUR)
-            dat = fromfile(f, dtype=DTYPE, count=100)
+        return dat[chan, :] * self.gain[chan][:, None]  # apply gain
 
-        return None
-
-    def return_markers(self):
+    def return_markers(self, state='MicromedCode'):
         """Return all the markers (also called triggers or events).
 
         Returns
@@ -120,7 +158,46 @@ class BCI2000:
             exceptions).
         """
         markers = []
+        try:
+            all_states = self._read_states()
+        except ValueError:  # cryptic error when reading states
+            return markers
+
+        try:
+            x = all_states[state]
+        except KeyError:
+            return markers
+
+        markers = []
+        i_mrk = hstack((0, where(diff(x))[0] + 1, len(x)))
+        for i0, i1 in zip(i_mrk[:-1], i_mrk[1:]):
+            marker = {'name': str(x[i0]),
+                      'start': (i0) / self.s_freq,
+                      'end': i1 / self.s_freq,
+                     }
+            markers.append(marker)
+
         return markers
+
+    def _read_states(self):
+
+        all_states = []
+        with self.filename.open('rb') as f:
+            f.seek(self.header_len, SEEK_SET)  # skip header
+            StatevectorOffset = self.dtype.itemsize - self.statevector_len
+
+            for i in range(self.n_samples):
+                f.seek(StatevectorOffset, SEEK_CUR)
+                raw_statevector = f.read(self.statevector_len)
+                all_states.append(fromstring(raw_statevector, dtype='<u1'))
+
+        all_states = vstack(all_states).T
+
+        states = {}
+        for statename, statedef in self.statevectors.items():
+            states[statename] = array(statedef['mult'] * asmatrix(all_states[statedef['slice'], :] & statedef['mask']), dtype=int32).squeeze()
+
+        return states
 
 
 def _read_header(filename):
@@ -189,3 +266,29 @@ def _read_header_text(filename):
         header = f.read(HeaderLen).decode().split('\r\n')
 
     return header
+
+
+def _prepare_statevectors(sv):
+
+    statedefs = {}
+
+    for v in sv:
+        startbyte = int(v['ByteLocation'])
+        startbit  = int(v['BitLocation'])
+        nbits     = int(v['Length'])
+        nbytes    = (startbit + nbits) // 8
+        if (startbit + nbits) % 8:
+            nbytes += 1
+        extrabits = int(nbytes * 8) - nbits - startbit;
+        startmask = 255 & (255 << startbit)
+        endmask   = 255 & (255 >> extrabits)
+        div       = (1 << startbit);
+        v['slice'] = slice(startbyte, startbyte + nbytes)
+        v['mask'] = array([255] * nbytes, dtype=uint8)
+        v['mask'][0]  &= startmask
+        v['mask'][-1] &= endmask
+        v['mask'].shape = (nbytes, 1)
+        v['mult'] = asmatrix(256.0 ** arange(nbytes, dtype=float64) / float(div))
+        statedefs[v['Name']] = v
+
+    return statedefs
