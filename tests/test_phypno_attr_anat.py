@@ -6,12 +6,10 @@ from pytest import raises
 from phypno.attr import Freesurfer, Surf
 from phypno.attr.anat import import_freesurfer_LUT
 
-from .utils import (SAMPLE_PATH,
-                    FREESURFER_HOME,
-                    )
+from .utils import FREESURFER_HOME
 
 LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'
-fs_path =  SAMPLE_PATH / 'SUBJECTS_DIR' / 'bert'
+fs_path =  FREESURFER_HOME / 'subjects' / 'bert'
 surf_path = fs_path / 'surf' / 'lh.pial'
 
 environ['FREESURFER_HOME'] = str(FREESURFER_HOME)
