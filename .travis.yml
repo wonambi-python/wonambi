@@ -10,10 +10,10 @@ before_install:
  - pip install coveralls
 
 install: 
- - pip install .
+ - pip install -e .
 
 script:
- - pytest tests
+ - pytest --cov=phypno -s tests/
 
 after_success:
  - coveralls

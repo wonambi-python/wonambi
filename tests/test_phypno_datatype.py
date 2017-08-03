@@ -15,3 +15,4 @@ def test_pickle_01():
         loaded = load(f)
 
     assert_array_equal(data.axis['time'][0], loaded.time[0])
+

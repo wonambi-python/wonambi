@@ -1,6 +1,9 @@
 from pytest import raises
 from phypno.utils import create_data
 
+def test_import():
+    import phypno
+    print(phypno)
 
 def test_simulate_01():
     data = create_data()
