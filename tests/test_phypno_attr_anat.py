@@ -10,7 +10,9 @@ from .utils import (SAMPLE_PATH,
                     FREESURFER_HOME,
                     )
 
-fs_dir =  SAMPLE_PATH / 'freesurfer' / 'bert'
+LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'
+fs_path =  SAMPLE_PATH / 'SUBJECTS_DIR' / 'bert'
+surf_path = fs_path / 'surf' / 'lh.pial'
 
 environ['FREESURFER_HOME'] = str(FREESURFER_HOME)
 
@@ -27,35 +29,34 @@ def test_import_freesurfer_LUT_02():
     with raises(OSError):
         import_freesurfer_LUT()
 
-environ['FREESURFER_HOME'] = str(FREESURFER_HOME)
-
-"""
 
 def test_import_freesurfer_LUT_03():
-    import_freesurfer_LUT(join(FREESURFER_HOME, 'FreeSurferColorLUT.txt'))
+    import_freesurfer_LUT(LUT_path)
 
 
-@raises(FileNotFoundError)
 def test_import_freesurfer_LUT_04():
-    import_freesurfer_LUT(join(data_dir, 'does_not_exist'))
+    import_freesurfer_LUT(str(LUT_path))
+
+
+def test_import_freesurfer_LUT_05():
+    with raises(FileNotFoundError):
+        import_freesurfer_LUT(FREESURFER_HOME / 'does_not_exist')
 
 
 def test_Surf_01():
-    Surf(join(fs_dir, 'surf', 'lh' + '.' + 'pial'))
+    Surf(surf_path)
 
 
 def test_Surf_02():
-    Surf(join(fs_dir, 'bem', 'freesurfer-outer_skin.surf'))
+    Surf(str(surf_path))
 
 
-@raises(OSError)
 def test_Freesurfer_01():
-    Freesurfer('')
+    with raises(OSError):
+        Freesurfer('')
 
 
-def test_Freesurfer_02():
-    Freesurfer(fs_dir, join(data_dir, 'does_not_exist'))
-
+"""
 
 fs = Freesurfer(fs_dir)
 
