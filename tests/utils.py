@@ -22,4 +22,4 @@ def download_sample_data():
     with ZipFile(file_name) as zf:
         zf.extractall(test_path)
 
-# download_sample_data()
+download_sample_data()
