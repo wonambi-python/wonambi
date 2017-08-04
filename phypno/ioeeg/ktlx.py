@@ -837,11 +837,10 @@ def _read_hdr_file(ktlx_file):
 
 class Ktlx():
     def __init__(self, ktlx_dir):
-        if isinstance(ktlx_dir, str):
-            lg.info('Reading ' + ktlx_dir)
-            self.filename = ktlx_dir
-            self._filename = None  # Path of dir and filename stem
-            self._hdr = self._read_hdr_dir()
+        lg.info('Reading ' + str(ktlx_dir))
+        self.filename = ktlx_dir
+        self._filename = None  # Path of dir and filename stem
+        self._hdr = self._read_hdr_dir()
 
     def _read_hdr_dir(self):
         """Read the header for basic information.

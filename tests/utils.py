@@ -10,6 +10,7 @@ DATA_URL = environ['DATA_URL']
 SAMPLE_PATH = test_path / 'Public'
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
+IO_PATH = SAMPLE_PATH / 'io'
 
 
 def download_sample_data():
@@ -21,4 +22,4 @@ def download_sample_data():
     with ZipFile(file_name) as zf:
         zf.extractall(test_path)
 
-download_sample_data()
+# download_sample_data()

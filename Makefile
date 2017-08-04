@@ -48,4 +48,4 @@ html:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 test:
-	pytest -s --cov=phypno --cov-report html tests
+	pytest --cov=phypno --cov-report html tests
