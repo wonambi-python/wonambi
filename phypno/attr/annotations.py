@@ -4,7 +4,6 @@ from logging import getLogger
 from csv import writer
 from datetime import datetime, timedelta
 from math import ceil
-from os.path import basename
 from re import search, sub
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
@@ -33,9 +32,9 @@ def create_empty_annotations(xml_file, dataset):
 
     info = SubElement(root, 'dataset')
     x = SubElement(info, 'filename')
-    x.text = basename(dataset.filename)
+    x.text = str(dataset.filename)
     x = SubElement(info, 'path')  # not to be relied on
-    x.text = dataset.filename
+    x.text = str(dataset.filename)
     x = SubElement(info, 'start_time')
     start_time = dataset.header['start_time'].replace(tzinfo=None)
     x.text = start_time.isoformat()
@@ -69,7 +68,7 @@ class Annotations():
 
     def load(self):
         """Load xml from file."""
-        lg.info('Loading ' + self.xml_file)
+        lg.info('Loading ' + str(self.xml_file))
         update_annotation_version(self.xml_file)
 
         xml = parse(self.xml_file)
