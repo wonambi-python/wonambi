@@ -19,7 +19,7 @@ def download_sample_data():
     with urlopen(DATA_URL) as response, file_name.open('wb') as out_file:
         copyfileobj(response, out_file)
 
-    with ZipFile(file_name) as zf:
+    with ZipFile(str(file_name)) as zf:
         zf.extractall(test_path)
 
 download_sample_data()
