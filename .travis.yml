@@ -14,7 +14,7 @@ install:
  - pip install -e .
 
 script:
- - pytest --cov=phypno -s tests/
+ - pytest --cov=phypno tests/
 
 after_success:
  - coveralls

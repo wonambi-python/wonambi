@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 20
+----------
+- **20.01**: travis with dat download
+
 Version 19
 ----------
 - **19.01**: travis with simple tests
