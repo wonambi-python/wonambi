@@ -22,8 +22,9 @@ def test_blackrock_ns_02():
     Dataset(str(ns4_file))
 
 
-def test_blackrock_ns_02():
+def test_blackrock_ns_03():
     Dataset(ns2_file)
+
 
 def test_blackrock_nev_01():
     d = Dataset(nev_file)
