@@ -21,7 +21,6 @@ from datetime import datetime
 now = datetime.now()
 from types import MethodType
 
-from numpy import arange
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 

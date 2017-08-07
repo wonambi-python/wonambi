@@ -36,6 +36,10 @@ nosetests.xml
 coverage.xml
 htmlcov/
 
+# test data
+tests/Public/
+tests/sample_data.zip
+
 # Translations
 *.mo
 
