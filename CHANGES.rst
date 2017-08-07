@@ -2,7 +2,8 @@ Change Log
 ==========
 Version 20
 ----------
-- **20.01**: travis with dat download
+- **20.02**: travis with qt
+- **20.01**: travis with data download
 
 Version 19
 ----------
