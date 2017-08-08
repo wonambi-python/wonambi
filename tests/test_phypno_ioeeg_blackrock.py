@@ -2,11 +2,11 @@ from numpy.testing import assert_array_almost_equal
 
 from phypno import Dataset
 
-from .utils import IO_PATH
+from .utils import IO_PATH, DOWNLOADS_PATH
 
 nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
 ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
-ns4_file = IO_PATH / 'blackrock' / 'sampleData.ns4'
+ns4_file = DOWNLOADS_PATH / 'sampleData' / 'sampleData.ns4'
 
 
 def test_blackrock_ns_01():

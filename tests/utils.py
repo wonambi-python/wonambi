@@ -12,6 +12,8 @@ FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 IO_PATH = SAMPLE_PATH / 'io'
 
+DOWNLOADS_PATH = test_path / 'downloads'
+
 
 def download_sample_data():
     file_name = test_path / 'sample_data.zip'

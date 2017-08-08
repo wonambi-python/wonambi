@@ -69,8 +69,13 @@ class EgiMff:
             subj_id = orig['subject'][0][0]['name']
         except KeyError:
             subj_id = ''
-        start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
-                                       '%Y-%m-%dT%H:%M:%S.%f%z')
+        try:
+            start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
+                                           '%Y-%m-%dT%H:%M:%S.%f%z')
+        except KeyError:
+            start_time = datetime.now()  # TODO: what do use when time is not available?
+            
+        self.start_time = start_time
 
         videos = glob(join(self.filename, '*.mp4'))  # as described in specs
         videos.extend(glob(join(self.filename, '*.mov')))  # actual example
@@ -139,21 +144,32 @@ class EgiMff:
                 i_chan_data = chan >= self._nchan_signal1
                 i_chan_rec = chan[i_chan_data] - self._nchan_signal1
 
-            x = append(0, self._n_samples[one_signal])
-            x1 = cumsum(x)
+            x = self._n_samples[one_signal]
+            x1 = cumsum(append(0, x))
 
+            # begrec is -1 when begsam is before start of the recordings
             begrec = where(begsam < x1)[0][0] - 1
-            endrec = where(endsam < x1)[0][0] - 1
+            try:
+                endrec = where(endsam < x1)[0][0] - 1
+            except IndexError:
+                endrec = len(x)
 
             f = open(self._signal[one_signal], 'rb')
 
             i0 = 0
             for rec in range(begrec, endrec + 1):
-                rec_dat = _read_block(f,
-                                      self._block_hdr[one_signal][rec],
-                                      self._i_data[one_signal][rec])
 
-                if rec == begrec:
+                # if begsam is before start of the recordings, we just shift the baseline
+                if rec == -1:
+                    i0 = - begsam
+                    continue
+
+                # if endsam is after end of the recordings, we just stop here
+                if rec == len(self._n_samples[one_signal]):
+                    break
+
+
+                if rec == begrec: 
                     begpos_rec = begsam - x1[rec]
                 else:
                     begpos_rec = 0
@@ -164,9 +180,18 @@ class EgiMff:
                     endpos_rec = x[rec]
 
                 i1 = i0 + endpos_rec - begpos_rec
+
+                lg.debug('data {: 8d}-{: 8d}, rec ({}) {: 5d} - {: 5d}'.format(i0, i1, rec, begpos_rec, endpos_rec))
+
+                rec_dat = _read_block(f,
+                                  self._block_hdr[one_signal][rec],
+                                  self._i_data[one_signal][rec])
+
+
                 data[i_chan_data, i0:i1] = rec_dat[i_chan_rec,
                                                    begpos_rec:endpos_rec]
                 i0 = i1
+
             f.close()
 
         return data
@@ -176,15 +201,12 @@ class EgiMff:
         xml_files = self._orig.keys()
         xml_events = [x for x in xml_files if x[:7] == 'Events_']
 
-        start_time = datetime.strptime(shorttime(self._orig['info'][0]['recordTime']),
-                                       '%Y-%m-%dT%H:%M:%S.%f%z')
-
         markers = []
         for xml in xml_events:
             for event in self._orig[xml][2:]:
                 event_start = datetime.strptime(shorttime(event['beginTime']),
                                                 '%Y-%m-%dT%H:%M:%S.%f%z')
-                start = (event_start - start_time).total_seconds()
+                start = (event_start - self.start_time).total_seconds()
 
                 marker = {'name': event['code'],
                           'start': start,

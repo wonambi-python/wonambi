@@ -320,19 +320,31 @@ class Channels(QWidget):
 
         self.action = actions
 
-    def new_group(self):
+    def new_group(self, checked=False, test_name=None):
         """Create a new channel group.
+
+        Parameters
+        ----------
+        checked : bool
+            comes from QAbstractButton.clicked
+        test_name : str
+            used for testing purposes to avoid modal window
 
         Notes
         -----
         Don't call self.apply() just yet, only if the user wants it.
         """
+        print(test_name)
         if self.chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
 
         else:
-            new_name = QInputDialog.getText(self, 'New Channel Group',
-                                            'Enter Name')
+            if not test_name:
+                new_name = QInputDialog.getText(self, 'New Channel Group',
+                                                'Enter Name')
+            else:
+                new_name = test_name
+
             if new_name[1]:
                 s_freq = self.parent.info.dataset.header['s_freq']
                 group = ChannelsGroup(self.chan_name, self.config.value,

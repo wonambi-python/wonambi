@@ -224,6 +224,7 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
+        lg.info(str(filename))
         try:
             self.filename = filename
             self.repo = repo

@@ -1,9 +1,16 @@
 language: python
 
-cache: pip
+cache: 
+ - pip
+ - directories:
+   - $HOME/downloads
 
 before_install:
- - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+ - if [ ! -f $HOME/downloads/sampledata.zip ]; then
+     wget -q -P $HOME/downloads/ http://blackrockmicro.com/wp-content/uploads/2016/06/sampledata.zip ;
+   fi  
+ - unzip $HOME/downloads/sampledata.zip sampleData/sampleData.ns4 -d $TRAVIS_BUILD_DIR/tests/downloads/
+ - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
  - bash miniconda.sh -b -p $HOME/miniconda
  - export PATH="$HOME/miniconda/bin:$PATH"
  - hash -r

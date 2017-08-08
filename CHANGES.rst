@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 20
 ----------
+- **20.03**: cache quite some data for testing
 - **20.02**: travis with qt
 - **20.01**: travis with data download
 
