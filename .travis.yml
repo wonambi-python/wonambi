@@ -44,7 +44,7 @@ deploy:
    skip_cleanup: true
    target_branch : master
    local_dir : $TRAVIS_BUILD_DIR/docs/build/html
-   public_repo : phypnodocs
+   repo : phypno
    github_token : $GITHUB_TOKEN
  - provider: pypi
    user: $PYPI_USER
