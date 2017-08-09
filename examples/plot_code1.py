@@ -19,7 +19,10 @@ from phypno.scroll_data import MainWindow
 print('one line before')
 print('during')
 w = MainWindow()
-w.grab().save('test1.png')
 print('during 2')
+
+w.grab().save('test.png')
 QTimer.singleShot(100, w.close)
 
+
+print('one line after')

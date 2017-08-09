@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
+from os import chdir
+from os.path import abspath, dirname, join
 from datetime import datetime
 now = datetime.now()
 
 # make sure that we're in the source directory
 # so that it's consistent between read the docs and local
-cur_dir = os.path.abspath(os.path.dirname(__file__))
+cur_dir = abspath(dirname(__file__))
 
 import phypno
 print(phypno)
@@ -22,7 +23,6 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
-    'sphinx_gallery.gen_gallery',
 ]
 
 # autodoc options
@@ -42,14 +42,6 @@ todo_link_only = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-
-sphinx_gallery_conf = {
-        # path to your examples scripts
-        'examples_dirs' : '../../examples',
-        # path where to save gallery generated examples
-        'gallery_dirs'  : 'auto_examples',
-        'backreferences_dir': False,
-        }
 
 source_suffix = '.rst'
 
@@ -73,7 +65,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', '**/generated']
+exclude_patterns = ['_build', ]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -95,11 +87,11 @@ html_show_sphinx = False
 htmlhelp_basename = 'phypnodoc'
 
 def run_apidoc(_):
-    os.chdir(cur_dir)  # use same dir as readthedocs, which is docs/source
+    chdir(cur_dir)  # use same dir as readthedocs, which is docs/source
     from sphinx.apidoc import main
-    output_path = os.path.join(cur_dir, 'api')
+    output_path = join(cur_dir, 'api')
     # here use paths relative to docs/source
-    main(['-f', '-M', '-e', '-o', output_path, '../../phypno',
+    main(['-f', '-e', '-o', output_path, '../../phypno',
           '../../phypno/viz', '../../phypno/widgets',
           '../../phypno/scroll_data.py'])
 

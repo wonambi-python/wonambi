@@ -33,7 +33,7 @@ release: tag sdist
 
 # apidoc is now run inside sphinx-build (so that it works on readthedocs as well)
 html:
-	sphinx-build -vvv -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	sphinx-build -T  -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
@@ -42,7 +42,5 @@ test:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm $(SOURCEDIR)/auto_examples -fr
-	rm $(SOURCEDIR)/modules -fr
 	rm $(SOURCEDIR)/api -fr
 

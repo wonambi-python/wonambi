@@ -7,7 +7,6 @@ from .test_phypno_ioeeg_blackrock import ns4_file
 def test_scroll_data(qtbot):
 
     w = MainWindow()
-    w.show()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(ns4_file))

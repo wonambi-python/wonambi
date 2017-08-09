@@ -13,7 +13,7 @@ Contents:
 
    installation
    Modules, classes, functions<api/phypno>
-   auto_examples/index
+   gui/index
    changelog
    todo
 

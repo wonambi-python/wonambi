@@ -16,10 +16,10 @@ before_install:
  - hash -r
  - conda config --set always_yes yes --set changeps1 no
  - conda update -q conda
- - conda create -q -n test-environment numpy scipy pyqt pytest pytest-cov
+ - conda create -q -n test-environment numpy scipy pyqt pytest pytest-cov sphinx sphinx_rtd_theme
  - source activate test-environment
  - pip install coveralls pytest-qt
- - pip install nibabel
+ - pip install nibabel mne
 
 install: 
  - pip install -e .
@@ -30,6 +30,7 @@ before_script:
  - sleep 3
 
 script:
+ - sphinx-build -b html -d $TRAVIS_BUILD_DIR/docs/build/doctrees $TRAVIS_BUILD_DIR/docs/source $TRAVIS_BUILD_DIR/docs/build/html
  - pytest --cov=phypno tests/
 
 after_success:
@@ -39,8 +40,14 @@ notifications:
  email: false
 
 deploy:
-  provider: pypi
-  user: $PYPI_USER
-  password: $PYPI_PASSWORD
-  on:
-    tags: true
+ - provider: pages
+   skip_cleanup: true
+   target_branch : master
+   local_dir : $TRAVIS_BUILD_DIR/docs/build/html
+   public_repo : phypnodocs
+   github_token : $GITHUB_TOKEN
+ - provider: pypi
+   user: $PYPI_USER
+   password: $PYPI_PASSWORD
+   on:
+     tags: true
