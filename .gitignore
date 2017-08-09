@@ -39,6 +39,7 @@ htmlcov/
 # test data
 tests/Public/
 tests/sample_data.zip
+tests/downloads/
 
 # Translations
 *.mo

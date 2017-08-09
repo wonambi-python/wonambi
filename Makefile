@@ -1,4 +1,4 @@
-PHONY = help release sdist upload clean apidoc html test
+PHONY = help release sdist upload clean html test
 
 # Makefile for phypno upload and documentation
 
@@ -11,18 +11,13 @@ COMMENT       = $(subst : ,,$(shell grep -Eo ": .*" -m 1 CHANGES.rst))
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(SOURCEDIR)
 
 help:
-	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  release    edit CHANGES.rst and upload to github/pypi"
-	@echo "  tag        edit CHANGES.rst and upload a new tag"
+	@echo "Use \`make <target>' where <target> is one of"
+	@echo "  tag        edit CHANGES.rst and upload a new tag (travis then uploads to pypi)"
 	@echo "  sdist      sdist and upload to pypi"
-	@echo "  clean      to clean the whole directory"
-	@echo "  apidoc     generate api from functions"
+	@echo "  release    edit CHANGES.rst and upload to github/pypi"
 	@echo "  html       to make standalone HTML files"
-	@echo "  upload_doc upload documentation"
 	@echo "  test       run tests"
-
-
-release: tag sdist
+	@echo "  clean      to clean the whole directory"
 
 tag:
 	echo $(VERSION) > phypno/VERSION
@@ -33,19 +28,21 @@ tag:
 sdist:
 	python setup.py sdist upload
 
+# release should not be necessary, because now travis takes care of it
+release: tag sdist
+
+# apidoc is now run inside sphinx-build (so that it works on readthedocs as well)
+html:
+	sphinx-build -vvv -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
+test:
+	pytest --cov=phypno --cov-report html tests
+
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm $(SOURCEDIR)/auto_examples -fr
 	rm $(SOURCEDIR)/modules -fr
 	rm $(SOURCEDIR)/api -fr
 
-apidoc:
-	sphinx-apidoc -f -M -e -o $(SOURCEDIR)/api phypno phypno/widgets phypno/scroll_data.py
-
-html:
-	sphinx-build -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
-
-test:
-	pytest --cov=phypno --cov-report html tests
