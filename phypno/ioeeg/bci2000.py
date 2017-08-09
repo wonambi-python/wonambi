@@ -13,7 +13,6 @@ from numpy import (fromfile,
                    hstack,
                    ndarray,
                    NaN,
-                   pad,
                    vstack,
                    where,
                    dtype,
@@ -53,12 +52,17 @@ class BCI2000:
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
+
+        Notes
+        -----
+        As far as I can, BCI2000 doesn't have channel labels, so we use dummies
+        starting at chan001 (more consistent with Matlab 1-base indexing...)
         """
         orig = {}
         orig = _read_header(self.filename)
 
         nchan = int(orig['SourceCh'])
-        chan_name = ['ch{:03d}'.format(i) for i in range(nchan)]
+        chan_name = ['ch{:03d}'.format(i + 1) for i in range(nchan)]
         chan_dtype = dtype(orig['DataFormat'])
         self.statevector_len = int(orig['StatevectorLen'])
 
