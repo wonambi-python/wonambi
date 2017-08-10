@@ -47,7 +47,6 @@ Status
 .. image:: https://coveralls.io/repos/github/gpiantoni/phypno/badge.svg?branch=master
     :target: https://coveralls.io/github/gpiantoni/phypno?branch=master
 
-
 License
 -------
 The project is licensed under the GPLv3 license.
