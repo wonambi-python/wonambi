@@ -1,13 +1,10 @@
 Graphical User Interface
 ========================
 
-Very interesting
+Start the graphical user interface with **scroll_data**:
 
-.. image:: images/gui.png
+.. image:: images/01_start.png
 
-Very interesting
+To load a dataset, click on **file** > **open recordings**:
 
-.. figure:: test.png
-   :alt: test
-
-   This is the caption of the figure (a simple paragraph).
+.. image:: images/02_loaded.png
