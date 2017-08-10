@@ -1,8 +1,0 @@
-setuptools
-numpy
-scipy
-phypno
-matplotlib
-mne
-pillow
-sphinx
