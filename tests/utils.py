@@ -14,6 +14,10 @@ IO_PATH = SAMPLE_PATH / 'io'
 
 DOWNLOADS_PATH = test_path / 'downloads'
 
+DOCS_PATH = test_path.parent / 'docs'
+OUTPUT_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
+OUTPUT_PATH.mkdir(exist_ok=True)
+
 
 def download_sample_data():
     file_name = test_path / 'sample_data.zip'

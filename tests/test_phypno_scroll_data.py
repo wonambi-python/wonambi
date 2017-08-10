@@ -3,6 +3,8 @@ from phypno.scroll_data import MainWindow
 
 from .test_phypno_ioeeg_blackrock import ns4_file
 
+from .utils import OUTPUT_PATH
+
 
 def test_scroll_data(qtbot):
 
@@ -10,6 +12,7 @@ def test_scroll_data(qtbot):
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(ns4_file))
+    w.grab().save(str(OUTPUT_PATH / 'test.png'))
 
     w.channels.new_group(test_name='test_group_0')
 

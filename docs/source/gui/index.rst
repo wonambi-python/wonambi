@@ -3,7 +3,7 @@ Graphical User Interface
 
 Very interesting
 
-.. image:: test.png
+.. image:: images/test.png
 
 Very interesting
 
