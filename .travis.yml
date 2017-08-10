@@ -31,6 +31,9 @@ before_install:
 install: 
  - pip install -e .
 
+before_script:
+  - "export DISPLAY=:99.0"
+
 script:
  - pytest --cov=phypno tests/
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html

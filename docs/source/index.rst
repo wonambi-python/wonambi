@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   introduction
    installation
    Modules, classes, functions<api/phypno>
    gui/index
