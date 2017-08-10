@@ -35,7 +35,7 @@ Requirements
 - Python 3.6
 - numpy
 - scipy
-- (optional for sleep scoring GUI) PyQt5
+- PyQt5 (optional for sleep scoring GUI)
 - nibabel (optional to read freesurfer)
 - mne (optional to compute multitaper)
 
