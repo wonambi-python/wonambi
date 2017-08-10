@@ -13,9 +13,13 @@ def test_scroll_data(qtbot):
 
     w.grab().save(str(OUTPUT_PATH / '01_start.png'))
 
+    w.info.idx_filename.setStyleSheet("background-color: red;")
+    w.grab().save(str(OUTPUT_PATH / '02_open_dataset.png'))
+    
     w.info.open_dataset(str(ns4_file))
-    w.grab().save(str(OUTPUT_PATH / '02_loaded.png'))
-
+    w.grab().save(str(OUTPUT_PATH / '03_loaded.png'))
+    w.info.idx_filename.setStyleSheet("")
+    
     w.channels.new_group(test_name='test_group_0')
 
     chan_tab_i = w.channels.tabs.currentIndex()

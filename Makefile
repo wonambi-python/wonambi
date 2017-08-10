@@ -31,7 +31,7 @@ sdist:
 # release should not be necessary, because now travis takes care of it
 release: tag sdist
 
-# apidoc is now run inside sphinx-build (so that it works on readthedocs as well)
+# apidoc is now run inside sphinx-build
 html:
 	sphinx-build -T  -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
@@ -41,7 +41,8 @@ test:
 	pytest --cov=phypno --cov-report html tests
 
 clean:
+	rm -fr htmlcov
+	rm -rf $(SOURCEDIR)/api
+	rm -fr $(SOURCEDIR)/gui/images/
 	rm -rf $(BUILDDIR)/*
-	rm $(SOURCEDIR)/api -fr
-	rm htmlcov
 
