@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 20
 ----------
+- **20.04**: use gt-pages and travis instead of readthedocs
 - **20.03**: cache quite some data for testing
 - **20.02**: travis with qt
 - **20.01**: travis with data download

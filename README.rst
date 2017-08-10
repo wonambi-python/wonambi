@@ -16,7 +16,7 @@ Install phypno by running:
 
     pip install phypno
 
-See `Installation for details <http://phypno.readthedocs.io/installation.html>`_
+See `Installation for details <http://gpiantoni.github.io/phypno/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
@@ -24,11 +24,11 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
 Documentation
 -------------
-See `Documentation <http://phypno.readthedocs.io>`_
+See `Documentation <http://gpiantoni.github.io/phypno>`_
 
 Change Log
 ----------
-See `Change Log <http://phypno.readthedocs.io/changelog.html>`_
+See `Change Log <http://gpiantoni.github.io/phypno/changelog.html>`_
 
 Requirements
 ------------
@@ -36,14 +36,13 @@ Requirements
 - numpy
 - scipy
 - (optional for sleep scoring GUI) PyQt5
+- nibabel (optional to read freesurfer)
+- mne (optional to compute multitaper)
 
 Status
 ------
 .. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
     :target: https://travis-ci.org/gpiantoni/phypno
-
-.. image:: https://readthedocs.org/projects/phypno/badge/
-    :target: https://phypno.readthedocs.io/
 
 .. image:: https://coveralls.io/repos/github/gpiantoni/phypno/badge.svg?branch=master
     :target: https://coveralls.io/github/gpiantoni/phypno?branch=master

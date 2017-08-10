@@ -21,16 +21,24 @@ gauss = lambda x, s: exp(-.5 * (x ** 2 / s ** 2))
 
 
 class Linear:
-    """TODO: both hemispheres"""
+    """
+    TODO
+    ----
+    both hemispheres
+    """
     def __init__(self, surf, chan, threshold=20, exponent=None, std=None):
-        """TODO: specify method explicitly."""
         inverse = calc_xyz2surf(surf, chan.return_xyz(), threshold=threshold,
                                 exponent=exponent, std=std)
         self.inv = sparse(inverse)
         self.chan = chan.return_label()
 
     def __call__(self, data, parameter='chan'):
-        """TODO: return_xyz should follow channel order"""
+        """
+
+        TODO
+        ----
+        return_xyz should follow channel order
+        """
         output = deepcopy(data)  # TODO: probably not the best way
         del output.axis[parameter]
         output.axis['surf'] = empty(data.number_of('trial'), dtype='O')

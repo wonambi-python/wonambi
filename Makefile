@@ -43,4 +43,5 @@ test:
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm $(SOURCEDIR)/api -fr
+	rm htmlcov
 
