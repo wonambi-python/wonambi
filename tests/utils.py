@@ -19,13 +19,14 @@ OUTPUT_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
 OUTPUT_PATH.mkdir(exist_ok=True)
 
 
-def download_sample_data():
-    file_name = test_path / 'sample_data.zip'
+def download_sample_data(file_name):
 
-    with urlopen(DATA_URL) as response, file_name.open('wb') as out_file:
-        copyfileobj(response, out_file)
+    if not file_name.exists():
 
-    with ZipFile(str(file_name)) as zf:
-        zf.extractall(test_path)
+        with urlopen(DATA_URL) as response, file_name.open('wb') as out_file:
+            copyfileobj(response, out_file)
 
-download_sample_data()
+        with ZipFile(str(file_name)) as zf:
+            zf.extractall(test_path)
+
+download_sample_data(test_path / 'sample_data.zip')

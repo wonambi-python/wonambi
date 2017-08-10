@@ -12,7 +12,7 @@ def test_scroll_data(qtbot):
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(ns4_file))
-    w.grab().save(str(OUTPUT_PATH / 'test.png'))
+    w.grab().save(str(OUTPUT_PATH / 'gui.png'))
 
     w.channels.new_group(test_name='test_group_0')
 
