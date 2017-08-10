@@ -6,9 +6,10 @@ cache:
    - $HOME/downloads
 
 env:
- - DOWNLOADS=$HOME/downloads
- - DOCS=$TRAVIS_BUILD_DIR/docs
- - TESTS=$TRAVIS_BUILD_DIR/tests
+  global:
+   - DOWNLOADS=$HOME/downloads
+   - DOCS=$TRAVIS_BUILD_DIR/docs
+   - TESTS=$TRAVIS_BUILD_DIR/tests
 
 before_install:
  - if [ ! -f $DOWNLOADS/sampledata.zip ]; then
