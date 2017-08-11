@@ -25,7 +25,7 @@ before_install:
  - if [ ! -f $DOWNLOADS/eeg3_2.dat ]; then
      svn export http://www.bci2000.org/svn/tags/BCI2000.v2.1/data/samplefiles/eeg3_2.dat --user $BCI2000_USER --password $BCI2000_PASSWORD --no-auth-cache
    fi  
- - cp eeg3_2.dat $TESTS/downloads/
+ - cp $DOWNLOADS/eeg3_2.dat $TESTS/downloads/
 
  # install conda
  - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
