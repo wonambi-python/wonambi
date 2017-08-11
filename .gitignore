@@ -1,16 +1,7 @@
-# Backup files
-*.~
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-
-# C extensions
-*.so
 
 # Distribution / packaging
-bin/
-build/
 develop-eggs/
 dist/
 eggs/
@@ -29,22 +20,16 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-.tox/
 .coverage
 .cache
-nosetests.xml
-coverage.xml
 htmlcov/
 
 # test data
-tests/Public/
 tests/sample_data.zip
+tests/Public/
 tests/downloads/
 
-# Translations
-*.mo
-
 # Sphinx documentation
-docs/_build/
+docs/build/
 docs/source/api/
-docs/source/auto_examples/
+docs/source/gui/images/
