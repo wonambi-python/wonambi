@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.info = None
+        self.labels = None
         self.channels = None
         self.spectrum = None
         self.overview = None
@@ -121,6 +122,7 @@ class MainWindow(QMainWindow):
         keep_recent_datasets(max_dataset_history, self.info)
 
         # reset all the widgets
+        self.labels.reset()
         self.channels.reset()
         self.info.reset()
         self.notes.reset()

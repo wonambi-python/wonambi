@@ -261,8 +261,6 @@ class Channels(QWidget):
         file with the channel groups
     groups : list of dict
         each dict contains information about one channel group
-    chan_name : list of str
-        list of all the channels in the dataset
 
     tabs : QTabWidget
         Widget that contains the tabs with channel groups
@@ -334,7 +332,6 @@ class Channels(QWidget):
         -----
         Don't call self.apply() just yet, only if the user wants it.
         """
-        print(test_name)
         if self.chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
 

@@ -1,9 +1,10 @@
-
 from phypno.scroll_data import MainWindow
 
-from .test_phypno_ioeeg_blackrock import ns4_file
+from .test_phypno_ioeeg_bci2000 import bci2000_file
 
 from .utils import OUTPUT_PATH
+
+gui_file = bci2000_file
 
 
 def test_scroll_data(qtbot):
@@ -15,11 +16,11 @@ def test_scroll_data(qtbot):
 
     w.info.idx_filename.setStyleSheet("background-color: red;")
     w.grab().save(str(OUTPUT_PATH / '02_open_dataset.png'))
-    
-    w.info.open_dataset(str(ns4_file))
+
+    w.info.open_dataset(str(gui_file))
     w.grab().save(str(OUTPUT_PATH / '03_loaded.png'))
     w.info.idx_filename.setStyleSheet("")
-    
+
     w.channels.new_group(test_name='test_group_0')
 
     chan_tab_i = w.channels.tabs.currentIndex()

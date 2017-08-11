@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (QAction,
 
 from .settings import Settings  # has to be first
 from .utils import ICON  # has to be second
+from .labels import Labels
 from .channels import Channels
 from .info import Info
 from .overview import Overview
@@ -31,6 +32,7 @@ def create_widgets(MAIN):
     """
 
     """ ------ CREATE WIDGETS ------ """
+    MAIN.labels = Labels(MAIN)
     MAIN.channels = Channels(MAIN)
     MAIN.notes = Notes(MAIN)
     MAIN.overview = Overview(MAIN)
@@ -47,6 +49,11 @@ def create_widgets(MAIN):
                   'widget': MAIN.info,
                   'main_area': Qt.LeftDockWidgetArea,
                   'extra_area': Qt.RightDockWidgetArea,
+                  },
+                 {'name': 'Labels',
+                  'widget': MAIN.labels,
+                  'main_area': Qt.RightDockWidgetArea,
+                  'extra_area': Qt.LeftDockWidgetArea,
                   },
                  {'name': 'Channels',
                   'widget': MAIN.channels,
@@ -97,6 +104,8 @@ def create_widgets(MAIN):
     """ ------ ORGANIZE DOCKWIDGETS ------ """
     MAIN.tabifyDockWidget(idx_docks['Information'],
                           idx_docks['Video'])
+    MAIN.tabifyDockWidget(idx_docks['Channels'],
+                          idx_docks['Labels'])
     idx_docks['Information'].raise_()
 
 
