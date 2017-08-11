@@ -1,6 +1,9 @@
 from phypno.scroll_data import MainWindow
 
-from .test_phypno_scroll_data import gui_file
+from .test_phypno_scroll_data import (gui_file,
+                                      channel_make_group,
+                                      channel_apply,
+                                      )
 
 from .utils import OUTPUT_PATH
 
@@ -10,7 +13,12 @@ def test_widget_labels(qtbot):
     w = MainWindow()
     qtbot.addWidget(w)
 
+    assert not w.labels.isEnabled()
+
     w.info.open_dataset(str(gui_file))
+    labels_orig = w.labels.chan_name
+
+    assert w.labels.isEnabled()
 
     w.labels.table.setStyleSheet("background-color: red;")
     w.grab().save(str(OUTPUT_PATH / 'labels_01_table.png'))
@@ -30,3 +38,18 @@ def test_widget_labels(qtbot):
     w.labels.grab().save(str(OUTPUT_PATH / 'labels_04_correct.png'))
 
     assert w.labels.idx_apply.isEnabled()
+
+    # cancel should reset the list
+    labels_changed = w.labels._read_labels()
+    w.labels.idx_cancel.click()
+    labels_cancel = w.labels._read_labels()
+    assert labels_cancel == labels_orig
+    assert labels_cancel != labels_changed
+
+    # apply
+    w.labels.table.item(2, 1).setText('newlabel')
+    w.labels.idx_apply.click()
+
+    channel_make_group(w)
+    channel_apply(w)
+    w.grab().save(str(OUTPUT_PATH / 'labels_05_traces.png'))

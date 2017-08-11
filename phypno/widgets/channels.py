@@ -272,7 +272,6 @@ class Channels(QWidget):
 
         self.filename = None
         self.groups = []
-        self.chan_name = []  # those in the dataset
 
         self.tabs = None
 
@@ -332,7 +331,8 @@ class Channels(QWidget):
         -----
         Don't call self.apply() just yet, only if the user wants it.
         """
-        if self.chan_name is None:
+        chan_name = self.parent.labels.chan_name
+        if chan_name is None:
             self.parent.statusBar().showMessage('No dataset loaded')
 
         else:
@@ -340,11 +340,11 @@ class Channels(QWidget):
                 new_name = QInputDialog.getText(self, 'New Channel Group',
                                                 'Enter Name')
             else:
-                new_name = test_name
+                new_name = [test_name, True]  # like output of getText
 
             if new_name[1]:
                 s_freq = self.parent.info.dataset.header['s_freq']
-                group = ChannelsGroup(self.chan_name, self.config.value,
+                group = ChannelsGroup(chan_name, self.config.value,
                                       s_freq)
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
@@ -392,6 +392,8 @@ class Channels(QWidget):
             when debugging the function, you can open a channels file from the
             command line
         """
+        chan_name = self.parent.labels.chan_name
+
         if debug_filename:
             filename = debug_filename
 
@@ -419,11 +421,11 @@ class Channels(QWidget):
         no_in_dataset = []
         for one_grp in groups:
             no_in_dataset.extend(set(one_grp['chan_to_plot']) -
-                                 set(self.chan_name))
-            chan_to_plot = set(self.chan_name) & set(one_grp['chan_to_plot'])
-            ref_chan = set(self.chan_name) & set(one_grp['ref_chan'])
+                                 set(chan_name))
+            chan_to_plot = set(chan_name) & set(one_grp['chan_to_plot'])
+            ref_chan = set(chan_name) & set(one_grp['ref_chan'])
 
-            group = ChannelsGroup(self.chan_name, one_grp, s_freq)
+            group = ChannelsGroup(chan_name, one_grp, s_freq)
             group.highlight_channels(group.idx_l0, chan_to_plot)
             group.highlight_channels(group.idx_l1, ref_chan)
             self.tabs.addTab(group, one_grp['name'])
@@ -465,7 +467,6 @@ class Channels(QWidget):
     def reset(self):
         """Reset all the information of this widget."""
         self.filename = None
-        self.chan_name = []
         self.groups = []
 
         self.tabs.clear()

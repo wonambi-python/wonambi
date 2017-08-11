@@ -24,7 +24,7 @@ class Labels(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.chan_name = []
+        self.chan_name = None  # None when dataset is not loaded
 
         self.create()
 
@@ -39,6 +39,7 @@ class Labels(QWidget):
         self.idx_cancel.clicked.connect(self.update)
         self.idx_apply = QPushButton('Apply')
         self.idx_apply.clicked.connect(self.apply)
+        self.idx_apply.setToolTip('Changes will take effect. This will reset the channel groups and traces.')
 
         layout_0 = QHBoxLayout()
         layout_0.addWidget(self.idx_load)
@@ -64,22 +65,25 @@ class Labels(QWidget):
 
         self.setLayout(layout)
 
-    def update(self, labels):
+        self.setEnabled(False)
+
+    def update(self, param):
         """Use this function when we make changes to the list of labels or when
         we load a new dataset.
 
         Parameters
         ----------
-        labels : list of str
-            labels
+        param : list of str or bool
         """
-        self.chan_name = labels
+        if isinstance(param, list):  # it was called when opening dataset
+            self.setEnabled(True)
+            self.chan_name = param
 
         self.table.blockSignals(True)
         self.table.clearContents()
-        self.table.setRowCount(len(labels))
+        self.table.setRowCount(len(self.chan_name))
 
-        for i, label in enumerate(labels):
+        for i, label in enumerate(self.chan_name):
             old_label = QTableWidgetItem(label)
             old_label.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             new_label = QTableWidgetItem(label)
@@ -90,9 +94,7 @@ class Labels(QWidget):
     def check_labels(self):
 
         # read new labels first
-        labels = []
-        for i in range(self.table.rowCount()):
-            labels.append(self.table.item(i, 1).text())
+        labels = self._read_labels()
 
         # disable apply, if there are duplicates
         if len(labels) == len(set(labels)):
@@ -117,16 +119,23 @@ class Labels(QWidget):
 
     def apply(self):
 
-        labels = []
-        for i in range(self.table.rowCount()):
-            labels.append(self.table.item(i, 1).text())
+        self.chan_name = self._read_labels()
+        self.parent.info.dataset.header['chan_name'] = self.chan_name
 
-        self.chan_name = labels
-
-        # refresh other widgets (channels, traces)
+        self.parent.channels.reset()
+        self.parent.traces.reset()
 
     def reset(self):
         self.table.blockSignals(True)
         self.table.clearContents()
         self.table.blockSignals(False)
 
+        self.setEnabled(False)
+
+    def _read_labels(self):
+
+        labels = []
+        for i in range(self.table.rowCount()):
+            labels.append(self.table.item(i, 1).text())
+
+        return labels

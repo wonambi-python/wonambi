@@ -1,3 +1,5 @@
+.. _edit-labels:
+
 Edit Labels
 ===========
 
@@ -20,3 +22,13 @@ Fix the label before proceeding:
 .. image:: images/labels_04_correct.png
 
 Then, click on `apply` to propagate the new labels to the whole app.
+
+.. WARNING::
+   Clicking `apply` will reset the traces and channel groups, because they are based on the labels.
+
+You then need to create the channel groups and plot the signal.
+Note the updated labels:
+
+.. image:: images/labels_05_traces.png
+
+
