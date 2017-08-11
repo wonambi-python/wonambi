@@ -23,7 +23,7 @@ before_install:
 
  # download BCI2000 data
  - if [ ! -f $DOWNLOADS/eeg3_2.dat ]; then
-     svn export http://www.bci2000.org/svn/tags/BCI2000.v2.1/data/samplefiles/eeg3_2.dat --username $BCI2000_USER --password $BCI2000_PASSWORD --no-auth-cache ;
+     svn export http://www.bci2000.org/svn/trunk/data/samplefiles/eeg3_2.dat $DOWNLOADS/eeg3_2.dat --username $BCI2000_USER --password $BCI2000_PASSWORD --no-auth-cache ;
    fi  
  - cp $DOWNLOADS/eeg3_2.dat $TESTS/downloads/
 
