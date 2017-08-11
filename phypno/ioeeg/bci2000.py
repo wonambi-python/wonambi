@@ -82,11 +82,11 @@ class BCI2000:
         with open(self.filename, 'rb') as f:
             f.seek(0, SEEK_END)
             EOData = f.tell()
-        n_samples = (EOData - int(orig['HeaderLen'])) / self.dtype.itemsize
+        n_samples = int((EOData - int(orig['HeaderLen'])) / self.dtype.itemsize)
 
         self.s_freq = s_freq
         self.header_len = int(orig['HeaderLen'])
-        self.n_samples = int(n_samples)
+        self.n_samples = n_samples
         self.statevectors = _prepare_statevectors(orig['StateVector'])
         # TODO: a better way to parse header
         self.gain = array([float(x) for x in orig['Parameter']['SourceChGain'].split(' ')[1:]])

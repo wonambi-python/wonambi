@@ -1,9 +1,9 @@
 language: python
 
 cache: 
- - pip
  - directories:
    - $HOME/downloads
+   - $HOME/.cache/pip
 
 env:
   global:
@@ -12,11 +12,22 @@ env:
    - TESTS=$TRAVIS_BUILD_DIR/tests
 
 before_install:
+ # create display with large resolution
  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16"
+
+ # download blackrock data
  - if [ ! -f $DOWNLOADS/sampledata.zip ]; then
      wget -q -P $DOWNLOADS/ http://blackrockmicro.com/wp-content/uploads/2016/06/sampledata.zip ;
    fi  
  - unzip $DOWNLOADS/sampledata.zip sampleData/sampleData.ns4 -d $TESTS/downloads/
+
+ # download BCI2000 data
+ - if [ ! -f $DOWNLOADS/eeg3_2.dat ]; then
+     svn export http://www.bci2000.org/svn/tags/BCI2000.v2.1/data/samplefiles/eeg3_2.dat --user $BCI2000_USER --password $BCI2000_PASSWORD --no-auth-cache
+   fi  
+ - cp eeg3_2.dat $TESTS/downloads/
+
+ # install conda
  - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
  - bash miniconda.sh -b -p $HOME/miniconda
  - export PATH="$HOME/miniconda/bin:$PATH"
