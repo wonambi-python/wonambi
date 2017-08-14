@@ -5,7 +5,7 @@ from .test_phypno_scroll_data import (gui_file,
                                       channel_apply,
                                       )
 
-from .utils import OUTPUT_PATH
+from .utils import OUTPUT_PATH, SAMPLE_PATH
 
 
 def test_widget_labels(qtbot):
@@ -53,3 +53,16 @@ def test_widget_labels(qtbot):
     channel_make_group(w)
     channel_apply(w)
     w.grab().save(str(OUTPUT_PATH / 'labels_05_traces.png'))
+    
+    
+    # load data
+    w.labels.idx_load.setStyleSheet("background-color: red;")
+    w.labels.grab().save(str(OUTPUT_PATH / 'labels_06_load_button.png'))
+    w.labels.idx_load.setStyleSheet("")
+    
+    labels_file = SAMPLE_PATH / 'labels_file.csv'
+    with labels_file.open('w') as f:
+        f.write('chan1, chan2\t chan3;,chan4')
+        
+    w.labels.load_labels(test_name=str(labels_file))
+    w.labels.grab().save(str(OUTPUT_PATH / 'labels_07_loaded.png'))

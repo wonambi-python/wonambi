@@ -1,5 +1,8 @@
 """Widget to redefine the labels.
 """
+from pathlib import Path
+from re import split
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import (QColor,
                          )
@@ -24,6 +27,7 @@ class Labels(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
+        self.filename = None
         self.chan_name = None  # None when dataset is not loaded
 
         self.create()
@@ -67,17 +71,22 @@ class Labels(QWidget):
 
         self.setEnabled(False)
 
-    def update(self, param):
+    def update(self, checked=False, labels=None, custom_labels=None):
         """Use this function when we make changes to the list of labels or when
         we load a new dataset.
 
         Parameters
         ----------
-        param : list of str or bool
+        checked : bool
+            argument from clicked.connect
+        labels : list of str
+            list of labels in the dataset (default)
+        custom_labels : list of str
+            list of labels from a file
         """
-        if isinstance(param, list):  # it was called when opening dataset
+        if labels is not None:
             self.setEnabled(True)
-            self.chan_name = param
+            self.chan_name = labels
 
         self.table.blockSignals(True)
         self.table.clearContents()
@@ -86,9 +95,16 @@ class Labels(QWidget):
         for i, label in enumerate(self.chan_name):
             old_label = QTableWidgetItem(label)
             old_label.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-            new_label = QTableWidgetItem(label)
+            
+            if custom_labels is not None and i < len(custom_labels) and custom_labels[i]:  # it's not empty string or None
+                label_txt = custom_labels[i]
+            else:
+                label_txt = label
+            new_label = QTableWidgetItem(label_txt)
+            
             self.table.setItem(i, 0, old_label)
             self.table.setItem(i, 1, new_label)
+            
         self.table.blockSignals(False)
 
     def check_labels(self):
@@ -111,8 +127,32 @@ class Labels(QWidget):
                  self.table.item(i, 1).setBackground(QColor('white'))
         self.table.blockSignals(False)
 
-    def load_labels(self):
-        pass
+    def load_labels(self, checked=False, test_name=None):
+        if self.filename is not None:
+            filename = self.filename
+        elif self.parent.info.filename is not None:
+            filename = self.parent.info.filename
+        else:
+            filename = None
+
+        if test_name:
+            filename = test_name
+        else:
+            filename, _ = QFileDialog.getOpenFileName(self,
+                                                      'Open Labels',
+                                                      filename.parent,
+                                                      'Comma-separated values (*.csv);; Text file (*.txt);; All Files(*.*)')
+        if filename == '':
+            return
+
+        self.filename = Path(filename)
+            
+        with self.filename.open() as f:
+            text = f.read()
+
+        labels = split(';|,|\t|\n| ',text)
+        labels  = [label.strip() for label in labels]
+        self.update(custom_labels=labels)
 
     def save_labels(self):
         pass

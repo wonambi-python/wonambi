@@ -247,7 +247,7 @@ class Info(QWidget):
 
         self.display_dataset()
         self.parent.overview.update()
-        self.parent.labels.update(self.dataset.header['chan_name'])
+        self.parent.labels.update(labels=self.dataset.header['chan_name'])
 
         try:
             self.markers = self.dataset.read_markers()
