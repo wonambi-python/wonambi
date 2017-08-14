@@ -62,7 +62,7 @@ def test_widget_labels(qtbot):
     
     labels_file = SAMPLE_PATH / 'labels_file.csv'
     with labels_file.open('w') as f:
-        f.write('chan1, chan2\t chan3;,chan4')
+        f.write('newchan1, newchan2\t newchan3;\nnewchan5')
         
     w.labels.load_labels(test_name=str(labels_file))
     w.labels.grab().save(str(OUTPUT_PATH / 'labels_07_loaded.png'))

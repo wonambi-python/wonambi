@@ -8,6 +8,7 @@ from PyQt5.QtGui import (QColor,
                          )
 
 from PyQt5.QtWidgets import (QAbstractItemView,
+                             QFileDialog,
                              QHBoxLayout,
                              QPushButton,
                              QVBoxLayout,
@@ -131,7 +132,7 @@ class Labels(QWidget):
         if self.filename is not None:
             filename = self.filename
         elif self.parent.info.filename is not None:
-            filename = self.parent.info.filename
+            filename = Path(self.parent.info.filename)
         else:
             filename = None
 
@@ -140,7 +141,7 @@ class Labels(QWidget):
         else:
             filename, _ = QFileDialog.getOpenFileName(self,
                                                       'Open Labels',
-                                                      filename.parent,
+                                                      str(filename.parent),
                                                       'Comma-separated values (*.csv);; Text file (*.txt);; All Files(*.*)')
         if filename == '':
             return

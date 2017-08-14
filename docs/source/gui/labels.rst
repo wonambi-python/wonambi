@@ -31,4 +31,22 @@ Note the updated labels:
 
 .. image:: images/labels_05_traces.png
 
+Load Labels from File
+---------------------
 
+You can also load the list of labels from a file on a disk. 
+It should be a simple text file, where the labels are separated by either commas (comma-separated values), tabs, semicolon, new lines.
+F.e.::
+
+    newchan01, newchan02, newchan03,, newchan05
+
+Note the double commas, meaning that channel 4 won't be modified.
+
+To import the labels, click on `load`:
+
+.. image:: images/labels_06_load_button.png
+
+And after selecting the file, you should see the changes in the list on the right.
+You can modify the labels further, and click `apply` to make the changes effective.
+
+.. image:: images/labels_07_loaded.png
