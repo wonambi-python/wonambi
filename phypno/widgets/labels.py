@@ -151,7 +151,7 @@ class Labels(QWidget):
         with self.filename.open() as f:
             text = f.read()
 
-        labels = split(';|,|\t|\n| ',text)
+        labels = split(', |,|; |;|\t|\n| ',text)
         labels  = [label.strip() for label in labels]
         self.update(custom_labels=labels)
 
