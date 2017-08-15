@@ -121,7 +121,7 @@ def math(data, operator=None, operator_name=None, axis=None):
                 if axis is None:
                     raise TypeError('You need to specify an axis if you '
                                     'use ' + one_operator.__name__ +
-                                    '(which applies to an axis)')
+                                    ' (which applies to an axis)')
 
             if 'keepdims' in args or one_operator in NOKEEPDIM:
                 keepdims = False
@@ -137,6 +137,7 @@ def math(data, operator=None, operator_name=None, axis=None):
     if axis is not None:
         idx_axis = data.index_of(axis)
 
+    first_op = True
     for op in operations:
         lg.info('running operator: ' + op['name'])
         func = op['func']
@@ -145,21 +146,33 @@ def math(data, operator=None, operator_name=None, axis=None):
             func = lambda x, axis: mode(x, axis=axis)[0]
 
         for i in range(output.number_of('trial')):
+            
+            # don't copy original data, but use data if it's the first operation
+            if first_op:
+                x = data(trial=i)
+            else:
+                x = output(trial=i)
+            
             if op['on_axis']:
+                lg.debug('running ' + op['name'] + ' on ' + str(idx_axis))
+               
                 try:
-                    x = data(trial=i)
                     if func == diff:
                         lg.debug('Diff has one-point of zero padding')
                         x = _pad_one_axis_one_value(x, idx_axis)
-
                     output.data[i] = func(x, axis=idx_axis)
+
                 except IndexError:
                     raise ValueError('The axis ' + axis + ' does not '
                                      'exist in [' +
                                      ', '.join(list(data.axis.keys())) + ']')
-            else:
-                output.data[i] = func(data(trial=i))
 
+            else:
+                lg.debug('running ' + op['name'] + ' on each datapoint')
+                output.data[i] = func(x)
+
+        first_op = False 
+        
         if op['on_axis'] and not op['keepdims']:
             del output.axis[axis]
 

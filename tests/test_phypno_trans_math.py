@@ -54,12 +54,13 @@ def test_math_operator_name_tuple():
 
 def test_math_operator_name_tuple_axis():
 
-    math(data, operator_name=('square', 'mean', 'sqrt'), axis='time')
+    data1 = math(data, operator_name=('square', 'mean', 'sqrt'), axis='time')
+    assert data1.data[0].shape == (data.number_of('chan')[0], )
 
 
 def test_math_twice_on_same_axis():
 
-    with raises(KeyError):
+    with raises(ValueError):
         math(data, operator_name=('mean', 'std'), axis='time')
 
 

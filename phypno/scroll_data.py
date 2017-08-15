@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
             self.restoreGeometry(window_geometry)
         window_state = settings.value('window/state')
         if window_state is not None:
-            self.restoreState(window_state, float(__version__))
+            self.restoreState(window_state)
 
         self.show()
 
@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
         keep_recent_datasets(max_dataset_history, self.info)
 
         settings.setValue('window/geometry', self.saveGeometry())
-        settings.setValue('window/state', self.saveState(float(__version__)))
+        settings.setValue('window/state', self.saveState())
 
         event.accept()
 

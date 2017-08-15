@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 20
 ----------
+- **20.07**: BUGFIX in maths when multiple operators are used
 - **20.06**: edit labels in gui (with tests and doc)
 - **20.05**: create gui images with pytest for documentation
 - **20.04**: use gt-pages and travis instead of readthedocs
