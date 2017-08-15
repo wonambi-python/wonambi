@@ -44,8 +44,8 @@ Status
 .. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
     :target: https://travis-ci.org/gpiantoni/phypno
 
-.. image:: https://coveralls.io/repos/github/gpiantoni/phypno/badge.svg?branch=master
-    :target: https://coveralls.io/github/gpiantoni/phypno?branch=master
+.. image:: https://codecov.io/gh/gpiantoni/phypno/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/gpiantoni/phypno
 
 License
 -------
