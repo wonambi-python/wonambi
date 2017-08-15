@@ -24,6 +24,7 @@ tag:
 	git amend
 	git tag -a v$(VERSION) -m "$(COMMENT)"
 	git push origin --tags
+	git push origin master -f
 
 sdist:
 	python setup.py sdist upload
@@ -33,7 +34,7 @@ release: tag sdist
 
 # apidoc is now run inside sphinx-build
 html:
-	sphinx-build -T  -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	sphinx-build -T -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

@@ -674,14 +674,13 @@ def _read_stc(stc_file):
         - next_segment : Sample frequency in Hertz
         - final : Number of channels stored
         - padding : Padding
-
     stamps : ndarray of dtype
         - segment_name : Name of ERD / ETC file segment
         - start_stamp : First sample stamp that is found in the ERD / ETC pair
         - end_stamp : Last sample stamp that is still found in the ERD / ETC
-        pair
+          pair
         - sample_num : Number of samples actually being recorded (gaps in the
-        data are not included in this number)
+          data are not included in this number)
         - sample_span : Number of samples in that .erd file
 
     Notes

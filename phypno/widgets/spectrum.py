@@ -57,7 +57,7 @@ class ConfigSpectrum(Config):
 class Spectrum(QWidget):
     """Plot the power spectrum for a specified channel.
 
-    TODO: Attributes
+    Attributes
     ----------
     parent : instance of QMainWindow
         the main window.

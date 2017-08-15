@@ -37,8 +37,11 @@ class Labels(QWidget):
 
         self.idx_load = QPushButton('Load')
         self.idx_load.clicked.connect(self.load_labels)
+        self.idx_load.setToolTip('Load file with a list of channels (separated by , or ; or tabs or spaces).')
         self.idx_save = QPushButton('Save')
         self.idx_save.clicked.connect(self.save_labels)
+        self.idx_save.setEnabled(False)
+
         # cancel is equal to setting labels to what they were
         self.idx_cancel = QPushButton('Cancel')
         self.idx_cancel.clicked.connect(self.update)
@@ -96,16 +99,16 @@ class Labels(QWidget):
         for i, label in enumerate(self.chan_name):
             old_label = QTableWidgetItem(label)
             old_label.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-            
+
             if custom_labels is not None and i < len(custom_labels) and custom_labels[i]:  # it's not empty string or None
                 label_txt = custom_labels[i]
             else:
                 label_txt = label
             new_label = QTableWidgetItem(label_txt)
-            
+
             self.table.setItem(i, 0, old_label)
             self.table.setItem(i, 1, new_label)
-            
+
         self.table.blockSignals(False)
 
     def check_labels(self):
@@ -147,7 +150,7 @@ class Labels(QWidget):
             return
 
         self.filename = Path(filename)
-            
+
         with self.filename.open() as f:
             text = f.read()
 
@@ -156,6 +159,12 @@ class Labels(QWidget):
         self.update(custom_labels=labels)
 
     def save_labels(self):
+        """Save labels modified by the user.
+
+        TODO
+        ----
+        Save labels modified by the user
+        """
         pass
 
     def apply(self):
