@@ -70,7 +70,8 @@ def run_apidoc(_):
     from sphinx.apidoc import main
     output_path = join(cur_dir, 'api')
     # here use paths relative to docs/source
-    main(['', '-f', '-e', '--module-first', '-o', output_path, '../../phypno'])
+    main(['', '-f', '-e', '--module-first', '-o', output_path, '../../phypno',
+          '../../phypno/viz'])
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
