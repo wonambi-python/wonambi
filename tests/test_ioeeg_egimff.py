@@ -1,7 +1,7 @@
 from numpy import isnan
 from numpy.testing import assert_array_almost_equal
 
-from phypno import Dataset
+from wonambi import Dataset
 
 from .utils import IO_PATH
 

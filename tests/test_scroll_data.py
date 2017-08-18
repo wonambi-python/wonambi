@@ -1,6 +1,6 @@
-from phypno.scroll_data import MainWindow
+from wonambi.scroll_data import MainWindow
 
-from .test_phypno_ioeeg_bci2000 import bci2000_file
+from .test_ioeeg_bci2000 import bci2000_file
 
 from .utils import OUTPUT_PATH
 

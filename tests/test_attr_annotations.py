@@ -1,5 +1,5 @@
-from phypno import Dataset
-from phypno.attr import Annotations, create_empty_annotations
+from wonambi import Dataset
+from wonambi.attr import Annotations, create_empty_annotations
 
 from .utils import SAMPLE_PATH, IO_PATH
 

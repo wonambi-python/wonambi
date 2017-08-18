@@ -3,8 +3,8 @@ from numpy import array
 from numpy.testing import assert_array_equal
 from pytest import raises
 
-from phypno.attr import Freesurfer, Surf
-from phypno.attr.anat import import_freesurfer_LUT
+from wonambi.attr import Freesurfer, Surf
+from wonambi.attr.anat import import_freesurfer_LUT
 
 from .utils import FREESURFER_HOME
 

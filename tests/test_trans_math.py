@@ -2,8 +2,8 @@ from numpy import power, mean, nanmax, std
 from numpy.testing import assert_array_equal
 from pytest import raises
 
-from phypno.trans import math
-from phypno.utils import create_data
+from wonambi.trans import math
+from wonambi.utils import create_data
 
 
 data = create_data(n_trial=10)

@@ -1,4 +1,4 @@
-from phypno import Dataset
+from wonambi import Dataset
 
 from .utils import DOWNLOADS_PATH
 

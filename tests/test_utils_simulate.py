@@ -1,9 +1,11 @@
 from pytest import raises
-from phypno.utils import create_data
+from wonambi.utils import create_data
+
 
 def test_import():
-    import phypno
-    print(phypno)
+    import wonambi
+    print(wonambi)
+
 
 def test_simulate_01():
     data = create_data()
@@ -12,9 +14,11 @@ def test_simulate_01():
     assert data.data[0].shape[0] == len(data.axis['chan'][0])
     assert data.data[0].shape[1] == len(data.axis['time'][0])
 
+
 def test_simulate_02():
     with raises(ValueError):
         create_data(datatype='xxx')
+
 
 def test_simulate_03():
     N_TRIAL = 10

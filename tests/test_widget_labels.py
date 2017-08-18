@@ -1,9 +1,9 @@
-from phypno.scroll_data import MainWindow
+from wonambi.scroll_data import MainWindow
 
-from .test_phypno_scroll_data import (gui_file,
-                                      channel_make_group,
-                                      channel_apply,
-                                      )
+from .test_scroll_data import (gui_file,
+                               channel_make_group,
+                               channel_apply,
+                               )
 
 from .utils import OUTPUT_PATH, SAMPLE_PATH
 

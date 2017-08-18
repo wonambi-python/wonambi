@@ -1,4 +1,4 @@
-from phypno.utils import create_data
+from wonambi.utils import create_data
 from pickle import load, dump
 from tempfile import NamedTemporaryFile
 from numpy.testing import assert_array_equal
