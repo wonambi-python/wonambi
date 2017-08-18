@@ -16,7 +16,7 @@ Install phypno by running:
 
     pip install wonambi
 
-See `Installation for details <http://gpiantoni.github.io/phypno/installation.html>`_
+See `Installation for details <http://wonambi-python.github.io/wonambi/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
@@ -24,11 +24,11 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
 Documentation
 -------------
-See `Documentation <http://gpiantoni.github.io/phypno>`_
+See `Documentation <http://wonambi-python.github.io/wonambi>`_
 
 Change Log
 ----------
-See `Change Log <http://gpiantoni.github.io/phypno/changelog.html>`_
+See `Change Log <http://wonambi-python.github.io/wonambi/changelog.html>`_
 
 Requirements
 ------------
@@ -41,11 +41,11 @@ Requirements
 
 Status
 ------
-.. image:: https://travis-ci.org/gpiantoni/phypno.svg?branch=master
-    :target: https://travis-ci.org/gpiantoni/phypno
+.. image:: https://travis-ci.org/wonambi-python/wonambi.svg?branch=master
+    :target: https://travis-ci.org/wonambi-python/wonambi
 
-.. image:: https://codecov.io/gh/gpiantoni/phypno/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/gpiantoni/phypno
+.. image:: https://codecov.io/gh/wonambi-python/wonambi/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/wonambi-python/wonambi
 
 License
 -------
