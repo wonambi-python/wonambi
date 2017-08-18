@@ -1,5 +1,5 @@
-Phypno
-======
+WONAMBI
+=======
 Package to analysis EEG, ECoG and other electrophysiology formats.
 It allows for visualization of the results and for a GUI that can be used to score sleep stages.
 
@@ -14,13 +14,13 @@ Installation
 ------------
 Install phypno by running:
 
-    pip install phypno
+    pip install wonambi
 
 See `Installation for details <http://gpiantoni.github.io/phypno/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
-    scroll_data
+    wonambi
 
 Documentation
 -------------

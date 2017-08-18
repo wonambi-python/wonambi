@@ -10,7 +10,7 @@ now = datetime.now()
 # so that it's consistent between read the docs and local
 cur_dir = abspath(dirname(__file__))
 
-import phypno
+import wonambi
 
 # -- General configuration ------------------------------------------------
 extensions = [
@@ -40,12 +40,12 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'phypno'
-copyright = '2013-{}, Gio Piantoni'.format(now.year)
-author = 'Gio Piantoni'
+project = 'wonambi'
+author = "Gio Piantoni / Jordan O'Byrne"
+copyright = "2013-{}, ".format(now.year) + author
 
 # The short X.Y version.
-version = phypno.__version__
+version = wonambi.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -62,7 +62,7 @@ html_theme = 'sphinx_rtd_theme'
 html_show_sphinx = False
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'phypnodoc'
+htmlhelp_basename = 'wonambidoc'
 
 
 def run_apidoc(_):
@@ -70,8 +70,8 @@ def run_apidoc(_):
     from sphinx.apidoc import main
     output_path = join(cur_dir, 'api')
     # here use paths relative to docs/source
-    main(['', '-f', '-e', '--module-first', '-o', output_path, '../../phypno',
-          '../../phypno/viz'])
+    main(['', '-f', '-e', '--module-first', '-o', output_path, '../../wonambi',
+          '../../wonambi/viz'])
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)

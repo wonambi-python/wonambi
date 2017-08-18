@@ -175,7 +175,7 @@ def write_fieldtrip(data, filename):
                'label': data.axis['chan'][0].astype('O'),
                'trial': trial,
                'time': time,
-               'cfg': 'Converted from phypno on ' + str(datetime.now()),
+               'cfg': 'Converted from wonambi on ' + str(datetime.now()),
                }
 
     savemat(filename, {VAR: ft_data})

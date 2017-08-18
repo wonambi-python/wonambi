@@ -170,7 +170,7 @@ class Channels():
 
     Attributes
     ----------
-    chan : list of instance of phypno.attr.chan.Chan
+    chan : list of instance of wonambi.attr.chan.Chan
         list of channels
 
     Raises
@@ -355,9 +355,9 @@ def assign_region_to_channels(channels, anat, parc_type='aparc', max_approx=3,
 
     Parameters
     ----------
-    channels : instance of phypno.attr.chan.Channels
+    channels : instance of wonambi.attr.chan.Channels
         channels to assign regions to
-    anat : instance of phypno.attr.anat.Freesurfer
+    anat : instance of wonambi.attr.anat.Freesurfer
         anatomical information taken from freesurfer.
     parc_type : str
         'aparc', 'aparc.a2009s', 'BA', 'BA.thresh', or 'aparc.DKTatlas40'
@@ -372,7 +372,7 @@ def assign_region_to_channels(channels, anat, parc_type='aparc', max_approx=3,
 
     Returns
     -------
-    instance of phypno.attr.chan.Channels
+    instance of wonambi.attr.chan.Channels
         same instance as before, now Chan have attr 'region'
     """
     for one_chan in channels.chan:
@@ -390,9 +390,9 @@ def find_chan_in_region(channels, anat, region_name):
 
     Parameters
     ----------
-    channels : instance of phypno.attr.chan.Channels
+    channels : instance of wonambi.attr.chan.Channels
         channels, that have locations
-    anat : instance of phypno.attr.anat.Freesurfer
+    anat : instance of wonambi.attr.anat.Freesurfer
         anatomical information taken from freesurfer.
     region_name : str
         the name of the region, according to FreeSurferColorLUT.txt

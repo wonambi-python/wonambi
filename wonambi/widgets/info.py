@@ -27,7 +27,7 @@ from .utils import (short_strings, ICON, keep_recent_datasets,
                     choose_file_or_dir)
 
 lg = getLogger(__name__)
-settings = QSettings("phypno", "scroll_data")
+settings = QSettings("wonambi", "wonambi")
 
 
 class Info(QWidget):
@@ -39,7 +39,7 @@ class Info(QWidget):
         the main window.
     filename : str
         the full path of the file.
-    dataset : instance of phypno.Dataset
+    dataset : instance of wonambi.Dataset
         the dataset already read in.
     markers : list
         list of the markers in the dataset

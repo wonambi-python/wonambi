@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (QCheckBox,
 
 lg = getLogger(__name__)
 
-settings = QSettings("phypno", "scroll_data")
+settings = QSettings("wonambi", "scroll_data")
 
 
 # DO NOT DUPLICATE NAMES

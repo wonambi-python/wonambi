@@ -279,7 +279,7 @@ class Data:
 
         Examples
         --------
-        >>> from phypno.trans import math
+        >>> from wonambi.trans import math
         >>> for one_trial in iter(data):
         >>>     one_mean = math(one_trial, operator_name='mean', axis='time')
         >>>     print(one_mean.data[0])
@@ -352,14 +352,14 @@ class Data:
         filename : path to file
             file to write
         export_format : str, optional
-            supported export format is currently FieldTrip, EDF, FIFF, Phypno
+            supported export format is currently FieldTrip, EDF, FIFF, Wonambi
 
         Notes
         -----
         EDF takes an optional argument "physical_max", see write_edf.
 
-        Phypno takes an optional argument "subj_id", see write_phypno.
-        Phypno format creates two files, one .phy with the dataset info as json
+        wonambi takes an optional argument "subj_id", see write_wonambi.
+        wonambi format creates two files, one .phy with the dataset info as json
         file and one .dat with the memmap recordings.
         """
         export_format = export_format.lower()
@@ -376,9 +376,9 @@ class Data:
             from .ioeeg import write_mnefiff
             write_mnefiff(self, filename)
 
-        elif export_format == 'phypno':
-            from .ioeeg import write_phypno
-            write_phypno(self, filename, **options)
+        elif export_format == 'wonambi':
+            from .ioeeg import write_wonambi
+            write_wonambi(self, filename, **options)
 
         else:
             raise ValueError('Cannot export to ' + export_format)

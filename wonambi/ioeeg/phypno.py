@@ -6,8 +6,8 @@ from pathlib import Path
 from numpy import c_, empty, float64, NaN, memmap
 
 
-class Phypno:
-    """Class to read the data in phypno format, which is fast to write and read
+class Wonambi:
+    """Class to read the data in Wonambi format, which is fast to write and read
 
     Parameters
     ----------
@@ -117,8 +117,8 @@ class Phypno:
         return []
 
 
-def write_phypno(data, filename, subj_id='', dtype='float64'):
-    """Write file in simple phypno format.
+def write_wonambi(data, filename, subj_id='', dtype='float64'):
+    """Write file in simple Wonambi format.
 
     Parameters
     ----------
@@ -133,7 +133,7 @@ def write_phypno(data, filename, subj_id='', dtype='float64'):
 
     Notes
     -----
-    Phypno format creates two files, one .phy with the dataset info as json
+    Wonambi format creates two files, one .phy with the dataset info as json
     file and one .dat with the memmap recordings.
 
     It will happily overwrite any existing file with the same name.

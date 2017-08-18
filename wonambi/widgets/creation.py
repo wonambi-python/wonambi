@@ -123,7 +123,7 @@ def create_actions(MAIN):
     actions['close_wndw'].triggered.connect(MAIN.close)
 
     """ ------ ABOUT ------ """
-    actions['about'] = QAction('About PHYPNO', MAIN)
+    actions['about'] = QAction('About WONAMBI', MAIN)
     actions['about'].triggered.connect(MAIN.about)
 
     actions['aboutqt'] = QAction('About Qt', MAIN)

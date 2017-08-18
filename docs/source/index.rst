@@ -1,4 +1,4 @@
-Documentation of PHYPNO
+Documentation of WONAMBI
 =======================
 
 Contents:
@@ -8,7 +8,7 @@ Contents:
 
    introduction
    installation
-   Modules, classes, functions<api/phypno>
+   Modules, classes, functions<api/wonambi>
    gui/index
    changelog
    todo

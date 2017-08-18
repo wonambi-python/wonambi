@@ -59,7 +59,7 @@ def calc_xyz2surf(surf, xyz, threshold=20, exponent=None, std=None):
 
     Parameters
     ----------
-    surf : instance of phypno.attr.Surf
+    surf : instance of wonambi.attr.Surf
         the surface of only one hemisphere.
     xyz : numpy.ndarray
         nChan x 3 matrix, with the locations in x, y, z.

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QApplication
 
 from logging import getLogger, INFO, StreamHandler, Formatter
 
-lg = getLogger('phypno')
+lg = getLogger('wonambi')
 FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
 DATE_FORMAT = '%H:%M:%S'
 
@@ -30,7 +30,7 @@ from .widgets.creation import (create_menubar, create_toolbar,
 from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
-settings = QSettings("phypno", "scroll_data")
+settings = QSettings("wonambi", "wonambi")
 
 
 class MainWindow(QMainWindow):
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         self.create_toolbar()
 
         self.statusBar()
-        self.setWindowTitle('PHYPNO v' + __version__)
+        self.setWindowTitle('WONAMBI v' + __version__)
 
         window_geometry = settings.value('window/geometry')
         if window_geometry is not None:
@@ -142,16 +142,17 @@ class MainWindow(QMainWindow):
         self.settings.show()
 
     def about(self):
-        s = ('<b>PHYPNO Version {version}</b><br />'
+        s = ('<b>WONAMBI Version {version}</b><br />'
              '<p>You can download the latest version at '
-             '<a href="https://github.com/gpiantoni/phypno">'
-             'https://github.com/gpiantoni/phypno</a> '
+             '<a href="https://github.com/wonambi-python/wonambi">'
+             'https://github.com/wonambi-python/wonambi</a> '
              'or you can upgrade to the latest release with:'
              '</p><p>'
-             '<code>pip install --upgrade phypno</code>'
+             '<code>pip install --upgrade wonambi</code>'
              '</p><p>'
              'Copyright &copy; 2013-{year} '
-             '<a href="http://www.gpiantoni.com">Gio Piantoni</a>'
+             '<a href="http://www.gpiantoni.com">Gio Piantoni</a>, '
+             "Jordan O'Byrne"
              '</p><p>'
              'This program is free software: you can redistribute it '
              'and/or modify it under the terms of the GNU General Public '
@@ -170,8 +171,8 @@ class MainWindow(QMainWindow):
              '</p><p>'
              'Other licenses available, contact the author'
              '</p>')
-        QMessageBox.about(self, 'PHYPNO', s.format(version=__version__,
-                                                   year=now.year))
+        QMessageBox.about(self, 'WONAMBI', s.format(version=__version__,
+                                                    year=now.year))
 
     def closeEvent(self, event):
         """save the name of the last open dataset."""

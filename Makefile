@@ -1,6 +1,6 @@
 PHONY = help release sdist upload clean html test
 
-# Makefile for phypno upload and documentation
+# Makefile for wonambi upload and documentation
 
 DOCSDIR       = docs
 BUILDDIR      = $(DOCSDIR)/build
@@ -20,7 +20,7 @@ help:
 	@echo "  clean      to clean the whole directory"
 
 tag:
-	echo $(VERSION) > phypno/VERSION
+	echo $(VERSION) > wonambi/VERSION
 	git amend
 	git tag -a v$(VERSION) -m "$(COMMENT)"
 	git push origin --tags
@@ -39,7 +39,7 @@ html:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 test:
-	pytest --cov=phypno --cov-report html tests
+	pytest --cov=wonambi --cov-report html tests
 
 clean:
 	rm -fr htmlcov

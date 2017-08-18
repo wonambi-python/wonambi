@@ -8,7 +8,7 @@ from numpy import (absolute, arange, argmax, asarray, cos, diff, exp, empty,
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram)
 
-from phypno.graphoelement import Spindles
+from wonambi.graphoelement import Spindles
 
 lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50

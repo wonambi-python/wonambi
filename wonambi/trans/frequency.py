@@ -148,7 +148,7 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     The data in ChanTimeFreq are complex and they should stay that way. You
     can also get the magnitude or power the easy way using Math.
 
-    >>> from phypno.trans import math, timefreq
+    >>> from wonambi.trans import math, timefreq
     >>> tf = timefreq(data, foi=(8, 10))
     >>> tf_abs = math(tf, operator_name='abs')
     >>> tf_abs.data[0][0, 0, 0]

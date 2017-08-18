@@ -1,12 +1,12 @@
 Installation
 ============
-phypno is pure python, so it can be installed on every platform if you have the correct dependencies, just run:
+wonambi is pure python, so it can be installed on every platform if you have the correct dependencies, just run:
 
-``pip install phypno``
+``pip install wonambi``
 
 and to run it:
 
-``scroll_data``
+``wonambi``
 
 To install the correct dependencies, follow the platform-specific instructions below.
 

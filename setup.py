@@ -3,20 +3,20 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'phypno', 'VERSION')) as f:
+with open(path.join(here, 'wonambi', 'VERSION')) as f:
     VERSION = f.read().strip('\n')  # editors love to add newline
 
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='phypno',
+    name='wonambi',
     version=VERSION,
     description='Tools for EEG, ECoG, iEEG, especially for sleep',
     long_description=long_description,
-    url='https://github.com/gpiantoni/phypno',
-    author='Gio Piantoni',
-    author_email='phypno@gpiantoni.com',
+    url='https://github.com/wonambi-python/wonambi',
+    author="Gio Piantoni / Jordan O'Byrne",
+    author_email='wonambi@gpiantoni.com',
     license='GPLv3',
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -35,24 +35,23 @@ setup(
     packages=find_packages(exclude=('test', )),
     install_requires=['numpy', 'scipy'],
     extras_require={
-        'gui': ['scipy', 'pyqt5'],
+        'gui': ['pyqt5',],
         'viz': ['plotly', 'vispy'],
-        'all': ['scipy',
-                'mne',
+        'all': [ 'mne',
                 'nibabel',
                 'python-vlc',  # for videos, to avoid problems with backends
                 'request',  # to read ieeg.org dataset
                 ]
     },
     package_data={
-        'phypno': ['widgets/icons/oxygen/*.png',
+        'wonambi': ['widgets/icons/oxygen/*.png',
                    'VERSION',
                    ],
     },
 
     entry_points={
         'console_scripts': [
-            'scroll_data=phypno.scroll_data:main',
+            'wonambi=wonambi.scroll_data:main',
         ],
     },
 )

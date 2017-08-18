@@ -9,13 +9,13 @@ from pathlib import Path
 from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
-                    Moberg, Phypno, OpBox, Micromed, BCI2000)
+                    Moberg, Wonambi, OpBox, Micromed, BCI2000)
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
 
 
-lg = getLogger('phypno')
+lg = getLogger('wonambi')
 
 
 def _convert_time_to_sample(abs_time, dataset):
@@ -27,7 +27,7 @@ def _convert_time_to_sample(abs_time, dataset):
         if it's int or float, it's assumed it's s;
         if it's timedelta, it's assumed from the start of the recording;
         if it's datetime, it's assumed it's absolute time.
-    dataset : instance of phypno.Dataset
+    dataset : instance of wonambi.Dataset
         dataset to get sampling frequency and start time
 
     Returns
@@ -79,7 +79,7 @@ def detect_format(filename, server=None):
                                          str(filename))
         else:
             if filename.suffix == '.phy':
-                return Phypno
+                return Wonambi
 
             if filename.suffix.lower() == '.trc':
                 return Micromed
@@ -132,7 +132,7 @@ class Dataset:
     filename : str or Path
         name of the file
     IOClass : class
-        one of the classes of phypno.ioeeg
+        one of the classes of wonambi.ioeeg
     server : str
         remote repository ('ieeg.org')
 

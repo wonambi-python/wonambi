@@ -42,7 +42,7 @@ class Viz3(Viz):
 
         Parameters
         ----------
-        surf : instance of phypno.attr.anat.Surf
+        surf : instance of wonambi.attr.anat.Surf
             surface to be plotted
         color : tuple or ndarray, optional
             4-element tuple, representing RGB and alpha, between 0 and 1

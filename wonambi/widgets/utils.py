@@ -53,7 +53,7 @@ ICON = {'open_rec': join(oxy_path, 'document-open.png'),
         'del_eventtype': join(oxy_path, 'edit-table-delete-column.png'),
         }
 
-settings = QSettings("phypno", "scroll_data")
+settings = QSettings("wonambi", "wonambi")
 
 
 class Path(QPainterPath):
