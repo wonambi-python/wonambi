@@ -46,7 +46,7 @@ before_script:
   - "export DISPLAY=:99.0"
 
 script:
- - pytest --cov=phypno tests/
+ - pytest --cov=wonambi tests/
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 
 after_success:
@@ -58,9 +58,9 @@ notifications:
 deploy:
  - provider: pages
    skip_cleanup: true
-   target_branch : gh-pages
+   target_branch : master
    local_dir : $DOCS/build/html
-   public_repo : phypno
+   public_repo : wonambi.github.io
    github_token : $GITHUB_TOKEN
  - provider: pypi
    user: $PYPI_USER
