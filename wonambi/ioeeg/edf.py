@@ -1,7 +1,6 @@
 """Module reads and writes header and data for EDF data.
 """
 from logging import getLogger
-lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,6 +20,8 @@ from numpy import (abs,
                    )
 
 from .utils import _select_blocks
+
+lg = getLogger(__name__)
 
 EDF_FORMAT = 'int16'  # by definition
 edf_iinfo = iinfo(EDF_FORMAT)
@@ -42,8 +43,8 @@ class Edf:
 
     Attributes
     ----------
-    h : dict
-        disorganized header information
+    hdr : dict
+        header taken from EDF file
     """
     def __init__(self, edffile):
         self.filename = Path(edffile)
@@ -133,13 +134,13 @@ class Edf:
             self.i_annot = self.hdr['label'].index(ANNOT_NAME)
         except ValueError:
             self.i_annot = None
-        
+
         self.smp_in_blk = sum(self.hdr['n_samples_per_record'])
-        
+
         self.max_smp = max(self.hdr['n_samples_per_record'])
         n_blocks = self.hdr['n_records']
         self.blocks = ones(n_blocks, dtype='int') * self.max_smp
-        
+
         self.dig_min = asarray(self.hdr['digital_min'])
         self.phys_min = asarray(self.hdr['physical_min'])
         phys_range = asarray(self.hdr['physical_max']) - self.phys_min
@@ -183,7 +184,7 @@ class Edf:
 
         with self.filename.open('rb') as f:
 
-            for i_dat, blk, i_blk in  _select_blocks(self.blocks, begsam, endsam):
+            for i_dat, blk, i_blk in _select_blocks(self.blocks, begsam, endsam):
                 dat_in_rec = self._read_record(f, blk, chan)
                 dat[:, i_dat[0]:i_dat[1]] = dat_in_rec[:, i_blk[0]:i_blk[1]]
 
@@ -215,10 +216,10 @@ class Edf:
         i_ch_in_dat = 0
         for i_ch in chans:
             offset, n_smp_per_chan = self._offset(blk, i_ch)
-            
+
             f.seek(offset)
             x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
-            
+
             ratio = int(self.max_smp / n_smp_per_chan)
             dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
             i_ch_in_dat += 1
@@ -230,14 +231,14 @@ class Edf:
         n_smp_per_chan = self.hdr['n_samples_per_record'][i_ch]
         offset_in_blk = self.smp_in_blk * blk + ch_in_rec
         offset = self.hdr['header_n_bytes'] + offset_in_blk * N_BYTES
-        
-        return offset, n_smp_per_chan    
-    
+
+        return offset, n_smp_per_chan
+
     def return_markers(self):
         """"""
         if self.i_annot is None:
             return []
-        
+
         annotations = []
         with self.filename.open('rb') as f:
             for blk in range(self.hdr['n_records']):
@@ -252,10 +253,10 @@ class Edf:
                      'start': annot['onset'],
                      'end': annot['onset'] + annot['dur'],
                      'chan': None,
-                    }
+                     }
                 markers.append(m)
 
-        return markers 
+        return markers
 
 
 def write_edf(data, filename, physical_max=1000):
@@ -345,20 +346,31 @@ def write_edf(data, filename, physical_max=1000):
             i1 = i0 + s_freq
             x = dat[:, i0:i1].flatten(order='C')  # assumes it's ChanTimeData
             f.write(pack('<' + 'h' * l, *x))
-            
 
-def _read_tal(x):
 
+def _read_tal(rawbytes):
+    """Read TAL (Time-stamped Annotations Lists) using regex
+
+    Parameters
+    ----------
+    rawbytes : bytes
+        raw information from file
+
+    Returns
+    -------
+    annotation : list of dict
+        where each dict contains onset, duration, and list with the annotations
+    """
     annotations = []
 
-    for m in finditer(PATTERN, x):
+    for m in finditer(PATTERN, rawbytes):
         d = m.groupdict()
         annot = {'onset': float(d['onset'].decode()),
                  'dur': float(d['duration'].decode()) if d['duration'] else 0.,
                  'annotation': [a.decode() for a in d['annotation'].split(b'\x14') if a],
-                }
+                 }
 
         if annot['annotation']:
             annotations.append(annot)
-            
-    return annotations                
+
+    return annotations
