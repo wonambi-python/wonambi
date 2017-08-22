@@ -31,7 +31,7 @@ before_install:
  - if [ ! -f $DOWNLOADS/test_generator_2_edfplus.zip ]; then
      wget -q -P $DOWNLOADS/ http://www.teuniz.net/edf_bdf_testfiles/test_generator_2_edfplus.zip ;
    fi  
- - unzip $DOWNLOADS/test_generator_2_edfplus.edf test_generator_2.edf -d $TESTS/downloads/
+ - unzip $DOWNLOADS/test_generator_2_edfplus.zip test_generator_2.edf -d $TESTS/downloads/
 
  - if [ ! -f $DOWNLOADS/SC4031E0-PSG.edf ]; then
      wget -q -P $DOWNLOADS/ https://www.physionet.org/pn4/sleep-edfx/SC4031E0-PSG.edf ;
