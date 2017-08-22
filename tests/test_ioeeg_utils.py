@@ -45,13 +45,13 @@ def test_select_block_endsam_after():
 
     
 def test_select_block_endsam_before():
-    with raises(IndexError):
-        dat = _assert_begsam_endsam(-10, -5)
+    with raises(StopIteration):
+        next(_select_blocks(BLOCKS, -10, -5))
     
     
 def test_select_block_endsam_after():   
-    with raises(IndexError):
-        dat = _assert_begsam_endsam(50, 55)
+    with raises(StopIteration):
+        next(_select_blocks(BLOCKS, 50, 55))
     
 
 def _assert_begsam_endsam(begsam, endsam):

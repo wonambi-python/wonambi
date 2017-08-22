@@ -15,13 +15,11 @@ def test_edf_read():
 
 
 def test_edf_before_start_both():
-
     data = d.read_data(begsam=-100, endsam=-10)
     assert isnan(data.data[0][0, 0])    
     
 
 def test_edf_before_start():
-
     data = d.read_data(begsam=-100, endsam=10)
     assert isnan(data.data[0][0, 0])
 

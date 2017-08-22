@@ -24,6 +24,7 @@ from .utils import _select_blocks
 
 EDF_FORMAT = 'int16'  # by definition
 edf_iinfo = iinfo(EDF_FORMAT)
+N_BYTES = edf_iinfo.dtype.itemsize
 DIGITAL_MAX = edf_iinfo.max
 DIGITAL_MIN = -1 * edf_iinfo.max  # so that digital 0 = physical 0
 
@@ -88,12 +89,10 @@ class Edf:
                                  for n in channels]
             hdr['physical_dim'] = [f.read(8).decode('utf-8').strip() for n in
                                    channels]
-            hdr['physical_min'] = asarray([float(f.read(8))
-                                           for n in channels])
-            hdr['physical_max'] = asarray([float(f.read(8))
-                                           for n in channels])
-            hdr['digital_min'] = asarray([float(f.read(8)) for n in channels])
-            hdr['digital_max'] = asarray([float(f.read(8)) for n in channels])
+            hdr['physical_min'] = [float(f.read(8)) for n in channels]
+            hdr['physical_max'] = [float(f.read(8)) for n in channels]
+            hdr['digital_min'] = [float(f.read(8)) for n in channels]
+            hdr['digital_max'] = [float(f.read(8)) for n in channels]
             hdr['prefiltering'] = [f.read(80).decode('utf-8').strip()
                                    for n in channels]
             hdr['n_samples_per_record'] = [int(f.read(8)) for n in channels]
@@ -130,10 +129,10 @@ class Edf:
         self.max_smp = max(self.hdr['n_samples_per_record'])
         self.smp_in_blk = sum(self.hdr['n_samples_per_record'])
 
-        self.dig_min = self.hdr['digital_min']
-        self.phys_min = self.hdr['physical_min']
-        phys_range = self.hdr['physical_max'] - self.hdr['physical_min']
-        dig_range = self.hdr['digital_max'] - self.hdr['digital_min']
+        self.dig_min = asarray(self.hdr['digital_min'])
+        self.phys_min = asarray(self.hdr['physical_min'])
+        phys_range = asarray(self.hdr['physical_max']) - self.phys_min
+        dig_range = asarray(self.hdr['digital_max']) - self.dig_min
         assert all(phys_range > 0)
         assert all(dig_range > 0)
         self.gain = phys_range / dig_range
@@ -173,9 +172,9 @@ class Edf:
             n_smp_per_chan = self.hdr['n_samples_per_record'][i_ch]
             ratio = int(self.max_smp / n_smp_per_chan)
 
-            f.seek(self.hdr['header_n_bytes'] + self.smp_in_blk * blk +
-                    ch_in_rec)
-            x = fromfile(f, count=n_smp_per_chan, dtype='int16')
+            offset = self.smp_in_blk * blk + ch_in_rec
+            f.seek(self.hdr['header_n_bytes'] + offset * N_BYTES)
+            x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
             dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
             i_ch_in_dat += 1
 
@@ -206,9 +205,8 @@ class Edf:
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
 
-        smpl_in_blk = max(self.hdr['n_samples_per_record'])  # we upsample all the signals
         n_blocks = self.hdr['n_records']
-        blocks = ones(n_blocks, dtype='int') * smpl_in_blk
+        blocks = ones(n_blocks, dtype='int') * self.max_smp
 
         with self.filename.open('rb') as f:
 
