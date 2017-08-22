@@ -1,34 +1,31 @@
 """Module reads and writes header and data for EDF data.
-
-Poor man's version of
-https://github.com/breuderink/eegtools/blob/master/eegtools/io/edfplus.py
-
-Values are slightly different from those computed by FieldTrip, however they
-are identical to those computed by Biosig and EDFBrowser. The difference is due
-to the calibration.
-
 """
 from logging import getLogger
 lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
-from math import floor
+from pathlib import Path
 from re import findall
 from struct import pack
 
-from numpy import empty, asarray, fromstring, iinfo, abs, max
+from numpy import (abs,
+                   asarray,
+                   empty,
+                   fromfile,
+                   iinfo,
+                   ones,
+                   max,
+                   NaN,
+                   newaxis,
+                   repeat,
+                   )
+
+from .utils import _select_blocks
 
 EDF_FORMAT = 'int16'  # by definition
 edf_iinfo = iinfo(EDF_FORMAT)
 DIGITAL_MAX = edf_iinfo.max
 DIGITAL_MIN = -1 * edf_iinfo.max  # so that digital 0 = physical 0
-
-
-def _assert_all_the_same(items):
-    """Check that all the items in a list are the same.
-
-    """
-    assert all(items[0] == x for x in items)
 
 
 class Edf:
@@ -43,20 +40,17 @@ class Edf:
     ----------
     h : dict
         disorganized header information
-
     """
-
     def __init__(self, edffile):
-        self.filename = edffile
+        self.filename = Path(edffile)
         self._read_hdr()
 
     def _read_hdr(self):
         """Read header from EDF file.
 
         It only reads the header for internal purposes and adds a hdr.
-
         """
-        with open(self.filename, 'rb') as f:
+        with self.filename.open('rb') as f:
 
             hdr = {}
             assert f.tell() == 0
@@ -71,8 +65,13 @@ class Edf:
                                   f.read(8).decode('utf-8'))]
             (hour, minute, sec) = [int(x) for x in findall('(\d+)',
                                    f.read(8).decode('utf-8'))]
-            hdr['start_time'] = datetime(year + 2000, month, day, hour, minute,
-                                         sec)
+
+            # Y2K: cutoff is 1985
+            if year >= 85:
+                year += 1900
+            else:
+                year += 2000
+            hdr['start_time'] = datetime(year, month, day, hour, minute, sec)
 
             # misc
             hdr['header_n_bytes'] = int(f.read(8))
@@ -122,23 +121,34 @@ class Edf:
         orig : dict
             additional information taken directly from the header
 
+        Notes
+        -----
+        EDF+ accepts multiple frequency rates for different channels. Here, we
+        use only the highest sampling frequency (normally used for EEG and MEG
+        signals), and we UPSAMPLE all the other channels.
         """
+        self.max_smp = max(self.hdr['n_samples_per_record'])
+        self.smp_in_blk = sum(self.hdr['n_samples_per_record'])
+
+        self.dig_min = self.hdr['digital_min']
+        self.phys_min = self.hdr['physical_min']
+        phys_range = self.hdr['physical_max'] - self.hdr['physical_min']
+        dig_range = self.hdr['digital_max'] - self.hdr['digital_min']
+        assert all(phys_range > 0)
+        assert all(dig_range > 0)
+        self.gain = phys_range / dig_range
+
         subj_id = self.hdr['subject_id']
         start_time = self.hdr['start_time']
-        _assert_all_the_same(self.hdr['n_samples_per_record'])
-        s_freq = (self.hdr['n_samples_per_record'][0] /
-                  self.hdr['record_length'])
+        s_freq = self.max_smp / self.hdr['record_length']
         chan_name = self.hdr['label']
-        n_samples = (self.hdr['n_samples_per_record'][0] *
-                     self.hdr['n_records'])
+        n_samples = self.max_smp * self.hdr['n_records']
 
         return subj_id, start_time, s_freq, chan_name, n_samples, self.hdr
 
-    def _read_dat(self, i_chan, begsam, endsam):
-        """Read raw data from a single EDF channel.
 
-        Reads only one channel at the time. Very initial implementation, very
-        simple and probably not very fast
+    def _read_record(self, f, blk, chans):
+        """Read raw data from a single EDF channel.
 
         Parameters
         ----------
@@ -153,50 +163,23 @@ class Edf:
         -------
         numpy.ndarray
             A vector with the data as written on file, in 16-bit precision
-
         """
+        dat_in_rec = empty((len(chans), self.max_smp))
 
-        assert begsam < endsam
+        i_ch_in_dat = 0
+        for i_ch in chans:
+            ch_in_rec = sum(self.hdr['n_samples_per_record'][:i_ch])
 
-        begsam = float(begsam)
-        endsam = float(endsam)
+            n_smp_per_chan = self.hdr['n_samples_per_record'][i_ch]
+            ratio = int(self.max_smp / n_smp_per_chan)
 
-        n_sam_rec = self.hdr['n_samples_per_record']
+            f.seek(self.hdr['header_n_bytes'] + self.smp_in_blk * blk +
+                    ch_in_rec)
+            x = fromfile(f, count=n_smp_per_chan, dtype='int16')
+            dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
+            i_ch_in_dat += 1
 
-        begrec = int(floor(begsam / n_sam_rec[i_chan]))
-        begsam_rec = int(begsam % n_sam_rec[i_chan])
-
-        endrec = int(floor(endsam / n_sam_rec[i_chan]))
-        endsam_rec = int(endsam % n_sam_rec[i_chan])
-
-        dat = empty(shape=(int(endsam) - int(begsam)), dtype='int16')
-        i_dat = 0
-
-        with open(self.filename, 'rb') as f:
-            for rec in range(begrec, endrec + 1):
-                if rec == begrec:
-                    begpos_rec = begsam_rec
-                else:
-                    begpos_rec = 0
-
-                if rec == endrec:
-                    endpos_rec = endsam_rec
-                else:
-                    endpos_rec = n_sam_rec[i_chan]
-
-                begpos = begpos_rec + sum(n_sam_rec) * rec + sum(
-                    n_sam_rec[:i_chan])
-                endpos = endpos_rec + sum(n_sam_rec) * rec + sum(
-                    n_sam_rec[:i_chan])
-
-                f.seek(begpos * 2 + self.hdr['header_n_bytes'])
-                samples = f.read(2 * (endpos - begpos))
-
-                i_dat_end = i_dat + endpos - begpos
-                dat[i_dat:i_dat_end] = fromstring(samples, dtype='<i2')
-                i_dat = i_dat_end
-
-        return dat
+        return dat_in_rec
 
     def return_dat(self, chan, begsam, endsam):
         """Read data from an EDF file.
@@ -217,22 +200,25 @@ class Edf:
         numpy.ndarray
             A 2d matrix, where the first dimension is the channels and the
             second dimension are the samples.
-
         """
-        hdr = self.hdr
-        dig_min = hdr['digital_min']
-        phys_min = hdr['physical_min']
-        phys_range = hdr['physical_max'] - hdr['physical_min']
-        dig_range = hdr['digital_max'] - hdr['digital_min']
-        assert all(phys_range > 0)
-        assert all(dig_range > 0)
-        gain = phys_range / dig_range
+        assert begsam < endsam
 
-        dat = empty(shape=(len(chan), endsam - begsam), dtype='float64')
+        dat = empty((len(chan), endsam - begsam))
+        dat.fill(NaN)
 
-        for i, i_chan in enumerate(chan):
-            d = self._read_dat(i_chan, begsam, endsam).astype('float64')
-            dat[i, :] = (d - dig_min[i_chan]) * gain[i_chan] + phys_min[i_chan]
+        smpl_in_blk = max(self.hdr['n_samples_per_record'])  # we upsample all the signals
+        n_blocks = self.hdr['n_records']
+        blocks = ones(n_blocks, dtype='int') * smpl_in_blk
+
+        with self.filename.open('rb') as f:
+
+            for i_dat, blk, i_blk in  _select_blocks(blocks, begsam, endsam):
+                dat_in_rec = self._read_record(f, blk, chan)
+                dat[:, i_dat[0]:i_dat[1]] = dat_in_rec[:, i_blk[0]:i_blk[1]]
+
+        # calibration
+        dat = ((dat.astype('float64') - self.dig_min[chan, newaxis]) *
+               self.gain[chan, newaxis] + self.phys_min[chan, newaxis])
 
         return dat
 

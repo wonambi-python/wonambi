@@ -103,7 +103,7 @@ def detect_format(filename, server=None):
                     f.seek(192)
                     edf_type = f.read(5)
                     if edf_type == b'EDF+C':
-                        return 'EDF+C'
+                        return Edf
                     elif edf_type == b'EDF+D':
                         return 'EDF+D'
                     else:
