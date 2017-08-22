@@ -48,3 +48,6 @@ AFNI_TTATLAS_DATASET=/usr/share/afni/atlases
 # Suppress warning for missing mpeg output
 AFNI_IMSAVE_WARNINGS=NO
 export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DATASET
+
+# custom code (ctags)
+export PATH=~/tools/bin:$PATH

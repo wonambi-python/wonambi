@@ -15,11 +15,12 @@ Plugin 'vim-pandoc/vim-pandoc'
 Plugin 'vim-pandoc/vim-pandoc-syntax'
 Plugin 'tpope/vim-fugitive'
 
+Plugin 'majutsushi/tagbar'
+Plugin 'ludovicchabant/vim-gutentags'
+
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
 
-Plugin 'ivanov/vim-ipython'
-Plugin 'rosenfeld/conque-term'
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -119,13 +120,25 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 " keep location list small
 let g:syntastic_loc_list_height = 5
-let g:syntastic_python_checkers = ['python', 'pyflakes']
+let g:syntastic_python_checkers = ['python', 'flake8']
 
 " disable several syntastic flake8 errors
 " E302: too long lines
 " E501: 2 spaces before function def
 " E123: indent
 let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123'
+
+" GUTENTAGS:
+let g:gutentags_ctags_tagfile = '.tags'
+
+" TAGBAR:
+nmap <F8> :TagbarToggle<CR>
+
+" TAGBAR: hide the help part at the top
+let g:tagbar_compact = 1
+
+" TAGBAR: show it automatically for supported files
+autocmd VimEnter * nested :call tagbar#autoopen(1)
 
 " FUNCTIONS
 " remove trailing whitespaces
