@@ -5,7 +5,7 @@ lg = getLogger(__name__)
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from re import findall
+from re import findall, finditer
 from struct import pack
 
 from numpy import (abs,
@@ -27,6 +27,9 @@ edf_iinfo = iinfo(EDF_FORMAT)
 N_BYTES = edf_iinfo.dtype.itemsize
 DIGITAL_MAX = edf_iinfo.max
 DIGITAL_MIN = -1 * edf_iinfo.max  # so that digital 0 = physical 0
+
+ANNOT_NAME = 'EDF Annotations'
+PATTERN = b'(?P<onset>[+\-]\d+(?:\.\d*)?)(?:\x15(?P<duration>\d+(?:\.\d*)?))?(\x14(?P<annotation>[^\x00]*))?(?:\x14\x00)'
 
 
 class Edf:
@@ -126,9 +129,17 @@ class Edf:
         use only the highest sampling frequency (normally used for EEG and MEG
         signals), and we UPSAMPLE all the other channels.
         """
-        self.max_smp = max(self.hdr['n_samples_per_record'])
+        try:
+            self.i_annot = self.hdr['label'].index(ANNOT_NAME)
+        except ValueError:
+            self.i_annot = None
+        
         self.smp_in_blk = sum(self.hdr['n_samples_per_record'])
-
+        
+        self.max_smp = max(self.hdr['n_samples_per_record'])
+        n_blocks = self.hdr['n_records']
+        self.blocks = ones(n_blocks, dtype='int') * self.max_smp
+        
         self.dig_min = asarray(self.hdr['digital_min'])
         self.phys_min = asarray(self.hdr['physical_min'])
         phys_range = asarray(self.hdr['physical_max']) - self.phys_min
@@ -140,45 +151,10 @@ class Edf:
         subj_id = self.hdr['subject_id']
         start_time = self.hdr['start_time']
         s_freq = self.max_smp / self.hdr['record_length']
-        chan_name = self.hdr['label']
+        chan_name = [l for l in self.hdr['label'] if l != ANNOT_NAME]
         n_samples = self.max_smp * self.hdr['n_records']
 
         return subj_id, start_time, s_freq, chan_name, n_samples, self.hdr
-
-
-    def _read_record(self, f, blk, chans):
-        """Read raw data from a single EDF channel.
-
-        Parameters
-        ----------
-        i_chan : int
-            index of the channel to read
-        begsam : int
-            index of the first sample
-        endsam : int
-            index of the last sample
-
-        Returns
-        -------
-        numpy.ndarray
-            A vector with the data as written on file, in 16-bit precision
-        """
-        dat_in_rec = empty((len(chans), self.max_smp))
-
-        i_ch_in_dat = 0
-        for i_ch in chans:
-            ch_in_rec = sum(self.hdr['n_samples_per_record'][:i_ch])
-
-            n_smp_per_chan = self.hdr['n_samples_per_record'][i_ch]
-            ratio = int(self.max_smp / n_smp_per_chan)
-
-            offset = self.smp_in_blk * blk + ch_in_rec
-            f.seek(self.hdr['header_n_bytes'] + offset * N_BYTES)
-            x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
-            dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
-            i_ch_in_dat += 1
-
-        return dat_in_rec
 
     def return_dat(self, chan, begsam, endsam):
         """Read data from an EDF file.
@@ -205,12 +181,9 @@ class Edf:
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
 
-        n_blocks = self.hdr['n_records']
-        blocks = ones(n_blocks, dtype='int') * self.max_smp
-
         with self.filename.open('rb') as f:
 
-            for i_dat, blk, i_blk in  _select_blocks(blocks, begsam, endsam):
+            for i_dat, blk, i_blk in  _select_blocks(self.blocks, begsam, endsam):
                 dat_in_rec = self._read_record(f, blk, chan)
                 dat[:, i_dat[0]:i_dat[1]] = dat_in_rec[:, i_blk[0]:i_blk[1]]
 
@@ -220,9 +193,69 @@ class Edf:
 
         return dat
 
+    def _read_record(self, f, blk, chans):
+        """Read raw data from a single EDF channel.
+
+        Parameters
+        ----------
+        i_chan : int
+            index of the channel to read
+        begsam : int
+            index of the first sample
+        endsam : int
+            index of the last sample
+
+        Returns
+        -------
+        numpy.ndarray
+            A vector with the data as written on file, in 16-bit precision
+        """
+        dat_in_rec = empty((len(chans), self.max_smp))
+
+        i_ch_in_dat = 0
+        for i_ch in chans:
+            offset, n_smp_per_chan = self._offset(blk, i_ch)
+            
+            f.seek(offset)
+            x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
+            
+            ratio = int(self.max_smp / n_smp_per_chan)
+            dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
+            i_ch_in_dat += 1
+
+        return dat_in_rec
+
+    def _offset(self, blk, i_ch):
+        ch_in_rec = sum(self.hdr['n_samples_per_record'][:i_ch])
+        n_smp_per_chan = self.hdr['n_samples_per_record'][i_ch]
+        offset_in_blk = self.smp_in_blk * blk + ch_in_rec
+        offset = self.hdr['header_n_bytes'] + offset_in_blk * N_BYTES
+        
+        return offset, n_smp_per_chan    
+    
     def return_markers(self):
         """"""
-        return []
+        if self.i_annot is None:
+            return []
+        
+        annotations = []
+        with self.filename.open('rb') as f:
+            for blk in range(self.hdr['n_records']):
+                offset, n_smp_per_chan = self._offset(blk, self.i_annot)
+                f.seek(offset)
+                annotations.extend(_read_tal(f.read(n_smp_per_chan)))
+
+        markers = []
+        for annot in annotations:
+            for name in annot['annotation']:
+                m = {'name': name,
+                     'start': annot['onset'],
+                     'end': annot['onset'] + annot['dur'],
+                     'chan': None,
+                    }
+                markers.append(m)
+
+        return markers 
 
 
 def write_edf(data, filename, physical_max=1000):
@@ -312,3 +345,20 @@ def write_edf(data, filename, physical_max=1000):
             i1 = i0 + s_freq
             x = dat[:, i0:i1].flatten(order='C')  # assumes it's ChanTimeData
             f.write(pack('<' + 'h' * l, *x))
+            
+
+def _read_tal(x):
+
+    annotations = []
+
+    for m in finditer(PATTERN, x):
+        d = m.groupdict()
+        annot = {'onset': float(d['onset'].decode()),
+                 'dur': float(d['duration'].decode()) if d['duration'] else 0.,
+                 'annotation': [a.decode() for a in d['annotation'].split(b'\x14') if a],
+                }
+
+        if annot['annotation']:
+            annotations.append(annot)
+            
+    return annotations                

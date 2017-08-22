@@ -5,26 +5,34 @@ from wonambi import Dataset
 
 from .utils import DOWNLOADS_PATH
 
-edf_file = DOWNLOADS_PATH / 'SC4031E0-PSG.edf'
+psg_file = DOWNLOADS_PATH / 'SC4031E0-PSG.edf'
+generated_file = DOWNLOADS_PATH / 'test_generator_2.edf'
 
-d = Dataset(edf_file)
+psg = Dataset(psg_file)
+generated = Dataset(generated_file)
 
 
 def test_edf_read():
-    d.read_data(begtime=10, endtime=20)
+    psg.read_data(begtime=10, endtime=20)
+    markers = psg.read_markers()
+    assert len(markers) == 0
 
 
 def test_edf_before_start_both():
-    data = d.read_data(begsam=-100, endsam=-10)
+    data = psg.read_data(begsam=-100, endsam=-10)
     assert isnan(data.data[0][0, 0])    
     
 
 def test_edf_before_start():
-    data = d.read_data(begsam=-100, endsam=10)
+    data = psg.read_data(begsam=-100, endsam=10)
     assert isnan(data.data[0][0, 0])
 
 
 def test_edf_after_end():
-    n_samples = d.header['n_samples']
-    data = d.read_data(begsam=n_samples - 100, endsam=n_samples + 100)
+    n_samples = psg.header['n_samples']
+    data = psg.read_data(begsam=n_samples - 100, endsam=n_samples + 100)
     assert isnan(data.data[0][0, -1])
+
+def test_edf_annot():
+    markers = generated.read_markers()
+    assert len(markers) == 2
