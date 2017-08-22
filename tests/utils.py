@@ -14,6 +14,9 @@ IO_PATH = SAMPLE_PATH / 'io'
 
 DOWNLOADS_PATH = test_path / 'downloads'
 
+EXPORTED_PATH = test_path / 'exported'
+EXPORTED_PATH.mkdir(exist_ok=True)
+
 DOCS_PATH = test_path.parent / 'docs'
 OUTPUT_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
 OUTPUT_PATH.mkdir(exist_ok=True)

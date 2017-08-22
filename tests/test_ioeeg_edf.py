@@ -1,9 +1,10 @@
 from numpy import isnan
-from numpy.testing import assert_array_almost_equal
 
 from wonambi import Dataset
+from wonambi.ioeeg import write_edf
+from wonambi.utils import create_data
 
-from .utils import DOWNLOADS_PATH
+from .utils import DOWNLOADS_PATH, EXPORTED_PATH
 
 psg_file = DOWNLOADS_PATH / 'SC4031E0-PSG.edf'
 generated_file = DOWNLOADS_PATH / 'test_generator_2.edf'
@@ -20,8 +21,8 @@ def test_edf_read():
 
 def test_edf_before_start_both():
     data = psg.read_data(begsam=-100, endsam=-10)
-    assert isnan(data.data[0][0, 0])    
-    
+    assert isnan(data.data[0][0, 0])
+
 
 def test_edf_before_start():
     data = psg.read_data(begsam=-100, endsam=10)
@@ -33,6 +34,13 @@ def test_edf_after_end():
     data = psg.read_data(begsam=n_samples - 100, endsam=n_samples + 100)
     assert isnan(data.data[0][0, -1])
 
+
 def test_edf_annot():
     markers = generated.read_markers()
     assert len(markers) == 2
+
+
+def test_edf_write():
+    data = create_data()
+    write_edf(data, EXPORTED_PATH / 'export.edf')
+
