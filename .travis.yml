@@ -61,7 +61,7 @@ script:
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 
 after_success:
- - codecov
+ - codecov --dump
 
 notifications:
  email: false
