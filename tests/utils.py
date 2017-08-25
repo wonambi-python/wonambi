@@ -18,8 +18,10 @@ EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)
 
 DOCS_PATH = test_path.parent / 'docs'
-OUTPUT_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
-OUTPUT_PATH.mkdir(exist_ok=True)
+GUI_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
+GUI_PATH.mkdir(exist_ok=True)
+VIZ_PATH = DOCS_PATH / 'source' / 'viz' / 'images'
+VIZ_PATH.mkdir(exist_ok=True)
 
 
 def download_sample_data(file_name):
@@ -31,5 +33,6 @@ def download_sample_data(file_name):
 
         with ZipFile(str(file_name)) as zf:
             zf.extractall(test_path)
+
 
 download_sample_data(test_path / 'sample_data.zip')

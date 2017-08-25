@@ -1,5 +1,8 @@
 language: python
 
+python:
+ - "3.6"
+
 cache: 
  - directories:
    - $HOME/downloads
@@ -38,25 +41,22 @@ before_install:
    fi  
  - cp $DOWNLOADS/SC4031E0-PSG.edf $TESTS/downloads/
 
- # install conda
- - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
- - bash miniconda.sh -b -p $HOME/miniconda
- - export PATH="$HOME/miniconda/bin:$PATH"
- - hash -r
- - conda config --set always_yes yes --set changeps1 no
- - conda update -q conda
- - conda create -q -n test-environment numpy scipy pyqt pytest pytest-cov sphinx sphinx_rtd_theme
- - source activate test-environment
- - pip install codecov pytest-qt
- - pip install nibabel mne
 
 install: 
+ # install requirements
+ - pip install numpy scipy pyqt5 pytest pytest-cov sphinx sphinx_rtd_theme
+ - pip install codecov pytest-qt
+ - pip install nibabel mne
+ - pip install git+https://github.com/vispy/vispy
+
  - pip install -e .
 
 before_script:
   - "export DISPLAY=:99.0"
 
 script:
+ - python -c "from PyQt5.QtCore import QT_VERSION_STR; print(QT_VERSION_STR)"
+ - python -c "import vispy; print(vispy.sys_info()); exit()"
  - pytest --cov=wonambi tests/
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 

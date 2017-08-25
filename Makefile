@@ -45,5 +45,6 @@ clean:
 	rm -fr htmlcov
 	rm -rf $(SOURCEDIR)/api
 	rm -fr $(SOURCEDIR)/gui/images/
+	rm -fr $(SOURCEDIR)/viz/images/
 	rm -rf $(BUILDDIR)/*
 

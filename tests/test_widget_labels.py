@@ -5,7 +5,7 @@ from .test_scroll_data import (gui_file,
                                channel_apply,
                                )
 
-from .utils import OUTPUT_PATH, SAMPLE_PATH
+from .utils import GUI_PATH, SAMPLE_PATH
 
 
 def test_widget_labels(qtbot):
@@ -21,21 +21,21 @@ def test_widget_labels(qtbot):
     assert w.labels.isEnabled()
 
     w.labels.table.setStyleSheet("background-color: red;")
-    w.grab().save(str(OUTPUT_PATH / 'labels_01_table.png'))
+    w.grab().save(str(GUI_PATH / 'labels_01_table.png'))
     w.labels.table.setStyleSheet("")
 
     # change label of second channel
     w.labels.table.item(1, 1).setText('newlabel')
-    w.labels.grab().save(str(OUTPUT_PATH / 'labels_02_newlabel.png'))
+    w.labels.grab().save(str(GUI_PATH / 'labels_02_newlabel.png'))
 
     w.labels.table.item(3, 1).setText('newlabel')
-    w.labels.grab().save(str(OUTPUT_PATH / 'labels_03_duplicate.png'))
+    w.labels.grab().save(str(GUI_PATH / 'labels_03_duplicate.png'))
 
     assert not w.labels.idx_apply.isEnabled()
 
     # fix it
     w.labels.table.item(3, 1).setText('correctlabel')
-    w.labels.grab().save(str(OUTPUT_PATH / 'labels_04_correct.png'))
+    w.labels.grab().save(str(GUI_PATH / 'labels_04_correct.png'))
 
     assert w.labels.idx_apply.isEnabled()
 
@@ -52,12 +52,11 @@ def test_widget_labels(qtbot):
 
     channel_make_group(w)
     channel_apply(w)
-    w.grab().save(str(OUTPUT_PATH / 'labels_05_traces.png'))
-
+    w.grab().save(str(GUI_PATH / 'labels_05_traces.png'))
 
     # load data
     w.labels.idx_load.setStyleSheet("background-color: red;")
-    w.labels.grab().save(str(OUTPUT_PATH / 'labels_06_load_button.png'))
+    w.labels.grab().save(str(GUI_PATH / 'labels_06_load_button.png'))
     w.labels.idx_load.setStyleSheet("")
 
     labels_file = SAMPLE_PATH / 'labels_file.csv'
@@ -65,4 +64,4 @@ def test_widget_labels(qtbot):
         f.write('newchan1, newchan2\tnewchan3;\nnewchan5')
 
     w.labels.load_labels(test_name=str(labels_file))
-    w.labels.grab().save(str(OUTPUT_PATH / 'labels_07_loaded.png'))
+    w.labels.grab().save(str(GUI_PATH / 'labels_07_loaded.png'))
