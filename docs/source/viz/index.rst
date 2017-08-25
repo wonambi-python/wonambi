@@ -1,5 +1,5 @@
-Graphical User Interface
-========================
+Visualization
+=============
 
 .. toctree::
 

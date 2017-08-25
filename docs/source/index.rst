@@ -10,6 +10,7 @@ Contents:
    installation
    Modules, classes, functions<api/wonambi>
    gui/index
+   viz/index
    changelog
    todo
 
