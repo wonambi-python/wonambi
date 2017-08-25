@@ -57,7 +57,7 @@ before_script:
 script:
  - python -c "from PyQt5.QtCore import QT_VERSION_STR; print(QT_VERSION_STR)"
  - python -c "import vispy; print(vispy.sys_info()); exit()"
- - pytest --cov=wonambi tests/
+ - pytest tests/
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 
 after_success:
