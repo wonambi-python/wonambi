@@ -44,8 +44,9 @@ before_install:
 
 install: 
  # install requirements
- - pip install numpy scipy pyqt5 pytest pytest-cov sphinx sphinx_rtd_theme
- - pip install codecov pytest-qt
+ - pip install numpy scipy pyqt5 
+ - pip install pytest pytest-cov coveralls pytest-qt
+ - pip install sphinx sphinx_rtd_theme
  - pip install nibabel mne
  - pip install git+https://github.com/vispy/vispy
 
@@ -57,11 +58,11 @@ before_script:
 script:
  - python -c "from PyQt5.QtCore import QT_VERSION_STR; print(QT_VERSION_STR)"
  - python -c "import vispy; print(vispy.sys_info()); exit()"
- - pytest tests/
+ - pytest --cov=wonambi tests/
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 
 after_success:
- - codecov
+ - coveralls
 
 notifications:
  email: false
