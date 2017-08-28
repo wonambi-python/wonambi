@@ -45,7 +45,7 @@ before_install:
 install: 
  # install requirements
  - pip install numpy scipy pyqt5 
- - pip install pytest pytest-cov coveralls pytest-qt
+ - pip install pytest pytest-cov codecov pytest-qt
  - pip install sphinx sphinx_rtd_theme
  - pip install nibabel mne
  - pip install git+https://github.com/vispy/vispy
@@ -62,7 +62,7 @@ script:
  - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
 
 after_success:
- - coveralls
+ - codecov
 
 notifications:
  email: false
