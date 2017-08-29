@@ -1,5 +1,4 @@
 from numpy import isnan
-from numpy.testing import assert_array_almost_equal
 
 from wonambi import Dataset
 

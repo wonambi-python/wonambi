@@ -1,8 +1,8 @@
 from wonambi import Dataset
 
-from .utils import DOWNLOADS_PATH
+from .utils import DATA_PATH
 
-bci2000_file = DOWNLOADS_PATH / 'eeg3_2.dat'
+bci2000_file = DATA_PATH / 'bci2000.dat'
 
 
 def test_bci2000_data():

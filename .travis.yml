@@ -3,49 +3,24 @@ language: python
 python:
  - "3.6"
 
-cache: 
- - directories:
-   - $HOME/downloads
-   - $HOME/.cache/pip
-
 env:
   global:
    - DOWNLOADS=$HOME/downloads
-   - DOCS=$TRAVIS_BUILD_DIR/docs
-   - TESTS=$TRAVIS_BUILD_DIR/tests
+
+cache: 
+ - directories:
+   - $DOWNLOADS
+   - $HOME/.cache/pip
 
 before_install:
  # create display with large resolution
  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16"
-
- # download BCI2000 data
- - if [ ! -f $DOWNLOADS/eeg3_2.dat ]; then
-     svn export http://www.bci2000.org/svn/trunk/data/samplefiles/eeg3_2.dat $DOWNLOADS/eeg3_2.dat --username $BCI2000_USER --password $BCI2000_PASSWORD --no-auth-cache ;
-   fi  
- - cp $DOWNLOADS/eeg3_2.dat $TESTS/downloads/
-
- # download blackrock data
- - if [ ! -f $DOWNLOADS/sampledata.zip ]; then
-     wget -q -P $DOWNLOADS/ http://blackrockmicro.com/wp-content/uploads/2016/06/sampledata.zip ;
-   fi  
- - unzip $DOWNLOADS/sampledata.zip sampleData/sampleData.ns4 -d $TESTS/downloads/
-
- # download edf data
- - if [ ! -f $DOWNLOADS/test_generator_2_edfplus.zip ]; then
-     wget -q -P $DOWNLOADS/ http://www.teuniz.net/edf_bdf_testfiles/test_generator_2_edfplus.zip ;
-   fi  
- - unzip $DOWNLOADS/test_generator_2_edfplus.zip test_generator_2.edf -d $TESTS/downloads/
-
- - if [ ! -f $DOWNLOADS/SC4031E0-PSG.edf ]; then
-     wget -q -P $DOWNLOADS/ https://www.physionet.org/pn4/sleep-edfx/SC4031E0-PSG.edf ;
-   fi  
- - cp $DOWNLOADS/SC4031E0-PSG.edf $TESTS/downloads/
-
+ - python setup_wonambi.py --get_files
 
 install: 
  # install requirements
  - pip install numpy scipy pyqt5 
- - pip install pytest pytest-cov codecov pytest-qt
+ - pip install pytest pytest-qt pytest-cov codecov 
  - pip install sphinx sphinx_rtd_theme
  - pip install nibabel mne
  - pip install git+https://github.com/vispy/vispy
@@ -56,10 +31,9 @@ before_script:
   - "export DISPLAY=:99.0"
 
 script:
- - python -c "from PyQt5.QtCore import QT_VERSION_STR; print(QT_VERSION_STR)"
  - python -c "import vispy; print(vispy.sys_info()); exit()"
- - pytest --cov=wonambi tests/
- - sphinx-build -b html -d $DOCS/build/doctrees $DOCS/source $DOCS/build/html
+ - python setup_wonambi.py --tests
+ - python setup_wonambi.py --docs
 
 after_success:
  - codecov

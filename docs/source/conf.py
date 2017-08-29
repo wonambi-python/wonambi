@@ -60,6 +60,7 @@ todo_include_todos = True
 html_theme = 'sphinx_rtd_theme'
 
 html_show_sphinx = False
+html_show_sourcelink = False
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'wonambidoc'

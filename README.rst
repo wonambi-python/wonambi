@@ -44,6 +44,9 @@ Status
 .. image:: https://travis-ci.org/wonambi-python/wonambi.svg?branch=master
     :target: https://travis-ci.org/wonambi-python/wonambi
 
+.. image:: https://ci.appveyor.com/api/projects/status/arpojw273ucqbsf6/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/gpiantoni/wonambi
+
 .. image:: https://codecov.io/gh/wonambi-python/wonambi/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/wonambi-python/wonambi
 

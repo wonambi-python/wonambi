@@ -4,10 +4,10 @@ from wonambi import Dataset
 from wonambi.ioeeg import write_edf
 from wonambi.utils import create_data
 
-from .utils import DOWNLOADS_PATH, EXPORTED_PATH
+from .utils import DATA_PATH, EXPORTED_PATH
 
-psg_file = DOWNLOADS_PATH / 'SC4031E0-PSG.edf'
-generated_file = DOWNLOADS_PATH / 'test_generator_2.edf'
+psg_file = DATA_PATH / 'PSG.edf'
+generated_file = DATA_PATH / 'edfbrowser_generated_2.edf'
 
 psg = Dataset(psg_file)
 generated = Dataset(generated_file)

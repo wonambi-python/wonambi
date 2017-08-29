@@ -24,8 +24,7 @@ pip-log.txt
 htmlcov/
 
 # test data
-tests/sample_data.zip
-tests/Public/
+tests/data/
 tests/downloads/
 
 # Sphinx documentation

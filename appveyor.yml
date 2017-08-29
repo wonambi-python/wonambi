@@ -1,0 +1,28 @@
+build: off
+
+environment:
+  MINICONDA: C:\Miniconda36-x64
+  DOWNLOADS: Downloads
+
+cache:
+  - '%DOWNLOADS%'
+
+install:
+  - "set PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%"
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+  - conda create -q -n test-environment numpy scipy pyqt pytest pytest-cov sphinx sphinx_rtd_theme
+  - activate test-environment
+  - pip install pytest-qt codecov 
+  - pip install nibabel mne
+  - pip install git+https://github.com/vispy/vispy
+  - pip install -e .
+
+before_test:
+  - python setup_wonambi.py --get_files
+
+test_script:
+ - python -c "import vispy; print(vispy.sys_info()); exit()"
+ - python setup_wonambi.py --tests
+ - python setup_wonambi.py --docs
