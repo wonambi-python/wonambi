@@ -47,7 +47,7 @@ deploy:
    skip_cleanup: true
    target_branch : master
    local_dir : $HTML_PATH
-   public_repo : wonambi-python.github.io
+   repo : wonambi-python/wonambi-python.github.io
    github_token : $GITHUB_TOKEN
  - provider: pypi
    user: $PYPI_USER
