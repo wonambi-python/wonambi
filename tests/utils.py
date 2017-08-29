@@ -5,6 +5,7 @@ test_path = Path(__file__).resolve().parent
 DATA_PATH = test_path / 'data'
 
 SAMPLE_PATH = DATA_PATH / 'Public'
+ANNOT_PATH = SAMPLE_PATH / 'annot'
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 IO_PATH = SAMPLE_PATH / 'io'

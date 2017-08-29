@@ -5,36 +5,39 @@ from vispy.color import get_colormap
 from vispy.geometry import create_sphere, MeshData
 from vispy.visuals.transforms import STTransform
 
-from .base import COLORMAP, normalize, SimpleMesh, Viz
+from vispy.scene import SceneCanvas, TurntableCamera
+from vispy.visuals import Visual
+from vispy.scene.visuals import create_visual_node
+from vispy.geometry import create_sphere, MeshData
+from numpy import array, clip, float32, r_
+from vispy.gloo import VertexBuffer
+
+from .base import COLORMAP, normalize, Viz
+from .visuals import SurfaceMesh
 
 
 CHAN_COLOR = 0., 1, 0, 1.
 SKIN_COLOR = 0.94, 0.82, 0.81, 1.
 
-SCALE_FACTOR = 135
+SCALE_FACTOR = 150
 ELEVATION = 0
 
 
 class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
-
-    There is only one plot, so we define it at the __init__
     """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    _surf = []
+    _chan = []
 
-        self._plt = self._fig[0, 0]
-        self._plt._configure_3d()
+    _chan_colormap = None
+    _chan_limits_c = None
 
-        # remove white space around the main plot
-        # self._plt.grid.margin = 0
-        # self._plt.title.stretch = 0, 0
-
-        self._surf = []
-        self._chan = []
-
-        self._chan_colormap = None
-        self._chan_limits_c = None
+    def __init__(self):
+        super().__init__()
+        self._view.camera = TurntableCamera(fov=0,
+                                            elevation=ELEVATION, 
+                                            azimuth=90, 
+                                            scale_factor=SCALE_FACTOR)
 
     def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
                  values=None, limits_c=None, colormap=COLORMAP):
@@ -75,22 +78,9 @@ class Viz3(Viz):
 
         meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
                             vertex_colors=vertex_colors)
-        mesh = SimpleMesh(meshdata, color)
+        mesh = SurfaceMesh(meshdata, color)
 
-        self._plt.view.add(mesh)
-
-        surf_center = mean(surf.vert, axis=0)
-        if surf_center[0] < 0:
-            azimuth = 270
-        else:
-            azimuth = 90
-
-        self._plt.view.camera.center = surf_center
-        self._plt.view.camera.scale_factor = SCALE_FACTOR
-        self._plt.view.camera.elevation = ELEVATION
-        self._plt.view.camera.azimuth = azimuth
-        self._plt.view.border_color = 'w'  # border around surf
-
+        self._add_mesh(mesh)
         self._surf.append(mesh)
 
     def add_chan(self, chan, color=CHAN_COLOR, chan_colors=None,
@@ -140,32 +130,6 @@ class Viz3(Viz):
             self._plt.view.add(mesh)
             self._chan.append(mesh)
 
-    def update_chan(self, color=CHAN_COLOR, chan_colors=None, values=None):
-        """Update values or colors for channels. To change colormap or limits,
-        you need to create a new figure.
-
-        Parameters
-        ----------
-        color : tuple
-            3-, 4-element tuple, representing RGB and alpha, between 0 and 1
-        chan_colors : ndarray
-            array with colors for each channel
-        values : ndarray
-            array with values for each channel
-        """
-        chan_colors, _ = _prepare_chan_colors(color, chan_colors, values,
-                                              self._chan_limits_c,
-                                              self._chan_colormap)
-
-        for i, chan in enumerate(self._chan):
-            if chan_colors.ndim == 2:
-                chan_color = chan_colors[i, :]
-            else:
-                chan_color = chan_colors
-            chan.update_color(chan_color)
-
-        self._plt.update()
-
 
 def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
     """Return colors for all the channels based on various inputs.
@@ -206,3 +170,4 @@ def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
             colors = r_[colors, 1.]
 
     return colors, limits_c
+
