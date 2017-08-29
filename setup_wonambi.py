@@ -113,7 +113,7 @@ def _new_version(level):
     comment = input('Comment for {} release v{}: '.format(level, version))
     if comment == '':
         print('empty comment, aborted')
-        return None, None
+        return
 
     # update change log
     ver_comment = '- **' + version + '**: ' + comment
@@ -137,6 +137,8 @@ def _new_version(level):
 
     with VER_PATH.open('w') as f:
         f.write(version + '\n')
+
+    return version, comment
 
 
 def _release(level):

@@ -1,5 +1,8 @@
 Change Log
 ==========
+Version 2
+----------
+- **2.01**: use setup_wonambi.py for booking, it works in appveyor
 Version 1
 ----------
 - **1.02**: test with vispy (using pip instead of conda)
