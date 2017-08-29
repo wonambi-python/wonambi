@@ -33,6 +33,12 @@ BASE_PATH = Path(__file__).resolve().parent
 DOCS_PATH = BASE_PATH / 'docs'
 BUILD_PATH = DOCS_PATH / 'build'
 SOURCE_PATH = DOCS_PATH / 'source'
+
+# this is where the documentation has been built
+HTML_PATH = BUILD_PATH / 'html'
+if environ.get('TRAVIS', False):
+    environ['DOCS_HTML'] = str(HTML_PATH)
+
 API_PATH = SOURCE_PATH / 'api'
 GUI_PATH = SOURCE_PATH / 'gui' / 'images'
 VIZ_PATH = SOURCE_PATH / 'viz' / 'images'
@@ -243,7 +249,7 @@ def _docs():
          '-d',
          str(BUILD_PATH / 'doctrees'),
          str(SOURCE_PATH),
-         str(BUILD_PATH / 'html'),
+         str(HTML_PATH),
          ])
 
 

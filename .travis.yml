@@ -44,9 +44,9 @@ notifications:
 deploy:
  - provider: pages
    skip_cleanup: true
-   target_branch : gh-pages
-   local_dir : $DOCS/build/html
-   public_repo : wonambi
+   target_branch : master
+   local_dir : $DOCS_HTML
+   public_repo : wonambi-python.github.io
    github_token : $GITHUB_TOKEN
  - provider: pypi
    user: $PYPI_USER
