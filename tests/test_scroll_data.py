@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QDockWidget
+from PyQt5.QtWidgets import (QDockWidget,
+                             QPushButton,
+                             )
 from wonambi.scroll_data import MainWindow
 
 from .paths import (gui_file,
@@ -27,12 +29,12 @@ def test_scroll_data(qtbot):
     channel_make_group(w, png=True)
 
     # this shows selected channels and the apply button
-    apply_button = w.channels.layout().itemAt(0).itemAt(3).widget()
-    apply_button.setStyleSheet("background-color: red;")
+    button_apply = find_pushbutton(w.channels, 'Apply')
+    button_apply.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'open_05_chan.png'))
-    apply_button.setStyleSheet("")
+    button_apply.setStyleSheet("")
 
-    channel_apply(w)
+    button_apply.click()
     w.grab().save(str(GUI_PATH / 'open_06_traces.png'))
 
 
@@ -52,8 +54,9 @@ def channel_make_group(w, png=False):
     channelsgroup.idx_l0.item(2).setSelected(True)
 
 
-def channel_apply(w):
-
-    apply_button = w.channels.layout().itemAt(0).itemAt(3).widget()
-    assert apply_button.text().replace('&', '') == 'Apply'
-    apply_button.click()
+def find_pushbutton(w, text):
+    # workaround, because it doesn't find 'Apply'
+    all_child = w.findChildren(QPushButton)
+    buttons = [ch for ch in all_child if ch.text() == text]
+    if buttons:
+        return buttons[0]

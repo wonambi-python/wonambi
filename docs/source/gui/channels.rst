@@ -3,8 +3,15 @@
 Plot Channels
 =============
 
-Sometimes, the labels in the recordings are not correct (f.e. typos or some channels were changed) or might be completely uninformative (f.e. BCI2000 does not have channel labels).
-From the `labels` panel, you can edit the labels and load from a list of labels.
+You can create multiple channel groups.
+Each channel group has its own reference, and filter settings.
+You can also choose a specific color for each group.
 
-.. image:: images/labels_01_table.png
+.. image:: images/channels_01_onegroup.png
+
+By clicking on ``new`` you can create a second channel group, f.e. called ``eog``.
+
+.. image:: images/channels_02_eog.png
+
+
 

@@ -1,7 +1,7 @@
 from wonambi.scroll_data import MainWindow
 
 from .test_scroll_data import (channel_make_group,
-                               channel_apply,
+                               find_pushbutton,
                                )
 
 from .paths import (GUI_PATH,
@@ -53,7 +53,7 @@ def test_widget_labels(qtbot):
     w.labels.idx_apply.click()
 
     channel_make_group(w)
-    channel_apply(w)
+    find_pushbutton(w.channels, 'Apply').click()
     w.grab().save(str(GUI_PATH / 'labels_05_traces.png'))
 
     # load data
