@@ -276,11 +276,12 @@ def _clean_download():
 if __name__ == '__main__':
     returncode = 0
 
-    if args.release:
-        _release('minor')
+    if args.clean:
+        _clean_docs()
 
-    if args.major_release:
-        _release('major')
+    if args.clean_all:
+        _clean_docs()
+        _clean_download()
 
     if args.get_files:
         returncode = _get_files()
@@ -291,11 +292,10 @@ if __name__ == '__main__':
     if args.docs:
         returncode = _docs()
 
-    if args.clean:
-        _clean_docs()
+    if args.release:
+        _release('minor')
 
-    if args.clean_all:
-        _clean_docs()
-        _clean_download()
+    if args.major_release:
+        _release('major')
 
     exit(returncode)
