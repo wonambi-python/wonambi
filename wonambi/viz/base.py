@@ -33,7 +33,6 @@ class Viz(SceneCanvas):
         app.process_events()
         QApplication.processEvents()
 
-        # viewport = 0, 0, *self.size
         img = read_pixels()
         return bytes(_make_png(img))
 

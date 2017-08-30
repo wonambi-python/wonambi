@@ -1,12 +1,7 @@
-from vispy.scene import SceneCanvas, TurntableCamera
 from vispy.visuals import Visual
 from vispy.scene.visuals import create_visual_node
-from vispy.geometry import create_sphere, MeshData
-from numpy import array, clip, float32, r_
+from numpy import array, float32, r_
 from vispy.gloo import VertexBuffer
-from numpy import clip
-from vispy.io.image import _make_png
-from vispy.gloo.wrappers import read_pixels
 
 VERT_SHADER = """
 #version 120
@@ -39,7 +34,6 @@ void main() {
 """
 
 
-
 class SurfaceMeshVisual(Visual):
     def __init__(self, meshdata, color=None):
         Visual.__init__(self, VERT_SHADER, FRAG_SHADER)
@@ -59,12 +53,10 @@ class SurfaceMeshVisual(Visual):
             v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
             self._colors = VertexBuffer(v_col)
 
-            
         self.set_light(position=(1., 0., 0.),
                        ambient=.2,
                        diffuse=.8,
-                      )
-        
+                       )
         self._draw_mode = 'triangles'
         # self.set_gl_state('opaque', depth_test=True, cull_face=True)
         self.set_gl_state('translucent', depth_test=True, cull_face=False, blend=True, blend_func=('src_alpha', 'one_minus_src_alpha'))
@@ -84,6 +76,7 @@ class SurfaceMeshVisual(Visual):
             self.shared_program.frag['u_ambient'] = ambient
         if diffuse is not None:
             self.shared_program.frag['u_diffuse'] = diffuse
-        self.update()        
-        
+        self.update()
+
+
 SurfaceMesh = create_visual_node(SurfaceMeshVisual)

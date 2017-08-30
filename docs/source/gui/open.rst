@@ -1,7 +1,7 @@
 Open Dataset
 ============
 
-Start the graphical user interface with ``scroll_data``:
+Start the graphical user interface with ``wonambi`` from the command line:
 
 .. image:: images/open_01_start.png
 

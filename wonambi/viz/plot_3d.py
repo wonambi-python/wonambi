@@ -1,23 +1,20 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, max, mean, min, nanmax, nanmin, r_
+from numpy import array, isnan, linspace, max, min, nanmax, nanmin, r_
 from vispy.color import get_colormap
-from vispy.geometry import create_sphere, MeshData
-from vispy.visuals.transforms import STTransform
-
-from vispy.scene import SceneCanvas, TurntableCamera
-from vispy.visuals import Visual
-from vispy.scene.visuals import create_visual_node
-from vispy.geometry import create_sphere, MeshData
-from numpy import array, clip, float32, r_
-from vispy.gloo import VertexBuffer
+from vispy.geometry import MeshData
+from vispy.scene import TurntableCamera
+from vispy.scene.visuals import Markers
 
 from .base import COLORMAP, normalize, Viz
 from .visuals import SurfaceMesh
+from ..attr.chan import find_channel_groups
 
 
-CHAN_COLOR = 0., 1, 0, 1.
-SKIN_COLOR = 0.94, 0.82, 0.81, 1.
+SKIN_COLOR = 0.94, 0.82, 0.81
+CHAN_SIZE = 15
+CHAN_COLORMAP = 'hsl'
+chan_cm = get_colormap(CHAN_COLORMAP)
 
 SCALE_FACTOR = 150
 ELEVATION = 0
@@ -27,20 +24,16 @@ class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
     """
     _surf = []
-    _chan = []
-
-    _chan_colormap = None
-    _chan_limits_c = None
 
     def __init__(self):
         super().__init__()
         self._view.camera = TurntableCamera(fov=0,
-                                            elevation=ELEVATION, 
-                                            azimuth=90, 
+                                            elevation=ELEVATION,
+                                            azimuth=-90,
                                             scale_factor=SCALE_FACTOR)
 
     def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
-                 values=None, limits_c=None, colormap=COLORMAP):
+                 values=None, limits_c=None, colormap=COLORMAP, alpha=1):
         """Add surfaces to the visualization.
 
         Parameters
@@ -57,9 +50,11 @@ class Viz3(Viz):
             min and max values to normalize the color
         colormap : str
             one of the colormaps in vispy
+        alpha : float
+            transparency (1 = opaque)
         """
         if color is not None and len(color) == 3:
-            color = r_[array(color), 1.]  # make sure it's an array
+            color = r_[array(color), float(alpha)]  # make sure it's an array
 
         if values is not None:
             if limits_c is None:
@@ -83,52 +78,26 @@ class Viz3(Viz):
         self._add_mesh(mesh)
         self._surf.append(mesh)
 
-    def add_chan(self, chan, color=CHAN_COLOR, chan_colors=None,
-                 values=None, limits_c=None, colormap='coolwarm',
-                 shift=(0, 0, 0)):
+    def add_chan(self, chan):
         """Add channels to visualization
 
         Parameters
         ----------
         chan : instance of Channels
             channels to plot
-        color : tuple
-            3-, 4-element tuple, representing RGB and alpha, between 0 and 1
-        chan_colors : ndarray
-            array with colors for each channel
-        values : ndarray
-            array with values for each channel
-        limits_c : tuple of 2 floats, optional
-            min and max values to normalize the color
-        colormap : str
-            one of the colormaps in vispy
-        shift : tuple of 3 floats
-            shift all electrodes by this amount (unit and order depend on
-            xyz coordinates of the electrodes)
         """
-        # larger if colors are meaningful
-        if values is not None:
-            meshdata = create_sphere(radius=3, method='ico')
-        else:
-            meshdata = create_sphere(radius=1.5, method='ico')
+        groups = find_channel_groups(chan)
 
-        chan_colors, limits = _prepare_chan_colors(color, chan_colors, values,
-                                                   limits_c, colormap)
+        # each channel group gets its own color
+        group_colors = linspace(0, 1, len(groups))
 
-        # store values in case we update the values
-        self._chan_colormap = colormap
-        self._chan_limits_c = limits
+        for i, labels in enumerate(groups.values()):
+            xyz = chan.return_xyz(labels)
 
-        for i, one_chan in enumerate(chan.chan):
-            if chan_colors.ndim == 2:
-                chan_color = chan_colors[i, :]
-            else:
-                chan_color = chan_colors
-
-            mesh = SimpleMesh(meshdata, chan_color)
-            mesh.transform = STTransform(translate=one_chan.xyz + shift)
-            self._plt.view.add(mesh)
-            self._chan.append(mesh)
+            marker = Markers()
+            marker.set_data(pos=xyz, size=CHAN_SIZE,
+                            face_color=chan_cm[group_colors[i]])
+            self._add_mesh(marker)
 
 
 def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
@@ -170,4 +139,3 @@ def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
             colors = r_[colors, 1.]
 
     return colors, limits_c
-

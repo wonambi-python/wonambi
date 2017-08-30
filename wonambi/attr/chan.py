@@ -12,6 +12,8 @@ In other words, the channel is where you want to plot the signal.
 from logging import getLogger
 from pathlib import Path
 from numpy import zeros, asarray
+from re import match
+
 from ..utils import UnrecognizedFormat
 
 lg = getLogger(__name__)
@@ -412,3 +414,29 @@ def find_chan_in_region(channels, anat, region_name):
             chan_in_region.append(one_chan.label)
 
     return chan_in_region
+
+
+def find_channel_groups(chan):
+    """Channels are often organized in groups (different grids / strips or
+    channels in different brain locations), so we use a simple heuristic to
+    get these channel groups.
+
+    Parameters
+    ----------
+    chan : instance of Channels
+        channels to group
+
+    Returns
+    -------
+    groups : dict
+        channel groups: key is the common string, and the item is a list of
+        labels
+    """
+    labels = chan.return_label()
+    group_names = {match('([A-Za-z ]+)\d+', label).group(1) for label in labels}
+
+    groups = {}
+    for group_name in group_names:
+        groups[group_name] = [label for label in labels if label.startswith(group_name)]
+
+    return groups
