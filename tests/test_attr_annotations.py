@@ -1,11 +1,10 @@
 from wonambi import Dataset
-from wonambi.attr import Annotations, create_empty_annotations
+from wonambi.attr import (Annotations,
+                          create_empty_annotations,
+                          )
 
-from .paths import (SAMPLE_PATH,
-                    annot_file,
-                    IO_PATH,
+from .paths import (annot_file,
                     ns2_file,
-                    chan_path,
                     )
 
 

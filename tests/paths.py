@@ -18,7 +18,6 @@ gui_file = bci2000_file
 SAMPLE_PATH = DATA_PATH / 'Public'
 
 ANNOT_PATH = SAMPLE_PATH / 'annot'
-annot_file = ANNOT_PATH / 'blackrock_scores.xml'
 chan_path = ANNOT_PATH / 'bert_chan_locs.csv'
 
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
@@ -36,6 +35,8 @@ ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
 # Folder where to export data
 EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)
+annot_file = EXPORTED_PATH / 'blackrock_scores.xml'
+exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'

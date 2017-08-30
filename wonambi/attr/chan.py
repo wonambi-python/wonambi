@@ -10,14 +10,11 @@ two electrodes.
 In other words, the channel is where you want to plot the signal.
 """
 from logging import getLogger
-lg = getLogger(__name__)
-
-from os.path import splitext
-
+from pathlib import Path
 from numpy import zeros, asarray
-
 from ..utils import UnrecognizedFormat
 
+lg = getLogger(__name__)
 
 mu = '\N{GREEK SMALL LETTER MU}'
 
@@ -78,12 +75,14 @@ def _read_separated_values(elec_file, sep):
     ----
     add documentation to _read_separated_values
     """
+    elec_file = Path(elec_file)
+
     chan_label = []
-    with open(elec_file) as f:
+    with elec_file.open() as f:
         num_lines = sum(1 for line in f)
     chan_pos = zeros((num_lines, 3))
 
-    with open(elec_file, 'r') as f:
+    with elec_file.open('r') as f:
         for i, l in enumerate(f):
             a, b, c, d = [t(s) for t, s in zip((str, float, float, float),
                           l.split(sep))]
@@ -98,18 +97,19 @@ def detect_format(filename):
 
     Parameters
     ----------
-    filename : str
+    filename : Path
         name of the filename
 
     Returns
     -------
     str
         file format
-
     """
-    if splitext(filename)[1] == '.csv':
+    filename = Path(filename)
+
+    if filename.suffix == '.csv':
         recformat = 'csv'
-    elif splitext(filename)[1] == '.sfp':
+    elif filename.suffix == '.sfp':
         recformat = 'sfp'
 
     else:
@@ -332,16 +332,16 @@ class Channels():
 
         Parameters
         ----------
-        elec_file : str
+        elec_file : Path or str
             path to file where to save csv
         """
-        ext = splitext(elec_file)[1]
-        if ext == '.csv':
+        elec_file = Path(elec_file)
+        if elec_file.suffix == '.csv':
             sep = ', '
-        elif ext == '.sfp':
+        elif elec_file.suffix == '.sfp':
             sep = ' '
 
-        with open(elec_file, 'w') as f:
+        with elec_file.open('w') as f:
             for one_chan in self.chan:
                 values = ([one_chan.label, ] +
                           ['{:.3f}'.format(x) for x in one_chan.xyz])

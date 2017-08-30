@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 2
 ----------
+- **2.02**: new vispy surface for Viz3
 - **2.01**: use setup_wonambi.py for booking, it works in appveyor
 
 Version 1
