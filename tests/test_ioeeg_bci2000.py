@@ -1,8 +1,6 @@
 from wonambi import Dataset
 
-from .utils import DATA_PATH
-
-bci2000_file = DATA_PATH / 'bci2000.dat'
+from .paths import bci2000_file
 
 
 def test_bci2000_data():

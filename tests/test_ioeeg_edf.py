@@ -4,10 +4,11 @@ from wonambi import Dataset
 from wonambi.ioeeg import write_edf
 from wonambi.utils import create_data
 
-from .utils import DATA_PATH, EXPORTED_PATH
+from .paths import (psg_file,
+                    generated_file,
+                    EXPORTED_PATH,
+                    )
 
-psg_file = DATA_PATH / 'PSG.edf'
-generated_file = DATA_PATH / 'edfbrowser_generated_2.edf'
 
 psg = Dataset(psg_file)
 generated = Dataset(generated_file)
@@ -43,4 +44,3 @@ def test_edf_annot():
 def test_edf_write():
     data = create_data()
     write_edf(data, EXPORTED_PATH / 'export.edf')
-

@@ -5,6 +5,7 @@ from os import environ
 from pathlib import Path
 from shutil import copyfile, rmtree
 from subprocess import run
+from sys import exit
 from urllib.request import urlretrieve
 from zipfile import ZipFile
 
@@ -44,16 +45,14 @@ DATA_PATH = TEST_PATH / 'data'
 DATA_PATH.mkdir(exist_ok=True)
 if environ.get('CI', False):
     DOWNLOADS_PATH = Path(environ['DOWNLOADS'])  # cached dir in travis
-    print('Files stored in cached ' + str(DOWNLOADS_PATH.resolve()) + ':\n\t' +
-          '\n\t'.join(str(x) for x in DOWNLOADS_PATH.iterdir()))
 else:
     DOWNLOADS_PATH = TEST_PATH / 'downloads'  # local
 DOWNLOADS_PATH.mkdir(exist_ok=True)
-
+print('Files stored in cached ' + str(DOWNLOADS_PATH.resolve()) + ':\n\t' +
+      '\n\t'.join(str(x) for x in DOWNLOADS_PATH.iterdir()))
 
 VER_PATH = BASE_PATH / 'wonambi' / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
-
 
 REMOTE_FILES = [
     {'filename': 'PSG.edf',
@@ -125,6 +124,7 @@ def _new_version(level):
         TO_ADD = ['Version ' + str(major),
                   '----------',
                   ver_comment,
+                  '',
                   ]
 
     elif level == 'minor':
@@ -187,6 +187,11 @@ def _get_files():
     zipped : if None, then the file is not zipped. If True, it extracts all
     the files (but be careful about the folder name). If str, it extracts only
     that specific file.
+
+    Returns
+    -------
+    returncode : int
+        code to send to shell (TODO: make sure you get 1 with exceptions)
     """
     for remote in REMOTE_FILES:
 
@@ -198,7 +203,8 @@ def _get_files():
             if not temp_file.exists():
                 if remote['url'] is None:
                     print('missing URL, please contact developers')
-                    continue
+                    return 1
+
                 elif isinstance(remote['url'], list):
                     print('Running: ' + ' '.join(remote['url']))
                     run(remote['url'])
@@ -222,6 +228,8 @@ def _get_files():
                     extracted = Path(zf.extract(remote['zipped'], path=DOWNLOADS_PATH))
                     extracted.rename(final_file)
 
+    return 0
+
 
 def _tests():
     CMD = ['pytest',
@@ -230,23 +238,25 @@ def _tests():
            ]
 
     # html report if local
-    if not ('CI' in environ and environ['CI']):
+    if not environ.get('CI', False):
         CMD.insert(1, '--cov-report=html')
 
-    run(CMD)
+    output = run(CMD)
+    return output.returncode
 
 
 def _docs():
     print(BUILD_PATH)
-    run(['sphinx-build',
-         '-T',
-         '-b',
-         'html',
-         '-d',
-         str(BUILD_PATH / 'doctrees'),
-         str(SOURCE_PATH),
-         str(HTML_PATH),
-         ])
+    output = run(['sphinx-build',
+                  '-T',
+                  '-b',
+                  'html',
+                  '-d',
+                  str(BUILD_PATH / 'doctrees'),
+                  str(SOURCE_PATH),
+                  str(HTML_PATH),
+                  ])
+    return output.returncode
 
 
 def _clean_docs():
@@ -264,6 +274,8 @@ def _clean_download():
 
 
 if __name__ == '__main__':
+    returncode = 0
+
     if args.release:
         _release('minor')
 
@@ -271,13 +283,13 @@ if __name__ == '__main__':
         _release('major')
 
     if args.get_files:
-        _get_files()
+        returncode = _get_files()
 
     if args.tests:
-        _tests()
+        returncode = _tests()
 
     if args.docs:
-        _docs()
+        returncode = _docs()
 
     if args.clean:
         _clean_docs()
@@ -286,3 +298,4 @@ if __name__ == '__main__':
         _clean_docs()
         _clean_download()
 
+    exit(returncode)

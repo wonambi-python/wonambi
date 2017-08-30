@@ -26,6 +26,7 @@ htmlcov/
 # test data
 tests/data/
 tests/downloads/
+tests/exported/
 
 # Sphinx documentation
 docs/build/

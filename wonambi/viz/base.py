@@ -11,7 +11,6 @@ from vispy.scene.visuals import create_visual_node
 from vispy.geometry import create_sphere, MeshData
 from numpy import array, clip, float32, r_
 from vispy.gloo import VertexBuffer
-from numpy import clip
 from vispy.io.image import _make_png
 from vispy.gloo.wrappers import read_pixels
 
@@ -20,20 +19,21 @@ COLORMAP = 'coolwarm'
 
 class Viz(SceneCanvas):
     _view = None
-    
+
     def __init__(self):
         super().__init__(keys='interactive', show=True, bgcolor='white')
         self._view = self.central_widget.add_view()
 
     def _add_mesh(self, mesh):
-        self._view.add(mesh)        
-        
+        self._view.add(mesh)
+
     def _repr_png_(self):
         """This is used by ipython to plot inline.
-        
+        """
         app.process_events()
         QApplication.processEvents()
-        """
+
+        # viewport = 0, 0, *self.size
         img = read_pixels()
         return bytes(_make_png(img))
 

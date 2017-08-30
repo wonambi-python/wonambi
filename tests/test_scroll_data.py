@@ -1,10 +1,8 @@
 from wonambi.scroll_data import MainWindow
 
-from .test_ioeeg_bci2000 import bci2000_file
-
-from .utils import GUI_PATH
-
-gui_file = bci2000_file
+from .paths import (gui_file,
+                    GUI_PATH,
+                    )
 
 
 def test_scroll_data(qtbot):

@@ -2,9 +2,8 @@ from numpy import isnan
 
 from wonambi import Dataset
 
-from .utils import IO_PATH
+from .paths import mff_file
 
-mff_file = IO_PATH / 'egi.mff'
 
 d = Dataset(mff_file)
 

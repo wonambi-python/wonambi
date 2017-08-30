@@ -1,10 +1,12 @@
 from wonambi import Dataset
 from wonambi.attr import Annotations, create_empty_annotations
 
-from .utils import SAMPLE_PATH, IO_PATH
-
-ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
-annot_file = SAMPLE_PATH / 'annot' / 'blackrock_scores.xml'
+from .paths import (SAMPLE_PATH,
+                    annot_file,
+                    IO_PATH,
+                    ns2_file,
+                    chan_path,
+                    )
 
 
 def test_create_annot():

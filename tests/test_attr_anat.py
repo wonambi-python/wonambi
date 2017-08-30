@@ -6,20 +6,20 @@ from pytest import raises
 from wonambi.attr import Freesurfer, Surf
 from wonambi.attr.anat import import_freesurfer_LUT
 
-from .utils import FREESURFER_HOME
-
-LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'
-fs_path =  FREESURFER_HOME / 'subjects' / 'bert'
-surf_path = fs_path / 'surf' / 'lh.pial'
+from .paths import (FREESURFER_HOME,
+                    LUT_path,
+                    fs_path,
+                    surf_path,
+                    )
 
 environ['FREESURFER_HOME'] = str(FREESURFER_HOME)
 
 
 def test_import_freesurfer_LUT_01():
     idx, label, rgba = import_freesurfer_LUT()
-    assert  idx[-1] == 14175
+    assert idx[-1] == 14175
     assert label[-1] == 'wm_rh_S_temporal_transverse'
-    assert_array_equal(rgba[-1, :], array([ 221.,   60.,   60.,    0.]))
+    assert_array_equal(rgba[-1, :], array([221., 60., 60., 0.]))
 
 
 def test_import_freesurfer_LUT_02():
@@ -64,7 +64,7 @@ def test_Freesurfer_03():
     assert fs.lookuptable['index'][-1] == 14175
     assert fs.lookuptable['label'][-1] == 'wm_rh_S_temporal_transverse'
     assert_array_equal(fs.lookuptable['RGBA'][-1, :],
-                       array([ 221.,   60.,   60.,    0.]))
+                       array([221., 60., 60., 0.]))
 
 
 def test_Freesurfer_04():

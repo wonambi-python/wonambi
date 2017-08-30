@@ -3,18 +3,28 @@ build: off
 environment:
   MINICONDA: C:\Miniconda36-x64
   DOWNLOADS: Downloads
+  PYTHON_ARCH: "64"
 
 cache:
-  - '%DOWNLOADS%'
+  - '%DOWNLOADS% -> tests\paths.py'
+  - '%LOCALAPPDATA%\pip\Cache'
 
 install:
+  # Set up OpenGL
+  - ps: Start-FileDownload 'https://github.com/vispy/demo-data/raw/master/mesa/opengl32_mingw_64.dll' -FileName opengl32.dll
+  - "SET VISPY_GL_LIB=%CD%\\opengl32.dll"
+
+  # conda
   - "set PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%"
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n test-environment numpy scipy pyqt pytest pytest-cov sphinx sphinx_rtd_theme
+  - conda create -q -n test-environment numpy scipy 
   - activate test-environment
-  - pip install pytest-qt codecov 
+
+  # pip
+  - pip install pyqt5 sphinx sphinx_rtd_theme
+  - pip install pytest pytest-cov pytest-qt codecov 
   - pip install nibabel mne
   - pip install git+https://github.com/vispy/vispy
   - pip install -e .

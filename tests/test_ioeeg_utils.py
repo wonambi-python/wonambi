@@ -49,7 +49,7 @@ def test_select_block_endsam_before():
         next(_select_blocks(BLOCKS, -10, -5))
 
 
-def test_select_block_endsam_after():
+def test_select_block_begsam_after():
     with raises(StopIteration):
         next(_select_blocks(BLOCKS, 50, 55))
 
@@ -78,8 +78,6 @@ def _generate_dat_on_disk():
 
     dat_on_disk = []
     for i in range(len(intervals) - 1):
-        dat_on_disk.append(arange(intervals[i], intervals[i+1]))
+        dat_on_disk.append(arange(intervals[i], intervals[i + 1]))
 
     return dat_on_disk, intervals
-
-

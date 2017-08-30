@@ -2,9 +2,7 @@ from numpy.testing import assert_array_almost_equal
 
 from wonambi import Dataset
 
-from .utils import IO_PATH
-
-ktlx_file = IO_PATH / 'xltek'
+from .paths import ktlx_file
 
 
 def test_xltek_data():
@@ -18,4 +16,3 @@ def test_xltek_marker():
     markers = d.read_markers()
     assert markers[0]['name'] == 'Gain/Filter change (-unknown-)'
     assert markers[-1]['end'] == 1052.1
-

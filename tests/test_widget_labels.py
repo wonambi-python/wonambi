@@ -1,11 +1,13 @@
 from wonambi.scroll_data import MainWindow
 
-from .test_scroll_data import (gui_file,
-                               channel_make_group,
+from .test_scroll_data import (channel_make_group,
                                channel_apply,
                                )
 
-from .utils import GUI_PATH, SAMPLE_PATH
+from .paths import (GUI_PATH,
+                    gui_file,
+                    SAMPLE_PATH,
+                    )
 
 
 def test_widget_labels(qtbot):
