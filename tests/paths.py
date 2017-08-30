@@ -12,7 +12,7 @@ bci2000_file = DATA_PATH / 'bci2000.dat'
 psg_file = DATA_PATH / 'PSG.edf'
 generated_file = DATA_PATH / 'edfbrowser_generated_2.edf'
 
-gui_file = bci2000_file
+gui_file = psg_file
 
 # Data from private repository
 SAMPLE_PATH = DATA_PATH / 'Public'

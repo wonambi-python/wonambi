@@ -5,3 +5,4 @@ Graphical User Interface
 
    open
    labels
+   channels

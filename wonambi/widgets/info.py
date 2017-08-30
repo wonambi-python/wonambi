@@ -170,9 +170,6 @@ class Info(QWidget):
         recent was created by keep_recent_datasets. It has format:
         STUDY (ieeg.org) when using remote data
         """
-        if self.dataset is not None:
-            self.parent.reset()
-
         if recent:
             if recent[-1] == ')':  # remote server name, as STUDY (ieeg.org)
                 filename = recent[:recent.rfind('(') - 1]
@@ -222,6 +219,10 @@ class Info(QWidget):
             if filename == '':
                 return
 
+        # clear previous dataset once the user opens another dataset
+        if self.dataset is not None:
+            self.parent.reset()
+
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
         lg.info(str(filename))
@@ -245,16 +246,7 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('')
 
-        self.display_dataset()
-        self.parent.overview.update()
-        self.parent.labels.update(labels=self.dataset.header['chan_name'])
-
-        try:
-            self.markers = self.dataset.read_markers()
-        except FileNotFoundError:
-            lg.info('No notes/markers present in the header of the file')
-        else:
-            self.parent.notes.update_dataset_marker()
+        self.parent.update()
 
     def display_dataset(self):
         """Update the widget with information about the dataset."""

@@ -1,3 +1,4 @@
+from PyQt5.QtWidgets import QDockWidget
 from wonambi.scroll_data import MainWindow
 
 from .paths import (gui_file,
@@ -31,11 +32,14 @@ def test_scroll_data(qtbot):
     w.grab().save(str(GUI_PATH / 'open_05_chan.png'))
     apply_button.setStyleSheet("")
 
-    channel_apply(w, png=True)
+    channel_apply(w)
     w.grab().save(str(GUI_PATH / 'open_06_traces.png'))
 
 
 def channel_make_group(w, png=False):
+    dockwidget_chan = w.findChild(QDockWidget, 'Channels')
+    dockwidget_chan.raise_()
+
     w.channels.new_group(test_name='scalp')
 
     if png:
@@ -44,11 +48,11 @@ def channel_make_group(w, png=False):
     chan_tab_i = w.channels.tabs.currentIndex()
     channelsgroup = w.channels.tabs.widget(chan_tab_i)
     channelsgroup.idx_l0.item(0).setSelected(True)
+    channelsgroup.idx_l0.item(1).setSelected(True)
     channelsgroup.idx_l0.item(2).setSelected(True)
-    channelsgroup.idx_l0.item(3).setSelected(True)
 
 
-def channel_apply(w, png=False):
+def channel_apply(w):
 
     apply_button = w.channels.layout().itemAt(0).itemAt(3).widget()
     assert apply_button.text().replace('&', '') == 'Apply'

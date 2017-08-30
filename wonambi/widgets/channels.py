@@ -303,6 +303,8 @@ class Channels(QWidget):
 
         self.setLayout(layout)
 
+        self.setEnabled(False)
+
     def create_action(self):
         """Create actions related to channel selection."""
         actions = {}
@@ -316,6 +318,9 @@ class Channels(QWidget):
         actions['save_channels'] = act
 
         self.action = actions
+
+    def update(self):
+        self.setEnabled(True)
 
     def new_group(self, checked=False, test_name=None):
         """Create a new channel group.
@@ -470,3 +475,5 @@ class Channels(QWidget):
         self.groups = []
 
         self.tabs.clear()
+
+        self.setEnabled(False)

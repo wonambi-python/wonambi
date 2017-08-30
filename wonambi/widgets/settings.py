@@ -82,7 +82,7 @@ class Settings(QDialog):
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
-        self.config = ConfigUtils(self.parent.update)
+        self.config = ConfigUtils(self.parent.refresh)
 
         self.setWindowTitle('Settings')
         self.create_settings()

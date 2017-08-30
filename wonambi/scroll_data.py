@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
 
         self.show()
 
-    def update(self):
+    def refresh(self):
         """Functions to re-run once settings have been changed."""
         self.create_menubar()
 
@@ -113,9 +113,25 @@ class MainWindow(QMainWindow):
                              ''.format(parameter, widget_name, new_value))
                     widget.config.value[parameter] = new_value
 
+    def update(self):
+        """Once you open a dataset, it activates all the widgets.
+        """
+        self.info.display_dataset()
+        self.overview.update()
+        self.labels.update(labels=self.info.dataset.header['chan_name'])
+        self.channels.update()
+
+        try:
+            self.info.markers = self.info.dataset.read_markers()
+        except FileNotFoundError:
+            lg.info('No notes/markers present in the header of the file')
+        else:
+            self.notes.update_dataset_marker()
+
     def reset(self):
         """Remove all the information from previous dataset before loading a
-        new dataset."""
+        new dataset.
+        """
 
         # store current dataset
         max_dataset_history = self.value('max_dataset_history')
