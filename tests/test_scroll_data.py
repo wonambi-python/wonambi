@@ -29,7 +29,7 @@ def test_scroll_data(qtbot):
     channel_make_group(w, png=True)
 
     # this shows selected channels and the apply button
-    button_apply = find_pushbutton(w.channels, 'Apply')
+    button_apply = find_in_qt(w.channels, QPushButton, 'Apply')
     button_apply.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'open_05_chan.png'))
     button_apply.setStyleSheet("")
@@ -54,9 +54,9 @@ def channel_make_group(w, png=False):
     channelsgroup.idx_l0.item(2).setSelected(True)
 
 
-def find_pushbutton(w, text):
-    # workaround, because it doesn't find 'Apply'
-    all_child = w.findChildren(QPushButton)
+def find_in_qt(w, qtype, text):
+    # workaround, because qt cannot find the text sometimes
+    all_child = w.findChildren(qtype)
     buttons = [ch for ch in all_child if ch.text() == text]
     if buttons:
         return buttons[0]

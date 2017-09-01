@@ -289,6 +289,11 @@ class Channels(QWidget):
         apply_button = QPushButton('Apply')
         apply_button.clicked.connect(self.apply)
 
+        self.button_add = add_button
+        self.button_color = color_button
+        self.button_del = del_button
+        self.button_apply = apply_button
+
         buttons = QGridLayout()
         buttons.addWidget(add_button, 0, 0)
         buttons.addWidget(color_button, 1, 0)
@@ -304,6 +309,9 @@ class Channels(QWidget):
         self.setLayout(layout)
 
         self.setEnabled(False)
+        self.button_color.setEnabled(False)
+        self.button_del.setEnabled(False)
+        self.button_apply.setEnabled(False)
 
     def create_action(self):
         """Create actions related to channel selection."""
@@ -311,16 +319,20 @@ class Channels(QWidget):
 
         act = QAction('Load Channels Montage...', self)
         act.triggered.connect(self.load_channels)
+        act.setEnabled(False)
         actions['load_channels'] = act
 
         act = QAction('Save Channels Montage...', self)
         act.triggered.connect(self.save_channels)
+        act.setEnabled(False)
         actions['save_channels'] = act
 
         self.action = actions
 
     def update(self):
         self.setEnabled(True)
+        self.action['load_channels'].setEnabled(True)
+        self.action['save_channels'].setEnabled(True)
 
     def new_group(self, checked=False, test_name=None):
         """Create a new channel group.
@@ -354,10 +366,18 @@ class Channels(QWidget):
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
-    def color_group(self):
+                # activate buttons
+                self.button_color.setEnabled(True)
+                self.button_del.setEnabled(True)
+                self.button_apply.setEnabled(True)
+
+    def color_group(self, checked=False, test_color=None):
         """Change the color of the group."""
         group = self.tabs.currentWidget()
-        newcolor = QColorDialog.getColor(group.idx_color)
+        if test_color is None:
+            newcolor = QColorDialog.getColor(group.idx_color)
+        else:
+            newcolor = test_color
         group.idx_color = newcolor
 
         self.apply()
@@ -372,6 +392,17 @@ class Channels(QWidget):
     def apply(self):
         """Apply changes to the plots."""
         self.read_group_info()
+
+        if self.tabs.count() == 0:
+            # disactivate buttons
+            self.button_color.setEnabled(False)
+            self.button_del.setEnabled(False)
+            self.button_apply.setEnabled(False)
+        else:
+            # activate buttons
+            self.button_color.setEnabled(True)
+            self.button_del.setEnabled(True)
+            self.button_apply.setEnabled(True)
 
         if self.groups:
             self.parent.overview.update_position()
@@ -388,7 +419,7 @@ class Channels(QWidget):
             one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
-    def load_channels(self, debug_filename=None):
+    def load_channels(self, test_name=None):
         """Load channel groups from file.
 
         Parameters
@@ -399,24 +430,24 @@ class Channels(QWidget):
         """
         chan_name = self.parent.labels.chan_name
 
-        if debug_filename:
-            filename = debug_filename
-
+        if self.filename is not None:
+            filename = self.filename
+        elif self.parent.info.filename is not None:
+            filename = (splitext(self.parent.info.filename)[0] +
+                        '_channels.json')
         else:
-            if self.filename is not None:
-                filename = self.filename
-            elif self.parent.info.filename is not None:
-                filename = (splitext(self.parent.info.filename)[0] +
-                            '_channels.json')
-            else:
-                filename = None
+            filename = None
 
+        if test_name is None:
             filename, _ = QFileDialog.getOpenFileName(self,
                                                       'Open Channels Montage',
                                                       filename,
                                                       'Channels File (*.json)')
-            if filename == '':
-                return
+        else:
+            filename = test_name
+
+        if filename == '':
+            return
 
         self.filename = filename
         with open(filename, 'r') as outfile:
@@ -441,7 +472,7 @@ class Channels(QWidget):
 
         self.apply()
 
-    def save_channels(self):
+    def save_channels(self, checked=False, test_name=None):
         """Save channel groups to file."""
         self.read_group_info()
 
@@ -453,10 +484,14 @@ class Channels(QWidget):
         else:
             filename = None
 
-        filename, _ = QFileDialog.getSaveFileName(self,
-                                                  'Save Channels Montage',
-                                                  filename,
-                                                  'Channels File (*.json)')
+        if test_name is None:
+            filename, _ = QFileDialog.getSaveFileName(self,
+                                                      'Save Channels Montage',
+                                                      filename,
+                                                      'Channels File (*.json)')
+        else:
+            filename = test_name
+
         if filename == '':
             return
 
@@ -477,3 +512,8 @@ class Channels(QWidget):
         self.tabs.clear()
 
         self.setEnabled(False)
+        self.button_color.setEnabled(False)
+        self.button_del.setEnabled(False)
+        self.button_apply.setEnabled(False)
+        self.action['load_channels'].setEnabled(False)
+        self.action['save_channels'].setEnabled(False)

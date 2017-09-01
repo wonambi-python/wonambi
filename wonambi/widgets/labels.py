@@ -126,9 +126,9 @@ class Labels(QWidget):
         self.table.blockSignals(True)
         for i, label in enumerate(labels):
             if labels.count(label) > 1:
-                 self.table.item(i, 1).setBackground(QColor('red'))
+                self.table.item(i, 1).setBackground(QColor('red'))
             else:
-                 self.table.item(i, 1).setBackground(QColor('white'))
+                self.table.item(i, 1).setBackground(QColor('white'))
         self.table.blockSignals(False)
 
     def load_labels(self, checked=False, test_name=None):
@@ -155,7 +155,7 @@ class Labels(QWidget):
             text = f.read()
 
         labels = split(', |,|; |;|\t|\n| ',text)
-        labels  = [label.strip() for label in labels]
+        labels = [label.strip() for label in labels]
         self.update(custom_labels=labels)
 
     def save_labels(self):

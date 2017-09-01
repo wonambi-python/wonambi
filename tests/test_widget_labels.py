@@ -1,7 +1,9 @@
+from PyQt5.QtWidgets import QPushButton
+
 from wonambi.scroll_data import MainWindow
 
 from .test_scroll_data import (channel_make_group,
-                               find_pushbutton,
+                               find_in_qt,
                                )
 
 from .paths import (GUI_PATH,
@@ -53,7 +55,7 @@ def test_widget_labels(qtbot):
     w.labels.idx_apply.click()
 
     channel_make_group(w)
-    find_pushbutton(w.channels, 'Apply').click()
+    find_in_qt(w.channels, QPushButton, 'Apply').click()
     w.grab().save(str(GUI_PATH / 'labels_05_traces.png'))
 
     # load data

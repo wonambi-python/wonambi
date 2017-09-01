@@ -37,6 +37,8 @@ EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)
 annot_file = EXPORTED_PATH / 'blackrock_scores.xml'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
+channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
+channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'
