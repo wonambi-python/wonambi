@@ -1,7 +1,7 @@
 """Module to plot all the elements in 3d space.
 """
 from numpy import array, isnan, linspace, max, min, nanmax, nanmin, r_
-from vispy.color import get_colormap
+from vispy.color import get_colormap, ColorArray
 from vispy.geometry import MeshData
 from vispy.scene import TurntableCamera
 from vispy.scene.visuals import Markers
@@ -13,8 +13,7 @@ from ..attr.chan import find_channel_groups
 
 SKIN_COLOR = 0.94, 0.82, 0.81
 CHAN_SIZE = 15
-CHAN_COLORMAP = 'hsl'
-chan_cm = get_colormap(CHAN_COLORMAP)
+CHAN_COLORMAP = 'coolwarm'
 
 SCALE_FACTOR = 150
 ELEVATION = 0
@@ -24,6 +23,7 @@ class Viz3(Viz):
     """The 3d visualization, ordinarily it should hold a surface and electrodes
     """
     _surf = []
+    _chan_limits = None
 
     def __init__(self):
         super().__init__()
@@ -78,43 +78,53 @@ class Viz3(Viz):
         self._add_mesh(mesh)
         self._surf.append(mesh)
 
-    def add_chan(self, chan):
+    def add_chan(self, chan, color=None, values=None, limits_c=None, colormap=CHAN_COLORMAP, alpha=None):
         """Add channels to visualization
 
         Parameters
         ----------
         chan : instance of Channels
             channels to plot
+        color : tuple
+            3-, 4-element tuple, representing RGB and alpha, between 0 and 1
+        values : ndarray
+            array with values for each channel
+        limits_c : tuple of 2 floats, optional
+            min and max values to normalize the color
+        colormap : str
+            one of the colormaps in vispy
+        alpha : float
+            transparency (0 = transparent, 1 = opaque)            
         """
-        groups = find_channel_groups(chan)
+        # reuse previous limits
+        if limits_c is None and self._chan_limits is not None:
+            limits_c = self._chan_limits
+            
+        chan_colors, limits = _prepare_chan_colors(chan=chan, color=color, values=values, limits_c=limits_c, colormap=colormap, alpha=alpha)
+        
+        self._chan_limits = limits
 
-        # each channel group gets its own color
-        group_colors = linspace(0, 1, len(groups))
-
-        for i, labels in enumerate(groups.values()):
-            xyz = chan.return_xyz(labels)
-
-            marker = Markers()
-            marker.set_data(pos=xyz, size=CHAN_SIZE,
-                            face_color=chan_cm[group_colors[i]])
-            self._add_mesh(marker)
+        xyz = chan.return_xyz()
+        marker = Markers()
+        marker.set_data(pos=xyz, size=CHAN_SIZE, face_color=chan_colors)
+        self._add_mesh(marker)
 
 
-def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
+def _prepare_chan_colors(chan, color, values, limits_c, colormap, alpha):
     """Return colors for all the channels based on various inputs.
 
     Parameters
     ----------
     color : tuple
         3-, 4-element tuple, representing RGB and alpha, between 0 and 1
-    chan_colors : ndarray
-        array with colors for each channel
     values : ndarray
         array with values for each channel
     limits_c : tuple of 2 floats, optional
         min and max values to normalize the color
     colormap : str
         one of the colormaps in vispy
+    alpha : float
+        transparency (0 = transparent, 1 = opaque)
 
     Returns
     -------
@@ -124,18 +134,35 @@ def _prepare_chan_colors(color, chan_colors, values, limits_c, colormap):
         limits for the values
     """
     if values is not None:
-
         if limits_c is None:
             limits_c = min(values), max(values)
 
         norm_values = normalize(values, *limits_c)
 
         cm = get_colormap(colormap)
-        colors = cm[norm_values].rgba
+        colors = cm[norm_values]
+
+    elif color is not None:
+        colors = ColorArray(color)
 
     else:
-        colors = array(color)   # make sure it's an array
-        if len(colors) == 3:
-            colors = r_[colors, 1.]
+        cm = get_colormap('hsl')
+        group_idx = _chan_groups_to_index(chan)
+        colors = cm[group_idx]
 
+    if alpha is not None:
+        colors.alpha = alpha
+        
     return colors, limits_c
+
+
+def _chan_groups_to_index(chan):
+
+    groups = find_channel_groups(chan)
+    n_groups = len(groups)
+    idx = linspace(0, 1, n_groups)
+    group_idx = chan.return_label()
+    for i, labels in enumerate(groups.values()):
+        group_idx = [idx[i] if label in labels else label for label in group_idx]
+        
+    return group_idx

@@ -11,9 +11,39 @@ You can plot surfaces from freesurfer:
 You can then add channel positions, such ECoG on the surface:
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 22-27
+   :lines: 23-28
 
 .. image:: images/viz3_02_surf_chan.png
 
-Note how the channel groups had different colors.
+.. NOTE::
+   Note how the channel groups had different colors.
+   This is based on the channel labels.
 
+You can also specify one color (in RGB, values between 0 and 1) to use the same color for all the channels:
+
+.. literalinclude:: ../../../tests/test_viz_plot3d.py
+   :lines: 36-41
+
+.. image:: images/viz3_03_surf_chan_color_one.png
+
+To specify the transparency, enter the keyword ``alpha`` (0: transparent, 1: opaque).
+
+.. literalinclude:: ../../../tests/test_viz_plot3d.py
+   :lines: 49-54
+
+.. image:: images/viz3_04_surf_chan_color_one_alpha.png
+
+You can also specify the color for each channel (in this example, we alternate red and blue channels).
+
+.. literalinclude:: ../../../tests/test_viz_plot3d.py
+   :lines: 62-71
+
+.. image:: images/viz3_05_surf_chan_color_everyother.png
+
+Finally, you can specify the values for each channels.
+Furthermore, you can specify the min and max limits with ``limits_c``.
+
+.. literalinclude:: ../../../tests/test_viz_plot3d.py
+   :lines: 79-86
+
+.. image:: images/viz3_06_surf_chan_values.png
