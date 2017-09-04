@@ -331,6 +331,11 @@ class Data:
 
         if axis:
             cdata.axis = deepcopy(self.axis)
+        else:
+            cdata_axis = OrderedDict()
+            for axis_name in self.axis:
+                cdata_axis[axis_name] = array([], dtype='O')
+            cdata.axis = cdata_axis
 
         if attr:
             cdata.attr = deepcopy(self.attr)
