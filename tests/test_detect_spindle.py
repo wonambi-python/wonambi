@@ -1,4 +1,4 @@
-from pytest import raises
+from pytest import approx, raises
 
 from wonambi import Dataset
 from wonambi.detect.spindle import DetectSpindle
@@ -15,7 +15,7 @@ def test_detect_spindle_Moelle2011():
 
     sp = detsp(data)
     assert len(sp.spindle) == 5
-    
+
     
 def test_detect_spindle_Nir2011():
     detsp = DetectSpindle(method='Nir2011')
@@ -41,3 +41,15 @@ def test_detect_spindle_Ferrarelli2007():
 def test_detect_spindle_unknownmethod():
     with raises(ValueError):
         detsp = DetectSpindle(method='xxx')        
+        
+    
+def test_detect_spindle_to_data():
+    detsp = DetectSpindle()
+    sp = detsp(data)
+    
+    sp_data = sp.to_data('count')
+    assert sp_data(0)[0] == 2
+
+    sp_freq = sp.to_data('peak_freq')
+    assert approx(sp_freq(0)[0]) == 14.49166667
+    
