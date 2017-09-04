@@ -16,7 +16,7 @@ Install phypno by running:
 
     pip install wonambi
 
-See `Installation for details <http://wonambi-python.github.io/wonambi/installation.html>`_
+See `Installation for details <http://wonambi-python.github.io/installation.html>`_
 
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
@@ -24,11 +24,11 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
 Documentation
 -------------
-See `Documentation <http://wonambi-python.github.io/wonambi>`_
+See `Documentation <http://wonambi-python.github.io/>`_
 
 Change Log
 ----------
-See `Change Log <http://wonambi-python.github.io/wonambi/changelog.html>`_
+See `Change Log <http://wonambi-python.github.io/changelog.html>`_
 
 Requirements
 ------------

@@ -26,7 +26,7 @@ install:
   - pip install pyqt5 sphinx sphinx_rtd_theme
   - pip install pytest pytest-cov pytest-qt codecov 
   - pip install nibabel mne
-  - pip install git+https://github.com/vispy/vispy
+  - pip install https://github.com/vispy/vispy/archive/master.zip
   - pip install -e .
 
 before_test:
