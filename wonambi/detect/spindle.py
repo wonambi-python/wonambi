@@ -1,17 +1,19 @@
 """Module to detect spindles.
-
 """
 from logging import getLogger
-from numpy import (absolute, arange, argmax, asarray, cos, diff, exp, empty,
-                   hstack, insert, invert, linspace, mean, median, nan, ones,
-                   pi, sqrt, std, vstack, where, zeros)
+from numpy import (absolute, arange, argmax, asarray, concatenate, diff,
+                   exp, empty, floor, hstack, insert, invert, mean,
+                   median, nan, ones, pi, ptp, sqrt, square, std, vstack,
+                   where, zeros)
+from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram)
 
-from wonambi.graphoelement import Spindles
+from ..graphoelement import Spindles
 
 lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50
+MAX_DURATION = 5
 
 
 class DetectSpindle:
@@ -25,9 +27,8 @@ class DetectSpindle:
         low and high frequency of spindle band
     duration : tuple of float
         min and max duration of spindles
-
     """
-    def __init__(self, method='UCSD', frequency=None, duration=None):
+    def __init__(self, method='Moelle2011', frequency=None, duration=None):
 
         if frequency is None:
             frequency = (11, 18)
@@ -44,16 +45,23 @@ class DetectSpindle:
             self.det_cheby2 = {'order': 4,
                                'freq': self.frequency,
                                }
-            self.det_thresh = 8
-            self.sel_thresh = 3
+            self.det_wavelet = {'sd': None}
+            self.det_thresh = 2
+            self.sel_thresh = 8
+            self.min_interval = 0
+            self.moving_rms = {'dur': None}
+            self.smooth = {'dur': None}
 
         elif method == 'Nir2011':
             self.det_butter = {'order': 4,
                                'freq': self.frequency,
                                }
+            self.det_wavelet = {'sd': None}
             self.det_thresh = 3
-            self.moving_avg = {'dur':  .4}
             self.sel_thresh = 1
+            self.min_interval = 1
+            self.moving_rms = {'dur': None}
+            self.smooth = {'dur': .4}  # is in fact sigma
 
         elif method == 'Wamsley2012':
             self.det_wavelet = {'f0': mean(self.frequency),
@@ -61,25 +69,22 @@ class DetectSpindle:
                                 'dur': 2,
                                 }
             self.det_thresh = 4.5
-            self.moving_avg = {'dur': .1}
-            self.sel_thresh = nan  # necessary for gui/detect
+            self.sel_thresh = None  # necessary for gui/detect
+            self.min_interval = 0
+            self.moving_rms = {'dur': None}
+            self.smooth = {'dur': .1}
 
-        elif method == 'UCSD':
-            self.det_wavelet = {'freqs': arange(frequency[0],
-                                                frequency[1] + .5, .5),
-                                'dur': 1,
-                                'width': .5,
-                                'win': .5,
-                                }
-            self.det_thresh = 2  # wavelet_peak_thresh
-            self.sel_wavelet = {'freqs': arange(frequency[0],
-                                                frequency[1] + .5, .5),
-                                'dur': 1,
-                                'width': .2,
-                                'win': .2,
-                                }
-            self.sel_thresh = 1
-            self.ratio_thresh = .5
+        elif method == 'Moelle2011':
+            self.det_butter = {'order': 4,
+                               'freq': self.frequency,
+                               }
+            self.det_wavelet = {'sd': None}
+            self.det_thresh = 1.5
+            self.min_interval = 0
+            self.sel_thresh = None
+            self.moving_rms = {'dur': .2}
+            self.smooth = {'dur': .2}
+
         else:
             raise ValueError('Unknown method')
 
@@ -88,7 +93,7 @@ class DetectSpindle:
                 ''.format(self.method, self.frequency[0], self.frequency[1],
                           self.duration[0], self.duration[1]))
 
-    def __call__(self, data, make_plots=False):
+    def __call__(self, data):
         """Detect spindles on the data.
 
         Parameters
@@ -100,12 +105,12 @@ class DetectSpindle:
         -------
         instance of graphoelement.Spindles
             description of the detected spindles
-
         """
         spindle = Spindles()
         spindle.chan_name = data.axis['chan'][0]
         spindle.det_value = zeros(data.number_of('chan')[0])
         spindle.sel_value = zeros(data.number_of('chan')[0])
+        spindle.density = zeros(data.number_of('chan')[0])
 
         all_spindles = []
         for i, chan in enumerate(data.axis['chan'][0]):
@@ -114,26 +119,31 @@ class DetectSpindle:
             dat_orig = hstack(data(chan=chan))
 
             if self.method == 'Ferrarelli2007':
-                sp_in_chan, values = detect_Ferrarelli2007(dat_orig,
-                                                           data.s_freq, time,
-                                                           self)
+                sp_in_chan, values, density = detect_Ferrarelli2007(dat_orig,
+                                                                    data.s_freq,
+                                                                    time,
+                                                                    self)
 
             elif self.method == 'Nir2011':
-                sp_in_chan, values = detect_Nir2011(dat_orig, data.s_freq,
-                                                    time, self)
+                sp_in_chan, values, density = detect_Nir2011(dat_orig,
+                                                             data.s_freq,
+                                                             time, self)
 
             elif self.method == 'Wamsley2012':
-                sp_in_chan, values = detect_Wamsley2012(dat_orig, data.s_freq,
-                                                        time, self)
+                sp_in_chan, values, density = detect_Wamsley2012(dat_orig,
+                                                                 data.s_freq,
+                                                                 time, self)
 
-            elif self.method == 'UCSD':
-                sp_in_chan, values = detect_UCSD(dat_orig, data.s_freq, time,
-                                                 self)
+            elif self.method == 'Moelle2011':
+                sp_in_chan, values, density = detect_Moelle2011(dat_orig,
+                                                                data.s_freq,
+                                                                time, self)
             else:
                 raise ValueError('Unknown method')
 
             spindle.det_value[i] = values['det_value']
             spindle.sel_value[i] = values['sel_value']
+            spindle.density[i] = density
             for sp in sp_in_chan:
                 sp.update({'chan': chan})
             all_spindles.extend(sp_in_chan)
@@ -145,7 +155,7 @@ class DetectSpindle:
 
 
 def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
-    """Spindle detection based on Ferrarelli et al. 2007
+    """Spindle detection based on Ferrarelli et al. 2007.
 
     Parameters
     ----------
@@ -171,34 +181,41 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         list of detected spindles
     dict
         'det_value' with detection value, 'sel_value' with selection value
+    float
+        spindle density, per 30-s epoch
 
     Notes
     -----
     The original article does not specify a filter, but cheby2 seems the best
     to me.
 
+    TODO
+    ----
+    Ferrarelli, 2007, does not detect any spindles.
+
     References
     ----------
     Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
-
     """
     dat_det = transform_signal(dat_orig, s_freq, 'cheby2', opts.det_cheby2)
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
-
-    sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
-
-    dat_det = transform_signal(dat_det, s_freq, 'hilbert')
     dat_det = transform_signal(dat_det, s_freq, 'abs')
+
+    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
+    sel_value = define_threshold(dat_det, s_freq, 'mean', opts.sel_thresh)
 
     events = detect_events(dat_det, 'threshold', det_value)
 
     if events is not None:
-        events = select_events(dat_det, events, 'threshold', sel_value)
+        events = select_events(dat_det, events, 'upper_thresh', sel_value)
+
+        events = merge_close(dat_det, events, time, opts.min_interval)
 
         events = within_duration(events, time, opts.duration)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        sp_in_chan = make_spindles(events, power_peaks, dat_det, time, s_freq)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
@@ -206,7 +223,79 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
 
     values = {'det_value': det_value, 'sel_value': sel_value}
 
-    return sp_in_chan, values
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
+
+
+def detect_Moelle2011(dat_orig, s_freq, time, opts):
+    """Spindle detection based on Moelle et al. 2011
+
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    opts : instance of 'DetectSpindle'
+        'det_butter' : dict
+            parameters for 'butter',
+        'moving_rms' : dict
+            parameters for 'moving_rms'
+        'smooth' : dict
+            parameters for 'moving_avg'
+        'det_thresh' : float
+            detection threshold
+        'sel_thresh' : nan
+            not used, but keep it for consistency with the other methods
+        'duration' : tuple of float
+            min and max duration of spindles
+
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value' with detection value, 'sel_value' with nan
+    float
+        spindle density, per 30-s epoch
+
+    Notes
+    -----
+    The original article does not specify a filter, but butter seems the best
+    to me.
+
+    References
+    ----------
+    Moelle, M. et al. Sleep 34, 1411-21 (2011).
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+
+    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
+
+    events = detect_events(dat_det, 'threshold', det_value)
+
+    if events is not None:
+        events = merge_close(dat_det, events, time, opts.min_interval)
+
+        events = within_duration(events, time, opts.duration)
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value': det_value, 'sel_value': nan}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
 
 
 def detect_Nir2011(dat_orig, s_freq, time, opts):
@@ -223,10 +312,14 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     opts : instance of 'DetectSpindle'
         'det_butter' : dict
             parameters for 'butter',
+        'smooth' : dict
+            parameters for 'gaussian'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : float
             selection threshold
+        'min_interval' : float
+            minimum interval between consecutive events
         'duration' : tuple of float
             min and max duration of spindles
 
@@ -236,6 +329,8 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         list of detected spindles
     dict
         'det_value' with detection value, 'sel_value' with selection value
+    float
+        spindle density, per 30-s epoch
 
     Notes
     -----
@@ -250,26 +345,28 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     References
     ----------
     Nir, Y. et al. Neuron 70, 153-69 (2011).
-
     """
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
-
-    sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
-
     dat_det = transform_signal(dat_det, s_freq, 'hilbert')
     dat_det = transform_signal(dat_det, s_freq, 'abs')
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.moving_avg)
+    dat_det = transform_signal(dat_det, s_freq, 'gaussian', opts.smooth)
+
+    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
+    sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
     events = detect_events(dat_det, 'threshold', det_value)
 
     if events is not None:
-        events = select_events(dat_det, events, 'threshold', sel_value)
+        events = select_events(dat_det, events, 'upper_thresh', sel_value)
+
+        events = merge_close(dat_det, events, time, opts.min_interval)
 
         events = within_duration(events, time, opts.duration)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        sp_in_chan = make_spindles(events, power_peaks, dat_det, time, s_freq)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
@@ -277,7 +374,9 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
 
     values = {'det_value': det_value, 'sel_value': sel_value}
 
-    return sp_in_chan, values
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
 
 
 def detect_Wamsley2012(dat_orig, s_freq, time, opts):
@@ -294,6 +393,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     opts : instance of 'DetectSpindle'
         'det_wavelet' : dict
             parameters for 'morlet',
+        'smooth' : dict
+            parameters for 'moving_avg'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : nan
@@ -308,26 +409,30 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     dict
         'det_value' with detection value, 'sel_value' is nan (for consistency
         with other methods)
+    float
+        spindle density, per 30-s epoch
 
     References
     ----------
     Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
-
     """
     dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
     dat_det = transform_signal(dat_det, s_freq, 'abs')
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
-
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.moving_avg)
 
     events = detect_events(dat_det, 'threshold', det_value)
 
     if events is not None:
+        events = merge_close(dat_det, events, time, opts.min_interval)
+
         events = within_duration(events, time, opts.duration)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        sp_in_chan = make_spindles(events, power_peaks, dat_det, time, s_freq)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
@@ -335,67 +440,9 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
 
     values = {'det_value': det_value, 'sel_value': nan}
 
-    return sp_in_chan, values
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
-
-def detect_UCSD(dat_orig, s_freq, time, opts):
-    """Spindle detection based on the UCSD method
-
-    Parameters
-    ----------
-    dat_orig : ndarray (dtype='float')
-        vector with the data for one channel
-    s_freq : float
-        sampling frequency
-    time : ndarray (dtype='float')
-        vector with the time points for each sample
-    opts : instance of 'DetectSpindle'
-        det_wavelet : dict
-            parameters for 'wavelet_real',
-        det_thres' : float
-            detection threshold
-        sel_thresh : float
-            selection threshold
-        duration : tuple of float
-            min and max duration of spindles
-        frequency : tuple of float
-            low and high frequency of spindle band (for power ratio)
-        ratio_thresh : float
-            ratio between power inside and outside spindle band to accept them
-
-    Returns
-    -------
-    list of dict
-        list of detected spindles
-    dict
-        'det_value' with detection value, 'sel_value' is selection value
-
-    """
-    dat_det = transform_signal(dat_orig, s_freq, 'wavelet_real',
-                               opts.det_wavelet)
-
-    det_value = define_threshold(dat_det, s_freq, 'median+std',
-                                 opts.det_thresh)
-
-    events = detect_events(dat_det, 'maxima', det_value)
-
-    dat_sel = transform_signal(dat_orig, s_freq, 'wavelet_real',
-                               opts.sel_wavelet)
-    sel_value = define_threshold(dat_sel, s_freq, 'median+std',
-                                 opts.sel_thresh)
-    events = select_events(dat_sel, events, 'threshold', sel_value)
-
-    events = within_duration(events, time, opts.duration)
-
-    events = power_ratio(events, dat_orig, s_freq, opts.frequency,
-                         opts.ratio_thresh)
-
-    power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-    sp_in_chan = make_spindles(events, power_peaks, dat_det, time, s_freq)
-
-    values = {'det_value': det_value, 'sel_value': sel_value}
-
-    return sp_in_chan, values
+    return sp_in_chan, values, density
 
 
 def transform_signal(dat, s_freq, method, method_opt=None):
@@ -409,7 +456,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         sampling frequency
     method : str
         one of 'cheby2', 'butter', 'morlet', 'morlet_real', 'hilbert', 'abs',
-        'moving_avg'
+        'moving_avg', 'gaussian'
     method_opt : dict
         depends on methods
 
@@ -445,20 +492,17 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         dur : float
             window length in number of standard deviations
 
-    morlet_real has parameters:
-        freqs : ndarray
-            vector of wavelet frequencies for spindle detection
-        dur : float
-            duration of the wavelet (sec)
-        width : float
-            wavelet width
-        win : float
-            moving average window length (sec) of wavelet convolution
-
     moving_avg has parameters:
         dur : float
             duration of the window (sec)
 
+    moving_rms has parameters:
+        dur : float
+            duration of the window (sec)
+
+    gaussian has parameters:
+        dur : float
+            standard deviation of the Gaussian kernel, aka sigma (sec)
     """
     if 'cheby2' == method:
         freq = method_opt['freq']
@@ -487,19 +531,6 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         wm = _wmorlet(f0, sd, s_freq, dur)
         dat = absolute(fftconvolve(dat, wm, mode='same'))
 
-    if 'wavelet_real' == method:
-        freqs = method_opt['freqs']
-        dur = method_opt['dur']
-        width = method_opt['width']
-        win = method_opt['win'] * s_freq
-
-        wm = _realwavelets(s_freq, freqs, dur, width)
-        tfr = empty((dat.shape[0], wm.shape[0]))
-        for i, one_wm in enumerate(wm):
-            x = abs(fftconvolve(dat, one_wm, mode='same'))
-            tfr[:, i] = fftconvolve(x, tukeywin(win), mode='same')
-        dat = mean(tfr, axis=1)
-
     if 'hilbert' == method:
         dat = hilbert(dat)
 
@@ -511,6 +542,23 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
         flat = ones(int(dur * s_freq))
         dat = fftconvolve(dat, flat / sum(flat), mode='same')
+
+    if 'moving_rms' == method:
+        dur = method_opt['dur']
+        halfdur = int(floor(s_freq * dur / 2))
+        ldat = len(dat)
+        rms = zeros((ldat))
+
+        for i in range(ldat):
+            rms[i] = sqrt(mean(square(
+                          dat[max(0, i - halfdur):min(ldat, i + halfdur)]
+                          )))
+        dat = rms
+
+    if 'gaussian' == method:
+        sigma = method_opt['dur']
+
+        dat = gaussian_filter(dat, sigma)
 
     return dat
 
@@ -600,7 +648,7 @@ def select_events(dat, detected, method, value):
     detected : ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
     method : str
-        'threshold'
+        'upper_thresh', 'lower_thresh'
     value : float
         for 'threshold', it's the value of threshold for the spindle selection.
 
@@ -610,11 +658,54 @@ def select_events(dat, detected, method, value):
         N x 3 matrix with start, peak, end samples
 
     """
-    if method == 'threshold':
+    if method == 'upper_thresh':
         above_sel = dat >= value
         detected = _select_period(detected, above_sel)
+    elif method == 'lower_thresh':
+        below_sel = dat <= value
+        detected = _select_period(detected, below_sel)
 
     return detected
+
+
+def merge_close(dat, events, time, min_interval):
+    """Merge together events separated by less than a minimum interval.
+
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
+        vector with the data after selection-transformation
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    time : ndarray (dtype='float')
+        vector with time points
+    min_interval : float
+        minimum delay between consecutive events, in seconds
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    """
+    if min_interval == 0:
+        return events
+
+    no_merge = time[events[1:, 0] - 1] - time[events[:-1, 2]] >= min_interval
+
+    if no_merge.any():
+        begs = concatenate([[events[0, 0]], events[1:, 0][no_merge]])
+        ends = concatenate([events[:-1, 2][no_merge], [events[-1, 2]]])
+
+        new_events = vstack((begs, ends)).T  # STACKED WRONG!
+    else:
+        new_events = asarray[[events[0, 0], events[0, 2]]]
+
+    # add the location of the peak in the middle
+    new_events = insert(new_events, 1, 0, axis=1)
+    for i in new_events:
+        i[1] = i[0] + argmax(dat[i[0]:i[2]])
+
+    return new_events
 
 
 def within_duration(events, time, limits):
@@ -639,55 +730,6 @@ def within_duration(events, time, limits):
     max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
 
     return events[min_dur & max_dur, :]
-
-
-def power_ratio(events, dat, s_freq, limits, ratio_thresh):
-    """Estimate the ratio in power between spindle band and lower frequencies.
-
-    Parameters
-    ----------
-    events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples
-    dat : ndarray (dtype='float')
-        vector with the original data
-    s_freq : float
-        sampling frequency
-    limits : tuple of float
-        high and low frequencies for spindle band
-    ratio_thresh : float
-        ratio between spindle vs non-spindle amplitude
-
-    Returns
-    -------
-    ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples
-
-    Notes
-    -----
-    In the original matlab script, it uses amplitude, not power.
-
-    """
-    ratio = empty(events.shape[0])
-    for i, one_event in enumerate(events):
-
-        x0 = one_event[0]
-        x1 = one_event[2]
-
-        if x0 < 0 or x1 >= len(dat):
-            ratio[i] = 0
-
-        else:
-            f, Pxx = periodogram(dat[x0:x1], s_freq, scaling='spectrum')
-            Pxx = sqrt(Pxx)  # use amplitude
-
-            freq_sp = (f >= limits[0]) & (f <= limits[1])
-            freq_nonsp = (f <= limits[1])
-
-            ratio[i] = mean(Pxx[freq_sp]) / mean(Pxx[freq_nonsp])
-
-    events = events[ratio > ratio_thresh, :]
-
-    return events
 
 
 def peak_in_power(events, dat, s_freq, method, value=None):
@@ -738,7 +780,49 @@ def peak_in_power(events, dat, s_freq, method, value=None):
     return peak
 
 
-def make_spindles(events, power_peaks, dat, time, s_freq):
+def avg_power(events, dat, s_freq, frequency):
+    """Define average power of the signal within frequency band.
+
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    dat : ndarray (dtype='float')
+        vector with the original data
+    s_freq : float
+        sampling frequency
+    frequency : tuple of float
+        low and high frequency of spindle band, for window
+
+    Returns
+    -------
+    ndarray (dtype='float')
+        vector with avg power
+    """
+    dat = diff(dat)  # remove 1/f
+
+    avg = empty(events.shape[0])
+    avg.fill(nan)
+
+    for i, one_event in enumerate(events):
+
+        x0 = one_event[0]
+        x1 = one_event[2]
+
+        if x0 < 0 or x1 >= len(dat):
+            avg[i] = nan
+        else:
+            sf, Pxx = periodogram(dat[x0:x1], s_freq)
+            # find nearest frequencies in sf
+            b0 = asarray([abs(x - frequency[0]) for x in sf]).argmin()
+            b1 = asarray([abs(x - frequency[1]) for x in sf]).argmin()
+            avg[i] = mean(Pxx[b0:b1])
+
+    return avg
+
+
+def make_spindles(events, power_peaks, power_avgs, dat_det, dat_orig, time,
+                  s_freq):
     """Create dict for each spindle, based on events of time points.
 
     Parameters
@@ -747,8 +831,12 @@ def make_spindles(events, power_peaks, dat, time, s_freq):
         N x 3 matrix with start, peak, end samples, and peak frequency
     power_peaks : ndarray (dtype='float')
         peak in power spectrum for each event
-    dat : ndarray (dtype='float')
+    power_avgs : ndarray (dtype='float')
+        average power in power spectrum for each event
+    dat_det : ndarray (dtype='float')
         vector with the data after detection-transformation (to compute peak)
+    dat_orig : ndarray (dtype='float')
+        vector with the raw data on which detection was performed
     time : ndarray (dtype='float')
         vector with time points
     s_freq : float
@@ -760,19 +848,23 @@ def make_spindles(events, power_peaks, dat, time, s_freq):
         list of all the spindles, with information about start_time, peak_time,
         end_time (s), peak_val (signal units), area_under_curve
         (signal units * s), peak_freq (Hz)
-
     """
-    i, events = _remove_duplicate(events, dat)
+    i, events = _remove_duplicate(events, dat_det)
     power_peaks = power_peaks[i]
 
     spindles = []
-    for i, one_peak in zip(events, power_peaks):
+    for i, one_peak, one_pwr in zip(events, power_peaks, power_avgs):
         one_spindle = {'start_time': time[i[0]],
                        'end_time': time[i[2] - 1],
                        'peak_time': time[i[1]],
-                       'peak_val': dat[i[1]],
-                       'area_under_curve': sum(dat[i[0]:i[2]]) / s_freq,
+                       'peak_val': dat_det[i[1]],
+                       'peak_val_orig': dat_orig[i[1]],
+                       'dur': (i[2] - i[0]) / s_freq,
+                       'area_under_curve': sum(dat_det[i[0]:i[2]]) / s_freq,
+                       'rms': sqrt(mean(square(dat_orig[i[0]:i[2]]))),
+                       'power': one_pwr,
                        'peak_freq': one_peak,
+                       'ptp': ptp(dat_orig[i[0]:i[2]])
                        }
         spindles.append(one_spindle)
 
@@ -803,7 +895,6 @@ def _remove_duplicate(old_events, dat):
     end time, then it takes the largest peak.
 
     There is no tolerance, indices need to be identical.
-
     """
     diff_events = diff(old_events, axis=0)
     dupl = where((diff_events[:, 0] == 0) & (diff_events[:, 2] == 0))[0]
@@ -844,7 +935,6 @@ def _detect_start_end(true_values):
     -------
     ndarray (dtype='int')
         N x 2 matrix with starting and ending times.
-
     """
     neg = zeros((1), dtype='bool')
     int_values = asarray(hstack((neg, true_values, neg)), dtype='int')
@@ -863,7 +953,8 @@ def _detect_start_end(true_values):
 
 
 def _select_period(detected, true_values):
-    """For the detected values, we check when it goes below the selection.
+    """For the detected values, we check when it goes above/below the
+    selection.
 
     Parameters
     ----------
@@ -883,17 +974,16 @@ def _select_period(detected, true_values):
     -----
     Both start and end time points are inclusive (not python convention, but
     matlab convention) because these values are converted to time points later.
-
     """
     true_values = invert(true_values)
 
     for one_spindle in detected:
-        # get the first time point when it goes above selection thres
+        # get the first time point when it goes above/below selection thres
         start_sel = where(true_values[:one_spindle[0]])[0]
         if start_sel.any():
             one_spindle[0] = start_sel[-1]
 
-        # get the last time point when it stays above selection thres
+        # get the last time point when it stays above/below selection thres
         end_sel = where(true_values[one_spindle[2]:])[0] - 1
         if end_sel.any():
             one_spindle[2] += end_sel[0]
@@ -913,7 +1003,6 @@ def _wmorlet(f0, sd, sampling_rate, ns=5):
         sd : standard deviation of frequency
         sampling_rate : samplingrate
         ns : window length in number of standard deviations
-
     """
     st = 1. / (2. * pi * sd)
     w_sz = float(int(ns * st * sampling_rate))  # half time window size
@@ -921,55 +1010,3 @@ def _wmorlet(f0, sd, sampling_rate, ns=5):
     w = (exp(-t ** 2 / (2. * st ** 2)) * exp(2j * pi * f0 * t) /
          sqrt(sqrt(pi) * st * sampling_rate))
     return w
-
-
-def _realwavelets(s_freq, freqs, dur, width):
-    """Create real wavelets, for UCSD.
-
-    Parameters
-    ----------
-    s_freq : int
-        sampling frequency
-    freqs : ndarray
-        vector with frequencies of interest
-    dur : float
-        duration of the wavelets in s
-    width : float
-        parameter controlling gaussian shape
-
-    Returns
-    -------
-    ndarray
-        wavelets
-
-    """
-    x = arange(-dur/2, dur/2, 1/s_freq)
-    wavelets = empty((len(freqs), len(x)))
-
-    g = exp(-(pi * x ** 2) / width ** 2)
-
-    for i, one_freq in enumerate(freqs):
-        y = cos(2 * pi * x * one_freq)
-        wavelets[i, :] = y * g
-
-    return wavelets
-
-
-def tukeywin(window_length, alpha=0.5):
-    """Taken from http://leohart.wordpress.com/2006/01/29/hello-world/ """
-    x = linspace(0, 1, window_length)
-    w = ones(x.shape)
-
-    # first condition 0 <= x < alpha/2
-    first_condition = x < alpha / 2
-    w[first_condition] = 0.5 * (1 + cos(2 * pi / alpha *
-                                        (x[first_condition] - alpha / 2)))
-
-    # second condition already taken care of
-
-    # third condition 1 - alpha / 2 <= x <= 1
-    third_condition = x >= (1 - alpha / 2)
-    w[third_condition] = 0.5 * (1 + cos(2 * pi / alpha *
-                                        (x[third_condition] - 1 + alpha / 2)))
-
-    return w / len(w)
