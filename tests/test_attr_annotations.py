@@ -4,9 +4,13 @@ from wonambi import Dataset
 from wonambi.attr import (Annotations,
                           create_empty_annotations,
                           )
+from wonambi.attr.annotations import create_annotation
+
 
 from .paths import (annot_file,
                     annot_domino_path,
+                    annot_fasst_path,
+                    annot_fasst_export_file,
                     ns2_file,
                     )
 
@@ -42,3 +46,9 @@ def test_import_domino():
     record_start = datetime(2015, 9, 21, 21, 40, 30)
     annot.import_domino(str(annot_domino_path), 'domino', record_start)
     assert annot.time_in_stage('REM') == 2460
+
+
+def test_import_fasst():
+    annot = create_annotation(annot_fasst_export_file,
+                              from_fasst=annot_fasst_path)
+    assert annot.time_in_stage('NREM3') == 2970

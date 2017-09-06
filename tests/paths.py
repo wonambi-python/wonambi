@@ -20,6 +20,7 @@ SAMPLE_PATH = DATA_PATH / 'Public'
 ANNOT_PATH = SAMPLE_PATH / 'annot'
 chan_path = ANNOT_PATH / 'bert_chan_locs.csv'
 annot_domino_path = ANNOT_PATH / 'domino_test_01_EE_stag.txt'
+annot_fasst_path = ANNOT_PATH / 'fasst_ACT2007-sh.mat'
 
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'
@@ -36,7 +37,8 @@ ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
 # Folder where to export data
 EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)
-annot_file = EXPORTED_PATH / 'blackrock_scores.xml'
+annot_file = EXPORTED_PATH / 'annot_scores.xml'
+annot_fasst_export_file = EXPORTED_PATH / 'annot_fasst.xml'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
 channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'

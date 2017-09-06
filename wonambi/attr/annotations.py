@@ -5,9 +5,11 @@ from bisect import bisect_left
 from csv import writer
 from datetime import datetime, timedelta
 from itertools import compress
-from numpy import allclose, asarray, in1d
+from numpy import allclose, asarray, in1d, modf, isnan
 from math import ceil, inf
+from pathlib import Path
 from re import search, sub
+from scipy.io import loadmat
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
@@ -20,6 +22,14 @@ DOMINO_STAGE_KEY = {'N1': 'NREM1',
                     'Wa': 'Wake',
                     'Ar': 'Artefact',
                     'A\n': 'Artefact'}
+
+FASST_STAGE_KEY = ['Wake',
+                   'NREM1',
+                   'NREM2',
+                   'NREM3',
+                   None,
+                   'REM',
+                   ]
 
 def parse_iso_datetime(date):
     try:
@@ -34,8 +44,8 @@ def create_empty_annotations(xml_file, dataset):
     Notes
     -----
     Dates are made time-zone unaware.
-
     """
+    xml_file = Path(xml_file)
     root = Element('annotations')
     root.set('version', VERSION)
 
@@ -58,12 +68,87 @@ def create_empty_annotations(xml_file, dataset):
     x.text = str(last_sec)
 
     xml = parseString(tostring(root))
-    with open(xml_file, 'w') as f:
+    with xml_file.open('w') as f:
         f.write(xml.toxml())
+
+
+def create_annotation(xml_file, from_fasst):
+    """Create annotations by importing from FASST sleep scoring file.
+
+    Parameters
+    ----------
+    xml_file : path to xml file
+        annotation file that will be created
+    from_fasst : path to FASST file
+        .mat file containing the scores
+
+    Returns
+    -------
+    instance of Annotations
+
+    TODO
+    ----
+    Merge create_annotation and create_empty_annotations
+    """
+    xml_file = Path(xml_file)
+    mat = loadmat(str(from_fasst), variable_names='D', struct_as_record=False,
+                  squeeze_me=True)
+    D = mat['D']
+    info = D.other.info
+    score = D.other.CRC.score
+
+    microsecond, second = modf(info.hour[2])
+    start_time = datetime(*info.date, int(info.hour[0]), int(info.hour[1]),
+                          int(second), int(microsecond * 1e6))
+    first_sec = score[3, 0][0]
+    last_sec = score[0, 0].shape[0] * score[2, 0]
+
+    root = Element('annotations')
+    root.set('version', VERSION)
+
+    info = SubElement(root, 'dataset')
+    x = SubElement(info, 'filename')
+    x.text = D.other.info.fname
+    x = SubElement(info, 'path')  # not to be relied on
+    x.text = D.other.info.fname
+    x = SubElement(info, 'start_time')
+    x.text = start_time.isoformat()
+
+    x = SubElement(info, 'first_second')
+    x.text = str(int(first_sec))
+    x = SubElement(info, 'last_second')
+    x.text = str(int(last_sec))
+
+    xml = parseString(tostring(root))
+    with xml_file.open('w') as f:
+        f.write(xml.toxml())
+
+    annot = Annotations(xml_file)
+
+    n_raters = score.shape[1]
+    for i_rater in range(n_raters):
+        rater_name = score[1, i_rater]
+        epoch_length = int(score[2, i_rater])
+        annot.add_rater(rater_name, epoch_length=epoch_length)
+
+        for epoch_start, epoch in enumerate(score[0, i_rater]):
+            if isnan(epoch):
+                continue
+            annot.set_stage_for_epoch(epoch_start * epoch_length,
+                                      FASST_STAGE_KEY[int(epoch)], save=False)
+
+    annot.save()
+
+    return annot
 
 
 class Annotations():
     """Class to return nicely formatted information from xml.
+
+    Parameters
+    ----------
+    xml_file : path to xml file
+        Annotation xml file
     """
     def __init__(self, xml_file, rater_name=None):
 
@@ -693,7 +778,7 @@ class Annotations():
         return sum(x['end'] - x['start'] for x in self.epochs
                    if x[attr] == name)
 
-    def set_stage_for_epoch(self, epoch_start, name, attr='stage'):
+    def set_stage_for_epoch(self, epoch_start, name, attr='stage', save=True):
         """Change the stage for one specific epoch.
 
         Parameters
@@ -704,6 +789,8 @@ class Annotations():
             description of the stage or qualifier.
         attr : str, optional
             either 'stage' or 'quality'
+        save : bool
+            whether to save every time one epoch is scored
 
         Raises
         ------
@@ -711,6 +798,12 @@ class Annotations():
             When the epoch_start is not in the list of epochs.
         IndexError
             When there is no rater / epochs at all
+
+        Notes
+        -----
+        In the GUI, you want to save as often as possible, even if it slows
+        down the program, but it's the safer option. But if you're converting
+        a dataset, you want to save at the end. Do not forget to save!
         """
         if self.rater is None:
             raise IndexError('You need to have at least one rater')
@@ -718,7 +811,8 @@ class Annotations():
         for one_epoch in self.rater.iterfind('stages/epoch'):
             if int(one_epoch.find('epoch_start').text) == epoch_start:
                 one_epoch.find(attr).text = name
-                self.save()
+                if save:
+                    self.save()
                 return
 
         raise KeyError('epoch starting at ' + str(epoch_start) + ' not found')
