@@ -19,6 +19,7 @@ SAMPLE_PATH = DATA_PATH / 'Public'
 
 ANNOT_PATH = SAMPLE_PATH / 'annot'
 chan_path = ANNOT_PATH / 'bert_chan_locs.csv'
+annot_domino_path = ANNOT_PATH / 'domino_test_01_EE_stag.txt'
 
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'

@@ -1,16 +1,25 @@
 """Module to keep track of the user-made annotations and sleep scoring.
 """
 from logging import getLogger
+from bisect import bisect_left
 from csv import writer
 from datetime import datetime, timedelta
-from math import ceil
+from itertools import compress
+from numpy import allclose, asarray, in1d
+from math import ceil, inf
 from re import search, sub
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
 lg = getLogger(__name__)
 VERSION = '5'
-
+DOMINO_STAGE_KEY = {'N1': 'NREM1',
+                    'N2': 'NREM2',
+                    'N3': 'NREM3',
+                    'Re': 'REM',
+                    'Wa': 'Wake',
+                    'Ar': 'Artefact',
+                    'A\n': 'Artefact'}
 
 def parse_iso_datetime(date):
     try:
@@ -55,7 +64,6 @@ def create_empty_annotations(xml_file, dataset):
 
 class Annotations():
     """Class to return nicely formatted information from xml.
-
     """
     def __init__(self, xml_file, rater_name=None):
 
@@ -140,6 +148,7 @@ class Annotations():
         SubElement(self.rater, 'bookmarks')
         SubElement(self.rater, 'events')
         SubElement(self.rater, 'stages')
+        SubElement(self.rater, 'cycles')
         self.create_epochs(epoch_length=epoch_length)
 
         self.save()
@@ -162,6 +171,64 @@ class Annotations():
                         self.rater = all_raters[idx]
 
                 self.root.remove(rater)
+
+        self.save()
+
+    def import_domino(self, filename, rater_name, record_start):
+        """Import staging from a SomnoMedics Domino staging text file.
+
+        Parameters
+        ----------
+        filename : str
+            Domino filename.
+        rater_name : str
+            Rater name for imported staging.
+        record_start : datetime
+            Date and time (year, month, day, hour, minute, second) of recording
+            start. Year is unimportant.
+        """
+        if rater_name not in self.raters:
+            self.add_rater(rater_name, epoch_length=30)
+
+        self.get_rater(rater_name)
+
+        stages = self.rater.find('stages')
+
+        # list is necessary so that it does not remove in place
+        for s in list(stages):
+            stages.remove(s)
+
+        with open(filename, 'r') as f:
+            domino_lines = f.readlines()
+            stage_start = datetime.strptime(domino_lines[7][:8], '%H:%M:%S')
+            stage_day = int(domino_lines[1][12:14])
+            stage_month = int(domino_lines[1][15:17])
+            stage_trunc = stage_start.replace(year=1999, month=stage_month,
+                                              day=stage_day)
+            record_trunc = record_start.replace(year=1999)
+            first_second = int((record_trunc - stage_trunc).total_seconds())
+            lg.info('Time offset: ' + str(first_second))
+
+            stages = self.rater.find('stages')
+            for i, line in enumerate(domino_lines[7:]):
+                epoch = SubElement(stages, 'epoch')
+
+                start_time = SubElement(epoch, 'epoch_start')
+                epoch_beg = first_second + (i * 30)
+                start_time.text = str(epoch_beg)
+
+                end_time = SubElement(epoch, 'epoch_end')
+                end_time.text = str(epoch_beg + 30)
+
+                stage = SubElement(epoch, 'stage')
+                domino_stage = DOMINO_STAGE_KEY[line[14:16]]
+                stage.text = domino_stage
+
+                quality = SubElement(epoch, 'quality')
+                if domino_stage == 'Artefact':
+                    quality.text = 'Bad'
+                else:
+                    quality.text = 'Good'
 
         self.save()
 
@@ -323,7 +390,15 @@ class Annotations():
         self.save()
 
     def add_event(self, name, time, chan=''):
-        """
+        """Add event to annotations file.
+        Parameters
+        ----------
+        name : str
+            Event type name.
+        time : tuple/list of float
+            Start and end times of event, in seconds from recording start.
+        chan : str or list of str, optional
+            Channel or channels associated with event.
         Raises
         ------
         IndexError
@@ -346,6 +421,11 @@ class Annotations():
             chan = ', '.join(chan)
         event_chan = SubElement(new_event, 'event_chan')
         event_chan.text = chan
+
+        event_qual = SubElement(new_event, 'event_qual')
+        event_qual.text = 'Good' # if the event was marked, it's probably
+        # because the signal quality is good; anyway, it gets checked against
+        # the epoch quality in get_events (JOB)
 
         self.save()
 
@@ -372,7 +452,8 @@ class Annotations():
                 if time is None:
                     time_cond = True
                 else:
-                    time_cond = time[0] == event_start and time[1] == event_end
+                    time_cond = allclose(time[0], event_start) and allclose(
+                            time[1], event_end)
 
                 if chan is None:
                     chan_cond = True
@@ -384,7 +465,8 @@ class Annotations():
 
         self.save()
 
-    def get_events(self, name=None, time=None, chan=None):
+    def get_events(self, name=None, time=None, chan=None, stage=None,
+                   qual=None):
         """Get list of events in the file.
 
         Parameters
@@ -395,13 +477,16 @@ class Annotations():
             start and end time of the period of interest
         chan : tuple of str, optional
             list of channels of interests
-
+        stage : tuple of str, optional
+            list of stages of interest
+        qual : str, optional
+            epoch signal qualifier (Good or Bad)
         Returns
         -------
         list of dict
             where each dict has 'name' (name of the event), 'start' (start
             time), 'end' (end time), 'chan' (channels of interest, can be
-            empty)
+            empty), 'stage', 'quality' (signal quality)
 
         Raises
         ------
@@ -419,6 +504,13 @@ class Annotations():
             if isinstance(chan, (tuple, list)):
                 chan = ', '.join(chan)
 
+        if stage or qual:
+            ep_starts = [x['start'] for x in self.epochs]
+            if stage:
+                ep_stages = [x['stage'] for x in self.epochs]
+            if qual:
+                ep_quality = [x['quality'] for x in self.epochs]
+
         ev = []
         for e_type in events.iterfind(pattern):
 
@@ -429,8 +521,36 @@ class Annotations():
                 event_start = float(e.find('event_start').text)
                 event_end = float(e.find('event_end').text)
                 event_chan = e.find('event_chan').text
+                event_qual = e.find('event_qual').text
                 if event_chan is None:  # xml doesn't store empty string
                     event_chan = ''
+
+                if stage or qual:
+                    pos = bisect_left(ep_starts, event_start)
+                    if event_start != ep_starts[pos]:
+                        pos -= 1
+
+                if stage is None:
+                    stage_cond = True
+                else:
+                    ev_stage = ep_stages[pos]
+                    stage_cond = ev_stage in stage
+
+                if qual is None:
+                    qual_cond = True
+                else:
+                    ev_qual = ep_quality[pos]
+                    qual_cond = ev_qual == qual
+                """
+                if stage is None:
+                    stage_cond = True
+                else:
+                    if event_start == ep_starts[pos]:
+                        ev_stage = ep_stages[pos]
+                    else:
+                        ev_stage = ep_stages[pos - 1]
+                    stage_cond = ev_stage in stage
+                """
 
                 if time is None:
                     time_cond = True
@@ -442,22 +562,37 @@ class Annotations():
                 else:
                     chan_cond = event_chan == chan
 
-                if time_cond and chan_cond:
+                if time_cond and chan_cond and stage_cond and qual_cond:
                     one_ev = {'name': event_name,
                               'start': event_start,
                               'end': event_end,
                               'chan': event_chan.split(', '),  # always a list
+                              'stage': '',
+                              'quality': event_qual
                               }
+                    if stage is not None:
+                        one_ev['stage'] = ev_stage
                     ev.append(one_ev)
 
         return ev
 
-    def create_epochs(self, epoch_length=30):
-        last_sec = ceil((self.last_second - self.first_second) /
+    def create_epochs(self, epoch_length=30, first_second=None):
+        """Create epochs in annotation file.
+        Parameters
+        ----------
+        epoch_length : int
+            duration in seconds of each epoch
+        first_second : int, optional
+            Time, in seconds from record start, at which the epochs begin
+        """
+        lg.info('creating epochs')
+        if first_second is None:
+            first_second = self.first_second
+        last_sec = ceil((self.last_second - first_second) /
                         epoch_length) * epoch_length
 
         stages = self.rater.find('stages')
-        for epoch_beg in range(self.first_second, last_sec, epoch_length):
+        for epoch_beg in range(first_second, last_sec, epoch_length):
             epoch = SubElement(stages, 'epoch')
 
             start_time = SubElement(epoch, 'epoch_start')
@@ -468,6 +603,9 @@ class Annotations():
 
             stage = SubElement(epoch, 'stage')
             stage.text = 'Unknown'
+
+            quality = SubElement(epoch, 'quality')
+            quality.text = 'Good'
 
     @property
     def epochs(self):
@@ -493,16 +631,37 @@ class Annotations():
             epoch = {'start': int(one_epoch.find('epoch_start').text),
                      'end': int(one_epoch.find('epoch_end').text),
                      'stage': one_epoch.find('stage').text,
+                     'quality': one_epoch.find('quality').text
                      }
             yield epoch
 
-    def get_stage_for_epoch(self, epoch_start):
+    def get_epoch_start(self, window_start):
+        """ Get the position (seconds) of the nearest epoch.
+
+        Parameters
+        ----------
+        window_start : float
+            Position of the current window (seconds)
+
+        Returns
+        -------
+        float
+            Position (seconds) of the nearest epoch.
+        """
+        epoch_starts = [x['start'] for x in self.epochs]
+        idx = asarray([abs(window_start - x) for x in epoch_starts]).argmin()
+
+        return epoch_starts[idx]
+
+    def get_stage_for_epoch(self, epoch_start, attr='stage'):
         """Return stage for one specific epoch.
 
         Parameters
         ----------
         id_epoch : str
             index of the epoch
+        attr : str, optional
+            'stage' or 'quality'
 
         Returns
         -------
@@ -513,39 +672,43 @@ class Annotations():
 
         for epoch in self.epochs:
             if epoch['start'] == epoch_start:
-                return epoch['stage']
+                return epoch[attr]
 
-    def time_in_stage(self, stage):
+    def time_in_stage(self, name, attr='stage'):
         """Return time (in seconds) in the selected stage.
 
         Parameters
         ----------
-        stage : str
-            one of the sleep stages
+        name : str
+            one of the sleep stages, or qualifiers
+        attr : str, optional
+            either 'stage' or 'quality'
 
         Returns
         -------
         int
-            time spent in one stage, in seconds.
+            time spent in one stage/qualifier, in seconds.
 
         """
         return sum(x['end'] - x['start'] for x in self.epochs
-                   if x['stage'] == stage)
+                   if x[attr] == name)
 
-    def set_stage_for_epoch(self, epoch_start, stage):
+    def set_stage_for_epoch(self, epoch_start, name, attr='stage'):
         """Change the stage for one specific epoch.
 
         Parameters
         ----------
-        id_epoch : str
-            index of the epoch
-        stage : str
-            description of the stage.
+        epoch_start : int
+            start time of the epoch, in seconds
+        name : str
+            description of the stage or qualifier.
+        attr : str, optional
+            either 'stage' or 'quality'
 
         Raises
         ------
         KeyError
-            When the id_epoch is not in the list of epochs.
+            When the epoch_start is not in the list of epochs.
         IndexError
             When there is no rater / epochs at all
         """
@@ -554,11 +717,125 @@ class Annotations():
 
         for one_epoch in self.rater.iterfind('stages/epoch'):
             if int(one_epoch.find('epoch_start').text) == epoch_start:
-                one_epoch.find('stage').text = stage
+                one_epoch.find(attr).text = name
                 self.save()
                 return
 
         raise KeyError('epoch starting at ' + str(epoch_start) + ' not found')
+
+    def set_cycle_mrkr(self, epoch_start, end=False):
+        """Mark epoch start as cycle start or end.
+
+        Parameters
+        ----------
+        epoch_start: int
+            start time of the epoch, in seconds
+        end : bool
+            If True, marked as cycle end; otherwise, marks cycle start
+        """
+        if self.rater is None:
+            raise IndexError('You need to have at least one rater')
+
+        bound = 'start'
+        if end:
+            bound = 'end'
+
+        for one_epoch in self.rater.iterfind('stages/epoch'):
+            if int(one_epoch.find('epoch_start').text) == epoch_start:
+                cycles = self.rater.find('cycles')
+                name = 'cyc_' + bound
+                new_bound = SubElement(cycles, name)
+                new_bound.text = str(int(epoch_start))
+                self.save()
+                return
+
+        raise KeyError('epoch starting at ' + str(epoch_start) + ' not found')
+
+    def remove_cycle_mrkr(self, epoch_start):
+        """Remove cycle marker at epoch_start.
+
+        Parameters
+        ----------
+        epoch_start: int
+            start time of epoch, in seconds
+        """
+        if self.rater is None:
+            raise IndexError('You need to have at least one rater')
+        lg.info('epoch_start: ' + str(epoch_start))
+        cycles = self.rater.find('cycles')
+        for one_mrkr in cycles.iterfind('cyc_start'):
+            lg.info('cycle: ' + one_mrkr.text)
+            if int(one_mrkr.text) == epoch_start:
+                cycles.remove(one_mrkr)
+                self.save()
+                return
+
+        for one_mrkr in cycles.iterfind('cyc_end'):
+            lg.info('cycle: ' + one_mrkr.text)
+            if int(one_mrkr.text) == epoch_start:
+                cycles.remove(one_mrkr)
+                self.save()
+                return
+
+        raise KeyError('cycle marker at ' + str(epoch_start) + ' not found')
+
+    def clear_cycles(self):
+        """Remove all cycle markers in current rater."""
+        if self.rater is None:
+            raise IndexError('You need to have at least one rater')
+
+        cycles = self.rater.find('cycles')
+        for one_mrkr in cycles.iterfind('cyc_start'):
+            cycles.remove(one_mrkr)
+        for one_mrkr in cycles.iterfind('cyc_end'):
+            cycles.remove(one_mrkr)
+
+        self.save()
+
+    def get_cycles(self):
+        """Return the cycle start and end times.
+
+        Returns
+        -------
+        list of tuple
+            start and end times for each cycle, in seconds from recording start
+        """
+        cycles = self.rater.find('cycles')
+
+        if not cycles:
+            return None
+
+        starts = [float(mrkr.text) for mrkr in cycles.findall('cyc_start')]
+        ends = [float(mrkr.text) for mrkr in cycles.findall('cyc_end')]
+        output = []
+
+        if not starts or not ends:
+            return None
+
+        if all(i < starts[0] for i in ends):
+            raise ValueError('First cycle has no start.')
+
+        for (this_start, next_start) in zip(starts, starts[1:] + [inf]):
+            # if an end is smaller than the next start, make it the end
+            # otherwise, the next_start is the end
+            end_between_starts = [end for end in ends \
+                                  if this_start < end <= next_start]
+
+            if len(end_between_starts) > 1:
+                raise ValueError('Found more than one cycle end for same '
+                                 'cycle')
+
+            if end_between_starts:
+                one_cycle = (this_start, end_between_starts[0])
+            else:
+                one_cycle = (this_start, next_start)
+
+            if one_cycle[1] == inf:
+                raise ValueError('Last cycle has no end.')
+
+            output.append(one_cycle)
+
+        return output
 
     def export(self, file_to_export, stages=True):
         """Export annotations to csv file.
@@ -584,6 +861,94 @@ class Annotations():
                                        epoch['start'],
                                        epoch['end'],
                                        epoch['stage']))
+
+    def export_event_data(self, filename, summary, events, cycles=None,
+                          fsplit=None):
+        """Export event analysis data to CSV, from dialog.
+
+        Parameters
+        ----------
+        filename : str
+            Filename for csv export.
+        summary : list of dict
+            Parameter name as key with global parameters/avgs as values. If
+            fsplit, there are two dicts, low frequency and high frequency
+            respectively, combined together in a list.
+        events : list of list of dict, optional
+            One dictionary per event, each containing  individual event
+            parameters. If fsplit, there are two event lists, low frequency
+            and high frequency respectively, combined together in a list.
+            Otherwise, there is a single list within the master list.
+        cycles: int, optional
+            Number of cycles.
+        fsplit: float, optional
+            Frequency at which to split dataset.
+        """
+        sheets = [filename]
+
+        if cycles:
+            sheets = [splitext(filename)[0] + '_cycle' + str(i + 1) + '.csv' \
+                      for i in range(len(cycles))]
+
+        if fsplit:
+            all_sheets = []
+
+            for fn in sheets:
+                all_sheets.extend([splitext(fn)[0] + '_slow.csv',
+                                   splitext(fn)[0] + '_fast.csv'])
+
+            sheets = all_sheets
+
+        ordered_params = ['dur', 'maxamp', 'ptp', 'peakf', 'power', 'rms',
+                          'count', 'density']
+        headings = ['Duration (s)',
+                    'Maximum amplitude (uV)',
+                    'Peak-to-peak amplitude (uV)',
+                    'Peak frequency (Hz)',
+                    'Average power (uV^2)',
+                    'RMS (uV)',
+                    'Count',
+                    'Density']
+        idx_params = in1d(ordered_params, list(summary[0].keys()))
+        sel_params_in_order = list(compress(ordered_params, idx_params))
+        per_evt_params = list(compress(ordered_params[:-2], idx_params))
+
+        lg.info('sheets: ' + str(len(sheets)) + ' summ: ' + str(len(summary)) + 'events: ' + str(len(events)))
+        lg.info('number of events ' + str(len(events[0])))
+
+        for fn, summ, evs in zip(sheets, summary, events):
+            first_row = list(compress(headings, idx_params))
+            second_row = [summ[key][0] for key in sel_params_in_order]
+
+            if evs:
+                first_row[:0] = ['Index', 'Start (clock)', 'Start (record)',
+                                'End (record)', 'Channel', 'Stage']
+                second_row[:0] = ['Mean', '', '', '', '', '']
+                third_row = ['SD', '', '', '', '', ''] + \
+                        [summ[key][1] for key in per_evt_params]
+
+            with open(fn, 'w', newline='') as f:
+                lg.info('Writing to' + fn)
+                csv_file = writer(f)
+                csv_file.writerow(first_row)
+                csv_file.writerow(second_row)
+
+                if evs:
+                    csv_file.writerow(third_row)
+
+                    for i, ev in enumerate(evs):
+                        ev_time = (self.start_time +
+                                      timedelta(seconds=ev['start']))
+                        if isinstance(ev['chan'], (tuple, list)):
+                            ev['chan'] = ', '.join(ev['chan'])
+                        info_row = [i+1,
+                                    ev_time.strftime('%H:%M:%S'),
+                                    ev['start'],
+                                    ev['end'],
+                                    ev['chan'],
+                                    ev['stage']]
+                        data_row = [ev[key] for key in per_evt_params]
+                        csv_file.writerow(info_row + data_row)
 
 
 def update_annotation_version(xml_file):
