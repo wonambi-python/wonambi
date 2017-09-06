@@ -230,6 +230,10 @@ def create_menubar(MAIN):
     submenu_stage.addActions(MAIN.notes.actions())
     menu_annot.addSeparator()
 
+    submenu_import = menu_annot.addMenu('Import')
+    submenu_import.addAction(actions['import_domino'])
+    submenu_import.addAction(actions['import_fasst'])
+
     menu_annot.addAction(actions['export'])
 
     """ ------ ANNOTATIONS ------ """

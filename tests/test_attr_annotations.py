@@ -1,10 +1,12 @@
 from datetime import datetime
+from pytest import raises
 
 from wonambi import Dataset
 from wonambi.attr import (Annotations,
                           create_empty_annotations,
                           )
 from wonambi.attr.annotations import create_annotation
+from wonambi.utils.exceptions import UnrecognizedFormat
 
 
 from .paths import (annot_file,
@@ -52,3 +54,9 @@ def test_import_fasst():
     annot = create_annotation(annot_fasst_export_file,
                               from_fasst=annot_fasst_path)
     assert annot.time_in_stage('NREM3') == 2970
+
+
+def test_import_fasst_error():
+    with raises(UnrecognizedFormat):
+        create_annotation(annot_fasst_export_file,
+                          from_fasst=ns2_file)

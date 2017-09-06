@@ -39,6 +39,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from ..attr import Annotations, create_empty_annotations
+from ..attr.annotations import create_annotation
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool
 from .utils import convert_name_to_color, short_strings, ICON
 
@@ -291,6 +292,14 @@ class Notes(QTabWidget):
             self.addAction(act[one_stage])
 
         actions['stages'] = act
+
+        act = QAction('Domino staging', self)
+        act.triggered.connect(self.import_domino)
+        actions['import_domino'] = act
+
+        act = QAction('FASST staging', self)
+        act.triggered.connect(self.import_fasst)
+        actions['import_fasst'] = act
 
         act = QAction('Export...', self)
         act.triggered.connect(self.export)
@@ -659,6 +668,88 @@ class Notes(QTabWidget):
             return
 
         self.reset()
+
+    def import_fasst(self, checked=False, test_fasst=None, test_annot=None):
+        """Action: import from FASST .mat file"""
+
+        if self.parent.info.filename is not None:
+            fasst_file = splitext(self.parent.info.filename)[0] + '.mat'
+            annot_file = splitext(self.parent.info.filename)[0] + '_scores.xml'
+        else:
+            fasst_file = annot_file = ''
+
+        if test_fasst is None:
+            fasst_file, _ = QFileDialog.getOpenFileName(self, 'Load FASST score file',
+                                                        fasst_file,
+                                                        'FASST score file (*.mat)')
+        else:
+            fasst_file = test_fasst
+
+        if fasst_file == '':
+            return
+
+        if test_annot is None:
+            annot_file, _ = QFileDialog.getSaveFileName(self, 'Create annotation file',
+                                                        annot_file,
+                                                        'Annotation File (*.xml)')
+        else:
+            annot_file = test_annot
+
+        if annot_file == '':
+            return
+
+        try:
+            create_annotation(annot_file, from_fasst=fasst_file)
+        except BaseException as err:
+            self.parent.statusBar().showMessage(str(err))
+            return
+
+        try:
+            self.update_notes(annot_file, False)
+        except FileNotFoundError:
+            self.parent.statusBar().showMessage('Annotation file not found')
+
+    def import_domino(self):
+        """Action: import a SomnoMedics Domino sleep staging file."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
+        filename, _ = QFileDialog.getOpenFileName(self,
+                                                  'Load Domino staging file',
+                                                  None,
+                                                  'Domino Text File (*.txt)')
+
+        if filename == '':
+            return
+
+        answer = QInputDialog.getText(self, 'Import staging',
+                                      'Enter rater name')
+
+        if answer[1]:
+            if answer[0] in self.annot.raters:
+                msgBox = QMessageBox(QMessageBox.Question, 'Overwrite staging',
+                                     'Rater %s already exists. \n \n'
+                                     'Overwrite %s\'s sleep staging '
+                                     'with Domino\'s staging? Events '
+                                     'and bookmarks will be preserved.'
+                                     % (answer[0], answer[0]))
+                msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                msgBox.setDefaultButton(QMessageBox.No)
+                response = msgBox.exec_()
+
+                if response == QMessageBox.No:
+                    return
+
+            record_start = self.parent.info.dataset.header['start_time']
+
+            try:
+                self.annot.import_domino(filename, answer[0], record_start)
+            except FileNotFoundError:
+                self.parent.statusBar().showMessage('File not found')
+
+            self.display_notes()
+            self.parent.create_menubar()  # refresh list ot raters
 
     def new_rater(self):
         """Action: add a new rater.

@@ -105,6 +105,7 @@ def test_widget_channels(qtbot):
     assert not w.channels.button_del.isEnabled()
     assert not w.channels.button_apply.isEnabled()
 
+
 def test_widget_channels_save(qtbot):
     w = MainWindow()
     qtbot.addWidget(w)

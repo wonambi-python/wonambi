@@ -353,7 +353,7 @@ class Channels(QWidget):
             self.parent.statusBar().showMessage('No dataset loaded')
 
         else:
-            if not test_name:
+            if test_name is None:
                 new_name = QInputDialog.getText(self, 'New Channel Group',
                                                 'Enter Name')
             else:

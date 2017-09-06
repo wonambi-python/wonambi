@@ -13,6 +13,9 @@ from scipy.io import loadmat
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
 
+from ..utils.exceptions import UnrecognizedFormat
+
+
 lg = getLogger(__name__)
 VERSION = '5'
 DOMINO_STAGE_KEY = {'N1': 'NREM1',
@@ -91,8 +94,12 @@ def create_annotation(xml_file, from_fasst):
     Merge create_annotation and create_empty_annotations
     """
     xml_file = Path(xml_file)
-    mat = loadmat(str(from_fasst), variable_names='D', struct_as_record=False,
-                  squeeze_me=True)
+    try:
+        mat = loadmat(str(from_fasst), variable_names='D', struct_as_record=False,
+                      squeeze_me=True)
+    except ValueError:
+        raise UnrecognizedFormat(str(from_fasst) + ' does not look like a FASST .mat file')
+
     D = mat['D']
     info = D.other.info
     score = D.other.CRC.score
