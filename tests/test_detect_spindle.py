@@ -14,28 +14,28 @@ def test_detect_spindle_Moelle2011():
     assert repr(detsp) == 'detsp_Moelle2011_11-18Hz_00.5-02.0s'
 
     sp = detsp(data)
-    assert len(sp.spindle) == 5
+    assert len(sp.events) == 5
 
     
 def test_detect_spindle_Nir2011():
     detsp = DetectSpindle(method='Nir2011')
 
     sp = detsp(data)
-    assert len(sp.spindle) == 4    
+    assert len(sp.events) == 4    
     
     
 def test_detect_spindle_Wamsley2012():
     detsp = DetectSpindle(method='Wamsley2012')
 
     sp = detsp(data)
-    assert len(sp.spindle) == 1    
+    assert len(sp.events) == 1    
     
         
 def test_detect_spindle_Ferrarelli2007():
     detsp = DetectSpindle(method='Ferrarelli2007')
 
     sp = detsp(data)
-    assert len(sp.spindle) == 0
+    assert len(sp.events) == 0
     
     
 def test_detect_spindle_unknownmethod():

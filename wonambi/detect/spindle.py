@@ -1,4 +1,5 @@
 """Module to detect spindles.
+
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, asarray, concatenate, diff,
@@ -42,12 +43,12 @@ class DetectSpindle:
         self.power_peaks = 'interval'
 
         if method == 'Ferrarelli2007':
-            self.det_cheby2 = {'order': 4,
+            self.det_butter = {'order': 4,
                                'freq': self.frequency,
                                }
             self.det_wavelet = {'sd': None}
-            self.det_thresh = 2
-            self.sel_thresh = 8
+            self.det_thresh = 8
+            self.sel_thresh = 2
             self.min_interval = 0
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': None}
@@ -149,7 +150,7 @@ class DetectSpindle:
             all_spindles.extend(sp_in_chan)
             # end of loop over chan
 
-        spindle.spindle = sorted(all_spindles, key=lambda x: x['start_time'])
+        spindle.events = sorted(all_spindles, key=lambda x: x['start_time'])
 
         return spindle
 
@@ -197,13 +198,14 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     ----------
     Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
     """
-    dat_det = transform_signal(dat_orig, s_freq, 'cheby2', opts.det_cheby2)
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_det, s_freq, 'hilbert')
     dat_det = transform_signal(dat_det, s_freq, 'abs')
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
     sel_value = define_threshold(dat_det, s_freq, 'mean', opts.sel_thresh)
 
-    events = detect_events(dat_det, 'threshold', det_value)
+    events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
         events = select_events(dat_det, events, 'upper_thresh', sel_value)
@@ -275,7 +277,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
 
     det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
 
-    events = detect_events(dat_det, 'threshold', det_value)
+    events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
         events = merge_close(dat_det, events, time, opts.min_interval)
@@ -354,7 +356,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
-    events = detect_events(dat_det, 'threshold', det_value)
+    events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
         events = select_events(dat_det, events, 'upper_thresh', sel_value)
@@ -422,7 +424,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
 
-    events = detect_events(dat_det, 'threshold', det_value)
+    events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
         events = merge_close(dat_det, events, time, opts.min_interval)
@@ -598,16 +600,17 @@ def define_threshold(dat, s_freq, method, value):
 
 
 def detect_events(dat, method, value=None):
-    """Detect events using 'threshold' or 'maxima' method.
+    """Detect events using 'above_thresh', 'below_thresh' or 
+    'maxima' method.
 
     Parameters
     ----------
     dat : ndarray (dtype='float')
-        vector with the data after selection-transformation
+        vector with the data after transformation
     method : str
-        'threshold' or 'maxima'
+        'above_thresh', 'below_thresh' or 'maxima'
     value : float
-        for 'threshold', it's the value of threshold for the event detection
+        for 'threshold's, it's the value of threshold for the event detection
         for 'maxima', it's the distance in s from the peak to find a minimum
 
     Returns
@@ -616,10 +619,16 @@ def detect_events(dat, method, value=None):
         N x 3 matrix with start, peak, end samples
 
     """
-    if method == 'threshold':
+    if method == 'above_thresh':
         above_det = dat >= value
         detected = _detect_start_end(above_det)
-
+        
+    if method == 'below_thresh':
+        below_det = dat < value
+        lg.info('values below zero is ' + str(below_det.any()))
+        detected = _detect_start_end(below_det)
+    
+    if method in ['above_thresh', 'below_thresh']:
         if detected is None:
             return None
 
@@ -648,7 +657,7 @@ def select_events(dat, detected, method, value):
     detected : ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
     method : str
-        'upper_thresh', 'lower_thresh'
+        'above_thresh', 'below_thresh'
     value : float
         for 'threshold', it's the value of threshold for the spindle selection.
 
@@ -658,10 +667,10 @@ def select_events(dat, detected, method, value):
         N x 3 matrix with start, peak, end samples
 
     """
-    if method == 'upper_thresh':
+    if method == 'above_thresh':
         above_sel = dat >= value
         detected = _select_period(detected, above_sel)
-    elif method == 'lower_thresh':
+    elif method == 'below_thresh':
         below_sel = dat <= value
         detected = _select_period(detected, below_sel)
 
@@ -709,7 +718,7 @@ def merge_close(dat, events, time, min_interval):
 
 
 def within_duration(events, time, limits):
-    """Check whether spindle is within time limits.
+    """Check whether event is within time limits.
 
     Parameters
     ----------
