@@ -308,7 +308,7 @@ if __name__ == '__main__':
         returncode = _tests()
 
     if args.test_import:
-        returncode = _tests()
+        returncode = _test_import()
 
     if args.docs:
         returncode = _docs()

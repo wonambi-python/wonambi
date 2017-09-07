@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 2
 ----------
+- **2.06**: import FASST sleep scores
 - **2.05**: full coverage of plot3 and detect
 - **2.04**: disable buttons in channels widget (+tests/docs)
 - **2.03**: use markers for channels 3d plots
