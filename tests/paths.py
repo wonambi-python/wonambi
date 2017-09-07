@@ -17,6 +17,10 @@ gui_file = psg_file
 # Data from private repository
 SAMPLE_PATH = DATA_PATH / 'Public'
 
+ANAT_PATH = SAMPLE_PATH / 'anat'
+# subsampled version of T1.mgz, to be used as low-res template
+template_mri_path = ANAT_PATH / 'T1_subsampled.nii.gz'
+
 ANNOT_PATH = SAMPLE_PATH / 'annot'
 chan_path = ANNOT_PATH / 'bert_chan_locs.csv'
 annot_domino_path = ANNOT_PATH / 'domino_test_01_EE_stag.txt'

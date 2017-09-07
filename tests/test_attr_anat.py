@@ -1,7 +1,7 @@
 from os import environ
 from numpy import array
 from numpy.testing import assert_array_equal
-from pytest import raises
+from pytest import approx, raises
 
 from wonambi.attr import Freesurfer, Surf
 from wonambi.attr.anat import import_freesurfer_LUT
@@ -85,3 +85,7 @@ def test_Freesurfer_06():
     assert l1.shape == (36, 5)
     assert l1[-1, -1] == 2146559
     assert l2[-1] == 'insula'
+
+    
+def test_Freesurfer_shift():
+    approx(fs.surface_ras_shift) == array([5.39971924, 18., 0.])

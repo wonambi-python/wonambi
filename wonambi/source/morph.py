@@ -2,7 +2,10 @@ from copy import deepcopy
 from os.path import dirname, split
 
 from numpy import arange, atleast_2d, squeeze
-from mne import morph_data, SourceEstimate
+try:
+    from mne import morph_data, SourceEstimate
+except ImportError:
+    pass
 
 
 class Morph:
@@ -23,8 +26,12 @@ class Morph:
         else:
             vertices = [arange(0), arange(data.data[0].shape[0])]
 
-        stc = SourceEstimate(atleast_2d(data.data[0]).T, vertices=vertices,
-                             tstep=0, tmin=0)
+        try:
+            stc = SourceEstimate(atleast_2d(data.data[0]).T, vertices=vertices,
+                                 tstep=0, tmin=0)
+        except NameError:
+            raise ImportError('mne needs to be installed for this function')
+
         m = morph_data(from_surf_name, self.to_surf, stc,
                        subjects_dir=SUBJECTS_DIR, grade=None,
                        smooth=self.smooth, verbose=False)

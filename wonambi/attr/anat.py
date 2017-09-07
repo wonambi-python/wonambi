@@ -16,10 +16,9 @@ lg = getLogger(__name__)
 
 try:
     from nibabel.freesurfer import load, read_annot
+    from nibabel import load as nload
 except ImportError:
-    lg.warning('nibabel (optional dependency) is not installed. You will not '
-               'be able to read Freesurfer annotations and segmentations.')
-
+    pass
 
 FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
@@ -199,7 +198,6 @@ class Freesurfer:
     -----
     It's necessary that Freesurfer is installed and that the environmental
     variable 'FREESURFER_HOME' is present.
-
     """
     def __init__(self, freesurfer_dir, fs_lut=None):
         freesurfer_dir = Path(freesurfer_dir)
@@ -218,6 +216,22 @@ class Freesurfer:
                        'crash.')
             lg.warning(err)
 
+    @property
+    def surface_ras_shift(self):
+        """Freesurfer uses two coordinate systems: one for volumes ("RAS") and
+        one for surfaces ("tkReg", "tkRAS", and "Surface RAS").
+        To get from surface to volume coordinates, add this numbers.
+        To get from volume to surface coordinates, substract this numbers.
+        """
+        T1_path = self.dir / 'mri' / 'T1.mgz'
+        assert T1_path.exists()
+
+        try:
+            T1 = nload(str(T1_path))
+        except NameError:
+            raise ImportError('nibabel needs to be installed for this function')
+
+        return T1.header['Pxyz_c']
 
     def find_brain_region(self, abs_pos, parc_type='aparc', max_approx=None,
                           exclude_regions=None):
