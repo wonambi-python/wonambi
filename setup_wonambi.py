@@ -20,6 +20,8 @@ parser.add_argument('-g', '--get_files', action='store_true',
                     help='download datasets to run tests')
 parser.add_argument('-t', '--tests', action='store_true',
                     help='run tests')
+parser.add_argument('--test_import', action='store_true',
+                    help='run tests, but without optional depencencies')
 parser.add_argument('-d', '--docs', action='store_true',
                     help='create documentations (run tests first)')
 parser.add_argument('-c', '--clean', action='store_true',
@@ -234,7 +236,23 @@ def _get_files():
 def _tests():
     CMD = ['pytest',
            '--cov=wonambi',
+           '--ignore=tests/test_import.py',
            'tests',
+           ]
+
+    # html report if local
+    if not environ.get('CI', False):
+        CMD.insert(1, '--cov-report=html')
+
+    output = run(CMD)
+    return output.returncode
+
+
+def _test_import():
+    CMD = ['pytest',
+           '--cov=wonambi',
+           '--cov-append',
+           'tests/test_import.py',
            ]
 
     # html report if local
@@ -287,6 +305,9 @@ if __name__ == '__main__':
         returncode = _get_files()
 
     if args.tests:
+        returncode = _tests()
+
+    if args.test_import:
         returncode = _tests()
 
     if args.docs:

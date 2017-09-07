@@ -34,6 +34,8 @@ before_script:
 script:
  - python -c "import vispy; print(vispy.sys_info()); exit()"
  - python setup_wonambi.py --tests
+ - pip uninstall -y nibabel mne
+ - python setup_wonambi.py --test_import
  - python setup_wonambi.py --docs
 
 after_success:
