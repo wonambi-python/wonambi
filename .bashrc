@@ -12,7 +12,7 @@ export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
 export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
-source activate py36
+source ~/tools/venv/bin/activate
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
