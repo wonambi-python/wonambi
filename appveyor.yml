@@ -1,5 +1,7 @@
 build: off
 
+skip_branch_with_pr: true
+
 environment:
   MINICONDA: C:\Miniconda36-x64
   DOWNLOADS: Downloads
