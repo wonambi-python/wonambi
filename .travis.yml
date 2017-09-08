@@ -34,8 +34,13 @@ before_script:
 script:
  - python -c "import vispy; print(vispy.sys_info()); exit()"
  - python setup_wonambi.py --tests
+
+ # test without optional requirements (append .coverage)
  - pip uninstall -y pytest-qt pyqt5 nibabel mne
  - python setup_wonambi.py --test_import
+
+ # reinstall optional requirements for docs
+ - pip install pyqt5 nibabel mne
  - python setup_wonambi.py --docs
 
 after_success:
