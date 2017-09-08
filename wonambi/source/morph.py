@@ -21,7 +21,7 @@ class Morph:
         from_surf_file = dirname(dirname(self.from_surf.surf_file))
         SUBJECTS_DIR, from_surf_name = split(from_surf_file)
 
-        if 'lh' in self.from_surf.surf_file:  # TODO: not good, we need to check
+        if 'lh' == self.from_surf.surf_file.stem:
             vertices = [arange(data.data[0].shape[0]), arange(0)]
         else:
             vertices = [arange(0), arange(data.data[0].shape[0])]

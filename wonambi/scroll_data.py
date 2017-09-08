@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-from PyQt5.QtWidgets import QApplication
+try:
+    from PyQt5.QtWidgets import QApplication
+except ImportError:
+    raise ImportError('You need to install PyQt5 to run GUI')
+
 
 from logging import getLogger, INFO, StreamHandler, Formatter
 
