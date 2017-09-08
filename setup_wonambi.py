@@ -4,9 +4,10 @@ from argparse import ArgumentParser
 from os import environ
 from pathlib import Path
 from shutil import copyfile, rmtree
+from ssl import create_default_context, CERT_NONE
 from subprocess import run
 from sys import exit
-from urllib.request import urlretrieve
+from urllib.request import urlopen
 from zipfile import ZipFile
 
 
@@ -217,7 +218,7 @@ def _get_files():
                     run(remote['url'])
                 else:
                     print('Downloading from ' + remote['url'])
-                    urlretrieve(remote['url'], temp_file)
+                    _urlretrieve(remote['url'], temp_file)
 
             if remote['zipped'] is None:
                 print('Copying ' + str(temp_file) + ' to ' + str(final_file))
@@ -294,6 +295,17 @@ def _clean_docs():
 
 def _clean_download():
     pass
+
+
+def _urlretrieve(url, filename):
+    """urlretrive, but it ignores ssl errors (due to https://portal.g-node.org)
+    """
+    ctx = create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = CERT_NONE
+
+    with urlopen(url, context=ctx) as u, filename.open('wb') as f:
+            f.write(u.read())
 
 
 if __name__ == '__main__':
