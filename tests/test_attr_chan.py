@@ -1,3 +1,4 @@
+from nibabel import load as nload
 from wonambi.attr import Channels, Freesurfer
 from wonambi.attr.chan import (find_channel_groups,
                                create_sphere_around_elec,
@@ -44,7 +45,8 @@ def test_channel_sphere():
                                      freesurfer=fs)
     assert mask.sum() == 4
 
+    template_mri = nload(str(template_mri_path))
+
     xyz_volume = xyz + fs.surface_ras_shift
-    mask = create_sphere_around_elec(xyz, template_mri_path,
-                                     distance=16)
+    mask = create_sphere_around_elec(xyz, template_mri, distance=16)
     assert mask.sum() == 35

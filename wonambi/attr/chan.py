@@ -456,8 +456,8 @@ def create_sphere_around_elec(xyz, template_mri, distance=8, freesurfer=None):
     ----------
     xyz : ndarray
         3x0 array
-    template_mri : path to MRI
-        MRI to be used as template
+    template_mri : path or str (as path) or nibabel.Nifti
+        (path to) MRI to be used as template
     distance : float
         distance in mm between electrode and selected voxels
     freesurfer : instance of Freesurfer
@@ -470,19 +470,23 @@ def create_sphere_around_elec(xyz, template_mri, distance=8, freesurfer=None):
 
     Notes
     -----
-    Freesurfer uses two coordinate systems: one for volumes ("RAS") and one for surfaces ("tkReg", "tkRAS", and "Surface RAS"), so the electrodes might be stored in one of the two systems.
-    If the electrodes are in surface coordinates (f.e. if you can plot surface and electrodes in the same space), then you need to convert the coordinate system.
-    This is done by passing an instance of Freesurfer.
+    Freesurfer uses two coordinate systems: one for volumes ("RAS") and one for
+    surfaces ("tkReg", "tkRAS", and "Surface RAS"), so the electrodes might be
+    stored in one of the two systems. If the electrodes are in surface
+    coordinates (f.e. if you can plot surface and electrodes in the same space),
+    then you need to convert the coordinate system. This is done by passing an
+    instance of Freesurfer.
     """
     if freesurfer is None:
         shift = 0
     else:
         shift = freesurfer.surface_ras_shift
 
-    try:
-        template_mri = nload(str(template_mri))
-    except NameError:
-         raise ImportError('nibabel needs to be installed for this function')
+    if isinstance(template_mri, str) or isinstance(template_mri, Path):
+        try:
+            template_mri = nload(str(template_mri))
+        except NameError:
+            raise ImportError('nibabel needs to be installed for this function')
 
     mask = zeros(template_mri.shape, dtype='bool')
     for vox in ndindex(template_mri.shape):
