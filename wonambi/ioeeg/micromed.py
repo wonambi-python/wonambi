@@ -44,6 +44,7 @@ class Micromed:
         """
         N_ZONES = 15
         orig = {}
+
         with self.filename.open('rb') as f:
 
             f.seek(64, SEEK_SET)
@@ -75,6 +76,7 @@ class Micromed:
             f.seek(0, SEEK_END)
             EOData = f.tell()
             n_samples = int((EOData - BOData) / (n_chan * N_BYTES))
+            self.n_smp = n_samples
 
             chan_name =  _read_channels(f, n_chan, order, zones)[0]
 
@@ -96,6 +98,10 @@ class Micromed:
         -------
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
+
+        TODO
+        ----
+        Write a reader from MICROMED data.
         """
         if begsam < 0:
             begpad = -1 * begsam
@@ -139,9 +145,9 @@ def _read_channels(f, n_chan, order, zones):
         pos, length = zones['LABCOD']
         f.seek(pos + order[c] * 128, 0)
 
-        chan_name = f.read(6).strip(b"\x00").decode()
+        chan_name = f.read(6).strip(b'\x01\x00').decode()
         chan_names.append(chan_name)
-        ground = f.read(6).strip(b"\x00").decode()
+        ground = f.read(6).strip(b'\x01\x00').decode()
 
         logical_min, logical_max, logical_ground, physical_min, physical_max = unpack('iiiii', f.read(20))
         factor = float(physical_max - physical_min) / float( logical_max - logical_min + 1)

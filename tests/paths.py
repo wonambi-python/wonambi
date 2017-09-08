@@ -10,6 +10,7 @@ test_path = Path(__file__).resolve().parent
 DATA_PATH = test_path / 'data'
 bci2000_file = DATA_PATH / 'bci2000.dat'
 psg_file = DATA_PATH / 'PSG.edf'
+micromed_file = DATA_PATH / 'micromed.TRC'
 generated_file = DATA_PATH / 'edfbrowser_generated_2.edf'
 
 gui_file = psg_file
