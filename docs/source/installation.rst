@@ -1,12 +1,15 @@
 Installation
 ============
-wonambi is pure python, so it can be installed on every platform if you have the correct dependencies, just run:
+wonambi is pure python, so it can be installed on every platform if you have the correct dependencies.
+Make sure if you have at least python 3.6 installed.
+Then you can install it, by typing:
 
 ``pip install wonambi``
 
 and to run it:
 
 ``wonambi``
+
 
 To install the correct dependencies, follow the platform-specific instructions below.
 
@@ -23,6 +26,15 @@ Then you can install all the dependencies with:
 If you want a GUI, also install:
 
 ``pip install pyqt5``
+
+.. NOTE::
+   If you receive an error regarding permissions (f.e. if you see ``permission denied``), you can install wonambi as local user:
+
+   ``pip install --user wonambi``
+
+   Then you need to run:
+
+   ``export PATH=~/.local/bin:$PATH``
 
 Windows
 -------
