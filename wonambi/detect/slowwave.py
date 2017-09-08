@@ -8,7 +8,7 @@ from .spindle import detect_events, transform_signal, within_duration
 from ..graphoelement import SlowWaves
 
 lg = getLogger(__name__)
-MAXIMUM_DURATION = 5
+MAXIMUM_DURATION = 10
 
 
 class DetectSlowWave:
@@ -129,7 +129,7 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
     lg.info('det filtered data: ' + str(len(dat_det)))
     lg.info('mean: ' + str(mean(dat_det)) +' median: ' + str(median(dat_det)))
-    below_zero = detect_events(dat_det, 'above_thresh', value=0.)
+    below_zero = detect_events(dat_det, 'below_thresh', value=0.)
 
     sw_in_chan = []
     if below_zero is not None:
@@ -153,21 +153,21 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
 
 
 def select_peaks(data, events, limit):
-    """Check whether event is satisfies amplitude limit.
+    """Check whether event satisfies amplitude limit.
 
     Parameters
     ----------
     data : ndarray (dtype='float')
         vector with data
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak/trough, end samples
+        N x 2+ matrix with peak/trough in second position
     limit : float
         low and high limit for spindle duration
 
     Returns
     -------
     ndarray (dtype='int')
-        N x 2+ matrix with start, peak, end samples
+        N x 2+ matrix with peak/trough in second position
 
     """
     selected = abs(data[events[:, 1]]) >= abs(limit)
@@ -192,18 +192,18 @@ def make_slow_waves(events, data, time, s_freq):
     Returns
     -------
     list of dict
-        list of all the SWs, with information about start_time,
-        trough_time, zero_time, peak_time, end_time, duration (s), trough_val,
+        list of all the SWs, with information about start,
+        trough_time, zero_time, peak_time, end, duration (s), trough_val,
         peak_val, peak-to-peak amplitude (signal units), area_under_curve
         (signal units * s)
     """
     slow_waves = []
     for ev in events:
-        one_sw = {'start_time': time[ev[0]],
+        one_sw = {'start': time[ev[0]],
                   'trough_time': time[ev[1]],
                   'zero_time': time[ev[2]],
                   'peak_time': time[ev[3]],
-                  'end_time': time[ev[4]-1],
+                  'end': time[ev[4]-1],
                   'trough_val': data[ev[1]],
                   'peak_val': data[ev[3]],
                   'dur': (ev[4] - ev[0]) / s_freq,
@@ -216,8 +216,8 @@ def make_slow_waves(events, data, time, s_freq):
 
 
 def _add_pos_halfwave(data, events, s_freq, opts):
-    """Find the next zero crossing and the intervening peak and add them to
-    events. If no zero found before max_dur, event is discarded. If
+    """Find the next zero crossing and the intervening positive peak and add
+    them to events. If no zero found before max_dur, event is discarded. If
     peak-to-peak is smaller than min_ptp, the event is discarded.
 
     Parameters
@@ -225,7 +225,8 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     data : ndarray (dtype='float')
         vector with the data
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples    s_freq : float
+        N x 3 matrix with start, peak, end samples    
+    s_freq : float
         sampling frequency
     opts : instance of 'DetectSlowWave'
         'duration' : tuple of float
@@ -245,16 +246,12 @@ def _add_pos_halfwave(data, events, s_freq, opts):
         max_dur = MAXIMUM_DURATION
     window = int(s_freq * max_dur)
 
-    peak_and_zero = zeros((events.shape[0], 2), dtype='int')
-    events = concatenate((events, peak_and_zero), axis=1)
+    peak_and_end = zeros((events.shape[0], 2), dtype='int')
+    events = concatenate((events, peak_and_end), axis=1)
     selected = []
 
     for ev in events:
         ev[4] = ev[2] + argmax(data[ev[2]:ev[0] + window] < 0) # quickest way
-
-        if ev[4] == 0:
-            selected.append(False)
-            continue
 
         if ev[2] == ev[4]:
             selected.append(False)
