@@ -16,40 +16,40 @@ def test_detect_spindle_Moelle2011():
     sp = detsp(data)
     assert len(sp.events) == 5
 
-    
+
 def test_detect_spindle_Nir2011():
     detsp = DetectSpindle(method='Nir2011')
 
     sp = detsp(data)
-    assert len(sp.events) == 4    
-    
-    
+    assert len(sp.events) == 2
+
+
 def test_detect_spindle_Wamsley2012():
     detsp = DetectSpindle(method='Wamsley2012')
 
     sp = detsp(data)
-    assert len(sp.events) == 1    
-    
-        
+    assert len(sp.events) == 1
+
+
 def test_detect_spindle_Ferrarelli2007():
     detsp = DetectSpindle(method='Ferrarelli2007')
 
     sp = detsp(data)
     assert len(sp.events) == 0
-    
-    
+
+
 def test_detect_spindle_unknownmethod():
     with raises(ValueError):
-        detsp = DetectSpindle(method='xxx')        
-        
-    
+        detsp = DetectSpindle(method='xxx')
+
+
 def test_detect_spindle_to_data():
     detsp = DetectSpindle()
     sp = detsp(data)
-    
+
     sp_data = sp.to_data('count')
     assert sp_data(0)[0] == 2
 
     sp_freq = sp.to_data('peak_freq')
     assert approx(sp_freq(0)[0]) == 14.49166667
-    
+
