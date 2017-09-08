@@ -16,7 +16,7 @@ surf = Surf(surf_path)
 
 def test_import_chan():
     with raises(ImportError):
-        create_sphere_around_elec(None, None)
+        create_sphere_around_elec(None, '')
 
 
 def test_import_anat():
