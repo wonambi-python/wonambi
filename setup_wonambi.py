@@ -51,8 +51,6 @@ if environ.get('CI', False):
 else:
     DOWNLOADS_PATH = TEST_PATH / 'downloads'  # local
 DOWNLOADS_PATH.mkdir(exist_ok=True)
-print('Files stored in cached ' + str(DOWNLOADS_PATH.resolve()) + ':\n\t' +
-      '\n\t'.join(str(x) for x in DOWNLOADS_PATH.iterdir()))
 
 VER_PATH = BASE_PATH / 'wonambi' / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
@@ -98,6 +96,12 @@ REMOTE_FILES = [
      'zipped': True,
      },
     ]
+
+
+def _files_in_downloads():
+
+    print('Files stored in cached ' + str(DOWNLOADS_PATH.resolve()) + ':\n\t' +
+          '\n\t'.join(str(x) for x in DOWNLOADS_PATH.iterdir()))
 
 
 def _new_version(level):
@@ -294,7 +298,8 @@ def _clean_docs():
 
 
 def _clean_download():
-    pass
+    rmtree(DATA_PATH, ignore_errors=True)
+    rmtree(DOWNLOADS_PATH, ignore_errors=True)
 
 
 def _urlretrieve(url, filename):
@@ -319,9 +324,11 @@ if __name__ == '__main__':
         _clean_download()
 
     if args.get_files:
+        _files_in_downloads()
         returncode = _get_files()
 
     if args.tests:
+        _files_in_downloads()
         returncode = _tests()
 
     if args.test_import:

@@ -43,6 +43,7 @@ ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
 EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)
 annot_file = EXPORTED_PATH / 'annot_scores.xml'
+annot_export_file = EXPORTED_PATH / 'annot_scores.csv'
 annot_fasst_export_file = EXPORTED_PATH / 'annot_fasst.xml'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
