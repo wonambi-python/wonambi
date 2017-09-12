@@ -1,6 +1,11 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, linspace, max, mean, min, nanmax, nanmin, r_
+from numpy import (linspace,
+                   nanmax,
+                   mean,
+                   nanmin,
+                   tile,
+                   )
 from vispy.color import get_colormap, ColorArray
 from vispy.geometry import MeshData
 from vispy.scene import TurntableCamera
@@ -53,32 +58,21 @@ class Viz3(Viz):
         alpha : float
             transparency (1 = opaque)
         """
-        if color is not None and len(color) == 3:
-            color = r_[array(color), float(alpha)]  # make sure it's an array
+        colors, limits = _prepare_colors(color=color, values=values,
+                                         limits_c=limits_c, colormap=colormap,
+                                         alpha=alpha)
 
-        if values is not None:
-            if limits_c is None:
-                limits_c = nanmin(values), nanmax(values)
+        # meshdata uses numpy array, in the correct dimension
+        vertex_colors = colors.rgba
+        if vertex_colors.shape[0] == 1:
+            vertex_colors = tile(vertex_colors, (surf.n_vert, 1))
 
-            norm_values = normalize(values, *limits_c)
-
-            cm = get_colormap(colormap)
-            vertex_colors = cm[norm_values]
-            vertex_colors.alpha = alpha
-            vertex_colors = cm[norm_values].rgba
-
-            hasnan = isnan(vertex_colors).all(axis=1)
-            vertex_colors[hasnan, :] = color
-
-        if vertex_colors is not None:
-            color = None
-            
         meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
                             vertex_colors=vertex_colors)
-        mesh = SurfaceMesh(meshdata, color)
+        mesh = SurfaceMesh(meshdata)
 
         self._add_mesh(mesh)
-        
+
         # adjust camera
         surf_center = mean(surf.vert, axis=0)
         if surf_center[0] < 0:
@@ -87,7 +81,7 @@ class Viz3(Viz):
             azimuth = 90
         self._view.camera.azimuth = azimuth
         self._view.camera.center = surf_center
-        
+
         self._surf.append(mesh)
 
     def add_chan(self, chan, color=None, values=None, limits_c=None, colormap=CHAN_COLORMAP, alpha=None):
@@ -106,14 +100,17 @@ class Viz3(Viz):
         colormap : str
             one of the colormaps in vispy
         alpha : float
-            transparency (0 = transparent, 1 = opaque)            
+            transparency (0 = transparent, 1 = opaque)
         """
         # reuse previous limits
         if limits_c is None and self._chan_limits is not None:
             limits_c = self._chan_limits
-            
-        chan_colors, limits = _prepare_chan_colors(chan=chan, color=color, values=values, limits_c=limits_c, colormap=colormap, alpha=alpha)
-        
+
+        chan_colors, limits = _prepare_colors(color=color, values=values,
+                                              limits_c=limits_c,
+                                              colormap=colormap, alpha=alpha,
+                                              chan=chan)
+
         self._chan_limits = limits
 
         xyz = chan.return_xyz()
@@ -122,7 +119,7 @@ class Viz3(Viz):
         self._add_mesh(marker)
 
 
-def _prepare_chan_colors(chan, color, values, limits_c, colormap, alpha):
+def _prepare_colors(color, values, limits_c, colormap, alpha, chan=None):
     """Return colors for all the channels based on various inputs.
 
     Parameters
@@ -137,6 +134,8 @@ def _prepare_chan_colors(chan, color, values, limits_c, colormap, alpha):
         one of the colormaps in vispy
     alpha : float
         transparency (0 = transparent, 1 = opaque)
+    chan : instance of Channels
+        use labels to create channel groups
 
     Returns
     -------
@@ -147,7 +146,7 @@ def _prepare_chan_colors(chan, color, values, limits_c, colormap, alpha):
     """
     if values is not None:
         if limits_c is None:
-            limits_c = min(values), max(values)
+            limits_c = nanmin(values), nanmax(values)
 
         norm_values = normalize(values, *limits_c)
 
@@ -164,7 +163,7 @@ def _prepare_chan_colors(chan, color, values, limits_c, colormap, alpha):
 
     if alpha is not None:
         colors.alpha = alpha
-        
+
     return colors, limits_c
 
 
@@ -176,5 +175,5 @@ def _chan_groups_to_index(chan):
     group_idx = chan.return_label()
     for i, labels in enumerate(groups.values()):
         group_idx = [idx[i] if label in labels else label for label in group_idx]
-        
+
     return group_idx

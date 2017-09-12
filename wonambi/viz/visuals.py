@@ -35,7 +35,7 @@ void main() {
 
 
 class SurfaceMeshVisual(Visual):
-    def __init__(self, meshdata, color=None):
+    def __init__(self, meshdata):
         Visual.__init__(self, VERT_SHADER, FRAG_SHADER)
 
         v = meshdata.get_vertices(indexed='faces').astype(float32)
@@ -44,14 +44,8 @@ class SurfaceMeshVisual(Visual):
         v_norm = meshdata.get_vertex_normals(indexed='faces').astype(float32)
         self._normals = VertexBuffer(v_norm)
 
-        if color is not None:
-            if len(color) == 3:
-                color = r_[array(color), 1.]
-            self._colors = color
-
-        else:
-            v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
-            self._colors = VertexBuffer(v_col)
+        v_col = meshdata.get_vertex_colors(indexed='faces').astype(float32)
+        self._colors = VertexBuffer(v_col)
 
         self.set_light(position=(1., 0., 0.),
                        ambient=.2,
