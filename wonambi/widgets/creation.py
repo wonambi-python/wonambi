@@ -11,13 +11,15 @@ from PyQt5.QtWidgets import (QAction,
                              QMessageBox,
                              )
 
-from .settings import Settings  # has to be first
+from .settings import (Settings, SlowWaveHelp, SpindleHelp, 
+                       EvtAnalysisHelp)  # has to be first
 from .utils import ICON  # has to be second
 from .labels import Labels
 from .channels import Channels
 from .info import Info
 from .overview import Overview
-from .notes import Notes
+from .notes import (Notes, MergeDialog, SpindleDialog, SWDialog,
+                    EventAnalysisDialog)
 from .spectrum import Spectrum
 from .traces import Traces
 from .video import Video
@@ -35,6 +37,13 @@ def create_widgets(MAIN):
     MAIN.labels = Labels(MAIN)
     MAIN.channels = Channels(MAIN)
     MAIN.notes = Notes(MAIN)
+    MAIN.merge_dialog = MergeDialog(MAIN)
+    MAIN.spindle_dialog = SpindleDialog(MAIN)
+    MAIN.slow_wave_dialog = SWDialog(MAIN)
+    MAIN.spindle_help = SpindleHelp(MAIN)
+    MAIN.slowwave_help = SlowWaveHelp(MAIN)
+    MAIN.event_analysis_dialog = EventAnalysisDialog(MAIN)
+    MAIN.evt_analysis_help = EvtAnalysisHelp(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.traces = Traces(MAIN)
@@ -168,6 +177,8 @@ def create_menubar(MAIN):
     menu_time.addAction(actions['addtime_10min'])
     menu_time.addAction(actions['addtime_1h'])
     menu_time.addAction(actions['addtime_6h'])
+    menu_time.addSeparator()    
+    menu_time.addAction(actions['go_to_epoch'])
 
     """ ------ VIEW ------ """
     actions = MAIN.traces.action
@@ -198,6 +209,8 @@ def create_menubar(MAIN):
                     reverse=True):
         act = submenu_length.addAction('Set to ' + str(x))
         act.triggered.connect(partial(MAIN.traces.X_length, x))
+        
+    menu_view.addAction(actions['cross_chan_mrk'])
 
     """ ------ ANNOTATIONS ------ """
     actions = MAIN.notes.action
@@ -224,10 +237,17 @@ def create_menubar(MAIN):
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])
     submenu_event.addAction(actions['del_eventtype'])
+    submenu_event.addAction(actions['merge_events'])
 
     # these are the real QActions attached to notes
     submenu_stage = menu_annot.addMenu('Stage')
     submenu_stage.addActions(MAIN.notes.actions())
+    
+    submenu_mrkr = menu_annot.addMenu('Marker')
+    submenu_mrkr.addAction(actions['cyc_start'])
+    submenu_mrkr.addAction(actions['cyc_end'])
+    submenu_mrkr.addAction(actions['remove_cyc'])
+    submenu_mrkr.addAction(actions['clear_cyc'])
     menu_annot.addSeparator()
 
     submenu_import = menu_annot.addMenu('Import')
@@ -236,7 +256,19 @@ def create_menubar(MAIN):
 
     menu_annot.addAction(actions['export'])
 
-    """ ------ ANNOTATIONS ------ """
+    """ ------ ANALYSIS ------ """
+    actions = MAIN.notes.action
+    
+    menu_analysis = menubar.addMenu('Analysis')
+    
+    submenu_detect = menu_analysis.addMenu('Detection')
+    submenu_detect.addAction(actions['spindle'])
+    submenu_detect.addAction(actions['slow_wave'])
+    
+    menu_analysis.addAction(actions['analyze_events'])
+
+
+    """ ------ WINDOWS ------ """
     actions = MAIN.action
 
     menu_window = menubar.addMenu('Windows')
@@ -247,7 +279,6 @@ def create_menubar(MAIN):
     menu_about = menubar.addMenu('About')
     menu_about.addAction(actions['about'])
     menu_about.addAction(actions['aboutqt'])
-
 
 def create_toolbar(MAIN):
     """Create the various toolbars."""
@@ -293,3 +324,4 @@ def create_toolbar(MAIN):
     toolbar.addWidget(MAIN.notes.idx_eventtype)
     toolbar.addSeparator()
     toolbar.addWidget(MAIN.notes.idx_stage)
+    toolbar.addWidget(MAIN.notes.idx_quality)

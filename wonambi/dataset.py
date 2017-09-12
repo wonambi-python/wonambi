@@ -87,6 +87,10 @@ def detect_format(filename, server=None):
             if filename.suffix == '.bin':  # very general
                 return OpBox
 
+            if filename.suffix == '.edf': # JOB quick-fix for Edf read bug
+            
+                return Edf
+
             if filename.suffix == '.dat':  # very general
                 try:
                     _read_header_length(filename)
@@ -164,7 +168,7 @@ class Dataset:
     Notes
     -----
     There is a difference between Dataset.filename and Dataset.dataset.filename
-    because the format is where the file that you want to read (the argument),
+    because the former is where the file that you want to read (the argument),
     while the latter is the file that you really read. There might be
     differences, for example, if the argument points to a file within a
     directory, or if the file is mapped to memory.

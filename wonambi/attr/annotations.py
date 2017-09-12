@@ -8,6 +8,7 @@ from itertools import compress
 from numpy import allclose, asarray, in1d, modf, isnan
 from math import ceil, inf
 from pathlib import Path
+from os.path import basename, splitext
 from re import search, sub
 from scipy.io import loadmat
 from xml.etree.ElementTree import Element, SubElement, tostring, parse

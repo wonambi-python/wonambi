@@ -157,7 +157,7 @@ class Info(QWidget):
 
         self.action = output
 
-    def open_dataset(self, recent=None):
+    def open_dataset(self, recent=None, debug_filename=None):
         """Open a new dataset.
 
         Parameters
@@ -185,6 +185,10 @@ class Info(QWidget):
             else:
                 filename = recent
                 repo = None
+        
+        if debug_filename is not None:
+            filename = debug_filename
+            repo = None
 
         else:
             repo = None
@@ -218,23 +222,20 @@ class Info(QWidget):
 
             if filename == '':
                 return
-
+            
         # clear previous dataset once the user opens another dataset
         if self.dataset is not None:
             self.parent.reset()
-
+        
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
-        lg.info(str(filename))
         try:
             self.filename = filename
             self.repo = repo
             if repo == 'ieeg.org':
                 ieeg_org.SESS = ieeg_org.Session(username=username,
                                                  password_md5=password)
-
             self.dataset = Dataset(filename, server=repo)
-
         except FileNotFoundError:
             self.parent.statusBar().showMessage('File ' + basename(filename) +
                                                 ' cannot be read')
@@ -247,6 +248,7 @@ class Info(QWidget):
         self.parent.statusBar().showMessage('')
 
         self.parent.update()
+        
 
     def display_dataset(self):
         """Update the widget with information about the dataset."""

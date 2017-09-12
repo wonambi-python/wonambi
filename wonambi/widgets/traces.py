@@ -4,13 +4,15 @@ from datetime import timedelta
 from functools import partial
 from logging import getLogger
 
-from numpy import (abs, arange, argmin, asarray, ceil, empty, floor, in1d,
-                   max, min, linspace, log2, nanmean, pad, power)
+from numpy import (abs, arange, argmin, around, asarray, ceil, empty, floor, 
+                   in1d, max, min, linspace, log2, logical_or, nanmean, pad, 
+                   power)
 
 from PyQt5.QtCore import QPointF, Qt, QRectF
 from PyQt5.QtGui import (QBrush,
                          QColor,
                          QIcon,
+                         QKeyEvent,
                          QKeySequence,
                          QPen,
                          )
@@ -81,12 +83,14 @@ class ConfigTraces(Config):
         self.index['grid_x'] = FormBool('Grid on time axis')
         self.index['grid_xtick'] = FormFloat()
         self.index['grid_y'] = FormBool('Grid on voltage axis')
+        self.index['grid_ytick'] = FormFloat()
 
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
         form_layout.addRow(self.index['grid_x'])
         form_layout.addRow('Tick every (s)', self.index['grid_xtick'])
         form_layout.addRow(self.index['grid_y'])
+        form_layout.addRow('Lines at + and - (uV):', self.index['grid_ytick'])
 
         box2 = QGroupBox('Current Window')
         self.index['window_start'] = FormInt()
@@ -175,6 +179,12 @@ class Traces(QGraphicsView):
         self.idx_info = None
         self.idx_markers = []
         self.idx_annot = []
+        self.idx_annot_labels = []
+        self.cross_chan_mrk = True
+        self.highlight = None
+        self.event_sel = None
+        self.deselect = None
+        self.ready = True
 
         self.create_action()
 
@@ -183,24 +193,31 @@ class Traces(QGraphicsView):
         actions = {}
 
         act = QAction(QIcon(ICON['step_prev']), 'Previous Step', self)
-        act.setShortcut(QKeySequence.MoveToPreviousChar)
+        act.setShortcut('[')
         act.triggered.connect(self.step_prev)
         actions['step_prev'] = act
 
         act = QAction(QIcon(ICON['step_next']), 'Next Step', self)
-        act.setShortcut(QKeySequence.MoveToNextChar)
+        act.setShortcut(']')
         act.triggered.connect(self.step_next)
         actions['step_next'] = act
 
         act = QAction(QIcon(ICON['page_prev']), 'Previous Page', self)
-        act.setShortcut(QKeySequence.MoveToPreviousPage)
+        #act.setShortcut(QKeySequence.MoveToPreviousPage)
+        act.setShortcut(QKeySequence.MoveToPreviousChar)
         act.triggered.connect(self.page_prev)
         actions['page_prev'] = act
 
         act = QAction(QIcon(ICON['page_next']), 'Next Page', self)
-        act.setShortcut(QKeySequence.MoveToNextPage)
+        #act.setShortcut(QKeySequence.MoveToNextPage)
+        act.setShortcut(QKeySequence.MoveToNextChar)
         act.triggered.connect(self.page_next)
         actions['page_next'] = act
+
+        act = QAction('Go to Epoch', self)
+        act.setShortcut(QKeySequence.FindNext)
+        act.triggered.connect(self.go_to_epoch)
+        actions['go_to_epoch'] = act
 
         act = QAction(QIcon(ICON['zoomprev']), 'Wider Time Window', self)
         act.setShortcut(QKeySequence.ZoomIn)
@@ -253,6 +270,12 @@ class Traces(QGraphicsView):
         act = QAction(QIcon(ICON['chronometer']), '6 Hours Later', self)
         act.triggered.connect(partial(self.add_time, 6 * 60 * 60))
         actions['addtime_6h'] = act
+        
+        act = QAction('Full-length markers', self)
+        act.setCheckable(True)
+        act.setChecked(True)
+        act.triggered.connect(self.display_annotations)
+        actions['cross_chan_mrk'] = act
 
         self.action = actions
 
@@ -312,6 +335,7 @@ class Traces(QGraphicsView):
 
         self.idx_markers = []
         self.idx_annot = []
+        self.idx_annot_labels= []
 
         self.add_chan_labels()
         self.add_time_labels()
@@ -434,11 +458,28 @@ class Traces(QGraphicsView):
                                  Qt.DotLine))
 
         if self.parent.value('grid_y'):
+            y_tick = self.parent.value('grid_ytick') * \
+                     self.parent.value('y_scale')
             for one_label_item in self.idx_label:
-                x_pos = [window_start, window_end]
-                y_pos = [one_label_item.y(), one_label_item.y()]
-                path = self.scene.addPath(Path(x_pos, y_pos))
-                path.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH, Qt.DotLine))
+                x_pos = [window_start, window_end]                                
+                y = one_label_item.y() 
+                
+                y_pos_0 = [y, y]
+                path_0 = self.scene.addPath(Path(x_pos, y_pos_0))
+                path_0.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH, 
+                                   Qt.DotLine))
+                
+                y_up = one_label_item.y() + y_tick
+                y_pos_up = [y_up, y_up]
+                path_up = self.scene.addPath(Path(x_pos, y_pos_up))
+                path_up.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH, 
+                                    Qt.DotLine))
+                
+                y_down = one_label_item.y() - y_tick
+                y_pos_down = [y_down, y_down]
+                path_down = self.scene.addPath(Path(x_pos, y_pos_down))
+                path_down.setPen(QPen(QColor(LINE_COLOR), LINE_WIDTH, 
+                                      Qt.DotLine))
 
     def display_markers(self):
         """Add markers on top of first plot."""
@@ -486,12 +527,16 @@ class Traces(QGraphicsView):
         for item in self.idx_annot:
             self.scene.removeItem(item)
         self.idx_annot = []
+        for item in self.idx_annot_labels:
+            self.scene.removeItem(item)
+        self.idx_annot_labels = []
+        self.highlight = None
 
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         window_end = window_start + window_length
         y_distance = self.parent.value('y_distance')
-        raw_chan_name = list(map(take_raw_name, self.chan))
+        #raw_chan_name = list(map(take_raw_name, self.chan))
 
         bookmarks = []
         events = []
@@ -514,9 +559,9 @@ class Traces(QGraphicsView):
                 if annot in events:
                     color = convert_name_to_color(annot['name'])
 
-                if annot['chan'] == ['']:
+                if logical_or(annot['chan'] == [''],
+                              self.action['cross_chan_mrk'].isChecked()):
                     h_annot = len(self.idx_label) * y_distance
-                    y_annot = (0, )
 
                     item = TextItem_with_BG(color.darker(200))
                     item.setText(annot['name'])
@@ -525,51 +570,86 @@ class Traces(QGraphicsView):
                     item.setFlag(QGraphicsItem.ItemIgnoresTransformations)
                     item.setRotation(-90)
                     self.scene.addItem(item)
-                    self.idx_annot.append(item)
-                    zvalue = -8
+                    self.idx_annot_labels.append(item)
 
-                else:
-                    h_annot = y_distance
-                    # find indices of channels with annotations
-                    chan_idx_in_mrk = in1d(raw_chan_name, annot['chan'])
-                    y_annot = asarray(self.chan_pos)[chan_idx_in_mrk]
-                    y_annot -= y_distance / 2
-                    zvalue = -7
-
-                for y in y_annot:
-                    item = QGraphicsRectItem(mrk_start, y,
-                                             mrk_end - mrk_start, h_annot)
-                    item.setPen(color)
-                    item.setBrush(color)
-                    item.setZValue(zvalue)
+                    item = QGraphicsRectItem(mrk_start + 0.5, 0,
+                                             mrk_end - mrk_start - 1, h_annot)
+                    item.setBrush(color.lighter(120))
+                    item.setPen(color.lighter(120))
+                    item.setZValue(-8)
                     self.scene.addItem(item)
                     self.idx_annot.append(item)
 
+                if annot['chan'] != ['']:
+                    # find indices of channels with annotations
+                    #chan_idx_in_mrk = in1d(raw_chan_name, annot['chan'])
+                    chan_idx_in_mrk = in1d(self.chan, annot['chan'])
+                    y_annot = asarray(self.chan_pos)[chan_idx_in_mrk]
+                    y_annot -= y_distance / 2
+
+                    for y in y_annot:
+                        item = QGraphicsRectItem(mrk_start + 0.5, y,
+                                                 mrk_end - mrk_start - 1, 
+                                                 y_distance)
+                        item.setBrush(color)
+                        item.setPen(color)
+                        item.setZValue(-7)
+                        self.scene.addItem(item)
+                        self.idx_annot.append(item)
+
     def step_prev(self):
         """Go to the previous step."""
-        window_start = (self.parent.value('window_start') -
+        window_start = around(self.parent.value('window_start') -
                         self.parent.value('window_length') /
-                        self.parent.value('window_step'))
+                        self.parent.value('window_step'), 2)
+        if window_start < 0:
+            return
         self.parent.overview.update_position(window_start)
 
     def step_next(self):
         """Go to the next step."""
-        window_start = (self.parent.value('window_start') +
+        window_start = around(self.parent.value('window_start') +
                         self.parent.value('window_length') /
-                        self.parent.value('window_step'))
+                        self.parent.value('window_step'), 2)
+        
+        #window_end = (window_start + 
+        #              self.parent.value('window_length') /
+        #              self.parent.value('window_step'))
+        #limit = self.parent.info.dataset.header['n_sec']
+        #lg.info('window_end: '+str(window_end)+' limit: '+str(limit))
+        #if window_end > limit:
+        #    return
+        
         self.parent.overview.update_position(window_start)
 
     def page_prev(self):
         """Go to the previous page."""
         window_start = (self.parent.value('window_start') -
                         self.parent.value('window_length'))
+        if window_start < 0:
+            return
         self.parent.overview.update_position(window_start)
 
     def page_next(self):
         """Go to the next page."""
         window_start = (self.parent.value('window_start') +
                         self.parent.value('window_length'))
+        #window_end = (window_start + 
+        #              self.parent.value('window_length') /
+        #              self.parent.value('window_step'))
+        #if window_end > self.parent.info.dataset.header['n_sec']:
+        #    return
         self.parent.overview.update_position(window_start)
+
+    def go_to_epoch(self):
+        """Go to the start of the present epoch."""
+        if self.parent.notes.annot is None:  # TODO: remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+        
+        new_window_start = self.parent.notes.annot.get_epoch_start(
+                self.parent.value('window_start'))
+        self.parent.overview.update_position(new_window_start)
 
     def add_time(self, extra_time):
         """Go to the predefined time forward."""
@@ -633,6 +713,18 @@ class Traces(QGraphicsView):
         """
         if not self.scene:
             return
+        
+        if self.event_sel:
+            self.deselect = True
+            self.event_sel = None
+            highlight = self.highlight
+            self.scene.removeItem(highlight)
+            self.highlight = None
+            self.parent.statusBar().showMessage('')
+            return
+        
+        self.ready = False
+        self.event_sel = None
 
         xy_scene = self.mapToScene(event.pos())
         chan_idx = argmin(abs(asarray(self.chan_pos) - xy_scene.y()))
@@ -645,12 +737,59 @@ class Traces(QGraphicsView):
         if not (chk_marker or chk_event):
             channame = self.chan[self.sel_chan] + ' in selected window'
             self.parent.spectrum.show_channame(channame)
+            
+        # JOB: Make annotations clickable
+        else:
+            for annot in self.idx_annot:
+                if annot.contains(xy_scene):
+                    beg = annot.rect().x() - 0.5
+                    end = beg + annot.rect().width() + 1
+                    msg = 'Event from ' + str(beg) + ' to ' + str(end)
+                    self.parent.statusBar().showMessage(msg)
+                    self.event_sel = annot
+                    #highlight = QGraphicsRectItem(annot.rect())
+                    highlight = QGraphicsRectItem(annot.rect().x() - 0.5,
+                                                  annot.rect().y() - 0.5,
+                                                  annot.rect().width() + 1,
+                                                  annot.rect().height() + 1)
+                    pen = QPen(QColor(255,255,51), 0, Qt.SolidLine, Qt.RoundCap)
+                    brush = QBrush(QColor(255,255,51))
+                    highlight.setPen(pen)
+                    highlight.setBrush(brush)
+                    highlight.setZValue(-5)
+                    self.scene.addItem(highlight)
+                    self.highlight = highlight
+                    break
+                
+        #self.display_annotations
+        self.ready = True
+        
+        """
+    def mouseDoubleClickEvent(self, event):
+        When an event marker is double-clicked, it is removed
+        if not self.scene:
+            return
+        
+        chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
+        chk_event = self.parent.notes.action['new_event'].isChecked()
+
+        if not (chk_marker or chk_event):
+            xy_scene = self.mapToScene(event.pos())
+            for annot in self.idx_annot:
+                if annot.contains(xy_scene):
+                    self.parent.statusBar().showMessage('You clicked on an event!')
+                    self.parent.notes.remove_event(self, time=annot.mapToScene(0,0))
+                    self.scene.removeItem(annot)
+        """
 
     def mouseMoveEvent(self, event):
         """When normal selection, update power spectrum with current selection.
         Otherwise, show the range of the new marker.
         """
         if not self.scene:
+            return
+        
+        if self.event_sel or self.deselect:
             return
 
         if self.idx_sel in self.scene.items():
@@ -727,9 +866,20 @@ class Traces(QGraphicsView):
         """
         if not self.scene:
             return
+        
+        if self.event_sel:
+            return
+        
+        if self.deselect:
+            self.deselect = False
+            return
 
+        if not self.ready:
+            return
+        
         chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
         chk_event = self.parent.notes.action['new_event'].isChecked()
+        y_distance = self.parent.value('y_distance')
 
         if chk_marker or chk_event:
 
@@ -755,9 +905,11 @@ class Traces(QGraphicsView):
                 if chk_marker:
                     self.parent.notes.add_bookmark(time)
 
-                elif chk_event:
+                elif chk_event and start != end:
                     eventtype = self.parent.notes.idx_eventtype.currentText()
-                    self.parent.notes.add_event(eventtype, time)
+                    chan_idx = int(floor(self.sel_xy[1] / y_distance))
+                    chan = self.chan[chan_idx]
+                    self.parent.notes.add_event(eventtype, time, chan)
 
         else:  # normal selection
 
@@ -776,7 +928,26 @@ class Traces(QGraphicsView):
         if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
-
+    
+    def keyPressEvent(self, event):
+        if not self.event_sel:
+            return
+        
+        annot = self.event_sel
+        highlight = self.highlight
+        annot_start = annot.rect().x() - 0.5
+        annot_end = annot_start + annot.rect().width() + 1
+        
+        if type(event) == QKeyEvent and (
+            event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace) :
+            self.parent.notes.remove_event(time=(annot_start,annot_end))
+            self.scene.removeItem(highlight)
+            msg = 'Deleted event from ' + str(annot_start) + ' to ' + str(annot_end)
+            self.parent.statusBar().showMessage(msg)
+            self.event_sel = None
+            self.highlight = None
+            self.display_annotations
+    
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
 
@@ -896,9 +1067,9 @@ def _select_channels(data, channels):
 
     Notes
     -----
-    This function does the same as wonambi.trans.select, but it's much faster.
-    wonambi.trans.Select needs to flexible for any data type, here we assume
-    that we have one trial, and that channel is the first dimension.
+    This function does the same as wonambi.trans.select, but it's much 
+    faster. wonambi.trans.Select needs to flexible for any data type, here 
+    we assume that we have one trial, and that channel is the first dimension.
 
     """
     output = data._copy()
