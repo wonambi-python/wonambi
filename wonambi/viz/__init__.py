@@ -13,6 +13,4 @@
       - surfaces (meshes)
       - channels
 """
-from .plot_1d import Viz1
-from .plot_2d import Viz2
 from .plot_3d import Viz3
