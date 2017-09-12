@@ -1,6 +1,6 @@
 """Module to plot all the elements in 3d space.
 """
-from numpy import array, isnan, linspace, max, min, nanmax, nanmin, r_
+from numpy import array, isnan, linspace, max, mean, min, nanmax, nanmin, r_
 from vispy.color import get_colormap, ColorArray
 from vispy.geometry import MeshData
 from vispy.scene import TurntableCamera
@@ -63,6 +63,8 @@ class Viz3(Viz):
             norm_values = normalize(values, *limits_c)
 
             cm = get_colormap(colormap)
+            vertex_colors = cm[norm_values]
+            vertex_colors.alpha = alpha
             vertex_colors = cm[norm_values].rgba
 
             hasnan = isnan(vertex_colors).all(axis=1)
@@ -70,12 +72,22 @@ class Viz3(Viz):
 
         if vertex_colors is not None:
             color = None
-
+            
         meshdata = MeshData(vertices=surf.vert, faces=surf.tri,
                             vertex_colors=vertex_colors)
         mesh = SurfaceMesh(meshdata, color)
 
         self._add_mesh(mesh)
+        
+        # adjust camera
+        surf_center = mean(surf.vert, axis=0)
+        if surf_center[0] < 0:
+            azimuth = 270
+        else:
+            azimuth = 90
+        self._view.camera.azimuth = azimuth
+        self._view.camera.center = surf_center
+        
         self._surf.append(mesh)
 
     def add_chan(self, chan, color=None, values=None, limits_c=None, colormap=CHAN_COLORMAP, alpha=None):
