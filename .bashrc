@@ -51,3 +51,6 @@ export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DAT
 
 # custom code (ctags)
 export PATH=~/tools/bin:$PATH
+
+# pandoc
+export PATH=~/.local/bin:$PATH
