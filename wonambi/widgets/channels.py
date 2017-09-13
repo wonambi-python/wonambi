@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QGroupBox,
                              QHBoxLayout,
                              QInputDialog,
+                             QLabel,
                              QListWidget,
                              QListWidgetItem,
                              QPushButton,
@@ -98,10 +99,11 @@ class ChannelsGroup(QWidget):
     Use config_value instead of config, because it's easier to pass dict
     when loading channels montage.
     """
-    def __init__(self, chan_name, config_value, s_freq):
+    def __init__(self, chan_name, group_name, config_value, s_freq):
         super().__init__()
 
         self.chan_name = chan_name
+        self.group_name = group_name
 
         self.idx_l0 = QListWidget()
         self.idx_l1 = QListWidget()
@@ -140,9 +142,17 @@ class ChannelsGroup(QWidget):
         r_form.addRow('Scaling', self.idx_scale)
         r_form.addRow('Reference', self.idx_reref)
 
+        l0_layout = QVBoxLayout()
+        l0_layout.addWidget(QLabel('Active'))
+        l0_layout.addWidget(self.idx_l0)
+
+        l1_layout = QVBoxLayout()
+        l1_layout.addWidget(QLabel('Reference'))
+        l1_layout.addWidget(self.idx_l1)
+
         l_layout = QHBoxLayout()
-        l_layout.addWidget(self.idx_l0)
-        l_layout.addWidget(self.idx_l1)
+        l_layout.addLayout(l0_layout)
+        l_layout.addLayout(l1_layout)
 
         lr_form = QHBoxLayout()
         lr_form.addLayout(l_form)
@@ -235,7 +245,7 @@ class ChannelsGroup(QWidget):
 
         scale = self.idx_scale.value()
 
-        group_info = {'name': '',  # not present in widget
+        group_info = {'name': self.group_name,
                       'chan_to_plot': chan_to_plot,
                       'ref_chan': ref_chan,
                       'hp': low_cut,
@@ -317,12 +327,12 @@ class Channels(QWidget):
         """Create actions related to channel selection."""
         actions = {}
 
-        act = QAction('Load Channels Montage...', self)
+        act = QAction('Load Montage...', self)
         act.triggered.connect(self.load_channels)
         act.setEnabled(False)
         actions['load_channels'] = act
 
-        act = QAction('Save Channels Montage...', self)
+        act = QAction('Save Montage...', self)
         act.triggered.connect(self.save_channels)
         act.setEnabled(False)
         actions['save_channels'] = act
@@ -361,8 +371,8 @@ class Channels(QWidget):
 
             if new_name[1]:
                 s_freq = self.parent.info.dataset.header['s_freq']
-                group = ChannelsGroup(chan_name, self.config.value,
-                                      s_freq)
+                group = ChannelsGroup(chan_name, new_name[0],
+                                      self.config.value, s_freq)
                 self.tabs.addTab(group, new_name[0])
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
 
@@ -416,7 +426,7 @@ class Channels(QWidget):
         self.groups = []
         for i in range(self.tabs.count()):
             one_group = self.tabs.widget(i).get_info()
-            one_group['name'] = self.tabs.tabText(i)
+            #one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
     def load_channels(self, test_name=None):
@@ -461,7 +471,7 @@ class Channels(QWidget):
             chan_to_plot = set(chan_name) & set(one_grp['chan_to_plot'])
             ref_chan = set(chan_name) & set(one_grp['ref_chan'])
 
-            group = ChannelsGroup(chan_name, one_grp, s_freq)
+            group = ChannelsGroup(chan_name, one_grp['name'], one_grp, s_freq)
             group.highlight_channels(group.idx_l0, chan_to_plot)
             group.highlight_channels(group.idx_l1, ref_chan)
             self.tabs.addTab(group, one_grp['name'])

@@ -14,7 +14,7 @@ def test_detect_spindle_Moelle2011():
     assert repr(detsp) == 'detsp_Moelle2011_11-18Hz_00.5-02.0s'
 
     sp = detsp(data)
-    assert len(sp.events) == 5
+    assert len(sp.events) == 3
 
 
 def test_detect_spindle_Nir2011():

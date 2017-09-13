@@ -216,8 +216,8 @@ class Info(QWidget):
             elif file_or_dir == 'abort':
                 return
 
-            if filename == '':
-                return
+        if filename == '':
+            return
 
         # clear previous dataset once the user opens another dataset
         if self.dataset is not None:
@@ -225,16 +225,13 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
-        lg.info(str(filename))
         try:
             self.filename = filename
             self.repo = repo
             if repo == 'ieeg.org':
                 ieeg_org.SESS = ieeg_org.Session(username=username,
                                                  password_md5=password)
-
             self.dataset = Dataset(filename, server=repo)
-
         except FileNotFoundError:
             self.parent.statusBar().showMessage('File ' + basename(filename) +
                                                 ' cannot be read')

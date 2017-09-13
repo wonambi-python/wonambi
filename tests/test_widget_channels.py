@@ -130,7 +130,7 @@ def test_widget_channels_save(qtbot):
     w.channels.button_apply.click()
 
     toolbar = w.findChild(QToolBar, 'File Management')
-    button_save = find_in_qt(toolbar, QToolButton, "Save Channels Montage")
+    button_save = find_in_qt(toolbar, QToolButton, "Save Montage")
     button_save.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'channels_12_save_chan.png'))
     button_save.setStyleSheet("")
@@ -148,7 +148,7 @@ def test_widget_channels_load(qtbot):
     assert w.channels.action['load_channels'].isEnabled()
 
     toolbar = w.findChild(QToolBar, 'File Management')
-    button_load = find_in_qt(toolbar, QToolButton, "Load Channels Montage")
+    button_load = find_in_qt(toolbar, QToolButton, "Load Montage")
     button_load.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'channels_13_load_chan.png'))
     button_load.setStyleSheet("")

@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 3
+----------
+- **3.01**: merged with sleepytimes, including pretty GUI for spindle / SW detection
+
 Version 2
 ----------
 - **2.06**: import FASST sleep scores

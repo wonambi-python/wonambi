@@ -32,15 +32,18 @@ NoBrush.setStyle(Qt.NoBrush)
 
 STAGES = {'Wake': {'pos0': 5, 'pos1': 25, 'color': Qt.black},
           'Movement': {'pos0': 5, 'pos1': 25, 'color': Qt.darkGray},
+          'Artefact': {'pos0': 5, 'pos1': 25, 'color': Qt.darkGray},
           'REM': {'pos0': 10, 'pos1': 20, 'color': Qt.magenta},
           'NREM1': {'pos0': 15, 'pos1': 15, 'color': Qt.cyan},
           'NREM2': {'pos0': 20, 'pos1': 10, 'color': Qt.blue},
           'NREM3': {'pos0': 25, 'pos1': 5, 'color': Qt.darkBlue},
           'Undefined': {'pos0': 0, 'pos1': 30, 'color': Qt.gray},
           'Unknown': {'pos0': 30, 'pos1': 0, 'color': NoBrush},
+          'cycle': {'pos0': 42, 'pos1': 43, 'color': Qt.darkRed}
           }
 
-BARS = {'markers': {'pos0': 15, 'pos1': 10, 'tip': 'Markers in Dataset'},
+BARS = {'markers': {'pos0': 0, 'pos1': 10, 'tip': 'Markers in Dataset'},
+        'quality': {'pos0': 15, 'pos1': 10, 'tip': 'Signal quality'},
         'annot': {'pos0': 30, 'pos1': 10,
                   'tip': 'Annotations (bookmarks and events)'},
         'stage': {'pos0': 45, 'pos1': 30, 'tip': 'Sleep Stage'},
@@ -118,8 +121,14 @@ class Overview(QGraphicsView):
 
         self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
-    def update(self):
-        """Read full duration and update maximum."""
+    def update(self, reset=True):
+        """Read full duration and update maximum.
+        
+        Parameters
+        ----------
+        reset: bool
+            If True, current window start time is reset to 0.
+        """
         if self.parent.info.dataset is not None:
             # read from the dataset, if available
             header = self.parent.info.dataset.header
@@ -138,7 +147,8 @@ class Overview(QGraphicsView):
         # make it time-zone unaware
         self.start_time = self.start_time.replace(tzinfo=None)
 
-        self.parent.value('window_start', 0)  # the only value that is reset
+        if reset:
+            self.parent.value('window_start', 0)  # the only value that is reset
 
         self.display()
 
@@ -230,6 +240,7 @@ class Overview(QGraphicsView):
 
         if self.parent.notes.annot is not None:
             self.parent.notes.set_stage_index()
+            self.parent.notes.set_quality_index()
 
         self.display_current()
 
@@ -321,6 +332,18 @@ class Overview(QGraphicsView):
             self.mark_stages(epoch['start'],
                              epoch['end'] - epoch['start'],
                              epoch['stage'])
+            self.mark_quality(epoch['start'],
+                              epoch['end'] - epoch['start'],
+                              epoch['quality'])
+            
+        cycles = self.parent.notes.annot.rater.find('cycles')
+        cyc_starts = [float(mrkr.text) for mrkr in cycles.findall('cyc_start')]
+        cyc_ends = [float(mrkr.text) for mrkr in cycles.findall('cyc_end')]
+        
+        for mrkr in cyc_starts:
+            self.mark_cycles(mrkr, 30) # TODO: better width solution
+        for mrkr in cyc_ends:
+            self.mark_cycles(mrkr, 30, end=True)
 
     def mark_stages(self, start_time, length, stage_name):
         """Mark stages, only add the new ones.
@@ -358,6 +381,88 @@ class Overview(QGraphicsView):
         self.scene.addItem(rect)
         self.idx_annot.append(rect)
 
+    def mark_quality(self, start_time, length, qual_name):
+        """Mark signal quality, only add the new ones.
+        
+        Parameters
+        ----------
+        start_time : int
+            start time in s of the epoch being scored.
+        length : int
+           duration in s of the epoch being scored.
+        qual_name : str
+            one of the stages defined in global stages.
+        """
+        y_pos = BARS['quality']['pos0']
+        height = 10
+        
+        # the -1 is really important, otherwise we stay on the edge of the rect
+        old_score = self.scene.itemAt(start_time + length / 2,
+                                      y_pos + height - 1,
+                                      self.transform())
+
+        # check we are not removing the black border
+        if old_score is not None and old_score.pen() == NoPen:
+            lg.debug('Removing old score at {}'.format(start_time))
+            self.scene.removeItem(old_score)
+            self.idx_annot.remove(old_score)
+        
+        if qual_name == 'Bad':        
+            rect = QGraphicsRectItem(start_time, y_pos, length, height)
+            rect.setPen(NoPen)
+            rect.setBrush(Qt.black)
+            self.scene.addItem(rect)
+            self.idx_annot.append(rect)
+
+    def mark_cycles(self, start_time, length, end=False):
+        """Mark cycle bound, only add the new one.
+        
+        Parameters
+        ----------
+        start_time: int
+            start time in s of the bounding epoch
+        length : int
+           duration in s of the epoch being scored.
+        end: bool
+            If True, marker will be a cycle end marker; otherwise, it's start.
+        """
+        y_pos = STAGES['cycle']['pos0']
+        height = STAGES['cycle']['pos1']
+        color = STAGES['cycle']['color']
+        
+        # the -1 is really important, otherwise we stay on the edge of the rect
+        old_rect = self.scene.itemAt(start_time + length / 2,
+                                     y_pos + height - 1,
+                                     self.transform())
+
+        # check we are not removing the black border
+        if old_rect is not None and old_rect.pen() == NoPen:
+            lg.debug('Removing old score at {}'.format(start_time))
+            self.scene.removeItem(old_rect)
+            self.idx_annot.remove(old_rect)
+ 
+        rect = QGraphicsRectItem(start_time, y_pos, length, height)
+        rect.setPen(NoPen)
+        rect.setBrush(color)
+        self.scene.addItem(rect)
+        self.idx_annot.append(rect)
+        
+        if end:
+            start_time += length
+            length = - length
+        
+        kink_hi = QGraphicsRectItem(start_time, y_pos, length * 5, 1)
+        kink_hi.setPen(NoPen)
+        kink_hi.setBrush(color)
+        self.scene.addItem(kink_hi)
+        self.idx_annot.append(kink_hi) 
+        
+        kink_lo = QGraphicsRectItem(start_time, y_pos + height, length * 5, 1)
+        kink_lo.setPen(NoPen)
+        kink_lo.setBrush(color)
+        self.scene.addItem(kink_lo)
+        self.idx_annot.append(kink_lo)
+
     def mousePressEvent(self, event):
         """Jump to window when user clicks on overview.
 
@@ -371,6 +476,9 @@ class Overview(QGraphicsView):
             window_length = self.parent.value('window_length')
             window_start = int(floor(x_in_scene / window_length) *
                                window_length)
+            if self.parent.notes.annot is not None:
+                window_start = self.parent.notes.annot.get_epoch_start(
+                        window_start)
             self.update_position(window_start)
 
     def reset(self):

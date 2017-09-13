@@ -161,6 +161,37 @@ class MainWindow(QMainWindow):
 
         self.settings.show()
 
+    def show_merge_dialog(self):
+        """Create the event merging dialog."""
+        self.merge_dialog.update_event_types()
+        self.merge_dialog.show()
+
+    def show_spindle_dialog(self):
+        """Create the spindle detection dialog."""
+        self.spindle_dialog.update_groups()
+        self.spindle_dialog.show()
+
+    def show_slow_wave_dialog(self):
+        """Create the SW detection dialog."""
+        self.slow_wave_dialog.update_groups()
+        self.slow_wave_dialog.show()
+
+    def show_event_analysis_dialog(self):
+        """Create the event analysis dialog."""
+        self.event_analysis_dialog.update_types()
+        self.event_analysis_dialog.update_groups()
+        self.event_analysis_dialog.update_cycles()
+        self.event_analysis_dialog.show()
+
+    def show_spindle_help(self):
+        self.spindle_help.show()
+
+    def show_slowwave_help(self):
+        self.slowwave_help.show()
+
+    def show_evt_analysis_help(self):
+        self.evt_analysis_help.show()
+
     def about(self):
         s = ('<b>WONAMBI Version {version}</b><br />'
              '<p>You can download the latest version at '

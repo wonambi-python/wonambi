@@ -22,7 +22,7 @@ def test_widget_notes_load(qtbot):
     qtbot.addWidget(w)
 
     toolbar = w.findChild(QToolBar, 'File Management')
-    button_save = find_in_qt(toolbar, QToolButton, "Load Annotation File")
+    button_save = find_in_qt(toolbar, QToolButton, "Load Annotations")
     button_save.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'notes_03_load.png'))
     button_save.setStyleSheet("")
