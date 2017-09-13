@@ -1,7 +1,10 @@
 Documentation of WONAMBI
-=========================
+========================
+
+Contents:
 
 .. toctree::
+   :maxdepth: 2
 
    introduction
    installation
@@ -11,3 +14,10 @@ Documentation of WONAMBI
    testing
    changelog
    todo
+
+
+Indices and tables
+==================
+
+* :ref:`modindex`
+* :ref:`genindex`

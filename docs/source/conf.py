@@ -54,13 +54,18 @@ todo_include_todos = True
 
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-
 html_theme = 'sphinx_rtd_theme'
 
 html_show_sphinx = False
 html_show_sourcelink = False
+
+html_theme_options = {
+    'collapse_navigation': False,
+    'display_version': True,
+    'navigation_depth': 2,
+    'sticky_navigation': False,
+    'prev_next_buttons_location': 'bottom',
+    }
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'wonambidoc'
