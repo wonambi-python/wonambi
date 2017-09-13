@@ -3,7 +3,8 @@ from logging import getLogger
 
 from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
                    real, tile, zeros)
-from numpy.random import random, randn
+# numpy.random.random has an empty __module__ and sphinx autodoc adds it to api
+from numpy import random
 from numpy.fft import fft, ifft
 
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
@@ -95,7 +96,7 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
                           * mult + add)
 
             else:
-                values = randn(*(len(chan_name), len(time))) * mult + add
+                values = random.randn(*(len(chan_name), len(time))) * mult + add
                 for i_ch, x in enumerate(values):
                     values[i_ch, :] = _color_noise(x, s_freq, noise)
             data.data[i] = values
@@ -104,13 +105,13 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         data = ChanFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.data[i] = random((len(chan_name), len(freq))) * mult + add
+            data.data[i] = random.random((len(chan_name), len(freq))) * mult + add
 
     if datatype == 'ChanTimeFreq':
         data = ChanTimeFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.data[i] = (random((len(chan_name), len(time), len(freq)))
+            data.data[i] = (random.random((len(chan_name), len(time), len(freq)))
                             * mult + add)
 
     data.start_time = start_time

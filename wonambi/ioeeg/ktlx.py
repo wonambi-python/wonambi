@@ -694,6 +694,7 @@ def _read_stc(stc_file):
     with a generic EEG file header, and is followed by a series of fixed length
     records called the STC entries. ERD segments are named according to the
     following schema:
+
       - <FIRST_NAME>, <LAST_NAME>_<GUID>.ERD (first)
       - <FIRST_NAME>, <LAST_NAME>_<GUID>.ETC (first)
       - <FIRST_NAME>, <LAST_NAME>_<GUID>_<INDEX>.ERD (second and subsequent)

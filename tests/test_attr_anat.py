@@ -86,6 +86,6 @@ def test_Freesurfer_06():
     assert l1[-1, -1] == 2146559
     assert l2[-1] == 'insula'
 
-    
+
 def test_Freesurfer_shift():
     approx(fs.surface_ras_shift) == array([5.39971924, 18., 0.])
