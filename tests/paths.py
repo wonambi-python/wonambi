@@ -48,6 +48,7 @@ annot_fasst_export_file = EXPORTED_PATH / 'annot_fasst.xml'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
 channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'
+wonambi_file = EXPORTED_PATH / 'exported.won'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'

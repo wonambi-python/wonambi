@@ -78,7 +78,7 @@ def detect_format(filename, server=None):
                 raise UnrecognizedFormat('Unrecognized format for directory ' +
                                          str(filename))
         else:
-            if filename.suffix == '.phy':
+            if filename.suffix == '.won':
                 return Wonambi
 
             if filename.suffix.lower() == '.trc':

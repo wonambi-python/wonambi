@@ -12,7 +12,7 @@ class Wonambi:
     Parameters
     ----------
     filename : path to file
-        the name of the filename with extension .phy
+        the name of the filename with extension .won
     """
     def __init__(self, filename):
         self.filename = filename
@@ -125,7 +125,7 @@ def write_wonambi(data, filename, subj_id='', dtype='float64'):
     data : instance of ChanTime
         data with only one trial
     filename : path to file
-        file to export to (the extensions .phy and .dat will be added)
+        file to export to (the extensions .won and .dat will be added)
     subj_id : str
         subject id
     dtype : str
@@ -133,7 +133,7 @@ def write_wonambi(data, filename, subj_id='', dtype='float64'):
 
     Notes
     -----
-    Wonambi format creates two files, one .phy with the dataset info as json
+    Wonambi format creates two files, one .won with the dataset info as json
     file and one .dat with the memmap recordings.
 
     It will happily overwrite any existing file with the same name.
@@ -143,7 +143,7 @@ def write_wonambi(data, filename, subj_id='', dtype='float64'):
     """
     filename = Path(filename)
 
-    json_file = filename.with_suffix('.phy')
+    json_file = filename.with_suffix('.won')
     memmap_file = filename.with_suffix('.dat')
 
     start_time = data.start_time + timedelta(seconds=data.axis['time'][0][0])
