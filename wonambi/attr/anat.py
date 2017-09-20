@@ -334,7 +334,6 @@ class Freesurfer:
         numpy.ndarray
             4x4 affine matrix
         """
-        print(parc_type)
         seg_file = self.dir / 'mri' / (parc_type + '+aseg.mgz')
         try:
             seg_mri = load(seg_file)
