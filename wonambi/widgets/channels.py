@@ -429,12 +429,12 @@ class Channels(QWidget):
             #one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
-    def load_channels(self, test_name=None):
+    def load_channels(self, checked=False, test_name=None):
         """Load channel groups from file.
 
         Parameters
         ----------
-        debug_filename : path to file
+        test_name : path to file
             when debugging the function, you can open a channels file from the
             command line
         """
