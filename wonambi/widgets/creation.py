@@ -250,8 +250,12 @@ def create_menubar(MAIN):
     submenu_mrkr.addAction(actions['clear_cyc'])
     menu_annot.addSeparator()
 
-    submenu_import = menu_annot.addMenu('Import')
+    submenu_import = menu_annot.addMenu('Import staging')
+    submenu_import.addAction(actions['import_alice'])
+    submenu_import.addAction(actions['import_compumedics'])
     submenu_import.addAction(actions['import_domino'])
+    submenu_import.addAction(actions['import_remlogic'])    
+    submenu_import.addAction(actions['import_sandman'])
     submenu_import.addAction(actions['import_fasst'])
 
     menu_annot.addAction(actions['export'])

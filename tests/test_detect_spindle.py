@@ -14,7 +14,7 @@ def test_detect_spindle_Moelle2011():
     assert repr(detsp) == 'detsp_Moelle2011_11-18Hz_00.5-02.0s'
 
     sp = detsp(data)
-    assert len(sp.events) == 3
+    assert len(sp.events) == 1
 
 
 def test_detect_spindle_Nir2011():
@@ -42,6 +42,12 @@ def test_detect_spindle_unknownmethod():
     with raises(ValueError):
         detsp = DetectSpindle(method='xxx')
 
+
+def test_merge_close():
+    detsp = DetectSpindle(method='Nir2011')
+    
+    sp = detsp(data)
+    assert len(sp) == 2
 
 def test_detect_spindle_to_data():
     detsp = DetectSpindle()

@@ -12,7 +12,7 @@ def test_detect_spindle_Massimini2004():
     assert repr(detsw) == 'detsw_Massimini2004_0.10-4.00Hz_0.50-3.00s'
 
     sw = detsw(data)
-    assert len(sw.events) == 0
+    assert len(sw.events) == 4
 
 
 def test_detect_spindle_AASM_Massimini2004():
@@ -20,4 +20,4 @@ def test_detect_spindle_AASM_Massimini2004():
     assert repr(detsw) == 'detsw_AASM/Massimini2004_0.10-4.00Hz_0.50-3.00s'
 
     sw = detsw(data)
-    assert len(sw.events) == 0
+    assert len(sw.events) == 9

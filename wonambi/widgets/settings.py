@@ -61,7 +61,7 @@ DEFAULTS['traces'] = {'n_time_labels': 3,
                       'window_step': 5,
                       'grid_x': True,
                       'grid_xtick': 1,  # in seconds
-                      'grid_y': False,
+                      'grid_y': True,
                       'grid_ytick': 35,
                       }
 DEFAULTS['settings'] = {'max_dataset_history': 20,
@@ -378,7 +378,26 @@ class SpindleHelp(HelpDialog):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        s = ('<h3>Spindle detection methods</h3>'
+        s = ('<h3>Spindle detection help</h3>'
+             ''
+             'Note: Epochs marked as bad signal are excluded from detection.'
+             '<br />'
+             '<b>Label</b><br />'
+             'Label for this event type, to appear on trace.<br />'
+             '<b>Channel group</b><br />'
+             'Channel group containing desired channel(s).<br />'
+             '<b>Channel(s)</b><br />'
+             'One or several channels on which to detect slow waves.<br />'
+             '<b>Stage(s)</b><br />'
+             'One or several stages during which to detect slow waves. '
+             'If none are selected, all stages will be scanned.<br />'
+             '<b>Merge events across channels</b>'
+             'If selected, spindles detected on different channels and '
+             'separated by less than <b>Minimum interval</b> will be merged '
+             'into a single event, to the channel with the earliest onset '
+             'spindle.<br />'
+             ''
+             '<h4>Spindle detection methods</h4>'
              '<p>'
              'The method options in the spindle detection dialog are direct '
              'implementations of spindle detection methods '
@@ -530,7 +549,26 @@ class SlowWaveHelp(HelpDialog):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        s = ('<h3>Slow wave detection methods</h3>'
+        s = ('<h3>Slow wave detection help</h3>'
+             ''
+             'Note: Epochs marked as bad signal are excluded from detection.'
+             '<br />'
+             '<b>Label</b><br />'
+             'Label for this event type, to appear on trace.<br />'
+             '<b>Channel group</b><br />'
+             'Channel group containing desired channel(s).<br />'
+             '<b>Channel(s)</b><br />'
+             'One or several channels on which to detect slow waves.<br />'
+             '<b>Stage(s)</b><br />'
+             'One or several stages during which to detect slow waves. '
+             'If none are selected, all stages will be scanned.<br />'
+             '<b>Invert detection</b><br />'
+             'If selected, detection will be carried out on the inverted '
+             'signal (multiplied by -1). This is an indirect way of running '
+             'an inverted detection, where slow waves are peak-then-trough '
+             '(as opposed to the canonical trough-then-peak).<br />'
+             ''
+             '<h4>Slow wave detection methods</h4>'
              '<p>'
              'The method options in the slow wave detection dialog are direct '
              'implementations of slow wave detection methods '
@@ -543,6 +581,8 @@ class SlowWaveHelp(HelpDialog):
              '<p>'
              '<b>Massimini, M. et al. (2004) J Neurosci 24(31), 6862-70</b>'
              '<ol>'
+             '<i><li>256-channel EEG is re-referenced to the average of the '
+             'signals from the earlobes.</li></i>'
              '<i><li>EEG signal is locally averaged over 4 non-overlapping '
              'regions of the scalp.</li></i>'
              '<li>The <i>NREM</i> signal is bandpass filtered between '
@@ -552,7 +592,7 @@ class SlowWaveHelp(HelpDialog):
              'met:'
              '<ol>'
              '<li>A negative zero crossing and a subsequent positive zero '
-             'crossing seoarated by <b>Minimum trough duration</b> [0.3] '
+             'crossing separated by <b>Minimum trough duration</b> [0.3] '
              'and <b>Maximum trough duration</b> [1.0] s.</li>'
              '<li>A negative peak between the two zero crossings with voltage '
              'less than <b>Maximum trough amplitude</b> [-80] &mu;V'

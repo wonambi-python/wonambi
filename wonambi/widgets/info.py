@@ -157,7 +157,7 @@ class Info(QWidget):
 
         self.action = output
 
-    def open_dataset(self, recent=None):
+    def open_dataset(self, recent=None, debug_filename=None):
         """Open a new dataset.
 
         Parameters
@@ -185,6 +185,10 @@ class Info(QWidget):
             else:
                 filename = recent
                 repo = None
+                
+        elif debug_filename is not None:
+            filename = debug_filename
+            repo = None
 
         else:
             repo = None

@@ -13,7 +13,7 @@ TODO:
     too complicated. If you do that, you can remove all "if self.annot is None"
     that are marked with "# remove if buttons are disabled"
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from itertools import compress
 from logging import getLogger
@@ -62,8 +62,8 @@ lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50
 # TODO: this in ConfigNotes
 STAGE_NAME = ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
-              'Undefined', 'Unknown', 'Artefact']
-STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '']
+              'Undefined', 'Unknown', 'Artefact', 'Unrecognized']
+STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
 QUALIFIERS = ['Good', 'Bad']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 'Nir2011', 'Moelle2011', 'Ferrarelli2007', 
@@ -221,11 +221,13 @@ class Notes(QTabWidget):
         form.addRow('File:', self.idx_annotations)
         form.addRow('Rater:', self.idx_rater)
 
-        b1 = QGroupBox('Recap')
+        b1 = QGroupBox('Staging')
+        b2 = QGroupBox('Signal quality')
 
         layout = QVBoxLayout()
         layout.addWidget(b0)
         layout.addWidget(b1)
+        layout.addWidget(b2)
         self.idx_summary = layout
 
         tab1.setLayout(layout)
@@ -352,15 +354,31 @@ class Notes(QTabWidget):
         act.triggered.connect(self.clear_cycle_mrkrs)
         actions['clear_cyc'] = act
         
-        act = QAction('Domino staging', self)
-        act.triggered.connect(self.import_domino)
+        act = QAction('Domino', self)
+        act.triggered.connect(partial(self.import_staging, 'domino'))
         actions['import_domino'] = act
         
-        act = QAction('FASST staging', self)
+        act = QAction('Alice', self)
+        act.triggered.connect(partial(self.import_staging, 'alice'))
+        actions['import_alice'] = act
+        
+        act = QAction('Sandman', self)
+        act.triggered.connect(partial(self.import_staging, 'sandman'))
+        actions['import_sandman'] = act
+        
+        act = QAction('RemLogic', self)
+        act.triggered.connect(partial(self.import_staging, 'remlogic'))
+        actions['import_remlogic'] = act
+        
+        act = QAction('Compumedics', self)
+        act.triggered.connect(partial(self.import_staging, 'compumedics'))
+        actions['import_compumedics'] = act
+        
+        act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)
         actions['import_fasst'] = act
         
-        act = QAction('Export...', self)
+        act = QAction('Export staging', self)
         act.triggered.connect(self.export)
         actions['export'] = act
         
@@ -416,9 +434,12 @@ class Notes(QTabWidget):
             self.idx_quality.addItem(one_qual)
         self.idx_quality.setCurrentIndex(-1)
 
-        w = self.idx_summary.takeAt(1).widget()
-        self.idx_summary.removeWidget(w)
-        w.deleteLater()
+        w1 = self.idx_summary.takeAt(1).widget()
+        w2 = self.idx_summary.takeAt(1).widget()
+        self.idx_summary.removeWidget(w1)
+        self.idx_summary.removeWidget(w2)
+        w1.deleteLater()
+        w2.deleteLater()
 
         b1 = QGroupBox('Staging')
 
@@ -692,6 +713,13 @@ class Notes(QTabWidget):
 
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
+        scoring_window = self.parent.value('scoring_window')
+        
+        if window_length != scoring_window:
+            self.parent.statusBar().showMessage('Zoom to ' 
+                                 '' + str(scoring_window) + ' (epoch length) '
+                                 'for sleep scoring.')
+            return
 
         try:
             self.annot.set_stage_for_epoch(window_start,
@@ -919,16 +947,23 @@ class Notes(QTabWidget):
         except FileNotFoundError:
             self.parent.statusBar().showMessage('Annotation file not found')
 
-    def import_domino(self):
-        """Action: import a SomnoMedics Domino sleep staging file."""
+    def import_staging(self, source):
+        """Action: import an external sleep staging file.
+        
+        Parameters
+        ----------
+        source : str
+            Name of program where staging was exported. One of 'alice', 
+            'compumedics', 'domino', 'remlogic', 'sandman'.
+        """
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
         filename, _ = QFileDialog.getOpenFileName(self,
-                                                  'Load Domino staging file',
+                                                  'Load staging file',
                                                   None,
-                                                  'Domino Text File (*.txt)')
+                                                  'Text File (*.txt)')
 
         if filename == '':
             return
@@ -941,7 +976,7 @@ class Notes(QTabWidget):
                 msgBox = QMessageBox(QMessageBox.Question, 'Overwrite staging',
                                      'Rater %s already exists. \n \n'
                                      'Overwrite %s\'s sleep staging '
-                                     'with Domino\'s staging? Events '
+                                     'with imported staging? Events '
                                      'and bookmarks will be preserved.'
                                      % (answer[0], answer[0]))
                 msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -951,15 +986,32 @@ class Notes(QTabWidget):
                 if response == QMessageBox.No:
                     return
 
-            record_start = self.parent.info.dataset.header['start_time']
+            record_start = self.parent.info.dataset.header['start_time']            
+            staging_start = None
+            
+            if source == 'compumedics':
+                answer = QInputDialog.getText(self, 'Staging start time',
+                                              'Enter date and time when '
+                                              'staging begins, using 24-hour '
+                                              'clock. Format: '
+                                              'YYYY,MM,DD HH:mm:SS')
+                if answer[1]:
+                    try:
+                        staging_start = datetime.strptime(answer[0], 
+                                                          '%Y,%m,%d %H:%M:%S')
+                    except ValueError:
+                        self.parent.statusBar().showMessage('Incorrect '
+                                             'formatting for date and time.')
 
             try:
-                self.annot.import_domino(filename, answer[0], record_start)
+                self.annot.import_staging(filename, source, answer[0], 
+                                          record_start, 
+                                          staging_start=staging_start)
             except FileNotFoundError:
                 self.parent.statusBar().showMessage('File not found')
 
             self.display_notes()
-            self.parent.create_menubar()  # refresh list ot raters
+            self.parent.create_menubar()  # refresh list ot raters 
             
     def new_rater(self):
         """Action: add a new rater.
@@ -1080,6 +1132,11 @@ class Notes(QTabWidget):
                     qual_cond = ep['quality'] == quality
                 if stage_cond and qual_cond:
                     times.append((ep['start'], ep['end']))
+                    
+        if len(times) == 0:
+            self.parent.statusBar().showMessage('No valid epochs found.')
+            self.data = None
+            return
 
         self.data = _create_data_to_analyze(data, chan, group, times=times)
 
@@ -1105,7 +1162,8 @@ class Notes(QTabWidget):
         n_eventtype = self.idx_eventtype.count()
         self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
         
-        freq = (params['f1'], params['f2'])
+        freq = (float(params['f1']), float(params['f2']))
+        lg.info('freq: ' + str(freq))
         duration = (params['min_dur'], params['max_dur'])
         
         if method in SPINDLE_METHODS:
@@ -1127,11 +1185,12 @@ class Notes(QTabWidget):
             lg.info('building SW detector with ' + method)
             detector = DetectSlowWave(method=method, duration=duration)
             
-            detector.det_butter['freq'] = freq
+            detector.det_filt['freq'] = freq
             detector.trough_duration = (params['min_trough_dur'], 
                                         params['max_trough_dur'])
             detector.max_trough_amp = params['max_trough_amp']
             detector.min_ptp = params['min_ptp']
+            detector.invert = params['invert']
             
         else:
             lg.info('Method not recognized: ' + method)
@@ -1143,6 +1202,7 @@ class Notes(QTabWidget):
             self.annot.add_event(label,(one_ev['start'], 
                                         one_ev['end']), 
                                         chan=one_ev['chan'])
+        
         self.update_annotations()
    
     def analyze_events(self, event_type, chan, stage, params, frequency,
@@ -1328,11 +1388,16 @@ class Notes(QTabWidget):
         self.idx_marker.setRowCount(0)
 
         # remove summary statistics
-        w = self.idx_summary.takeAt(1).widget()
-        self.idx_summary.removeWidget(w)
-        w.deleteLater()
-        b1 = QGroupBox('Recap')
+        w1 = self.idx_summary.takeAt(1).widget()
+        w2 = self.idx_summary.takeAt(1).widget()
+        self.idx_summary.removeWidget(w1)
+        self.idx_summary.removeWidget(w2)
+        w1.deleteLater()
+        w2.deleteLater()
+        b1 = QGroupBox('Staging')
+        b2 = QGroupBox('Signal quality')
         self.idx_summary.addWidget(b1)
+        self.idx_summary.addWidget(b2)        
 
         # remove annotations
         self.display_eventtype()
@@ -1479,10 +1544,10 @@ class SpindleDialog(ChannelDialog):
         self.index['min_dur'] = FormFloat()
         self.index['max_dur'] = FormFloat()
         
-        self.index['f1'].set_value(10)
-        self.index['f2'].set_value(16)
+        self.index['f1'].set_value(10.)
+        self.index['f2'].set_value(16.)
         self.index['min_dur'].set_value(0.5)
-        self.index['max_dur'].set_value(3)
+        self.index['max_dur'].set_value(3.)
         
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
@@ -1580,9 +1645,9 @@ class SpindleDialog(ChannelDialog):
                 
             self.parent.notes.read_data(chans, self.one_grp, stage=stage, 
                                         quality='Good')
-            lg.info(str(self.parent.notes.data().shape))
-            self.parent.notes.detect_events(self.method, params, 
-                                            label=self.label.get_value())
+            if self.parent.notes.data is not None:
+                self.parent.notes.detect_events(self.method, params, 
+                                                label=self.label.get_value())
                         
             self.accept()
 
@@ -1658,7 +1723,10 @@ class SWDialog(ChannelDialog):
         box0 = QGroupBox('Info')
         
         self.label = FormStr()
+        self.index['invert'] = FormBool('Invert detection')
+        
         self.label.setText('sw')
+        self.index['invert'].setCheckState(Qt.Unchecked)
         
         form_layout = QFormLayout()
         box0.setLayout(form_layout)
@@ -1670,6 +1738,7 @@ class SWDialog(ChannelDialog):
                            self.idx_chan)
         form_layout.addRow('Stage(s)',
                            self.idx_stage)
+        form_layout.addRow(self.index['invert'])
         
         box1 = QGroupBox('General parameters')
         
@@ -1677,7 +1746,7 @@ class SWDialog(ChannelDialog):
         self.index['max_dur'] = FormFloat()
 
         self.index['min_dur'].set_value(0.5)
-        self.index['max_dur'].set_value(5)
+        self.index['max_dur'].set_value(3.)
         
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
@@ -1760,12 +1829,12 @@ class SWDialog(ChannelDialog):
             else: 
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
             
-            lg.info('chans= '+str(chans)+' stage= '+str(stage)+' grp= '+str(self.one_grp))
             self.parent.notes.read_data(chans, self.one_grp, stage=stage, 
                                         quality='Good')
-            lg.info(str(self.parent.notes.data().shape))
-            self.parent.notes.detect_events(self.method, params,
-                                            label=self.label.get_value())
+            
+            if self.parent.notes.data is not None:
+                self.parent.notes.detect_events(self.method, params,
+                                                label=self.label.get_value())
                         
             self.accept()
 
@@ -1781,8 +1850,8 @@ class SWDialog(ChannelDialog):
         self.method = self.idx_method.currentText()
         sw_det = DetectSlowWave(method=self.method)
         
-        self.index['f1'].set_value(sw_det.det_butter['freq'][0])
-        self.index['f2'].set_value(sw_det.det_butter['freq'][1])
+        self.index['f1'].set_value(sw_det.det_filt['freq'][0])
+        self.index['f2'].set_value(sw_det.det_filt['freq'][1])
         self.index['min_trough_dur'].set_value(sw_det.trough_duration[0])
         self.index['max_trough_dur'].set_value(sw_det.trough_duration[1])
         self.index['max_trough_amp'].set_value(sw_det.max_trough_amp)
@@ -1832,17 +1901,26 @@ class MergeDialog(QDialog):
         event_box = QListWidget()
         event_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_evt_type = event_box
+
+        mbox = QComboBox()
+        mlist = ['earlier onset event', 'longer duration event']
+        for m in mlist:
+            mbox.addItem(m)
+        self.idx_merge_to = mbox
+        self.merge_to = mbox.currentText()
         
         self.min_interval = FormFloat()
         self.cross_chan = FormBool('Merge across channels')
         
         self.min_interval.set_value(1.0)
-        self.cross_chan.setCheckState(Qt.Checked)        
+        self.cross_chan.setCheckState(Qt.Checked) 
         
         form_layout = QFormLayout()
         box0.setLayout(form_layout)
         form_layout.addRow('Event type(s)',
                            self.idx_evt_type)
+        form_layout.addRow('Merge to...',
+                           self.idx_merge_to)
         form_layout.addRow('Minimum interval (sec)',
                            self.min_interval)
         form_layout.addRow(self.cross_chan)
@@ -1876,8 +1954,10 @@ class MergeDialog(QDialog):
         if button is self.idx_ok:
             
             evt_types = [x.text() for x in self.idx_evt_type.selectedItems()]
+            self.merge_to = self.idx_merge_to.currentText()
             min_interval = self.min_interval.get_value()
             events = []
+            merge_to_longer = False
             
             if not evt_types:
                 QMessageBox.warning(self, 'Missing information',
@@ -1889,6 +1969,10 @@ class MergeDialog(QDialog):
                                      'Choose a minimum interval.')                
                 return
 
+            
+            if self.merge_to == 'longer duration event':
+                merge_to_longer = True
+            
             if len(evt_types) > 1:
                 answer = QInputDialog.getText(self, 'New Event Type',
                                       'Enter new event\'s name')
@@ -1907,7 +1991,8 @@ class MergeDialog(QDialog):
                                                                  qual='Good'))
                 
             if self.cross_chan.get_value():
-                events = merge_close(events, min_interval)
+                events = merge_close(events, min_interval,
+                                     merge_to_longer=merge_to_longer)
                 
             else:
                 channels = set([x['chan'] for x in events])
@@ -1921,7 +2006,8 @@ class MergeDialog(QDialog):
                         chan_events.extend(self.parent.notes.annot.get_events(
                                 name=etype, chan=chan, qual='Good'))
                         
-                    events.extend(merge_close(chan_events, min_interval))
+                    events.extend(merge_close(chan_events, min_interval,
+                                              merge_to_longer=merge_to_longer))
                     
             for etype in evt_types:
                 self.parent.notes.annot.remove_event_type(etype)

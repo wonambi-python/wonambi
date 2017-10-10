@@ -164,7 +164,7 @@ class Edf:
 
         Parameters
         ----------
-        chan : list of str
+        chan : list of int
             index (indices) of the channels to read
         begsam : int
             index of the first sample

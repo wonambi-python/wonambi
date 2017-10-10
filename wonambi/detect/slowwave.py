@@ -2,7 +2,8 @@
 
 """
 from logging import getLogger
-from numpy import argmax, concatenate, hstack, sum, zeros, median, mean
+from numpy import argmax, asarray, concatenate, hstack, sum, zeros, median, mean
+from scipy.signal import butter, filtfilt
 
 from .spindle import detect_events, transform_signal, within_duration
 from ..graphoelement import SlowWaves
@@ -32,25 +33,27 @@ class DetectSlowWave:
         self.duration = duration
 
         if method == 'Massimini2004':
-            self.det_butter = {'order': 4,
-                               'freq': (0.1, 4.)}
+            self.det_filt = {'order': 3,
+                             'freq': (0.1, 4.)}
             self.trough_duration = (0.3, 1.)
             self.max_trough_amp = - 80
             self.min_ptp = 140
+            self.invert = False
 
         elif method == 'AASM/Massimini2004':
-            self.det_butter = {'order': 4,
+            self.det_filt = {'order': 3,
                                'freq': (0.1, 4.)}
             self.trough_duration = (0.25, 1.)
             self.max_trough_amp = - 40
             self.min_ptp = 75
+            self.invert = False
 
         else:
             raise ValueError('Unknown method')
 
     def __repr__(self):
         return ('detsw_{0}_{1:04.2f}-{2:04.2f}Hz_{3:04.2f}-{4:04.2f}s'
-                ''.format(self.method, *self.det_butter['freq'], *self.duration))
+                ''.format(self.method, *self.det_filt['freq'], *self.duration))
 
     def __call__(self, data):
         """Detect slow waves on the data.
@@ -87,7 +90,7 @@ class DetectSlowWave:
             # end of loop over chan
 
         lg.info('number of SW: ' + str(len(all_slowwaves)))
-        slowwave.events = sorted(all_slowwaves, key=lambda x: x['start_time'])
+        slowwave.events = sorted(all_slowwaves, key=lambda x: x['start'])
 
         return slowwave
 
@@ -103,7 +106,7 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     time : ndarray (dtype='float')
         vector with the time points for each sample
     opts : instance of 'DetectSlowWave'
-        'det_butter' : dict
+        'det_filt' : dict
             parameters for 'butter',
         'duration' : tuple of float
             min and max duration of SW
@@ -124,29 +127,32 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     Massimini, M. et al. J Neurosci 24(31) 6862-70 (2004).
 
     """
-    lg.info('detection raw dat: ' + str(len(dat_orig)))
-    lg.info('mean: ' + str(mean(dat_orig)) +' median: ' + str(median(dat_orig)))
-    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
-    lg.info('det filtered data: ' + str(len(dat_det)))
-    lg.info('mean: ' + str(mean(dat_det)) +' median: ' + str(median(dat_det)))
+    if opts.invert:
+        dat_orig = - dat_orig
+    
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_filt)
     below_zero = detect_events(dat_det, 'below_thresh', value=0.)
 
     sw_in_chan = []
     if below_zero is not None:
         troughs = within_duration(below_zero, time, opts.trough_duration)
+        lg.info('troughs within duration: ' + str(troughs.shape))
 
         if troughs is not None:
             troughs = select_peaks(dat_det, troughs, opts.max_trough_amp)
+            lg.info('troughs deep enough: ' + str(troughs.shape))
 
             if troughs is not None:
                 events = _add_pos_halfwave(dat_det, troughs, s_freq, opts)
+                lg.info('SWs high enough: ' + str(events.shape))
 
                 if len(events):
                     events = within_duration(events, time, opts.duration)
+                    lg.info('SWs within duration: ' + str(events.shape))
 
                     sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
 
-    if len(sw_in_chan) == 1:
+    if len(sw_in_chan) == 0:
         lg.info('No slow wave found')
 
     return sw_in_chan
@@ -259,7 +265,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
 
         ev[3] = argmax(data[ev[2]:ev[4]])
 
-        if abs(data[ev[1]] - data[ev[3]]) < opts.min_p2p:
+        if abs(data[ev[1]] - data[ev[3]]) < opts.min_ptp:
             selected.append(False)
             continue
 

@@ -1,8 +1,8 @@
 """Module to detect spindles.
 """
 from logging import getLogger
-from numpy import (absolute, arange, argmax, asarray, concatenate, cos, diff,
-                   exp, empty, floor, hstack, insert, invert, linspace,
+from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
+                   diff, exp, empty, floor, hstack, insert, invert, linspace,
                    mean, median, nan, ones, pi, ptp, sqrt, square,
                    std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
@@ -625,6 +625,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         nyquist = s_freq / 2
         Wn = asarray(freq) / nyquist
         b, a = butter(N, Wn, btype='bandpass')
+        lg.info('butter: a='+str(a)+' b='+str(b)+' Wn='+str(Wn)+' N='+str(N) + ' freq: ' + str(freq))
         dat = filtfilt(b, a, dat)
 
     if 'morlet' == method:
@@ -735,13 +736,7 @@ def detect_events(dat, method, value=None):
     if method == 'above_thresh':
         above_det = dat >= value
         detected = _detect_start_end(above_det)
-
-    if method == 'below_thresh':
-        below_det = dat < value
-        lg.info('values below zero is ' + str(below_det.any()))
-        detected = _detect_start_end(below_det)
-
-    if method in ['above_thresh', 'below_thresh']:
+        
         if detected is None:
             return None
 
@@ -749,6 +744,19 @@ def detect_events(dat, method, value=None):
         detected = insert(detected, 1, 0, axis=1)
         for i in detected:
             i[1] = i[0] + argmax(dat[i[0]:i[2]])
+
+    if method == 'below_thresh':
+        below_det = dat < value
+        detected = _detect_start_end(below_det)
+        
+        if detected is None:
+            return None
+
+        # add the location of the trough in the middle
+        detected = insert(detected, 1, 0, axis=1)
+        for i in detected:
+            i[1] = i[0] + argmin(dat[i[0]:i[2]])
+        #lg.info('troughs values: ' + str(dat[detected[:,1]]))
 
     if method == 'maxima':
         peaks = argrelmax(dat)[0]
@@ -790,9 +798,8 @@ def select_events(dat, detected, method, value):
     return detected
 
 
-def merge_close(events, min_interval):
+def merge_close(events, min_interval, merge_to_longer=False):
     """Merge events that are separated by a less than a minimum interval.
-    When merging, longer event is extended and shorter one is discarded.
 
     Parameters
     ----------
@@ -801,12 +808,14 @@ def merge_close(events, min_interval):
         **Events must be sorted by their start time.**
     min_interval : float
         minimum delay between consecutive events, in seconds
+    merge_to_longer : bool (default: False)
+        If True, info (chan, peak, etc.) from the longer of the 2 events is
+        kept. Otherwise, info from the earlier onset spindle is kept.
 
     Returns
     -------
     list of dict
-        original events list with close events merged. Note that in a merger,
-        info (chan, peak, etc.) from the longer of the 2 events is kept.
+        original events list with close events merged.
     """
     half_iv = min_interval / 2
     merged = []
@@ -821,12 +830,12 @@ def merge_close(events, min_interval):
 
             if higher['start'] - half_iv <= lower['end'] + half_iv:
 
-                if (higher['end'] - higher['start'] >
-                   lower['end'] - lower['start']):
+                if merge_to_longer and (higher['end'] - higher['start'] >
+                lower['end'] - lower['start']):
                     start = min(lower['start'], higher['start'])
                     higher.update({'start': start})
                     merged[-1] = higher
-
+                        
                 else:
                     end = max(lower['end'], higher['end'])
                     merged[-1].update({'end': end})
