@@ -38,7 +38,7 @@ def test_widget_notes_import_fasst(qtbot):
     act_annot = find_in_qt(menubar, QAction, 'Annotations')
     menubar.setActiveAction(act_annot)
 
-    act_import = find_in_qt(act_annot.menu(), QAction, 'Import')
+    act_import = find_in_qt(act_annot.menu(), QAction, 'Import staging')
     act_annot.menu().setActiveAction(act_import)
 
     act_import.menu().setActiveAction(w.notes.action['import_fasst'])

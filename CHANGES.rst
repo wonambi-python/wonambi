@@ -2,7 +2,6 @@ Change Log
 ==========
 Version 3
 ----------
-- **3.04**: SW detection; import sleep scores for Alice, Compumedics, Domino, RemLogic, Sandman; merge events; bugfixes
 - **3.03**: SW detection; import sleep scores for Alice, Compumedics, Domino, RemLogic, Sandman; merge events; bugfixes
 - **3.02**: bugfix when opening montage
 - **3.01**: merged with sleepytimes, including pretty GUI for spindle / SW detection
