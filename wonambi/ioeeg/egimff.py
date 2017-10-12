@@ -7,7 +7,7 @@ from struct import unpack
 from xml.etree.ElementTree import parse
 import io
 
-from numpy import (append, asarray, cumsum, diff, empty, NaN, reshape, sum,
+from numpy import (append, asarray, cumsum, diff, empty, NaN, sum,
                    where, ndarray, unique)
 
 shorttime = lambda x: x[:26] + x[29:32] + x[33:]
@@ -75,7 +75,7 @@ class EgiMff:
                                            '%Y-%m-%dT%H:%M:%S.%f%z')
         except KeyError:
             start_time = datetime.now()  # TODO: what do use when time is not available?
-            
+
         self.start_time = start_time
 
         videos = glob(join(self.filename, '*.mp4'))  # as described in specs
@@ -169,8 +169,7 @@ class EgiMff:
                 if rec == len(self._n_samples[one_signal]):
                     break
 
-
-                if rec == begrec: 
+                if rec == begrec:
                     begpos_rec = begsam - x1[rec]
                 else:
                     begpos_rec = 0
@@ -185,15 +184,8 @@ class EgiMff:
                 lg.debug('data {: 8d}-{: 8d}, rec ({}) {: 5d} - {: 5d}'.format(i0, i1, rec, begpos_rec, endpos_rec))
 
                 rec_dat = _read_block(f,
-                                  self._block_hdr[one_signal][rec],
-                                  self._i_data[one_signal][rec])
-                       
-                ### FOR VALIDATION OF THE PATCH
-                #rec_dat_old = _read_block_old(f,
-                #                  self._block_hdr[one_signal][rec],
-                #                  self._i_data[one_signal][rec])                       
-                #import numpy as np
-                #assert(np.all(rec_dat_old == rec_dat))
+                                      self._block_hdr[one_signal][rec],
+                                      self._i_data[one_signal][rec])
 
                 data[i_chan_data, i0:i1] = rec_dat[i_chan_rec,
                                                    begpos_rec:endpos_rec]
@@ -263,34 +255,11 @@ class EgiMff:
         return mp4_file, begtime, endtime
 
 
-### FOR VALIDATION OF THE PATCH
-#def _read_block_old(filename, block_hdr, i):
-#    f = filename
-#
-#    n_bytes = (block_hdr['depth'] / 8).astype('B')
-#
-#    data_type = []
-#    for b, n_smp in zip(n_bytes, block_hdr['n_samples']):
-#        if b == 2:
-#            data_type.append('h' * n_smp)
-#        if b == 4:
-#            data_type.append('f' * n_smp)
-#        if b == 8:
-#            data_type.append('d' * n_smp)
-#
-#    f.seek(i)
-#
-#    v = unpack('<' + ''.join(data_type),
-#               f.read(sum(n_bytes * block_hdr['n_samples'])))
-#
-#    return reshape(v, (block_hdr['n_signals'], block_hdr['n_samples'][0]))
-
-
 def _read_block(filename, block_hdr, i):
     f = filename
 
-    # Can we assume constant depth across blocks? 
-    depth = unique(block_hdr['depth'])   
+    # Can we assume constant depth across blocks?
+    depth = unique(block_hdr['depth'])
     assert(len(depth) == 1)
     n_bytes = (depth[0] / 8).astype('B')
 
@@ -305,10 +274,9 @@ def _read_block(filename, block_hdr, i):
 
     f.seek(i)
 
-    return ndarray((block_hdr['n_signals'], block_hdr['n_samples'][0]), 
+    return ndarray((block_hdr['n_signals'], block_hdr['n_samples'][0]),
                    data_type,
                    f.read(sum(n_bytes * block_hdr['n_samples'])))
-    
 
 
 def read_block_hdr(f):
@@ -487,4 +455,3 @@ def _read_chan_name(orig):
             pns_chan.append(one_sensor['name'])
 
     return eeg_chan + pns_chan, len(eeg_chan)
-
