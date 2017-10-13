@@ -2,8 +2,7 @@
 
 """
 from logging import getLogger
-from numpy import argmax, asarray, concatenate, hstack, sum, zeros, median, mean
-from scipy.signal import butter, filtfilt
+from numpy import argmax, concatenate, hstack, sum, zeros
 
 from .spindle import detect_events, transform_signal, within_duration
 from ..graphoelement import SlowWaves
@@ -42,7 +41,7 @@ class DetectSlowWave:
 
         elif method == 'AASM/Massimini2004':
             self.det_filt = {'order': 3,
-                               'freq': (0.1, 4.)}
+                             'freq': (0.1, 4.)}
             self.trough_duration = (0.25, 1.)
             self.max_trough_amp = - 40
             self.min_ptp = 75
@@ -78,8 +77,8 @@ class DetectSlowWave:
             dat_orig = hstack(data(chan=chan))
 
             if 'Massimini2004' in self.method:
-                sw_in_chan = detect_Massimini2004(
-                        dat_orig, data.s_freq, time, self)
+                sw_in_chan = detect_Massimini2004(dat_orig, data.s_freq, time,
+                                                  self)
 
             else:
                 raise ValueError('Unknown method')
@@ -128,8 +127,8 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
 
     """
     if not opts.invert:
-        dat_orig = - dat_orig
-    
+        dat_orig = -dat_orig
+
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_filt)
     below_zero = detect_events(dat_det, 'below_thresh', value=0.)
 
@@ -209,7 +208,7 @@ def make_slow_waves(events, data, time, s_freq):
                   'trough_time': time[ev[1]],
                   'zero_time': time[ev[2]],
                   'peak_time': time[ev[3]],
-                  'end': time[ev[4]-1],
+                  'end': time[ev[4] - 1],
                   'trough_val': data[ev[1]],
                   'peak_val': data[ev[3]],
                   'dur': (ev[4] - ev[0]) / s_freq,
@@ -231,7 +230,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     data : ndarray (dtype='float')
         vector with the data
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples    
+        N x 3 matrix with start, peak, end samples
     s_freq : float
         sampling frequency
     opts : instance of 'DetectSlowWave'
@@ -257,7 +256,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     selected = []
 
     for ev in events:
-        ev[4] = ev[2] + argmax(data[ev[2]:ev[0] + window] < 0) # quickest way
+        ev[4] = ev[2] + argmax(data[ev[2]:ev[0] + window] < 0)  # quickest way
 
         if ev[2] == ev[4]:
             selected.append(False)
