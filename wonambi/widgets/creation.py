@@ -243,7 +243,7 @@ def create_menubar(MAIN):
     submenu_stage = menu_annot.addMenu('Stage')
     submenu_stage.addActions(MAIN.notes.actions())
 
-    submenu_mrkr = menu_annot.addMenu('Marker')
+    submenu_mrkr = menu_annot.addMenu('Cycle')
     submenu_mrkr.addAction(actions['cyc_start'])
     submenu_mrkr.addAction(actions['cyc_end'])
     submenu_mrkr.addAction(actions['remove_cyc'])

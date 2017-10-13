@@ -307,7 +307,7 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['merge_events'] = act
 
-        act = QAction(QIcon(ICON['event']), 'New Event', self)
+        act = QAction(QIcon(ICON['event']), 'Event Mode', self)
         act.setCheckable(True)
         actions['new_event'] = act
 
@@ -1133,10 +1133,10 @@ class Notes(QTabWidget):
                 if stage_cond and qual_cond:
                     times.append((ep['start'], ep['end']))
                     
-        if len(times) == 0:
-            self.parent.statusBar().showMessage('No valid epochs found.')
-            self.data = None
-            return
+            if len(times) == 0:
+                self.parent.statusBar().showMessage('No valid epochs found.')
+                self.data = None
+                return
 
         self.data = _create_data_to_analyze(data, chan, group, times=times)
 
