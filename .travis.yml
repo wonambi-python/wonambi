@@ -8,9 +8,6 @@ env:
    - DOWNLOADS=$HOME/downloads
    - HTML_PATH=$TRAVIS_BUILD_DIR/docs/build/html
 
-before_cache:
- - rm $DOWNLOADS/* -rf
-
 cache: 
  - directories:
    - $DOWNLOADS
@@ -18,6 +15,9 @@ cache:
 
 before_install:
  # create display with large resolution
+ - rm $DOWNLOADS/* -rf
+ - rm tests/data -rf
+ - rm tests/downloads -rf
  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16"
  - python setup_wonambi.py --get_files
 
