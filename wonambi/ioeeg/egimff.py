@@ -5,12 +5,10 @@ from os import SEEK_CUR
 from os.path import basename, join, splitext
 from struct import unpack
 from xml.etree.ElementTree import parse
-import io
 
 from numpy import (append, asarray, cumsum, diff, empty, NaN, sum,
                    where, ndarray, unique)
 
-shorttime = lambda x: x[:26] + x[29:32] + x[33:]
 lg = getLogger(__name__)
 
 
@@ -71,8 +69,8 @@ class EgiMff:
         except KeyError:
             subj_id = ''
         try:
-            start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
-                                           '%Y-%m-%dT%H:%M:%S.%f%z')
+            start_time = datetime.strptime(orig['info'][0]['recordTime'][:26],
+                                           '%Y-%m-%dT%H:%M:%S.%f')
         except KeyError:
             start_time = datetime.now()  # TODO: what do use when time is not available?
 
@@ -155,7 +153,7 @@ class EgiMff:
             except IndexError:
                 endrec = len(x)
 
-            f = io.open(self._signal[one_signal], 'rb')
+            f = open(self._signal[one_signal], 'rb')
 
             i0 = 0
             for rec in range(begrec, endrec + 1):
@@ -203,8 +201,8 @@ class EgiMff:
         markers = []
         for xml in xml_events:
             for event in self._orig[xml][2:]:
-                event_start = datetime.strptime(shorttime(event['beginTime']),
-                                                '%Y-%m-%dT%H:%M:%S.%f%z')
+                event_start = datetime.strptime(event['beginTime'][:26],
+                                                '%Y-%m-%dT%H:%M:%S.%f')
                 start = (event_start - self.start_time).total_seconds()
 
                 marker = {'name': event['code'],
