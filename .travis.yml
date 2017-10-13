@@ -8,6 +8,9 @@ env:
    - DOWNLOADS=$HOME/downloads
    - HTML_PATH=$TRAVIS_BUILD_DIR/docs/build/html
 
+before_cache:
+ - rm $DOWNLOADS/* -rf
+
 cache: 
  - directories:
    - $DOWNLOADS
