@@ -8,7 +8,7 @@ from pathlib import Path
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import (Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
+from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
                     Moberg, Wonambi, OpBox, Micromed, BCI2000)
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -89,6 +89,9 @@ def detect_format(filename, server=None):
 
             if filename.suffix == '.edf':
                 return Edf
+
+            if filename.suffix == '.abf':
+                return Abf
 
             if filename.suffix == '.dat':  # very general
                 try:

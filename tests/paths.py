@@ -8,6 +8,7 @@ test_path = Path(__file__).resolve().parent
 
 # Data from publicly available datasets
 DATA_PATH = test_path / 'data'
+axon_abf_file = DATA_PATH / 'axon_abf.abf'
 bci2000_file = DATA_PATH / 'bci2000.dat'
 psg_file = DATA_PATH / 'PSG.edf'
 micromed_file = DATA_PATH / 'micromed.TRC'

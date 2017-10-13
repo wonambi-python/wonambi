@@ -56,6 +56,11 @@ VER_PATH = BASE_PATH / 'wonambi' / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
 
 REMOTE_FILES = [
+    {'filename': 'axon_abf.abf',
+     'url': 'https://portal.g-node.org/neo/axon/File_axon_1.abf',
+     'cached': 'File_axon_1.abf',
+     'zipped': None,
+     },
     {'filename': 'PSG.edf',
      'url': 'https://www.physionet.org/pn4/sleep-edfx/SC4031E0-PSG.edf',
      'cached': 'SC4031E0-PSG.edf',
