@@ -3,7 +3,7 @@
 Edit Labels
 ===========
 
-Sometimes, the labels in the recordings are not correct (f.e. typos or some channels were changed) or might be completely uninformative (f.e. BCI2000 does not have channel labels).
+Sometimes, the labels in the recordings are not correct (e.g. typos or some channels were changed) or might be completely uninformative (e.g. BCI2000 does not have channel labels).
 From the `labels` panel, you can edit the labels and load from a list of labels.
 
 .. image:: images/labels_01_table.png
@@ -21,10 +21,10 @@ Fix the label before proceeding:
 
 .. image:: images/labels_04_correct.png
 
-Then, click on `apply` to propagate the new labels to the whole app.
+Then, click on ``Apply`` to propagate the new labels to the whole app.
 
 .. WARNING::
-   Clicking `apply` will reset the traces and channel groups, because they are based on the labels.
+   Clicking ``Apply`` will reset the traces and channel groups, because they are based on the labels.
 
 You then need to create the channel groups and plot the signal.
 Note the updated labels:
@@ -36,17 +36,17 @@ Load Labels from File
 
 You can also load the list of labels from a file on a disk. 
 It should be a simple text file, where the labels are separated by either commas (comma-separated values), tabs, semicolon, new lines.
-F.e.::
+e.g.::
 
     newchan01, newchan02, newchan03,, newchan05
 
 Note the double commas, meaning that channel 4 won't be modified.
 
-To import the labels, click on `load`:
+To import the labels, click on ``Load``:
 
 .. image:: images/labels_06_load_button.png
 
 And after selecting the file, you should see the changes in the list on the right.
-You can modify the labels further, and click `apply` to make the changes effective.
+You can modify the labels further, and click ``Apply`` to make the changes effective.
 
 .. image:: images/labels_07_loaded.png

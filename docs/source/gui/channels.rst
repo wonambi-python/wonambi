@@ -6,10 +6,11 @@ Plot Channels
 You can create multiple channel groups.
 Each channel group has its own reference, and filter settings.
 You can also choose a specific color for each group.
+Active channels are selected in the left-hand column.
 
 .. image:: images/channels_01_onegroup.png
 
-By clicking on ``new`` you can create a second channel group, f.e. called ``eog``.
+By clicking on ``New`` you can create a second channel group, e.g. called `eog`.
 
 .. image:: images/channels_02_eog.png
 
@@ -22,14 +23,14 @@ and low-pass filter:
 .. image:: images/channels_04_lp.png
 
 .. NOTE::
-   ``0`` means that the (high-pass or low-pass) filter won't be applied.
+   ``0.0 Hz`` means that the (high-pass or low-pass) filter won't be applied.
    
 
-You can also modify the scaling, f.e. if the amplitude of a channel group is too small, you can double the size:
+You can also modify the scaling, e.g. if the amplitude of a channel group is too small, you can double the size:
 
 .. image:: images/channels_05_scale.png
 
-For each channel group, you can specify how to reference the channels, on-line. You can select the individual channels from the columns on the right:
+For each channel group, you can specify how to reference the channels, on-line. You can select the individual channels from the right-hand column. If you select more than one reference channel, their average will be taken as the reference:
 
 .. image:: images/channels_06_ref.png
 
@@ -55,25 +56,25 @@ Finally, you can also delete a channel group, by clicking on ``Delete``:
 
 Save Montage
 ------------
-If you're happy with a selection of channels (organized in channel groups, including filter settings and references), you can click on ``Save Channel Montage``:
+If you're happy with a selection of channels (organized in channel groups, including filter settings and references), you can click on ``Save Montage``:
 
 .. image:: images/channels_12_save_chan.png
 
-and then you'll be asked to save the current montage on a file on disk.
+and you'll be asked to save the current montage to a file on disk.
 
 .. NOTE::
    The channel montage is stored in the ``.json`` format, which is actually a text file, so it's easy to read and modify if necessary.
 
 Load Montage
 ------------
-Once you reopen the same dataset, you can click on ``Load Channel Montage``:
+Once you reopen the same dataset, you can click on ``Load Montage``:
 
 .. image:: images/channels_13_load_chan.png
 
-and then the previously saved channel groups will be shown directly:
+then, the previously saved channel groups will be shown directly:
 
 .. image:: images/channels_14_loaded.png
 
 .. NOTE::
-   You can use the same file for the channel montage as long as the labels are the same.
+   You can reuse a same channel montage file as long as the labels are the same.
 

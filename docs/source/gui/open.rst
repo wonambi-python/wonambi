@@ -9,8 +9,8 @@ To load a dataset, click on ``Open Dataset``:
 
 .. image:: images/open_02_open_dataset.png
 
-Select if it's a file or a directory, then the name of the file will appear in the panel ``Information`` -> ``Dataset`` -> ``Filename``:
-Then, create a new channel group by clicking on `New` in the `Channels` panel and give it a name (such as `scalp`, `eog`, `meg`):
+Select if it's a file or a directory, and select it in the file explorer. The name of the file will then appear in the panel ``Information`` -> ``Dataset`` -> ``Filename``. 
+Then, create a new channel group by clicking on ``New`` in the ``Channels`` panel and give it a name (such as `scalp`, `eog`, `meg`):
 
 .. image:: images/open_03_loaded.png
 
@@ -19,7 +19,7 @@ If you want to edit the labels, see :ref:`edit-labels` .
 
 .. image:: images/open_04_channel_new.png
 
-Select the channels you want to plot and click on `Apply`:
+Select the channels you want to plot and click on ``Apply``:
 
 .. image:: images/open_05_chan.png
 
