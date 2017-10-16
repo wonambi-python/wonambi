@@ -6,6 +6,7 @@ It allows for visualization of the results and for a GUI that can be used to sco
 Features
 --------
 - Can read files of format:
+
   - Axon (.abf)
   - Blackrock (.nev, .ns2, .ns3, .ns5)
   - BCI2000 (.dat)
@@ -13,8 +14,11 @@ Features
   - EGI MFF (.mff)
   - Fieldtrip (.mat)
   - mne FIFF (.fiff)
+
 - Interface for Sleep Scoring
+
 - Computes frequency analysis (spectrogram), time-frequency analysis (Morlet wavelet)
+
 - Pure Python
 
 Installation
