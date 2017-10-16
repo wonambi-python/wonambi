@@ -132,7 +132,8 @@ let g:syntastic_python_checkers = ['flake8']
 " E302: too long lines
 " E501: 2 spaces before function def
 " E123: indent
-let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123'
+" E731: do not assign a lambda expression, use a def
+let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123,E731'
 
 " GUTENTAGS:
 let g:gutentags_ctags_tagfile = '.tags'
