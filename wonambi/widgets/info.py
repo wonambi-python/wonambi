@@ -55,8 +55,8 @@ class Info(QWidget):
     idx_end_time : QLabel
         show end time of the dataset
 
-    idx_scaling : QLabel
-        show current scaling
+    idx_start : QLabel
+        show start time of the window
     idx_length : QLabel
         show length of the time window
     idx_scaling : QLabel
@@ -80,9 +80,10 @@ class Info(QWidget):
         self.idx_start_time = None
         self.idx_end_time = None
         # about the visualization
+        self.idx_start = None
+        self.idx_length = None
         self.idx_scaling = None
         self.idx_distance = None
-        self.idx_length = None
 
         self.create()
         self.create_action()
@@ -112,13 +113,21 @@ class Info(QWidget):
         form = QFormLayout()
         b1.setLayout(form)
 
-        self.idx_scaling = QLabel('')
-        self.idx_distance = QLabel('')
+        self.idx_start = QLabel('')
+        self.idx_start.setToolTip('Start time in seconds from the beginning of'
+                                  ' the recordings')
         self.idx_length = QLabel('')
+        self.idx_length.setToolTip('Duration of the time window in seconds')
+        self.idx_scaling = QLabel('')
+        self.idx_scaling.setToolTip('Global scaling for all the channels')
+        self.idx_distance = QLabel('')
+        self.idx_distance.setToolTip('Visual distances between the traces of '
+                                     'individual channels')
 
+        form.addRow('Start Time:', self.idx_start)
+        form.addRow('Length:', self.idx_length)
         form.addRow('Scaling:', self.idx_scaling)
         form.addRow('Distance:', self.idx_distance)
-        form.addRow('Length:', self.idx_length)
 
         layout = QVBoxLayout()
         layout.addWidget(b0)
@@ -267,9 +276,10 @@ class Info(QWidget):
 
     def display_view(self):
         """Update information about the size of the traces."""
+        self.idx_start.setText(str(self.parent.value('window_start')))
+        self.idx_length.setText(str(self.parent.value('window_length')))
         self.idx_scaling.setText(str(self.parent.value('y_scale')))
         self.idx_distance.setText(str(self.parent.value('y_distance')))
-        self.idx_length.setText(str(self.parent.value('window_length')))
 
     def reset(self):
         """Reset widget to original state."""
@@ -287,6 +297,7 @@ class Info(QWidget):
         self.idx_scaling.setText('')
         self.idx_distance.setText('')
         self.idx_length.setText('')
+        self.idx_start.setText('')
 
 
 class Remote(QDialog):

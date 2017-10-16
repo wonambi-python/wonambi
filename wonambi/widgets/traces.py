@@ -1,8 +1,9 @@
 """Definition of the main widgets, with recordings.
 """
-from datetime import timedelta
+from datetime import time, datetime, timedelta
 from functools import partial
 from logging import getLogger
+from re import compile
 
 from numpy import (abs, arange, argmin, around, asarray, ceil, empty, floor,
                    in1d, max, min, linspace, log2, logical_or, nanmean, pad,
@@ -24,6 +25,7 @@ from PyQt5.QtWidgets import (QAction,
                              QGraphicsSimpleTextItem,
                              QGraphicsView,
                              QGroupBox,
+                             QInputDialog,
                              QVBoxLayout,
                              )
 
@@ -48,6 +50,8 @@ NoPen = QPen()
 NoPen.setStyle(Qt.NoPen)
 
 MINIMUM_N_SAMPLES = 32  # at least this number of samples to compute fft
+
+CHECK_TIME_STR = compile('[0-9:-]+$')
 
 
 class ConfigTraces(Config):
@@ -605,8 +609,8 @@ class Traces(QGraphicsView):
     def step_next(self):
         """Go to the next step."""
         window_start = around(self.parent.value('window_start') +
-                        self.parent.value('window_length') /
-                        self.parent.value('window_step'), 2)
+                              self.parent.value('window_length') /
+                              self.parent.value('window_step'), 2)
 
         self.parent.overview.update_position(window_start)
 
@@ -624,15 +628,26 @@ class Traces(QGraphicsView):
                         self.parent.value('window_length'))
         self.parent.overview.update_position(window_start)
 
-    def go_to_epoch(self):
-        """Go to the start of the present epoch."""
-        if self.parent.notes.annot is None:  # TODO: remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+    def go_to_epoch(self, checked=False, test_text_str=None):
+        """Go to any window"""
+        if test_text_str is not None:
+            time_str = test_text_str
+            ok = True
+        else:
+            time_str, ok = QInputDialog.getText(self,
+                                                'Go To Epoch',
+                                                'Enter start time of the epoch,\nin seconds ("1560") or\nas absolute time ("22:30")')
+
+        if not ok:
             return
-        
-        new_window_start = self.parent.notes.annot.get_epoch_start(
-                self.parent.value('window_start'))
-        self.parent.overview.update_position(new_window_start)
+
+        try:
+            rec_start_time = self.parent.info.dataset.header['start_time']
+            window_start = _convert_timestr_to_seconds(time_str, rec_start_time)
+        except ValueError as err:
+            self.parent.statusBar().showMessage(str(err))
+            return
+        self.parent.overview.update_position(window_start)
 
     def add_time(self, extra_time):
         """Go to the predefined time forward."""
@@ -922,7 +937,7 @@ class Traces(QGraphicsView):
         annot_end = annot_start + annot.rect().width() + 1
 
         if type(event) == QKeyEvent and (
-            event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace) :
+           event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace):
             self.parent.notes.remove_event(time=(annot_start, annot_end))
             self.scene.removeItem(highlight)
             msg = 'Deleted event from ' + str(annot_start) + ' to ' + str(annot_end)
@@ -1062,3 +1077,47 @@ def _select_channels(data, channels):
     output.axis['chan'][0] = asarray(channels)
 
     return output
+
+
+def _convert_timestr_to_seconds(time_str, rec_start):
+    """Convert input from user about time string to an absolute time for
+    the recordings.
+
+    Parameters
+    ----------
+    time_str : str
+        time information as '123' or '22:30' or '22:30:22'
+    rec_start: instance of datetime
+        absolute start time of the recordings.
+
+    Returns
+    -------
+    int
+        start time of the window, in s, from the start of the recordings
+
+    Raises
+    ------
+    ValueError
+        if it cannot convert the string
+    """
+    if not CHECK_TIME_STR.match(time_str):
+        raise ValueError('Input can only contain digits and colons')
+
+    if ':' in time_str:
+        time_split = [int(x) for x in time_str.split(':')]
+
+        # if it's in 'HH:MM' format, add ':SS'
+        if len(time_split) == 2:
+            time_split.append(0)
+        clock_time = time(*time_split)
+
+        chosen_start = datetime.combine(rec_start.date(), clock_time)
+        # if the clock time is after start of the recordings, assume it's the next day
+        if clock_time < rec_start.time():
+            chosen_start += timedelta(days=1)
+
+        window_start = int((chosen_start - rec_start).total_seconds())
+    else:
+        window_start = int(time_str)
+
+    return window_start
