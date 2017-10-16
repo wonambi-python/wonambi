@@ -346,35 +346,35 @@ class HelpDialog(QDialog):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Help')
         self.setWindowModality(Qt.ApplicationModal)
-        
+
         self.create_dialog()
-        
+
     def create_dialog(self):
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         bbox.clicked.connect(self.accept)
-        
+
         textbox = QTextEdit(self)
         textbox.setReadOnly(True)
         self.textbox = textbox
-        
+
         btnlayout = QHBoxLayout()
         btnlayout.addStretch(1)
         btnlayout.addWidget(bbox)
-        
+
         vlayout = QVBoxLayout()
         vlayout.addWidget(textbox)
         vlayout.addLayout(btnlayout)
 
         self.setLayout(vlayout)
-        
+
     def set_text(self, message):
         """Insert HTML text."""
         self.textbox.insertHtml(message)
 
 
 class SpindleHelp(HelpDialog):
-    
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -406,7 +406,7 @@ class SpindleHelp(HelpDialog):
              'article are specified in square brackets []. '
              'Further details on the original method are provided in italics. '
              '</p>'
-             
+
              '<p>'
              '<b>Wamsley, E. J. et al. (2012) Biol. Psychiatry 71, 154-61</b>'
              '<ol>'
@@ -431,7 +431,7 @@ class SpindleHelp(HelpDialog):
              'frequency range.</li></i>'
              '</ol>'
              '</p>'
-             
+
              '<p>'
              '<b>Nir, Y. et al. (2011) Neuron 70, 153-69</b>'
              '<ol>'
@@ -473,7 +473,7 @@ class SpindleHelp(HelpDialog):
              'channels.</li></i>'
              '</ol>'
              '</p>'
-             
+
              '<p>'
              '<b>Mölle, M. et al. (2011) Sleep 34, 1411-21</b>'
              '<ol>'
@@ -492,7 +492,7 @@ class SpindleHelp(HelpDialog):
              'threshold crossings.</li>'
              '</ol>'
              '</p>'
-             
+
              '<p>'
              '<b>Ferrarelli, F. et al. (2007) Am. J. Psychiatry 164, 483-92'
              '</b>'
@@ -514,7 +514,7 @@ class SpindleHelp(HelpDialog):
              '<li>The authors did not set minimum or maximum durations.</li>'
              '</ol>'
              '</p>'
-             
+
              '<p>'
              '<b>UCSD</b>'
              '<ol>'
@@ -545,7 +545,7 @@ class SpindleHelp(HelpDialog):
 
 
 class SlowWaveHelp(HelpDialog):
-    
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -576,7 +576,7 @@ class SlowWaveHelp(HelpDialog):
              'article are specified in square brackets []. '
              'Further details on the original method are provided in italics. '
              '</p>'
-             
+
              '<p>'
              '<b>Massimini, M. et al. (2004) J Neurosci 24(31), 6862-70</b>'
              '<ol>'
@@ -611,7 +611,7 @@ class SlowWaveHelp(HelpDialog):
 
 
 class EvtAnalysisHelp(HelpDialog):
-    
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent

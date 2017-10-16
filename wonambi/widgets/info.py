@@ -55,13 +55,14 @@ class Info(QWidget):
     idx_end_time : QLabel
         show end time of the dataset
 
-    idx_amplitude : QLabel
-        show current amplitude
-    idx_distance : QLabel
-        show current distance between traces
+    idx_scaling : QLabel
+        show current scaling
     idx_length : QLabel
         show length of the time window
-
+    idx_scaling : QLabel
+        show current scaling
+    idx_distance : QLabel
+        show current distance between traces
     """
     def __init__(self, parent):
         super().__init__()
@@ -79,7 +80,7 @@ class Info(QWidget):
         self.idx_start_time = None
         self.idx_end_time = None
         # about the visualization
-        self.idx_amplitude = None
+        self.idx_scaling = None
         self.idx_distance = None
         self.idx_length = None
 
@@ -111,11 +112,11 @@ class Info(QWidget):
         form = QFormLayout()
         b1.setLayout(form)
 
-        self.idx_amplitude = QLabel('')
+        self.idx_scaling = QLabel('')
         self.idx_distance = QLabel('')
         self.idx_length = QLabel('')
 
-        form.addRow('Amplitude:', self.idx_amplitude)
+        form.addRow('Scaling:', self.idx_scaling)
         form.addRow('Distance:', self.idx_distance)
         form.addRow('Length:', self.idx_length)
 
@@ -185,7 +186,7 @@ class Info(QWidget):
             else:
                 filename = recent
                 repo = None
-                
+
         elif debug_filename is not None:
             filename = debug_filename
             repo = None
@@ -260,13 +261,13 @@ class Info(QWidget):
         self.idx_n_chan.setText(str(len(header['chan_name'])))
         start_time = header['start_time'].strftime('%b-%d %H:%M:%S')
         self.idx_start_time.setText(start_time)
-        end_time = header['start_time'] + timedelta(seconds=header['n_samples']
-                                                    / header['s_freq'])
+        end_time = (header['start_time'] +
+                    timedelta(seconds=header['n_samples'] / header['s_freq']))
         self.idx_end_time.setText(end_time.strftime('%b-%d %H:%M:%S'))
 
     def display_view(self):
         """Update information about the size of the traces."""
-        self.idx_amplitude.setText(str(self.parent.value('y_scale')))
+        self.idx_scaling.setText(str(self.parent.value('y_scale')))
         self.idx_distance.setText(str(self.parent.value('y_distance')))
         self.idx_length.setText(str(self.parent.value('window_length')))
 
@@ -283,7 +284,7 @@ class Info(QWidget):
         self.idx_end_time.setText('')
 
         # about the visualization
-        self.idx_amplitude.setText('')
+        self.idx_scaling.setText('')
         self.idx_distance.setText('')
         self.idx_length.setText('')
 

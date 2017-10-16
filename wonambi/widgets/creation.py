@@ -184,7 +184,7 @@ def create_menubar(MAIN):
     actions = MAIN.traces.action
 
     menu_view = menubar.addMenu('View')
-    submenu_ampl = menu_view.addMenu('Amplitude')
+    submenu_ampl = menu_view.addMenu('Global Scaling')
     submenu_ampl.addAction(actions['Y_less'])
     submenu_ampl.addAction(actions['Y_more'])
     submenu_ampl.addSeparator()
@@ -254,7 +254,7 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_alice'])
     submenu_import.addAction(actions['import_compumedics'])
     submenu_import.addAction(actions['import_domino'])
-    submenu_import.addAction(actions['import_remlogic'])    
+    submenu_import.addAction(actions['import_remlogic'])
     submenu_import.addAction(actions['import_sandman'])
     submenu_import.addAction(actions['import_fasst'])
 
