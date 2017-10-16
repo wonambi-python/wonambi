@@ -7,21 +7,23 @@ from .paths import axon_abf_file
 
 d = Dataset(axon_abf_file)
 
+
 def test_abf_read():
-    d.read_data(begtime=10, endtime=20)
+    assert len(d.header['chan_name']) == 1
+    assert d.header['start_time'].minute == 47
 
+    data = d.read_data(begtime=1, endtime=2)
 
-def test_abf_before_start():
-    data = d.read_data(begsam=-100, endsam=10)
-    assert isnan(data.data[0][0, 0])
+    assert data.data[0][0, 0] == 2.1972655922581912
 
-
-def test_abf_after_end():
-    n_samples = d.header['n_samples']
-    data = d.read_data(begsam=n_samples - 100, endsam=n_samples + 100)
-    assert isnan(data.data[0][0, -1])
-
-
-def test_abf_markers():
     markers = d.read_markers()
-    assert len(markers) == []
+    assert len(markers) == 0
+
+
+def test_abf_boundary():
+    data = d.read_data(begsam=-10, endsam=5)
+    assert isnan(data.data[0][0, :10]).all()
+
+    n_smp = d.header['n_samples']
+    data = d.read_data(begsam=n_smp - 2, endsam=n_smp + 10)
+    assert isnan(data.data[0][0, 2:]).all()
