@@ -31,6 +31,7 @@ annot_alice_path = ANNOT_PATH / 'Staging_Alice.txt'
 annot_compumedics_path = ANNOT_PATH / 'Staging_Compumedics.txt'
 annot_remlogic_path = ANNOT_PATH / 'Staging_RemLogic.txt'
 annot_sandman_path = ANNOT_PATH / 'Staging_Sandman.txt'
+annot_psg_path = ANNOT_PATH / 'PSG_scores.xml'
 
 FREESURFER_HOME = SAMPLE_PATH / 'freesurfer'
 LUT_path = FREESURFER_HOME / 'FreeSurferColorLUT.txt'

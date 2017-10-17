@@ -346,8 +346,8 @@ class Annotations():
                                                             month=stage_month,
                                                             day=stage_day)
                 rec_start_for_delta = rec_start.replace(year=1999)
-                first_second = int((rec_start_for_delta - 
-                                    stage_start_for_delta).total_seconds())
+                first_second = int((stage_start_for_delta - 
+                                    rec_start_for_delta).total_seconds())
                 
                 first_line = 7
                 
@@ -357,7 +357,7 @@ class Annotations():
             elif source == 'remlogic':
                 stage_start = datetime.strptime(lines[14][:19],
                                                 '%Y-%m-%dT%H:%M:%S')
-                first_second = int((rec_start - stage_start).total_seconds())
+                first_second = int((stage_start - rec_start).total_seconds())
                 
                 first_line = 14
                 
@@ -375,7 +375,7 @@ class Annotations():
                 stage_start = stage_start.replace(year=dt.year,
                                                   month=dt.month,
                                                   day=dt.day)                                    
-                first_second = int((rec_start - stage_start).total_seconds())
+                first_second = int((stage_start - rec_start).total_seconds())
                 
                 first_line = 1
                 
@@ -386,7 +386,7 @@ class Annotations():
             elif source == 'sandman':
                 stage_start = datetime.strptime(lines[4][12:33], 
                                                 '%d/%m/%Y %I:%M:%S %p')
-                first_second = int((rec_start - stage_start).total_seconds())
+                first_second = int((stage_start - rec_start).total_seconds())
                 
                 first_line = 14
                 
@@ -394,10 +394,11 @@ class Annotations():
                 idx_stage = (-14, -12)
                 
             elif source == 'compumedics':
-                if staging_start is not None:
+                if staging_start is None:
                     first_second = 0
                 else:
-                    first_second = staging_start
+                    first_second = int((
+                            staging_start - rec_start).total_seconds())
                 
                 first_line = 0
                 

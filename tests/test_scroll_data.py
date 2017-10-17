@@ -68,6 +68,15 @@ def find_in_qt(w, qtype, text):
         return buttons[0]
 
 
+def find_in_qt_by_idx(w, qtype, idx):
+    # in some cases, there is no name associated with the child
+    all_child = w.findChildren(qtype)
+    if idx >= len(all_child):
+        return
+    
+    return all_child[idx]
+
+
 def screenshot(w, png):
     """Complex code to capture screenshot of menubar
     """

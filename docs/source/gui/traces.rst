@@ -12,3 +12,8 @@ Once you select the window, the start time in the info panel is updated:
 
 .. image:: images/traces_02_gotoepoch.png
 
+Line Up with Epoch
+==================
+
+In the course of navigation or after importing external sleep staging, it may happen that the viewing window becomes out of synch with staging epoch start and end times.
+To line yourself up with the nearest epoch start time, click on ``Navigation`` -> ``Line Up with Epoch``.

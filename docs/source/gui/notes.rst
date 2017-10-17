@@ -37,13 +37,24 @@ Stage sleep
 
 You can also stage sleep within Wonambi. First, make sure you are lined up with an epoch. Make sure you are zoomed to the 30-s view with ``View`` -> ``Window length`` --> ``Set to 30.0``.
 
-If you are not lined up with the epoch start, click on ``Navigation`` --> ``Go to Epoch``.
+If you are not lined up with the epoch start, click on ``Navigation`` --> ``Line Up with Epoch``.
 
-Now you can use the ``Annotations`` -> ``Score`` menu or the associated keyboard shortcuts to stage sleep per epoch.
+Now you can use the ``Annotations`` -> ``Score`` menu or the associated keyboard shortcuts to stage sleep per epoch. 
+Alternatively, you can select a stage from the ``Stage Box``:
 
-Wonambi provides two parallel sleep scoring tracks: one for sleep stages, the other for signal quality. The idea is to keep sleep annotation separate from signal annotation, so that signal quality does not affect physiological parameters like sleep efficiency and relative stage durations.
+.. images:: images/notes_09_stage_box.png
 
-We recommend that you first stage sleep, disregarding signal quality (except of course when it is unintelligible, in which case you can mark it as ``Artefact``). Then, you can make a second pass only evaluating signal quality, using the ``o`` and ``p`` keys for ``Good`` and ``Bad`` signal, respectively.
+The ``Stage Box`` always displays the stage of the current epoch (as long as you are lined up with one).
+
+Wonambi provides two parallel sleep scoring tracks: one for sleep stages, the other for signal quality. 
+The idea is to keep sleep annotation separate from signal annotation, so that signal quality does not affect physiological parameters like sleep efficiency and relative stage durations.
+
+We recommend that you first stage sleep, disregarding signal quality 
+(except of course when it is unintelligible, in which case you can mark it as ``Artefact``). 
+Then, you can make a second pass only evaluating signal quality, using the ``o`` and ``p`` keys for ``Good`` and ``Bad`` signal, respectively.
+Similar to the ``Stage Box``, the ``Quality Box`` displays the quality of the current epoch, and can be used to change it:
+
+.. images:: images/notes_10_quality_box.png
 
 Epochs marked as ``Bad`` signal are excluded from ``Analysis``, such as spindle and slow wave detection.
 
@@ -77,11 +88,11 @@ In addition to epoch annotation, Wonambi allows you to mark events of varying du
 
 To mark an event on the trace, enter `Event marking mode` by clicking on the ``Event Mode`` icon:
 
-COMING SOON
+.. image:: images/notes_07_event_mode.png
 
 Next, select an Event Type in the `Event Type box`:
 
-COMING SOON 
+.. image:: images/notes_08_evt_type_box.png
 
 You can create a new Event Type with ``Annotations`` -> ``Event`` --> ``New Event Type``.
 

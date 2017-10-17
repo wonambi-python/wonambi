@@ -947,7 +947,8 @@ class Notes(QTabWidget):
         except FileNotFoundError:
             self.parent.statusBar().showMessage('Annotation file not found')
 
-    def import_staging(self, source):
+    def import_staging(self, source, staging_start=None, test_filename=None, 
+                       test_rater=None):
         """Action: import an external sleep staging file.
 
         Parameters
@@ -955,65 +956,78 @@ class Notes(QTabWidget):
         source : str
             Name of program where staging was exported. One of 'alice',
             'compumedics', 'domino', 'remlogic', 'sandman'.
+        staging_start : datetime, optional
+            Absolute time when staging begins.
         """
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
+        
+        if self.parent.info.dataset is None:
+            self.parent.statusBar().showMessage('No dataset loaded')
+            return
 
-        filename, _ = QFileDialog.getOpenFileName(self,
-                                                  'Load staging file',
-                                                  None,
-                                                  'Text File (*.txt)')
+        record_start = self.parent.info.dataset.header['start_time']
+
+        if test_filename is None:
+            filename, _ = QFileDialog.getOpenFileName(self,
+                                                      'Load staging file',
+                                                      None,
+                                                      'Text File (*.txt)')
+        else:
+            filename = test_filename
 
         if filename == '':
             return
 
-        answer = QInputDialog.getText(self, 'Import staging',
-                                      'Enter rater name')
+        if test_rater is None:
+            rater, ok = QInputDialog.getText(self, 'Import staging',
+                                          'Enter rater name')
+            if not ok:
+                return
 
-        if answer[1]:
-            if answer[0] in self.annot.raters:
+            if rater in self.annot.raters:
                 msgBox = QMessageBox(QMessageBox.Question, 'Overwrite staging',
                                      'Rater %s already exists. \n \n'
                                      'Overwrite %s\'s sleep staging '
                                      'with imported staging? Events '
                                      'and bookmarks will be preserved.'
-                                     % (answer[0], answer[0]))
+                                     % (rater, rater))
                 msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 msgBox.setDefaultButton(QMessageBox.No)
                 response = msgBox.exec_()
 
                 if response == QMessageBox.No:
                     return
+        else:
+            rater = test_rater
 
-            record_start = self.parent.info.dataset.header['start_time']
-            staging_start = None
-
-            if source == 'compumedics':
-                answer, ok = QInputDialog.getText(self, 'Staging start time',
-                                                  'Enter date and time when '
-                                                  'staging \nbegins, using '
-                                                  '24-hour clock. \n\nFormat: '
-                                                  'YYYY,MM,DD HH:mm:SS')
-                if not ok:
-                    return
-                
-                try:
-                    staging_start = datetime.strptime(answer, 
-                                                      '%Y,%m,%d %H:%M:%S')
-                except (ValueError, TypeError) as e:
-                    self.parent.statusBar().showMessage('Incorrect formatting '
-                                         'for date and time.')
-
+        if source == 'compumedics':
+            time_str, ok = QInputDialog.getText(self, 'Staging start time',
+                                              'Enter date and time when '
+                                              'staging \nbegins, using '
+                                              '24-hour clock. \n\nFormat: '
+                                              'YYYY,MM,DD HH:mm:SS')
+            if not ok:
+                return
+            
             try:
-                self.annot.import_staging(filename, source, answer[0],
-                                          record_start,
-                                          staging_start=staging_start)
-            except FileNotFoundError:
-                self.parent.statusBar().showMessage('File not found')
+                staging_start = datetime.strptime(time_str, 
+                                                  '%Y,%m,%d %H:%M:%S')
+            except (ValueError, TypeError) as e:
+                self.parent.statusBar().showMessage('Incorrect formatting '
+                                     'for date and time.')
+                return
 
-            self.display_notes()
-            self.parent.create_menubar()  # refresh list ot raters
+        try:
+            self.annot.import_staging(filename, source, rater,
+                                      record_start,
+                                      staging_start=staging_start)
+        except FileNotFoundError:
+            self.parent.statusBar().showMessage('File not found')
+
+        self.display_notes()
+        self.parent.create_menubar()  # refresh list ot raters
 
     def new_rater(self):
         """Action: add a new rater.
