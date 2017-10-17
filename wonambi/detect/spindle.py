@@ -640,7 +640,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         freqs = method_opt['freqs']
         dur = method_opt['dur']
         width = method_opt['width']
-        win = method_opt['win'] * s_freq
+        win = int(method_opt['win'] * s_freq)
 
         wm = _realwavelets(s_freq, freqs, dur, width)
         tfr = empty((dat.shape[0], wm.shape[0]))
