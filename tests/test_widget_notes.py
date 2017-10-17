@@ -1,14 +1,13 @@
 from PyQt5.QtWidgets import (QAction,
                              QToolBar,
                              QToolButton,
-                             QApplication,
                              )
 
-from PyQt5.QtCore import QTimer
-from time import sleep
 from wonambi.scroll_data import MainWindow
 
-from .test_scroll_data import find_in_qt
+from .test_scroll_data import (find_in_qt,
+                               screenshot,
+                               )
 
 from .paths import (annot_fasst_path,
                     annot_fasst_export_file,
@@ -43,20 +42,8 @@ def test_widget_notes_import_fasst(qtbot):
 
     act_import.menu().setActiveAction(w.notes.action['import_fasst'])
 
-    # --- Complex code to capture screenshot of menubar ---#
-    def screenshot():
-        screen = QApplication.primaryScreen()
-        png_name = str(GUI_PATH / 'notes_04_import_fasst.png')
-        screen.grabWindow(0, w.x(), w.y(), w.width(), w.height()).save(png_name)
-
-    # lots of processEvents needed
-    QApplication.processEvents()
-    QTimer.singleShot(3000, screenshot)
-    QApplication.processEvents()
-    sleep(5)
-    QApplication.processEvents()
+    screenshot(w, 'notes_04_import_fasst.png')
     w.close()
-    # --- ---#
 
 
 def test_widget_notes_show_fasst(qtbot):

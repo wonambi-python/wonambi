@@ -1,15 +1,11 @@
 from datetime import datetime
 from pytest import raises
-from PyQt5.QtWidgets import (QAction,
-                             QApplication,
-                             )
-from PyQt5.QtCore import QTimer
-from time import sleep
+from PyQt5.QtWidgets import QAction
 
 from wonambi.scroll_data import MainWindow
 from wonambi.widgets.traces import _convert_timestr_to_seconds
 
-from .test_scroll_data import find_in_qt, channel_make_group
+from .test_scroll_data import find_in_qt, channel_make_group, screenshot
 from .paths import gui_file, GUI_PATH
 
 
@@ -27,20 +23,8 @@ def test_widget_traces_gotoepoch(qtbot):
     menubar.setActiveAction(act_navigation)
     act_navigation.menu().setActiveAction(w.traces.action['go_to_epoch'])
 
-    # --- Complex code to capture screenshot of menubar ---#
-    def screenshot():
-        screen = QApplication.primaryScreen()
-        png_name = str(GUI_PATH / 'traces_01_gotoepoch.png')
-        screen.grabWindow(0, w.x(), w.y(), w.width(), w.height()).save(png_name)
-
-    # lots of processEvents needed
-    QApplication.processEvents()
-    QTimer.singleShot(3000, screenshot)
-    QApplication.processEvents()
-    sleep(5)
-    QApplication.processEvents()
+    screenshot(w, 'traces_01_gotoepoch.png')
     w.close()
-    # --- ---#
 
     w.traces.go_to_epoch(test_text_str='xxx')
     assert w.statusBar().currentMessage() == 'Input can only contain digits and colons'

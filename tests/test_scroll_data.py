@@ -1,6 +1,11 @@
 from PyQt5.QtWidgets import (QDockWidget,
                              QPushButton,
+                             QApplication,
                              )
+
+from PyQt5.QtCore import QTimer
+from time import sleep
+
 from wonambi.scroll_data import MainWindow
 
 from .paths import (gui_file,
@@ -38,6 +43,7 @@ def test_scroll_data(qtbot):
     w.grab().save(str(GUI_PATH / 'open_06_traces.png'))
 
 
+# --- Util functions --- #
 def channel_make_group(w, png=False):
     dockwidget_chan = w.findChild(QDockWidget, 'Channels')
     dockwidget_chan.raise_()
@@ -60,3 +66,19 @@ def find_in_qt(w, qtype, text):
     buttons = [ch for ch in all_child if ch.text() == text]
     if buttons:
         return buttons[0]
+
+
+def screenshot(w, png):
+    """Complex code to capture screenshot of menubar
+    """
+    def screenshot_in_qt():
+        screen = QApplication.primaryScreen()
+        png_name = str(GUI_PATH / png)
+        screen.grabWindow(0, w.x(), w.y(), w.width(), w.height()).save(png_name)
+
+    # lots of processEvents needed
+    QApplication.processEvents()
+    QTimer.singleShot(3000, screenshot_in_qt)
+    QApplication.processEvents()
+    sleep(5)
+    QApplication.processEvents()
