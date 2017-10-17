@@ -126,7 +126,7 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     Massimini, M. et al. J Neurosci 24(31) 6862-70 (2004).
 
     """
-    if not opts.invert:
+    if opts.invert:
         dat_orig = -dat_orig
 
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_filt)

@@ -220,6 +220,10 @@ class Traces(QGraphicsView):
         act.setShortcut(QKeySequence.FindNext)
         act.triggered.connect(self.go_to_epoch)
         actions['go_to_epoch'] = act
+        
+        act = QAction('Line Up with Epoch', self)
+        act.triggered.connect(self.line_up_with_epoch)
+        actions['line_up_with_epoch'] = act
 
         act = QAction(QIcon(ICON['zoomprev']), 'Wider Time Window', self)
         act.setShortcut(QKeySequence.ZoomIn)
@@ -636,7 +640,10 @@ class Traces(QGraphicsView):
         else:
             time_str, ok = QInputDialog.getText(self,
                                                 'Go To Epoch',
-                                                'Enter start time of the epoch,\nin seconds ("1560") or\nas absolute time ("22:30")')
+                                                'Enter start time of the '
+                                                'epoch,\nin seconds ("1560") '
+                                                'or\nas absolute time '
+                                                '("22:30")')
 
         if not ok:
             return
@@ -648,6 +655,17 @@ class Traces(QGraphicsView):
             self.parent.statusBar().showMessage(str(err))
             return
         self.parent.overview.update_position(window_start)
+        
+    def line_up_with_epoch(self):
+        """Go to the start of the present epoch."""
+        if self.parent.notes.annot is None:  # TODO: remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+        
+        new_window_start = self.parent.notes.annot.get_epoch_start(
+                self.parent.value('window_start'))
+        
+        self.parent.overview.update_position(new_window_start)
 
     def add_time(self, extra_time):
         """Go to the predefined time forward."""

@@ -990,6 +990,22 @@ class Notes(QTabWidget):
             staging_start = None
 
             if source == 'compumedics':
+<<<<<<< HEAD
+                answer, ok = QInputDialog.getText(self, 'Staging start time',
+                                                  'Enter date and time when '
+                                                  'staging \nbegins, using '
+                                                  '24-hour clock. \n\nFormat: '
+                                                  'YYYY,MM,DD HH:mm:SS')
+                if not ok:
+                    return
+                
+                try:
+                    staging_start = datetime.strptime(answer, 
+                                                      '%Y,%m,%d %H:%M:%S')
+                except (ValueError, TypeError) as e:
+                    self.parent.statusBar().showMessage('Incorrect formatting '
+                                         'for date and time.')
+=======
                 answer = QInputDialog.getText(self, 'Staging start time',
                                               'Enter date and time when '
                                               'staging begins, using 24-hour '
@@ -1002,6 +1018,7 @@ class Notes(QTabWidget):
                     except ValueError:
                         self.parent.statusBar().showMessage('Incorrect '
                                              'formatting for date and time.')
+>>>>>>> origin/master
 
             try:
                 self.annot.import_staging(filename, source, answer[0],

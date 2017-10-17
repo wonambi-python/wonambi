@@ -35,21 +35,15 @@ If importation is successful, the converted sleep staging will appear in the ``O
 Stage sleep
 -----------
 
-You can also stage sleep within Wonambi. First, make sure you are lined up with an epoch. 
-
-Zoom to the 30-s view with ``View`` -> ``Window length`` --> ``Set to 30.0``.
+You can also stage sleep within Wonambi. First, make sure you are lined up with an epoch. Make sure you are zoomed to the 30-s view with ``View`` -> ``Window length`` --> ``Set to 30.0``.
 
 If you are not lined up with the epoch start, click on ``Navigation`` --> ``Go to Epoch``.
 
 Now you can use the ``Annotations`` -> ``Score`` menu or the associated keyboard shortcuts to stage sleep per epoch.
 
-Wonambi provides two parallel sleep scoring tracks: one for sleep stages, the other for signal quality.
+Wonambi provides two parallel sleep scoring tracks: one for sleep stages, the other for signal quality. The idea is to keep sleep annotation separate from signal annotation, so that signal quality does not affect physiological parameters like sleep efficiency and relative stage durations.
 
-The idea is to keep sleep annotation separate from signal annotation, so that signal quality does not affect physiological parameters like sleep efficiency and relative stage durations.
-
-We recommend that you first stage sleep, disregarding signal quality (except of course when it is unintelligible, in whcih case you can mark it as ``Artefact``).
-
-Then, you can make a second pass only evaluating signal quality, using the ``o`` and ``p`` keys for ``Good`` and ``Bad`` signal, respectively.
+We recommend that you first stage sleep, disregarding signal quality (except of course when it is unintelligible, in which case you can mark it as ``Artefact``). Then, you can make a second pass only evaluating signal quality, using the ``o`` and ``p`` keys for ``Good`` and ``Bad`` signal, respectively.
 
 Epochs marked as ``Bad`` signal are excluded from ``Analysis``, such as spindle and slow wave detection.
 
@@ -103,7 +97,7 @@ To delete an event, make sure you are in Event Editing Mode, and click on it, so
 
 COMING SOON
 
-Now press the ``Delete`` key.
+Now press the ``Delete`` key. Note: The event will be removed from both the trace and the Annotation File.
 
 Events are visible both highlighted on the trace and in table form in the ``Annotations`` panel, under ``Annotations``.
 

@@ -734,7 +734,9 @@ class Annotations():
 
                 if stage or qual:
                     pos = bisect_left(ep_starts, event_start)
-                    if event_start != ep_starts[pos]:
+                    if pos == len(ep_starts):
+                        pos -= 1
+                    elif event_start != ep_starts[pos]:
                         pos -= 1
 
                 if stage is None:
