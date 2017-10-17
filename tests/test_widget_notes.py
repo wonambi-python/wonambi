@@ -56,6 +56,21 @@ def test_widget_notes_show_fasst(qtbot):
     w.grab().save(str(GUI_PATH / 'notes_05_show_imported.png'))
 
 
+def test_widget_notes_export_csv(qtbot):
+
+    w = MainWindow()
+    qtbot.addWidget(w)
+
+    menubar = w.menuBar()
+
+    act_annot = find_in_qt(menubar, QAction, 'Annotations')
+    menubar.setActiveAction(act_annot)
+    act_annot.menu().setActiveAction(w.notes.action['export'])
+
+    screenshot(w, 'notes_06_export.png')
+    w.close()
+
+
 def test_widget_notes_import_error(qtbot):
 
     w = MainWindow()

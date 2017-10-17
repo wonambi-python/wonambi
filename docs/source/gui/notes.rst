@@ -111,3 +111,13 @@ Double-click on an event in the table to jump to its position on the trace.
 
 You can also delete an event from the table by clicking it and pressing the ``Delete`` button below the table.
 
+Export the sleep scores as csv
+------------------------------
+
+You can export the current sleep score as ``.csv`` file to disk.
+You can click on ``Annotations`` -> ``Export staging``:
+
+.. image:: images/notes_06_export.png
+
+and then select the file where you want to store the sleep scores.
+
