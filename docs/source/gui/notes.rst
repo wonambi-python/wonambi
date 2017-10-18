@@ -42,7 +42,7 @@ If you are not lined up with the epoch start, click on ``Navigation`` --> ``Line
 Now you can use the ``Annotations`` -> ``Score`` menu or the associated keyboard shortcuts to stage sleep per epoch. 
 Alternatively, you can select a stage from the ``Stage Box``:
 
-.. images:: images/notes_09_stage_box.png
+.. image:: images/notes_09_stage_box.png
 
 The ``Stage Box`` always displays the stage of the current epoch (as long as you are lined up with one).
 
@@ -54,7 +54,7 @@ We recommend that you first stage sleep, disregarding signal quality
 Then, you can make a second pass only evaluating signal quality, using the ``o`` and ``p`` keys for ``Good`` and ``Bad`` signal, respectively.
 Similar to the ``Stage Box``, the ``Quality Box`` displays the quality of the current epoch, and can be used to change it:
 
-.. images:: images/notes_10_quality_box.png
+.. image:: images/notes_10_quality_box.png
 
 Epochs marked as ``Bad`` signal are excluded from ``Analysis``, such as spindle and slow wave detection.
 
