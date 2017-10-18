@@ -80,8 +80,12 @@ class Abf:
                              self.n_chan)
 
         subj_id = self.filename.stem
-        start_time = (datetime.strptime(str(orig['uFileStartDate']), '%Y%m%d') +
-                      timedelta(seconds=orig['uFileStartTimeMS'] / 1000))
+        try:
+            start_time = (datetime.strptime(str(orig['uFileStartDate']), '%Y%m%d') +
+                          timedelta(seconds=orig['uFileStartTimeMS'] / 1000))
+        except ValueError:  # no time given, use placeholder
+            start_time = datetime(2000, 1, 1)
+
         s_freq = 1.e6 / orig['protocol']['fADCSequenceInterval']
 
         return subj_id, start_time, s_freq, chan_name, self.n_samples, orig
