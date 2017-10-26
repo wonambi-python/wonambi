@@ -302,7 +302,7 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
 
-        act = QAction('Merge Events', self)
+        act = QAction('Merge Events...', self)
         act.triggered.connect(self.parent.show_merge_dialog)
         act.setEnabled(False)
         actions['merge_events'] = act
@@ -821,21 +821,22 @@ class Notes(QTabWidget):
             self.parent.overview.update(reset=False)
             self.parent.overview.display_annotations()
 
-    def clear_cycle_mrkrs(self):
+    def clear_cycle_mrkrs(self, test=False):
         """Remove all cycle markers."""
-        msgBox = QMessageBox(QMessageBox.Question, 'Clear Cycle Markers',
-                             'Are you sure you want to remove all cycle '
-                             'markers for this rater?')
-        msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        msgBox.setDefaultButton(QMessageBox.Yes)
-        response = msgBox.exec_()
-
-        if response == QMessageBox.No:
-            return
+        if not test:
+            msgBox = QMessageBox(QMessageBox.Question, 'Clear Cycle Markers',
+                                 'Are you sure you want to remove all cycle '
+                                 'markers for this rater?')
+            msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            msgBox.setDefaultButton(QMessageBox.Yes)
+            response = msgBox.exec_()
+    
+            if response == QMessageBox.No:
+                return
 
         self.annot.clear_cycles()
 
-        self.parent.overview.update(reset=False)
+        self.parent.overview.display()
         self.parent.overview.display_annotations()
 
     def set_stage_index(self):
@@ -1071,14 +1072,17 @@ class Notes(QTabWidget):
             self.display_notes()
             self.parent.create_menubar()  # refresh list ot raters
 
-    def new_eventtype(self):
+    def new_eventtype(self, test_type_str=None):
         """Action: create dialog to add new event type."""
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
-        answer = QInputDialog.getText(self, 'New Event Type',
-                                      'Enter new event\'s name')
+        if test_type_str:
+            answer = test_type_str, True
+        else:
+            answer = QInputDialog.getText(self, 'New Event Type',
+                                          'Enter new event\'s name')
         if answer[1]:
             self.annot.add_event_type(answer[0])
             self.display_eventtype()
@@ -1935,11 +1939,11 @@ class MergeDialog(QDialog):
         box0.setLayout(form_layout)
         form_layout.addRow('Event type(s)',
                            self.idx_evt_type)
+        form_layout.addRow(self.cross_chan)
         form_layout.addRow('Merge to...',
                            self.idx_merge_to)
         form_layout.addRow('Minimum interval (sec)',
                            self.min_interval)
-        form_layout.addRow(self.cross_chan)
 
         bbox = QDialogButtonBox(QDialogButtonBox.Help |
                 QDialogButtonBox.Ok | QDialogButtonBox.Cancel)

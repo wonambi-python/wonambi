@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 3
 ----------
+- **3.07**: docs and tests for notes, analysis; some minor fixes
 - **3.06**: use time placeholder when abf files have empty time info
 - **3.05**: go to epoch gets input from user
 - **3.04**: support for axon abf file format

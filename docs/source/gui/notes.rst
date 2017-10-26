@@ -69,13 +69,17 @@ The stages of sleep are normally segregated into cycles (N1, N2, N3, REM). After
 
 To mark a cycle start, line yourself up with the first epoch of the cycle and click on ``Annotations`` -> ``Cycle`` -> ``Set cycle start``.
 
+.. image:: images/notes_11_set_cycle_marker.png
+
 The Cycle Start Marker will appear as a red square bracket on the ``Overview`` panel:
 
-COMING SOON
+.. image:: images/notes_12_cycle_marker.png
 
 To mark a cycle end, line yourself up with the first epoch after the end of the cycle. Here, you can either use ``Set cycle end`` or, if this epoch is the start of the next cycle, simply use ``Set cycle start`` again.
 
 Repeat for each cycle, and make sure to mark the end of the last cycle with ``Set cycle end``.
+
+.. image:: images/notes_13_all_cycle_markers.png
 
 To remove a cycle marker, line yourself up with that epoch and click ``Annotations`` -> ``Cycle`` -> ``Remove cycle marker``.
 
@@ -98,7 +102,7 @@ You can create a new Event Type with ``Annotations`` -> ``Event`` --> ``New Even
 
 Now, click and drag along a segment of the signal from the desired channel to create a new event:
 
-COMING SOON
+.. image:: images/notes_14_mark_event.png
 
 Events belong to the channel on which they were marked, and appear as a darker colour on that channel. The colours themselves are automatically generated form the Event Type label text. 
 
@@ -106,7 +110,7 @@ By default, the events are also highlighted on all other channels in a lighter c
 
 To delete an event, make sure you are in Event Editing Mode, and click on it, so that it becomes highlighted in bright yellow:
 
-COMING SOON
+.. image:: images/notes_15_highlight_event.png
 
 Now press the ``Delete`` key. Note: The event will be removed from both the trace and the Annotation File.
 
