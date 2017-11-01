@@ -76,6 +76,8 @@ set colorcolumn=
 set tabstop=2
 " insert one tab at the time
 set shiftwidth=4
+" use spaces, not tabs
+set expandtab
 
 " h l continues on the previous and next line
 set whichwrap+=h,l
