@@ -154,7 +154,7 @@ class Labels(QWidget):
         with self.filename.open() as f:
             text = f.read()
 
-        labels = split(', |,|; |;|\t|\n| ',text)
+        labels = split(', |,|; |;|\t|\n| ', text)
         labels = [label.strip() for label in labels]
         self.update(custom_labels=labels)
 
@@ -173,6 +173,7 @@ class Labels(QWidget):
         self.parent.info.dataset.header['chan_name'] = self.chan_name
 
         self.parent.channels.reset()
+        self.parent.channels.update()
         self.parent.traces.reset()
 
     def reset(self):

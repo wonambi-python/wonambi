@@ -54,6 +54,8 @@ def test_widget_labels(qtbot):
     w.labels.table.item(2, 1).setText('newlabel')
     w.labels.idx_apply.click()
 
+    assert w.channels.isEnabled()
+
     channel_make_group(w)
     find_in_qt(w.channels, QPushButton, 'Apply').click()
     w.grab().save(str(GUI_PATH / 'labels_05_traces.png'))

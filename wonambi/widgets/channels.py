@@ -426,7 +426,7 @@ class Channels(QWidget):
         self.groups = []
         for i in range(self.tabs.count()):
             one_group = self.tabs.widget(i).get_info()
-            #one_group['name'] = self.tabs.tabText(i)
+            # one_group['name'] = self.tabs.tabText(i)
             self.groups.append(one_group)
 
     def load_channels(self, checked=False, test_name=None):
