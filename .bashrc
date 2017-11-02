@@ -12,7 +12,7 @@ export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
 export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
-source ~/tools/venv/bin/activate
+source activate condaenv
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
@@ -51,6 +51,3 @@ export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DAT
 
 # custom code (ctags)
 export PATH=~/tools/bin:$PATH
-
-# pandoc
-export PATH=~/.local/bin:$PATH

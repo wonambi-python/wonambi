@@ -1,4 +1,17 @@
-## Install matlab_kernel in conda
+# Python
+
+Default python should rely on miniconda3 (currently python 3.6).
+It has quite some useful packages:
+
+ - Qt (v5.6 unfortunately, instead of the current v5.9)
+ 
+ - pandoc (latest version)
+
+ - openGL works fine
+
+## Special Environments
+
+### Install matlab_kernel in conda
 We need python 3.4 because that the latest python version compatible with matlab 2016a.
 ```bash
 conda create -n py34  python=3.4
@@ -18,5 +31,5 @@ Then install matlab_kernel:
 ```bash
 python -m matlab_kernel install
 ```
-### matlab 2016b
+#### matlab 2016b
 Once we have access to matlab 2016b, maybe it's best to use [imatlab](https://github.com/imatlab/imatlab), so that we can use plotly for interactive plots.
