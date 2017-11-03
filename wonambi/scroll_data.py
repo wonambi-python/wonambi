@@ -35,6 +35,7 @@ from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
 settings = QSettings("wonambi", "wonambi")
+lg.info('Reading settings from {}'.format(settings.fileName()))
 
 
 class MainWindow(QMainWindow):
