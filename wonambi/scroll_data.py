@@ -184,6 +184,13 @@ class MainWindow(QMainWindow):
         self.event_analysis_dialog.update_cycles()
         self.event_analysis_dialog.show()
 
+    def show_analysis_dialog(self):
+        """Create the analysis dialog."""
+        self.analysis_dialog.update_types()
+        self.analysis_dialog.update_groups()
+        self.analysis_dialog.update_cycles()
+        self.analysis_dialog.show()
+
     def show_spindle_help(self):
         self.spindle_help.show()
 

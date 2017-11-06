@@ -5,7 +5,7 @@ from bisect import bisect_left
 from csv import writer
 from datetime import datetime, timedelta
 from itertools import compress
-from numpy import allclose, asarray, in1d, modf, isnan
+from numpy import allclose, asarray, in1d, isnan, logical_and, modf
 from math import ceil, inf
 from os.path import splitext
 from pathlib import Path
@@ -434,7 +434,7 @@ class Annotations():
 
                 quality = SubElement(epoch, 'quality')
                 if one_stage == 'Artefact':
-                    quality.text = 'Bad'
+                    quality.text = 'Poor'
                 else:
                     quality.text = 'Good'
 
@@ -688,7 +688,7 @@ class Annotations():
         stage : tuple of str, optional
             list of stages of interest
         qual : str, optional
-            epoch signal qualifier (Good or Bad)
+            epoch signal qualifier (Good or Poor)
         Returns
         -------
         list of dict
@@ -795,7 +795,7 @@ class Annotations():
         first_second : int, optional
             Time, in seconds from record start, at which the epochs begin
         """
-        lg.info('creating epochs')
+        lg.info('creating epochs')        
         if first_second is None:
             first_second = self.first_second
         last_sec = ceil((self.last_second - first_second) /
@@ -863,7 +863,7 @@ class Annotations():
 
         return epoch_starts[idx]
 
-    def get_stage_for_epoch(self, epoch_start, attr='stage'):
+    def get_stage_for_epoch(self, epoch_start, window_length, attr='stage'):
         """Return stage for one specific epoch.
 
         Parameters
@@ -882,6 +882,9 @@ class Annotations():
 
         for epoch in self.epochs:
             if epoch['start'] == epoch_start:
+                return epoch[attr]
+            elif logical_and(window_length < 30, 
+                             0 <= (epoch_start - epoch['start']) < 30):
                 return epoch[attr]
 
     def time_in_stage(self, name, attr='stage'):

@@ -44,7 +44,7 @@ def frequency(data, method='welch', **options):
     recompute the sampling frequency based on the time axis.
 
     For method 'welch', the following options should be specified:
-        duraton : int
+        duration : float
             duration of the window to compute the power spectrum, in s
         overlap : int
             amount of overlap (0 -> no overlap, 1 -> full overlap)
@@ -66,7 +66,7 @@ def frequency(data, method='welch', **options):
                          ', '.join(implemented_methods))
 
     if method == 'welch':
-        default_options = {'duration': 1,
+        default_options = {'duration': 1.,
                            'overlap': 0.5,
                            'window': 'hann',
                            'detrend': 'constant',

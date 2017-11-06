@@ -8,3 +8,4 @@ Graphical User Interface
    channels
    traces
    notes
+   analysis

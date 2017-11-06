@@ -64,7 +64,7 @@ MAX_FREQUENCY_OF_INTEREST = 50
 STAGE_NAME = ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
               'Undefined', 'Unknown', 'Artefact', 'Unrecognized']
 STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
-QUALIFIERS = ['Good', 'Bad']
+QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 'Nir2011', 'Moelle2011', 'Ferrarelli2007',
                    'UCSD']
@@ -158,7 +158,7 @@ class Notes(QTabWidget):
     idx_stage : QComboBox
         Combo box of the stages for the toolbar
     idx_quality : QComboBox
-        Combo box of signal quality (good/bad) for the toolbar
+        Combo box of signal quality (good/poor) for the toolbar
     """
     def __init__(self, parent):
         super().__init__()
@@ -396,6 +396,11 @@ class Notes(QTabWidget):
         act.triggered.connect(self.parent.show_event_analysis_dialog)
         act.setEnabled(False)
         actions['analyze_events'] = act
+        
+        act = QAction('Analysis...', self)
+        act.triggered.connect(self.parent.show_analysis_dialog)
+        act.setEnabled(False)
+        actions['analyze'] = act
 
         self.action = actions
 
@@ -424,6 +429,7 @@ class Notes(QTabWidget):
         self.action['spindle'].setEnabled(True)
         self.action['slow_wave'].setEnabled(True)
         self.action['analyze_events'].setEnabled(True)
+        self.action['analyze'].setEnabled(True)
         self.parent.create_menubar()
         self.idx_stage.clear()
         for one_stage in STAGE_NAME:
@@ -799,7 +805,6 @@ class Notes(QTabWidget):
             lg.info('User marked ' + str(window_start) + ' as cycle ' +
                     bound)
 
-            #self.parent.trace.
             self.parent.overview.mark_cycles(window_start, window_length,
                                              end=end)
 
@@ -842,7 +847,8 @@ class Notes(QTabWidget):
     def set_stage_index(self):
         """Set the current stage in combobox."""
         window_start = self.parent.value('window_start')
-        stage = self.annot.get_stage_for_epoch(window_start)
+        window_length = self.parent.value('window_length')
+        stage = self.annot.get_stage_for_epoch(window_start, window_length)
         lg.info('winstart: ' + str(window_start) + ', stage: ' + str(stage))
 
         if stage is None:
@@ -853,7 +859,9 @@ class Notes(QTabWidget):
     def set_quality_index(self):
         """Set the current signal quality in combobox."""
         window_start = self.parent.value('window_start')
-        qual = self.annot.get_stage_for_epoch(window_start, attr='quality')
+        window_length = self.parent.value('window_length')
+        qual = self.annot.get_stage_for_epoch(window_start, window_length,
+                                              attr='quality')
         lg.info('winstart: ' + str(window_start) + ', quality: ' + str(qual))
 
         if qual is None:
@@ -1089,10 +1097,13 @@ class Notes(QTabWidget):
             n_eventtype = self.idx_eventtype.count()
             self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
 
-    def delete_eventtype(self):
+    def delete_eventtype(self, test_type_str=None):
         """Action: create dialog to delete event type."""
-        answer = QInputDialog.getText(self, 'Delete Event Type',
-                                      'Enter event\'s name to delete')
+        if test_type_str:
+            answer = test_type_str, True
+        else:
+            answer = QInputDialog.getText(self, 'Delete Event Type',
+                                          'Enter event\'s name to delete')
         if answer[1]:
             self.annot.remove_event_type(answer[0])
             self.display_eventtype()

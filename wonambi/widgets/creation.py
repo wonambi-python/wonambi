@@ -20,6 +20,7 @@ from .info import Info
 from .overview import Overview
 from .notes import (Notes, MergeDialog, SpindleDialog, SWDialog,
                     EventAnalysisDialog)
+from .analysis import AnalysisDialog
 from .spectrum import Spectrum
 from .traces import Traces
 from .video import Video
@@ -44,6 +45,7 @@ def create_widgets(MAIN):
     MAIN.slowwave_help = SlowWaveHelp(MAIN)
     MAIN.event_analysis_dialog = EventAnalysisDialog(MAIN)
     MAIN.evt_analysis_help = EvtAnalysisHelp(MAIN)
+    MAIN.analysis_dialog = AnalysisDialog(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.traces = Traces(MAIN)
@@ -270,7 +272,8 @@ def create_menubar(MAIN):
     submenu_detect.addAction(actions['spindle'])
     submenu_detect.addAction(actions['slow_wave'])
 
-    menu_analysis.addAction(actions['analyze_events'])
+    menu_analysis.addAction(actions['analyze_events'])    
+    menu_analysis.addAction(actions['analyze'])
 
 
     """ ------ WINDOWS ------ """

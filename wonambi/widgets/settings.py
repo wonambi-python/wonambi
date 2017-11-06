@@ -5,6 +5,7 @@ from logging import getLogger
 
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtWidgets import (QCheckBox,
+                             QComboBox,
                              QDialogButtonBox,
                              QDialog,
                              QFileDialog,
@@ -750,8 +751,11 @@ class FormFloat(QLineEdit):
     widgets.
 
     """
-    def __init__(self):
+    def __init__(self, default=None):
         super().__init__('')
+        
+        if default is not None:
+            self.set_value(default)
 
     def get_value(self, default=0):
         """Get float from widget.
@@ -804,8 +808,11 @@ class FormInt(QLineEdit):
     """Subclass QLineEdit for int to have a more consistent API across widgets.
 
     """
-    def __init__(self):
+    def __init__(self, default=None):
         super().__init__('')
+        
+        if default is not None:
+            self.set_value(default)
 
     def get_value(self, default=0):
         """Get int from widget.
@@ -1027,3 +1034,69 @@ class FormDir(QPushButton):
             funct()
 
         self.clicked.connect(get_directory)
+
+class FormMenu(QComboBox):
+    """Subclass QComboBox for dropdown menus to have a more consistent API 
+    across widgets.
+    
+    Parameters
+    ----------
+    input_list: list of str
+        items to include in the dropdown menu / combobox
+    """
+    def __init__(self, input_list):
+        super().__init__()
+        
+        if input_list is not None:
+            for i in input_list:
+                self.addItem(i)
+
+    def get_value(self, default=None):
+        """Get selection from widget.
+
+        Parameters
+        ----------
+        default : str
+            str for use by widget
+
+        Returns
+        -------
+        str
+            selected item from the combobox
+
+        """
+        if default is None:
+            default = ''
+
+        try:
+            text = self.currentText()
+
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to list. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+
+        return text
+
+    def set_value(self, value):
+        """Set value of the list.
+
+        Parameters
+        ----------
+        value : str
+            value for the combobox
+
+        """
+        self.setCurrentText(str(value))
+
+    def connect(self, funct):
+        """Call funct when the selection was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.currentIndexChanged.connect(funct)

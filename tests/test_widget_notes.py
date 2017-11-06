@@ -165,12 +165,18 @@ def test_widget_notes_mark_event(qtbot):
     
     screenshot(w, 'notes_14_mark_event.png')
     
+    w.notes.add_event('spindle', (24288.01, 24288.90), 'EEG Fpz-Cz')
+    
+    screenshot(w, 'notes_20_mark_short_event.png')
+    
     pos = w.traces.mapFromScene(QPointF(24294, 75))
     mouseclick = QMouseEvent(QEvent.MouseButtonPress, pos, 
                              Qt.LeftButton, Qt.NoButton, Qt.NoModifier)
     w.traces.mousePressEvent(mouseclick)
     
     screenshot(w, 'notes_15_highlight_event.png')
+    
+    w.notes.delete_eventtype(test_type_str='spindle')
     w.close()
 
 

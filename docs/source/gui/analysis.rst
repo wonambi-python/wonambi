@@ -23,11 +23,11 @@ Next, you will see ``Channel group`` and ``Channel(s)``. You may perform automat
 Select the desired group from the drop-down menu, and select the channel(s). Select several channels by holding down the ``Ctrl`` key.
 
 Under ``Stage(s)``, select in which stage or stages to find spindles (``Ctrl`` + click to pick more than one). 
-If no stage is selected, detection will be performed over the entire signal.
+If no stage is selected, detection will be performed over the entire record.
 
 If you selected several channels, you may choose to merge spindles detected in close proximity across channels with ``Merge events across channels``.
 When selected, spindles on different channels that are separated by less than a certain delay will be merged onto the channel with the earliest onset spindle.
-The delay is set with ``Minimum interval``, at the bottom of the dialog. If `Minimum interval`` is set to zero, then only overlapping spindles will be merged.
+The delay is set with ``Minimum interval``, at the bottom of the dialog. If ``Minimum interval`` is set to zero, then only overlapping spindles will be merged.
 
 *General parameters*
 
@@ -54,7 +54,7 @@ Instead of a merging checkbox, you will see the ``Invert detection`` checkbox.
 This option allows you to "flip" the detection algorithm upside-down, so that instead of a "trough-then-peak" pattern, it will look for a "peak-then-trough" pattern.
 
 As in the spindle dialog, you can choose a slow wave detection algorithm from the ``Method`` drop-down menu, and the Method parameters will update with default values from the source literature.
-Note that the ``AASM/Massimini_2004`` method is identical to the ``Massimini_2004`` algorithm, but with different default values for the Method parameters.
+Note that the ``AASM/Massimini_2004`` method is identical to the ``Massimini_2004`` algorithm, but with different default values for the method parameters.
 For details about the implemented algorithms, consult the ``Help`` box, accessible at the bottom of the dialog.
 
 Merge events
@@ -79,7 +79,7 @@ To do so, check the ``Merge across channels`` box.
 With this option checked, events on any channel separated by ``Minimum interval`` or less will be merged.
 
 When events are merged across channels, only one channel keeps the event. 
-That channel can either be the one that had the earliest onset spindle, or the longest spindle.
+That channel can either be the one that had the earliest onset event, or the longest event.
 You can choose the channel selection rule with the ``Merge to...`` drop-down menu.
 
 Analyze events

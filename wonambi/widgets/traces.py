@@ -578,7 +578,8 @@ class Traces(QGraphicsView):
                     self.idx_annot_labels.append(item)
 
                     item = QGraphicsRectItem(mrk_start + 0.5, 0,
-                                             mrk_end - mrk_start - 1, h_annot)
+                                             mrk_end - mrk_start - 1, 
+                                             h_annot)
                     item.setBrush(color.lighter(120))
                     item.setPen(color.lighter(120))
                     item.setZValue(-8)
@@ -674,6 +675,8 @@ class Traces(QGraphicsView):
 
     def X_more(self):
         """Zoom in on the x-axis."""
+        if self.parent.value('window_length') < 0.3:
+            return
         self.parent.value('window_length',
                           self.parent.value('window_length') * 2)
         self.parent.overview.update_position()
