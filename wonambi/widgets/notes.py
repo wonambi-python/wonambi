@@ -429,7 +429,7 @@ class Notes(QTabWidget):
         self.action['spindle'].setEnabled(True)
         self.action['slow_wave'].setEnabled(True)
         self.action['analyze_events'].setEnabled(True)
-        self.action['analyze'].setEnabled(True)
+        #self.action['analyze'].setEnabled(True)
         self.parent.create_menubar()
         self.idx_stage.clear()
         for one_stage in STAGE_NAME:
