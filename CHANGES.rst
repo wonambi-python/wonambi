@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 3
 ----------
+- **3.10**: fixed event marking; stage now visible when zoomed in <30s
+- **3.09**: fixed event marking; stage now visible when zoomed in <30s
 - **3.08**: list where the settings are stored
 - **3.07**: docs and tests for notes, analysis; some minor fixes
 - **3.06**: use time placeholder when abf files have empty time info

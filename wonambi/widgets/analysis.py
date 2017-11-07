@@ -568,6 +568,8 @@ class AnalysisDialog(QDialog):
             which button was pressed
         """
         if button is self.idx_ok:
+            #data = self.read_data()
+            
             self.accept()
 
         if button is self.idx_cancel:
@@ -712,4 +714,77 @@ class AnalysisDialog(QDialog):
         """Check and uncheck slope options"""
         slopes_checked = self.event['sw']['all_slope'].get_value()
         for button in self.event['sw']['slope']:
-            button.setChecked(slopes_checked)        
+            button.setChecked(slopes_checked)
+        
+    def _read_data(self):
+        """Read data for analysis."""    
+        dataset = self.parent.info.dataset
+
+        chan_to_read = chan + self.index['group']['ref_chan']
+    
+        data = dataset.read_data(chan=chan_to_read)
+        
+        max_s_freq = self.parent.value('max_s_freq')
+        if data.s_freq > max_s_freq:
+            q = int(data.s_freq / max_s_freq)
+            lg.debug('Decimate (no low-pass filter) at ' + str(q))
+    
+            data.data[0] = data.data[0][:, slice(None, None, q)]
+            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
+            data.s_freq = int(data.s_freq / q)
+
+
+def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None, 
+                 min_dur=0., exclude=['poor'], chan_specific=True, 
+                 cat=(0, 0, 0, 1)):
+    """Get raw signal either as events, as epochs or as continuous segments, 
+    by channel, cycle and stage, removing artefacts, with concatenation.
+    
+    Parameters
+    ----------
+    data: instance of Data
+        Raw data from which to fetch segments of interest
+    chan: list of str
+        Channel(s) of interest
+    reref: list of str, optional
+        Re-referencing channel(s). If None, raw signal is used.
+    cycle: tuple of int, optional
+        Cycle(s) of interest. If None, cycles are disregarded.
+    stage: list of str, optional
+        Stage(s) of interest. If None, all stages are used.
+    chunking: list of str or float or str, optional
+        This parameter determines the chunking of the signal: events, epochs or
+        continuous segments. If events desired, enter event type(s) as list of 
+        str. If epochs desired, enter float for epoch duration (s) or 
+        'lock_to_scoring' to return epochs synchronized with annotations. If
+        continuous segments desired, enter None. Defaults to None.
+    min_dur: float
+        Minimum duration of signal chunks returned. Defaults to 0.
+    exclude: str, optional
+        Exclude epochs by quality. If 'poor', epochs marked as 'Poor' quality
+        or staged as 'Artefact' will be rejected (and the signal cisioned in
+        consequence). Defaults to 'poor'.
+    chan_specific: bool
+        For events only, mark as True to only get event signal for channel(s)
+        on which they were marked. If False, signal on all channels concurrent 
+        to each event will be returned. Defaults to True.
+    cat: tuple of int
+        Determines whether and where the signal is concatenated.
+        If first digit is 1, channels will be concatenated in order listed in 
+        chan. 
+        If second digit is 1, cycles selected in cycle will be concatenated.
+        If third digit is 1, different stages selected in stage will be 
+        concatenated.
+        If fourth digit is 1, discontinuous signal within a same stage will be
+        concatenated.
+        0 in any position indicates no concatenation.
+        Defaults to (0, 0, 0 , 1), i.e. concatenate signal within stages only.
+        
+    Returns
+    -------
+    instance of Data, same as data
+        Selected data with separate events/epochs/segments as trials.        
+    """
+    pass
+
+
