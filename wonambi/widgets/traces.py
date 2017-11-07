@@ -37,6 +37,7 @@ from .utils import (convert_name_to_color,
                     LINE_COLOR,
                     LINE_WIDTH,
                     Path,
+                    RectMarker,
                     TextItem_with_BG,
                     )
 
@@ -577,12 +578,18 @@ class Traces(QGraphicsView):
                     self.scene.addItem(item)
                     self.idx_annot_labels.append(item)
 
+                    item = RectMarker(mrk_start, 0, mrk_end - mrk_start, 
+                                      h_annot, zvalue=-8, 
+                                      color=color.lighter(120))
+
+                    """
                     item = QGraphicsRectItem(mrk_start + 0.5, 0,
                                              mrk_end - mrk_start - 1, 
                                              h_annot)
                     item.setBrush(color.lighter(120))
                     item.setPen(color.lighter(120))
                     item.setZValue(-8)
+                    """
                     self.scene.addItem(item)
                     self.idx_annot.append(item)
 
@@ -593,6 +600,12 @@ class Traces(QGraphicsView):
                     y_annot -= y_distance / 2
 
                     for y in y_annot:
+                        item = RectMarker(mrk_start, y, mrk_end - mrk_start, 
+                                          y_distance, zvalue=-7, color=color)
+                        self.scene.addItem(item)
+                        self.idx_annot.append(item)
+                        
+                        """
                         item = QGraphicsRectItem(mrk_start + 0.5, y,
                                                  mrk_end - mrk_start - 1,
                                                  y_distance)
@@ -601,6 +614,7 @@ class Traces(QGraphicsView):
                         item.setZValue(-7)
                         self.scene.addItem(item)
                         self.idx_annot.append(item)
+                        """
 
     def step_prev(self):
         """Go to the previous step."""

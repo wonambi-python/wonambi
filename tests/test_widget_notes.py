@@ -161,11 +161,12 @@ def test_widget_notes_mark_event(qtbot):
     
     w.notes.new_eventtype(test_type_str='spindle')
     w.notes.action['new_event'].setChecked(True)
-    w.notes.add_event('spindle', (24293.01, 24294.65), 'EEG Pz-Oz')
+    w.notes.add_event('spindle', (24293.01, 24294.65), 'EEG Pz-Oz (scalp)')
     
     screenshot(w, 'notes_14_mark_event.png')
     
-    w.notes.add_event('spindle', (24288.01, 24288.90), 'EEG Fpz-Cz')
+    w.notes.add_event('spindle', (24288.01, 24288.90), 'EEG Fpz-Cz (scalp)')
+    w.notes.add_event('spindle', (24297.5, 24298.00), 'EEG Fpz-Cz (scalp)')    
     
     screenshot(w, 'notes_20_mark_short_event.png')
     

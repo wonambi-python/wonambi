@@ -397,7 +397,7 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['analyze_events'] = act
         
-        act = QAction('Analysis...', self)
+        act = QAction('Analysis... (coming soon)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act

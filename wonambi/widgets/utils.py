@@ -4,12 +4,13 @@ from logging import getLogger
 from math import ceil, floor
 from os.path import dirname, join, realpath
 
-from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtCore import QRectF, QSettings, Qt
 from PyQt5.QtGui import (QBrush,
                          QColor,
                          QPainterPath,
                          )
 from PyQt5.QtWidgets import (QGraphicsItem,
+                             QGraphicsRectItem,
                              QGraphicsSimpleTextItem,
                              QMessageBox,
                              QCommonStyle,
@@ -72,6 +73,43 @@ class Path(QPainterPath):
         self.moveTo(x[0], y[0])
         for i_x, i_y in zip(x, y):
             self.lineTo(i_x, i_y)
+
+
+class RectMarker(QGraphicsRectItem):
+    """Class to draw a rectangular, coloured item.
+    
+    Parameters
+    ----------
+    x : float
+        x position in scene
+    y : gloat
+        y position in scene
+    width : float
+        length in seconds
+    height : float
+        height in scene units
+    color : str or QColor, optional
+        color of the rectangle
+    """
+    def __init__(self, x, y, width, height, zvalue, color='blue'):
+        super().__init__()
+        
+        self.color = color
+        self.setZValue(zvalue)
+        buffer = 1
+        self.marker = QRectF(x, y, width, height)
+        self.b_rect = QRectF(x - buffer/2, y + buffer/2, width + buffer,
+                             height + buffer)
+
+    def boundingRect(self):
+        return self.b_rect
+        
+    def paint(self, painter, option, widget):
+        color = QColor(self.color)
+        painter.setBrush(QBrush(color))
+        painter.setPen(Qt.NoPen)
+        painter.drawRect(self.marker)
+        super().paint(painter, option, widget)
 
 
 class TextItem_with_BG(QGraphicsSimpleTextItem):

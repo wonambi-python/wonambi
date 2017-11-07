@@ -51,7 +51,7 @@ def test_read_annot_path():
     
     assert annot.get_epoch_start(517) == 510
     
-    assert annot.get_stage_for_epoch(510) == 'REM'
+    assert annot.get_stage_for_epoch(510, 30) == 'REM'
     
     with raises(KeyError):
         annot.get_rater('XXX')
