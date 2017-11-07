@@ -42,3 +42,12 @@ This is a pain, because the gcc in conda (gcc_linux-64) messes up all the enviro
 
 The shortcut is to use the system R to compile the libraries you need, and then use the conda R.
 Clearly, this approach will break sooner or later.
+
+## LD_LIBRARY_PATH
+To run R, you need some libraries in miniconda, which are not installed automatically when you work with environments, so you need to add this:
+
+```bash
+export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
+```
+
+Attention: this might mess up some programs, such as geckodriver.
