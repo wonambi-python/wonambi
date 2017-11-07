@@ -33,3 +33,12 @@ python -m matlab_kernel install
 ```
 #### matlab 2016b
 Once we have access to matlab 2016b, maybe it's best to use [imatlab](https://github.com/imatlab/imatlab), so that we can use plotly for interactive plots.
+
+# R
+Try to download as many packages as possible from anaconda. 
+You should not use the system R because you want to install rpy2 using the python installation.
+However, some packages, such as circular, requires gcc and fortran used for the original R installation.
+This is a pain, because the gcc in conda (gcc_linux-64) messes up all the environmental variables and conda does not have gfortran as executible.
+
+The shortcut is to use the system R to compile the libraries you need, and then use the conda R.
+Clearly, this approach will break sooner or later.

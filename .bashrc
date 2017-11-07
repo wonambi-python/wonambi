@@ -1,9 +1,8 @@
 alias ls='ls --color=auto'
-PS1='[\u@\h:\w]\$ '
 
 source ~/.bashrc_secrets
 
-export R_LIBS_USER=~/tools/R
+export R_LIBS_USER=~/tools/Rlib
 
 export PATH=$PATH:~/tools/dcm2nii
 
@@ -15,6 +14,8 @@ export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
 source activate condaenv
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
+
+export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_5.3
@@ -51,3 +52,6 @@ export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DAT
 
 # custom code (ctags)
 export PATH=~/tools/bin:$PATH
+
+# hide conda and venv
+PS1='[\u@\h:\w]\$ '
