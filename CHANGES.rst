@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 3
 ----------
+- **3.11**: fixed event marking; stage now visible when zoomed in <30s
+- **3.09**: fixed event marking; stage now visible when zoomed in <30s
 - **3.10**: fixed event marking; stage now visible when zoomed in <30s
 - **3.09**: fixed event marking; stage now visible when zoomed in <30s
 - **3.08**: list where the settings are stored

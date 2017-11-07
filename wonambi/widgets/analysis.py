@@ -11,8 +11,7 @@ from numpy import (asarray, concatenate, diff, empty, floor, in1d, inf, log,
 from scipy.signal import periodogram
 from os.path import basename, splitext
 from pickle import dump, load
-from tensorpac.pac import Pac
-from tensorpac.pacstr import pacstr
+#from tensorpac.pacstr import pacstr
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
@@ -389,11 +388,30 @@ class AnalysisDialog(QDialog):
                 
         tab3 = QWidget()
         
+        # placeholders for now
+        pac_metrics = ['Mean Vector Length',
+                       'Kullback-Leiber Distance',
+                       'Heights ratio',
+                       'ndPac',
+                       'Phase-Synchrony']
+        pac_surro = ['No surrogates',
+                     'Swap phase/amplitude across trials',
+                     'Swap amplitude blocks across time',
+                     'Shuffle amplitude time-series',
+                     'Time lag']
+        pac_norm = ['No normalization',
+                    'Substract the mean of surrogates',
+                    'Divide by the mean of surrogates',
+                    'Substract then divide by the mean of surrogates',
+                    "Substract the mean and divide by the deviation of " + \
+                    "the surrogates"]
+        """
         pac_metrics = [pacstr((x, 0, 0))[0] for x in range(1,6)]
         pac_metrics = [x[:x.index('(') - 1] for x in pac_metrics]
         pac_metrics[1] = 'Kullback-Leibler Distance' # corrected typo
         pac_surro = [pacstr((1, x, 0))[1] for x in range(5)]
-        pac_norm = [pacstr((1, 0, x))[2] for x in range(5)]        
+        pac_norm = [pacstr((1, 0, x))[2] for x in range(5)]
+        """        
         pac = self.pac
         
         box_complex = QGroupBox('Complex definition')
@@ -718,20 +736,7 @@ class AnalysisDialog(QDialog):
         
     def _read_data(self):
         """Read data for analysis."""    
-        dataset = self.parent.info.dataset
-
-        chan_to_read = chan + self.index['group']['ref_chan']
-    
-        data = dataset.read_data(chan=chan_to_read)
-        
-        max_s_freq = self.parent.value('max_s_freq')
-        if data.s_freq > max_s_freq:
-            q = int(data.s_freq / max_s_freq)
-            lg.debug('Decimate (no low-pass filter) at ' + str(q))
-    
-            data.data[0] = data.data[0][:, slice(None, None, q)]
-            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
-            data.s_freq = int(data.s_freq / q)
+        pass
 
 
 def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None, 
