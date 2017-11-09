@@ -231,7 +231,7 @@ def _get_files():
 
             if remote['zipped'] is None:
                 print('Copying ' + str(temp_file) + ' to ' + str(final_file))
-                copyfile(temp_file, final_file)  # or maybe symlink
+                copyfile(str(temp_file), str(final_file))  # or maybe symlink
 
             elif remote['zipped'] is True:  # explicit testing
                 with ZipFile(str(temp_file)) as zf:

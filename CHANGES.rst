@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 4
+----------
+- **4.01**: frequency analysis is much more consistent and correct
+
 Version 3
 ----------
 - **3.11**: fixed event marking; stage now visible when zoomed in <30s
