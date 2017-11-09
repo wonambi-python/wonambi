@@ -32,4 +32,5 @@ tests/exported/
 docs/build/
 docs/source/api/
 docs/source/gui/images/
-docs/source/viz/images/
+docs/source/analysis/images/
+docs/source/analysis/plotly/

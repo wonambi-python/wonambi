@@ -2,7 +2,7 @@ from datetime import datetime
 from logging import getLogger
 
 from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
-                   real, tile, zeros)
+                   pi, ptp, real, sin, tile, zeros)
 # numpy.random.random has an empty __module__ and sphinx autodoc adds it to api
 from numpy import random
 from numpy.fft import fft, ifft
@@ -13,34 +13,42 @@ from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
 lg = getLogger(__name__)
 
 
-def create_data(datatype='ChanTime', start_time=None, n_trial=None,
-                chan_name=None, n_chan=8, s_freq=None, time=None, freq=None,
-                values=None, noise=0):
+def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
+                chan_name=None, n_chan=8,
+                time=None, freq=None, start_time=None,
+                signal='random', amplitude=1, color=0, sine_freq=10):
     """Create data of different datatype from scratch.
 
     Parameters
     ----------
-    datatype : str, optional
+    datatype : str
         one of 'ChanTime', 'ChanFreq', 'ChanTimeFreq'
+    n_trial : int
+        number of trials
+    s_freq : int
+        sampling frequency
+    chan_name : list of str
+        names of the channels
+    n_chan : int
+        if chan_name is not specified, this defines the number of channels
+    time : numpy.ndarray or tuple of two numbers
+        if tuple, the first and second numbers indicate beginning and end
+    freq : numpy.ndarray or tuple of two numbers
+        if tuple, the first and second numbers indicate beginning and end
     start_time : datetime.datetime, optional
         starting time of the recordings
-    n_trial : int, optional
-        number of trials
-    chan_name : list of str, optional
-        names of the channels
-    n_chan : int, optional
-        if chan_name is not specified, this defines the number of channels
-    s_freq : int, optional
-        sampling frequency
-    time : numpy.ndarray or tuple of two numbers, optional
-        if tuple, the first and second numbers indicate beginning and end
-    freq : numpy.ndarray or tuple of two numbers, optional
-        if tuple, the first and second numbers indicate beginning and end
-    noise : float or str, optional
-        noise color to generate (white noise is 0, pink is 1, brown is 2). If
-        str, then it can be 'ekg' (to create heart-related activity).
-    values : tuple of two numbers, optional
-        the min and max values of the random data values.
+
+    Only for datatype == 'ChanTime'
+    signal : str
+        'random', 'sine', 'ekg'
+    amplitude : float
+        amplitude (peak-to-peak) of the signal
+    color : float
+        noise color to generate (white noise is 0, pink is 1, brown is 2).
+        This is only appropriate if signal == 'random'
+    sine_freq : float
+        frequency of the sine wave (only if signal == 'sine'), where phase
+        is random for each channel
 
     Returns
     -------
@@ -57,17 +65,6 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         raise ValueError('Datatype should be one of ' +
                          ', '.join(possible_datatypes))
 
-    if n_trial is None:
-        n_trial = 1
-
-    if s_freq is None:
-        s_freq = 512
-
-    if values is None:
-        values = (-1, 1)
-    mult = values[1] - values[0]
-    add = values[0]
-
     if time is not None:
         if isinstance(time, tuple) and len(time) == 2:
             time = arange(time[0], time[1], 1. / s_freq)
@@ -82,6 +79,8 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
 
     if chan_name is None:
         chan_name = ['chan{0:02}'.format(i) for i in range(n_chan)]
+    else:
+        n_chan = len(chan_name)
 
     if start_time is None:
         start_time = datetime.now()
@@ -90,29 +89,35 @@ def create_data(datatype='ChanTime', start_time=None, n_trial=None,
         data = ChanTime()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            if noise == 'ekg':
-                n_sec = around(time[-1] - time[0])
-                values = (tile(_make_ekg(s_freq), (len(chan_name), n_sec))
-                          * mult + add)
 
-            else:
-                values = random.randn(*(len(chan_name), len(time))) * mult + add
+            if signal == 'random':
+                values = random.randn(*(len(chan_name), len(time)))
                 for i_ch, x in enumerate(values):
-                    values[i_ch, :] = _color_noise(x, s_freq, noise)
-            data.data[i] = values
+                    values[i_ch, :] = _color_noise(x, s_freq, color)
+
+            elif signal == 'sine':
+                values = empty((n_chan, time.shape[0]))
+                for i_ch in range(n_chan):
+                    values[i_ch, :] = sin(2 * pi * sine_freq * time +
+                                          random.randn())
+
+            elif signal == 'ekg':
+                n_sec = around(time[-1] - time[0])
+                values = tile(_make_ekg(s_freq), (len(chan_name), n_sec))
+
+            data.data[i] = values / ptp(values, axis=1)[:, None] * amplitude
 
     if datatype == 'ChanFreq':
         data = ChanFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.data[i] = random.random((len(chan_name), len(freq))) * mult + add
+            data.data[i] = random.random((len(chan_name), len(freq)))
 
     if datatype == 'ChanTimeFreq':
         data = ChanTimeFreq()
         data.data = empty(n_trial, dtype='O')
         for i in range(n_trial):
-            data.data[i] = (random.random((len(chan_name), len(time), len(freq)))
-                            * mult + add)
+            data.data[i] = random.random((len(chan_name), len(time), len(freq)))
 
     data.start_time = start_time
     data.s_freq = s_freq

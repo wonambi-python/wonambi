@@ -31,19 +31,19 @@ def test_trans_frequency():
     # the square of this relationship should hold in freq domain
     freq = frequency(data, detrend=None, taper=None, scaling='power', duration=1)
     p_freq = math(freq, operator_name='sum', axis='freq')
-    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.3 ** 2)
+    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.4 ** 2)
 
     freq = frequency(data, detrend=None, taper=None, scaling='energy', duration=1)
     p_freq = math(freq, operator_name='sum', axis='freq')
-    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.3 ** 2)
+    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.4 ** 2)
 
     freq = frequency(data, detrend=None, taper='dpss', scaling='power')
     p_freq = math(freq, operator_name='sum', axis='freq')
-    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.3 ** 2)
+    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.4 ** 2)
 
     freq = frequency(data, detrend=None, sides='two')
     p_freq = math(freq, operator_name='sum', axis='freq')
-    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.3 ** 2)
+    assert 4.7 ** 2 < (p_freq.data[0][0] / p_freq.data[0][1]) < (5.45 ** 2)
 
 
 def test_trans_frequency_complex():
@@ -65,7 +65,7 @@ def test_trans_timefrequency_spectrogram():
     p_time = math(data, operator_name=('square', 'sum'), axis='time')
     p_freq = math(timefreq, operator_name='sum', axis='freq')
     assert (4.7 ** 2 < p_freq.data[0][0, :] / p_freq.data[0][1, :]).all()
-    assert (p_freq.data[0][0] / p_freq.data[0][1] < 5.5 ** 2).all()
+    assert (p_freq.data[0][0] / p_freq.data[0][1] < 5.7 ** 2).all()
 
     # with random data, parseval only holds with boxcar
     assert_array_almost_equal(p_time(trial=0), sum(p_freq(trial=0) * data.s_freq, axis=1))
@@ -81,7 +81,7 @@ def test_trans_timefrequency_stft():
 
 
 seed(0)
-data = create_data(n_trial=1, n_chan=2, s_freq=s_freq, time=(0, dur))
+data = create_data(n_trial=1, n_chan=2, s_freq=s_freq, time=(0, dur), amplitude=10)
 x = data(trial=0, chan='chan00')
 
 
@@ -186,13 +186,15 @@ def test_fft_spectrum_06():
 
 
 def test_fft_spectrum_fieldtrip_01():
+    print(x[:10])
+
     """cfg = [];
     cfg.method = 'mtmfft';
     cfg.taper = 'dpss';
     cfg.tapsmofrq = 3;
-    cfg.output = 'psd';
+    cfg.output = 'pow';
     """
-    ft_psd_dpss_3 = [0.0135630118081090, 0.0205418507892958, 0.0219023656906459, 0.0230221184802262, 0.0226043640193069, 0.0194963042482202, 0.0211558841739185, 0.0210184899389738, 0.0229722817441542, 0.0213185367807084]
+    ft_psd_dpss_3 = [0.000110968753825409, 7.90092478907078e-05, 0.000168067654559792, 0.000156268539793551, 0.000179199005420480, 0.000160723158986639, 0.000188360508293903, 0.000157291719253897, 0.000184942558609194, 0.000143251217204695]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='spectraldensity', sides='one', scaling='fieldtrip', halfbandwidth=3)
     assert_array_almost_equal(Sxx0[:10], ft_psd_dpss_3)
 
@@ -201,7 +203,7 @@ def test_fft_spectrum_fieldtrip_02():
     """cfg = [];
     cfg.method = 'mtmfft';
     cfg.taper = 'hanning';
-    cfg.output = 'psd';
+    cfg.output = 'pow';
     """
     ft_psd_hann = [0.00516149427553435, 0.0231205891062735, 0.00337068080474817, 0.0187873068728311, 0.00135613001023065, 0.0324094083346194, 0.0331462705196621, 0.0264601955636699, 0.0281643171065553, 0.00143840017043456]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='hann', output='spectraldensity', sides='one', scaling='fieldtrip')
@@ -227,7 +229,7 @@ def test_fft_spectrum_chronux_01():
     params.Fs = 256;
     [S, f] = mtspectrumc(data.trial{1}, params);
     """
-    chronux_dpss = [0.0125216271267200, 0.0165366149026588, 0.0134013791924335, 0.0298830658919874, 0.0296275564261494, 0.0346526834971956, 0.0331969603210115, 0.0255905381172408, 0.0130280189388792, 0.0103801754755608]
+    chronux_dpss = [0.0102448436805737, 0.0135297939292628, 0.0109646321153904, 0.0244494853313761, 0.0242404346616887, 0.0283518525147273, 0.0271608206918445, 0.0209374596495892, 0.0106591592406998, 0.00849276807621278]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='spectraldensity', sides='one', scaling='chronux', NW=3)
     assert_array_almost_equal(chronux_dpss, Sxx0[:10])
 
