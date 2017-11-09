@@ -186,17 +186,17 @@ def test_fft_spectrum_06():
 
 
 def test_fft_spectrum_fieldtrip_01():
-    print(x[:10])
-
     """cfg = [];
     cfg.method = 'mtmfft';
     cfg.taper = 'dpss';
     cfg.tapsmofrq = 3;
     cfg.output = 'pow';
+    freq = ft_freqanalysis(cfg, data);
+    freq.powspctrm(1, 101:110)
     """
-    ft_psd_dpss_3 = [0.000110968753825409, 7.90092478907078e-05, 0.000168067654559792, 0.000156268539793551, 0.000179199005420480, 0.000160723158986639, 0.000188360508293903, 0.000157291719253897, 0.000184942558609194, 0.000143251217204695]
+    ft_psd_dpss_3 = [0.00513886191307729, 0.00541235129368216, 0.00637327754180630, 0.00975873992634912, 0.0114961627430138, 0.0121812348620110, 0.0114278017545212, 0.0113668316543143, 0.0112161528645388, 0.0117016241464867]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='spectraldensity', sides='one', scaling='fieldtrip', halfbandwidth=3)
-    assert_array_almost_equal(Sxx0[:10], ft_psd_dpss_3)
+    assert_array_almost_equal(Sxx0[100:110], ft_psd_dpss_3, decimal=4)
 
 
 def test_fft_spectrum_fieldtrip_02():
@@ -204,11 +204,13 @@ def test_fft_spectrum_fieldtrip_02():
     cfg.method = 'mtmfft';
     cfg.taper = 'hanning';
     cfg.output = 'pow';
+    freq = ft_freqanalysis(cfg, data);
+    freq.powspctrm(1, 101:110)
     """
-    ft_psd_hann = [0.00516149427553435, 0.0231205891062735, 0.00337068080474817, 0.0187873068728311, 0.00135613001023065, 0.0324094083346194, 0.0331462705196621, 0.0264601955636699, 0.0281643171065553, 0.00143840017043456]
+    ft_psd_hann = [0.00106465976843528, 0.00562957700710057, 0.00214937527201723, 0.000405599433993590, 0.00506141871942431, 0.00343922341551741, 0.00223373256323887, 0.00767611770955874, 0.0426550524445195, 0.0376986963169514]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='hann', output='spectraldensity', sides='one', scaling='fieldtrip')
     # less precise because different shape of hann window
-    assert_array_almost_equal(Sxx0[:10], ft_psd_hann, decimal=3)
+    assert_array_almost_equal(Sxx0[100:110], ft_psd_hann, decimal=3)
 
 
 def test_fft_spectrum_fieldtrip_03():
@@ -217,11 +219,13 @@ def test_fft_spectrum_fieldtrip_03():
     cfg.taper = 'dpss';
     cfg.tapsmofrq = 3;
     cfg.output = 'fourier';
+    freq = ft_freqanalysis(cfg, data);
+    transpose(squeeze(freq.fourierspctrm(1, 1, 101:110)))
     """
-    ft_complex_dpss = [-0.0888474044744517 + 0.00000000000000j, 0.105571563791869 - 0.0218364015434480j, -0.0547148113630714 - 0.0130428850034777j, 0.0211868623894532 + 0.0610838146351545j, -0.0578696134631192 - 0.0756868439264753j, 0.132667070627712 + 0.0863404625250937j, -0.173164964400454 - 0.112056943215539j, 0.167793329719361 + 0.117474104426646j, -0.128516147547390 - 0.0794400371540389j, 0.0602589425561550 + 0.0104701757982057j]
+    ft_complex_dpss = [-0.0335619899491902 - 0.0100985443725351j, 0.0252013706875434 + 0.0436725973183397j, -0.0145928652426528 - 0.0546311601211480j, -0.00364680778007352 + 0.0542853721812055j, 0.0293189825468446 - 0.0554598147669454j, -0.0523346938092935 + 0.0458447745674979j, 0.0739055167896313 - 0.00673071060189224j, -0.0892965233534656 - 0.0698942934418098j, 0.0664933718921557 + 0.148311783870617j, -0.00190172379532472 - 0.160711901636832j]
     f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='complex', sides='one', scaling='fieldtrip', halfbandwidth=3)
     # Note that the DC freq is different
-    assert_array_almost_equal(Sxx0[1:10, 0], ft_complex_dpss[1:])
+    assert_array_almost_equal(Sxx0[100:110, 0], ft_complex_dpss)
 
 
 def test_fft_spectrum_chronux_01():
