@@ -4,8 +4,20 @@ from inspect import getfullargspec
 from logging import getLogger
 
 # for Math
-from numpy import (absolute, angle, diff, exp, log, median, mean, pad, sqrt,
-                   square, sum, std, unwrap)
+from numpy import (absolute,
+                   angle,
+                   diff,
+                   exp,
+                   log,
+                   log10,
+                   median,
+                   mean,
+                   pad,
+                   sqrt,
+                   square,
+                   sum,
+                   std,
+                   unwrap)
 from scipy.signal import detrend, hilbert
 from scipy.stats import mode
 
@@ -50,7 +62,8 @@ def math(data, operator=None, operator_name=None, axis=None):
     dimension.
 
     The possible point-wise operator_name are:
-    'absolute', 'angle', 'exp', 'log', 'sqrt', 'square', 'unwrap'
+    'absolute', 'angle', 'dB' (=10 * log10), 'exp', 'log', 'sqrt', 'square',
+    'unwrap'
 
     The operator_name's that need an axis, but do not remove it:
     'hilbert', 'diff', 'detrend'
@@ -146,16 +159,16 @@ def math(data, operator=None, operator_name=None, axis=None):
             func = lambda x, axis: mode(x, axis=axis)[0]
 
         for i in range(output.number_of('trial')):
-            
+
             # don't copy original data, but use data if it's the first operation
             if first_op:
                 x = data(trial=i)
             else:
                 x = output(trial=i)
-            
+
             if op['on_axis']:
                 lg.debug('running ' + op['name'] + ' on ' + str(idx_axis))
-               
+
                 try:
                     if func == diff:
                         lg.debug('Diff has one-point of zero padding')
@@ -171,8 +184,8 @@ def math(data, operator=None, operator_name=None, axis=None):
                 lg.debug('running ' + op['name'] + ' on each datapoint')
                 output.data[i] = func(x)
 
-        first_op = False 
-        
+        first_op = False
+
         if op['on_axis'] and not op['keepdims']:
             del output.axis[axis]
 
@@ -183,3 +196,8 @@ def _pad_one_axis_one_value(x, idx_axis):
     pad_width = [(0, 0)] * x.ndim
     pad_width[idx_axis] = (1, 0)
     return pad(x, pad_width=pad_width, mode='mean')
+
+
+# additional operators
+def dB(x):
+    return 10 * log10(x)
