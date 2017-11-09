@@ -9,8 +9,8 @@ Contents:
    introduction
    installation
    Modules, classes, functions<api/wonambi>
+   analysis/index
    gui/index
-   viz/index
    testing
    changelog
    todo
