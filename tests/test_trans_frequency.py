@@ -223,7 +223,7 @@ def test_fft_spectrum_fieldtrip_03():
     transpose(squeeze(freq.fourierspctrm(1, 1, 101:110)))
     """
     ft_complex_dpss = [-0.0335619899491902 - 0.0100985443725351j, 0.0252013706875434 + 0.0436725973183397j, -0.0145928652426528 - 0.0546311601211480j, -0.00364680778007352 + 0.0542853721812055j, 0.0293189825468446 - 0.0554598147669454j, -0.0523346938092935 + 0.0458447745674979j, 0.0739055167896313 - 0.00673071060189224j, -0.0892965233534656 - 0.0698942934418098j, 0.0664933718921557 + 0.148311783870617j, -0.00190172379532472 - 0.160711901636832j]
-    f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='complex', sides='one', scaling='fieldtrip', halfbandwidth=3)
+    f0, Sxx0 = _fft(x, s_freq, detrend=None, taper='dpss', output='complex', sides='two', scaling='fieldtrip', halfbandwidth=3)
     # Note that the DC freq is different
     assert_array_almost_equal(Sxx0[100:110, 0], ft_complex_dpss)
 
