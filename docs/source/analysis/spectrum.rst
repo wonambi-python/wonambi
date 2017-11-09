@@ -27,7 +27,7 @@ We can transform it to the frequency-domain, by computing the power spectral den
 Note that the Parseval's theorem holds:
 
 .. literalinclude:: ../../../tests/test_trans_frequency_doc.py
-    :lines: 45-47
+    :lines: 49-51
 
 
 Welch's Method

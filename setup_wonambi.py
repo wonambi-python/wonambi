@@ -236,13 +236,14 @@ def _get_files():
             elif remote['zipped'] is True:  # explicit testing
                 with ZipFile(str(temp_file)) as zf:
                     print('Extracting all files in ' + remote['cached'] + ':\n\t' + '\n\t'.join(zf.namelist()))
-                    zf.extractall(path=DATA_PATH)
+                    zf.extractall(path=str(DATA_PATH))
 
             else:
                 print('Extracting file ' + remote['zipped'] + ' to ' +
                       str(final_file))
                 with ZipFile(str(temp_file)) as zf:
-                    extracted = Path(zf.extract(remote['zipped'], path=DOWNLOADS_PATH))
+                    extracted = Path(
+                        zf.extract(remote['zipped'], path=str(DOWNLOADS_PATH)))
                     extracted.rename(final_file)
 
     return 0
