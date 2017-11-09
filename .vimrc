@@ -117,7 +117,7 @@ autocmd BufRead,BufNewFile *.cls setfiletype=tex
 " line at 80
 autocmd FileType python setlocal colorcolumn=80
 
-" Default options for syntastic
+" SYNTASTIC
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
 set statusline+=%*
@@ -128,6 +128,11 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 " keep location list small
 let g:syntastic_loc_list_height = 5
+
+" syntastic: rst
+let g:syntastic_rst_checkers = ['sphinx']
+
+" syntastic: Python
 let g:syntastic_python_checkers = ['flake8']
 
 " disable several syntastic flake8 errors

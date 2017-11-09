@@ -11,11 +11,11 @@ export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
 export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
-source activate condaenv
+# source activate condaenv
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
-export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
+# export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_5.3
