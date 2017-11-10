@@ -2,6 +2,7 @@
 """
 from copy import deepcopy
 from json import dump, load
+from logging import getLogger
 from os.path import splitext
 
 from PyQt5.QtGui import (QColor,
@@ -28,6 +29,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 
 from .settings import Config, FormFloat, FormStr
+
+lg = getLogger(__name__)
 
 
 class ConfigChannels(Config):
@@ -360,7 +363,9 @@ class Channels(QWidget):
         """
         chan_name = self.parent.labels.chan_name
         if chan_name is None:
-            self.parent.statusBar().showMessage('No dataset loaded')
+            msg = 'No dataset loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         else:
             if test_name is None:
@@ -477,8 +482,9 @@ class Channels(QWidget):
             self.tabs.addTab(group, one_grp['name'])
 
         if no_in_dataset:
-            msg = 'Channels not present in the dataset: '
-            self.parent.statusBar().showMessage(msg + ', '.join(no_in_dataset))
+            msg = 'Channels not present in the dataset: ' + ', '.join(no_in_dataset)
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         self.apply()
 

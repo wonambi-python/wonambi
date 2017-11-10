@@ -123,7 +123,7 @@ class Overview(QGraphicsView):
 
     def update(self, reset=True):
         """Read full duration and update maximum.
-        
+
         Parameters
         ----------
         reset: bool
@@ -228,6 +228,7 @@ class Overview(QGraphicsView):
                             timedelta(seconds=new_position))
             msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
             self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
         else:
             lg.debug('Updating position at {}'
                      ''.format(self.parent.value('window_start')))
@@ -335,11 +336,11 @@ class Overview(QGraphicsView):
             self.mark_quality(epoch['start'],
                               epoch['end'] - epoch['start'],
                               epoch['quality'])
-            
+
         cycles = self.parent.notes.annot.rater.find('cycles')
         cyc_starts = [float(mrkr.text) for mrkr in cycles.findall('cyc_start')]
         cyc_ends = [float(mrkr.text) for mrkr in cycles.findall('cyc_end')]
-        
+
         for mrkr in cyc_starts:
             self.mark_cycles(mrkr, 30) # TODO: better width solution
         for mrkr in cyc_ends:
@@ -383,7 +384,7 @@ class Overview(QGraphicsView):
 
     def mark_quality(self, start_time, length, qual_name):
         """Mark signal quality, only add the new ones.
-        
+
         Parameters
         ----------
         start_time : int
@@ -395,7 +396,7 @@ class Overview(QGraphicsView):
         """
         y_pos = BARS['quality']['pos0']
         height = 10
-        
+
         # the -1 is really important, otherwise we stay on the edge of the rect
         old_score = self.scene.itemAt(start_time + length / 2,
                                       y_pos + height - 1,
@@ -406,8 +407,8 @@ class Overview(QGraphicsView):
             lg.debug('Removing old score at {}'.format(start_time))
             self.scene.removeItem(old_score)
             self.idx_annot.remove(old_score)
-        
-        if qual_name == 'Bad':        
+
+        if qual_name == 'Bad':
             rect = QGraphicsRectItem(start_time, y_pos, length, height)
             rect.setPen(NoPen)
             rect.setBrush(Qt.black)
@@ -416,7 +417,7 @@ class Overview(QGraphicsView):
 
     def mark_cycles(self, start_time, length, end=False):
         """Mark cycle bound, only add the new one.
-        
+
         Parameters
         ----------
         start_time: int
@@ -429,7 +430,7 @@ class Overview(QGraphicsView):
         y_pos = STAGES['cycle']['pos0']
         height = STAGES['cycle']['pos1']
         color = STAGES['cycle']['color']
-        
+
         # the -1 is really important, otherwise we stay on the edge of the rect
         old_rect = self.scene.itemAt(start_time + length / 2,
                                      y_pos + height - 1,
@@ -440,23 +441,23 @@ class Overview(QGraphicsView):
             lg.debug('Removing old score at {}'.format(start_time))
             self.scene.removeItem(old_rect)
             self.idx_annot.remove(old_rect)
- 
+
         rect = QGraphicsRectItem(start_time, y_pos, length, height)
         rect.setPen(NoPen)
         rect.setBrush(color)
         self.scene.addItem(rect)
         self.idx_annot.append(rect)
-        
+
         if end:
             start_time += length
             length = - length
-        
+
         kink_hi = QGraphicsRectItem(start_time, y_pos, length * 5, 1)
         kink_hi.setPen(NoPen)
         kink_hi.setBrush(color)
         self.scene.addItem(kink_hi)
-        self.idx_annot.append(kink_hi) 
-        
+        self.idx_annot.append(kink_hi)
+
         kink_lo = QGraphicsRectItem(start_time, y_pos + height, length * 5, 1)
         kink_lo.setPen(NoPen)
         kink_lo.setBrush(color)
