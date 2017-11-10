@@ -21,11 +21,10 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n test-environment numpy scipy 
+  - conda create -q -n test-environment python=3.6 numpy scipy 
   - activate test-environment
 
   # pip
-  - pip install numpy scipy
   - pip install nibabel pyqt5 vispy
   - pip install pytest pytest-qt pytest-cov codecov plotly
   - pip install sphinx sphinx_rtd_theme

@@ -33,6 +33,16 @@ If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
     wonambi
 
+Run it!
+-------
+From the command line, simply type:
+
+    wonambi
+
+To open a dataset directly, add the full path to the file you want to open:
+
+    wonambi /home/me/sleep_recordings.edf
+
 Documentation
 -------------
 See `Documentation <http://wonambi-python.github.io/>`_
