@@ -77,7 +77,7 @@ class Path(QPainterPath):
 
 class RectMarker(QGraphicsRectItem):
     """Class to draw a rectangular, coloured item.
-    
+
     Parameters
     ----------
     x : float
@@ -93,7 +93,7 @@ class RectMarker(QGraphicsRectItem):
     """
     def __init__(self, x, y, width, height, zvalue, color='blue'):
         super().__init__()
-        
+
         self.color = color
         self.setZValue(zvalue)
         buffer = 1
@@ -103,7 +103,7 @@ class RectMarker(QGraphicsRectItem):
 
     def boundingRect(self):
         return self.b_rect
-        
+
     def paint(self, painter, option, widget):
         color = QColor(self.color)
         painter.setBrush(QBrush(color))
@@ -168,7 +168,7 @@ def keep_recent_datasets(max_dataset_history, info=None):
             lg.debug('Removing last dataset ' + history[-1])
             history.pop()
 
-        lg.info('Adding ' + new_dataset + ' to list of recent datasets')
+        lg.debug('Adding ' + new_dataset + ' to list of recent datasets')
         history.insert(0, new_dataset)
         settings.setValue('recent_recordings', history)
         return None
