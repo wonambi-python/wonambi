@@ -34,7 +34,14 @@ from .widgets.creation import (create_menubar, create_toolbar,
 from .widgets.settings import DEFAULTS
 from .widgets.utils import keep_recent_datasets
 
+DESCRIPTION =
+    """Package to analyze EEG, ECoG and other electrophysiology formats. It
+    allows for visualization of the results and for a GUI that can be used to
+    score sleep stages.
+    """
+
 settings = QSettings("wonambi", "wonambi")
+lg.info('WONAMBI v{}'.format(__version__))
 lg.info('Reading settings from {}'.format(settings.fileName()))
 
 
@@ -248,10 +255,18 @@ app = None
 
 
 def main():
+
     global app
     app = QApplication([])
 
-    q = MainWindow()
-    q.show()
+    parser = ArgumentParser(prog='wonambi'
+                            description=DESCRIPTION)
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Return version')
 
-    app.exec_()
+    args = parser.parse_args()
+
+        q = MainWindow()
+        q.show()
+
+        app.exec_()

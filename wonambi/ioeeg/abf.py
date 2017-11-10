@@ -6,6 +6,7 @@ from numpy import c_, empty, float64, NaN, memmap, dtype, newaxis, array
 from os import SEEK_SET
 from struct import unpack, calcsize
 
+from .utils import DEFAULT_DATETIME
 
 BLOCKSIZE = 512
 
@@ -84,7 +85,7 @@ class Abf:
             start_time = (datetime.strptime(str(orig['uFileStartDate']), '%Y%m%d') +
                           timedelta(seconds=orig['uFileStartTimeMS'] / 1000))
         except ValueError:  # no time given, use placeholder
-            start_time = datetime(2000, 1, 1)
+            start_time = DEFAULT_DATETIME
 
         s_freq = 1.e6 / orig['protocol']['fADCSequenceInterval']
 

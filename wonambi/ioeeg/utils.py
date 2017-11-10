@@ -1,7 +1,11 @@
+from datetime import datetime
 from numpy import (append,
                    cumsum,
                    where,
                   )
+
+
+DEFAULT_DATETIME = datetime(2000, 1, 1)
 
 
 def _select_blocks(blocks, begsam,  endsam):

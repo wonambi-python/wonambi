@@ -113,6 +113,7 @@ def import_freesurfer_LUT(fs_lut=None):
     """
     if fs_lut is not None:
         lg.info('Reading user-specified lookuptable {}'.format(fs_lut))
+        fs_lut = Path(fs_lut)
     else:
         try:
             fs_home = environ['FREESURFER_HOME']
@@ -126,7 +127,7 @@ def import_freesurfer_LUT(fs_lut=None):
     idx = []
     label = []
     rgba = empty((0, 4))
-    with open(fs_lut, 'r') as f:
+    with fs_lut.open('r') as f:
         for l in f:
             if len(l) <= 1 or l[0] == '#' or l[0] == '\r':
                 continue
@@ -189,9 +190,9 @@ class Freesurfer:
 
     Parameters
     ----------
-    freesurfer_dir : str
+    freesurfer_dir : str or Path
         subject-specific directory created by freesurfer
-    fs_lut : str
+    fs_lut : str or Path
         path to file called FreeSurferColorLUT.txt
 
     Notes
