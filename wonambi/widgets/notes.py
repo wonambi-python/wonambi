@@ -41,6 +41,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QListWidgetItem,
                              QMessageBox,
                              QPushButton,
+                             QSpinBox,
                              QTableWidget,
                              QTableWidgetItem,
                              QTabWidget,
@@ -108,7 +109,7 @@ class ConfigNotes(Config):
         self.index['scoring_window'] = FormInt()
 
         form_layout = QFormLayout()
-        form_layout.addRow('Length of scoring window',
+        form_layout.addRow('Default scoring epoch length',
                            self.index['scoring_window'])
         box2.setLayout(form_layout)
 
@@ -1011,7 +1012,7 @@ class Notes(QTabWidget):
 
         if test_rater is None:
             rater, ok = QInputDialog.getText(self, 'Import staging',
-                                          'Enter rater name')
+                                            'Enter rater name')
             if not ok:
                 return
 
@@ -1063,21 +1064,21 @@ class Notes(QTabWidget):
 
     def new_rater(self):
         """Action: add a new rater.
-
-        Notes
-        -----
-        First argument, if not specified, is a bool/False:
-        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
         """
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
-        answer = QInputDialog.getText(self, 'New Rater',
-                                      'Enter rater\'s name')
-        if answer[1]:
-            self.annot.add_rater(answer[0],
-                                 self.parent.value('scoring_window'))
+        newuser = NewUserDialog(self.parent.value('scoring_window'))
+        answer = newuser.exec_()
+
+        if answer == QDialog.Rejected:
+            return
+
+        rater_name = newuser.rater_name.text()
+
+        if rater_name != '':
+            self.annot.add_rater(rater_name, newuser.epoch_length.value())
             self.display_notes()
             self.parent.create_menubar()  # refresh list ot raters
 
@@ -2509,3 +2510,33 @@ def _select_channels(data, channels):
     output.axis['chan'][0] = asarray(channels)
 
     return output
+
+
+class NewUserDialog(QDialog):
+
+    def __init__(self, default_length):
+        super().__init__()
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+
+        bbox.clicked.connect(self.button_clicked)
+
+        self.rater_name = QLineEdit('')
+        self.epoch_length = QSpinBox()
+        self.epoch_length.setValue(default_length)
+
+        f = QFormLayout()
+        f.addRow('Rater\'s name', self.rater_name)
+        f.addRow('Epoch Length', self.epoch_length)
+        f.addRow(bbox)
+
+        self.setLayout(f)
+        self.show()
+
+    def button_clicked(self, button):
+        if button == self.idx_ok:
+            self.accept()
+
+        elif button == self.idx_cancel:
+            self.reject()

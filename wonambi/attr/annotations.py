@@ -298,7 +298,7 @@ class Annotations():
 
         self.save()
 
-    def import_staging(self, filename, source, rater_name, rec_start, 
+    def import_staging(self, filename, source, rater_name, rec_start,
                        staging_start=None):
         """Import staging from a SomnoMedics Domino staging text file.
 
@@ -313,10 +313,10 @@ class Annotations():
             Rater name for imported staging.
         rec_start : datetime
             Date and time (year, month, day, hour, minute, second) of recording
-            start. Year is ignored (New Year's Eve celebratory recordings 
+            start. Year is ignored (New Year's Eve celebratory recordings
             unsupported.)
         staging_start : datetime (default: None)
-            Date and time of staging start. For use when not provided in 
+            Date and time of staging start. For use when not provided in
             staging file.
         """
         if rater_name not in self.raters:
@@ -328,7 +328,7 @@ class Annotations():
         # list is necessary so that it does not remove in place
         for s in list(stages):
             stages.remove(s)
-        
+
         if source == 'sandman':
             encoding = 'ISO-8859-1'
         else:
@@ -337,79 +337,79 @@ class Annotations():
         with open(filename, 'r', encoding=encoding) as f:
             lines = f.readlines()
             stages = self.rater.find('stages')
-                        
-            if source == 'domino':            
+
+            if source == 'domino':
                 stage_start = datetime.strptime(lines[7][:8], '%H:%M:%S')
                 stage_day = int(lines[1][12:14])
                 stage_month = int(lines[1][15:17])
-                stage_start_for_delta = stage_start.replace(year=1999, 
+                stage_start_for_delta = stage_start.replace(year=1999,
                                                             month=stage_month,
                                                             day=stage_day)
                 rec_start_for_delta = rec_start.replace(year=1999)
-                first_second = int((stage_start_for_delta - 
+                first_second = int((stage_start_for_delta -
                                     rec_start_for_delta).total_seconds())
-                
+
                 first_line = 7
-                
+
                 stage_key = DOMINO_STAGE_KEY
                 idx_stage = (14, 16)
-            
+
             elif source == 'remlogic':
                 stage_start = datetime.strptime(lines[14][:19],
                                                 '%Y-%m-%dT%H:%M:%S')
                 first_second = int((stage_start - rec_start).total_seconds())
-                
+
                 first_line = 14
-                
+
                 stage_key = REMLOGIC_STAGE_KEY
                 idx_stage = (-6, -4)
-            
+
             elif source == 'alice':
                 stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
                 dt = rec_start
-                
-                if lines[1][11:13] == 'pm' and rec_start.hour < 12: 
+
+                if lines[1][11:13] == 'pm' and rec_start.hour < 12:
                     # best guess in absence of date
                     dt = rec_start - timedelta(days=1)
-                    
+
                 stage_start = stage_start.replace(year=dt.year,
                                                   month=dt.month,
-                                                  day=dt.day)                                    
+                                                  day=dt.day)
                 first_second = int((stage_start - rec_start).total_seconds())
-                
+
                 first_line = 1
-                
+
                 lines[-1] += '_' # to fill newline position
                 stage_key = ALICE_STAGE_KEY
                 idx_stage = (-3, -1)
-                
+
             elif source == 'sandman':
-                stage_start = datetime.strptime(lines[4][12:33], 
+                stage_start = datetime.strptime(lines[4][12:33],
                                                 '%d/%m/%Y %I:%M:%S %p')
                 first_second = int((stage_start - rec_start).total_seconds())
-                
+
                 first_line = 14
-                
+
                 stage_key = SANDMAN_STAGE_KEY
                 idx_stage = (-14, -12)
-                
+
             elif source == 'compumedics':
                 if staging_start is None:
                     first_second = 0
                 else:
                     first_second = int((
                             staging_start - rec_start).total_seconds())
-                
+
                 first_line = 0
-                
+
                 stage_key = COMPUMEDICS_STAGE_KEY
                 idx_stage = (0, 1)
-                
+
             else:
                 raise ValueError('Unknown source program for staging file')
-            
+
             lg.info('Time offset: ' + str(first_second) + ' sec')
-                
+
             for i, one_line in enumerate(lines[first_line:]):
                 epoch = SubElement(stages, 'epoch')
 
@@ -421,15 +421,15 @@ class Annotations():
                 end_time.text = str(epoch_beg + 30)
 
                 epoch_stage = SubElement(epoch, 'stage')
-                
+
                 try:
                     key = one_line[idx_stage[0]:idx_stage[1]]
                     one_stage = stage_key[key]
-                    
+
                 except KeyError:
                     one_stage = 'Unknown'
                     lg.info('Stage not recognized: ' + key)
-                    
+
                 epoch_stage.text = one_stage
 
                 quality = SubElement(epoch, 'quality')
@@ -795,7 +795,7 @@ class Annotations():
         first_second : int, optional
             Time, in seconds from record start, at which the epochs begin
         """
-        lg.info('creating epochs')        
+        lg.info('creating epochs of length ' + str(epoch_length))
         if first_second is None:
             first_second = self.first_second
         last_sec = ceil((self.last_second - first_second) /
@@ -883,7 +883,7 @@ class Annotations():
         for epoch in self.epochs:
             if epoch['start'] == epoch_start:
                 return epoch[attr]
-            elif logical_and(window_length < 30, 
+            elif logical_and(window_length < 30,
                              0 <= (epoch_start - epoch['start']) < 30):
                 return epoch[attr]
 
