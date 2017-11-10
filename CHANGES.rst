@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.03**: change nan to zero so we can at least plot something if there are missing data 
 - **4.02**: you can open a dataset from the command line (and better logging)
 - **4.01**: frequency analysis is much more consistent and correct
 
