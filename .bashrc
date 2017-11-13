@@ -55,3 +55,6 @@ export PATH=~/tools/bin:$PATH
 
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
+
+# use all colors in MATE terminal
+TERM=xterm-256color
