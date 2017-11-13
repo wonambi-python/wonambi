@@ -58,7 +58,10 @@ wonambi_file = EXPORTED_PATH / 'exported.won'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'
-GUI_PATH = DOCS_PATH / 'source' / 'gui' / 'images'
+SOURCE_PATH = DOCS_PATH / 'source'
+GUI_PATH = SOURCE_PATH / 'gui' / 'images'
 GUI_PATH.mkdir(exist_ok=True)
-VIZ_PATH = DOCS_PATH / 'source' / 'viz' / 'images'
+VIZ_PATH = SOURCE_PATH / 'analysis' / 'images'
 VIZ_PATH.mkdir(exist_ok=True)
+PLOTLY_PATH = SOURCE_PATH / 'analysis' / 'plotly'
+PLOTLY_PATH.mkdir(exist_ok=True)

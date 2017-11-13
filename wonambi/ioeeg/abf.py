@@ -6,6 +6,7 @@ from numpy import c_, empty, float64, NaN, memmap, dtype, newaxis, array
 from os import SEEK_SET
 from struct import unpack, calcsize
 
+from .utils import DEFAULT_DATETIME
 
 BLOCKSIZE = 512
 
@@ -84,7 +85,7 @@ class Abf:
             start_time = (datetime.strptime(str(orig['uFileStartDate']), '%Y%m%d') +
                           timedelta(seconds=orig['uFileStartTimeMS'] / 1000))
         except ValueError:  # no time given, use placeholder
-            start_time = datetime(2000, 1, 1)
+            start_time = DEFAULT_DATETIME
 
         s_freq = 1.e6 / orig['protocol']['fADCSequenceInterval']
 
@@ -117,7 +118,7 @@ class Abf:
                       shape=(self.n_chan, self.n_samples), offset=self.head)
 
         dat = data[chan, max((begsam, 0)):min((endsam, self.n_samples))].astype(float64)
-        dat = (dat + self.offset) * self.gain
+        dat = (dat + self.offset[chan, :]) * self.gain[chan, :]
 
         if begsam < 0:
 
@@ -145,7 +146,7 @@ def _read_header(fid):
     """
     fid.seek(0, SEEK_SET)
     fFileSignature = fid.read(4)
-    assert fFileSignature == b'ABF2'
+    assert fFileSignature == b'ABF2', 'only format ABF2 is currently supported'
 
     header = {}
     for key, offset, fmt in headerDescriptionV2:

@@ -6,36 +6,33 @@ except ImportError:
     raise ImportError('You need to install PyQt5 to run GUI')
 
 
-from logging import getLogger, INFO, StreamHandler, Formatter
-
-lg = getLogger('wonambi')
-FORMAT = '%(asctime)s %(filename)s/%(funcName)s (%(levelname)s): %(message)s'
-DATE_FORMAT = '%H:%M:%S'
-
-formatter = Formatter(fmt=FORMAT, datefmt=DATE_FORMAT)
-handler = StreamHandler()
-handler.setFormatter(formatter)
-
-lg.handlers = []
-lg.addHandler(handler)
-
-lg.setLevel(INFO)
-
+from argparse import ArgumentParser
+from logging import getLogger, StreamHandler, Formatter, INFO, DEBUG
 from datetime import datetime
-now = datetime.now()
 from types import MethodType
 
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
+from PyQt5.QtGui import QIcon
 
 from . import __version__
 from .widgets.creation import (create_menubar, create_toolbar,
                                create_actions, create_widgets)
 from .widgets.settings import DEFAULTS
-from .widgets.utils import keep_recent_datasets
+from .widgets.utils import keep_recent_datasets, ICON
+
+now = datetime.now()
+
+lg = getLogger('wonambi')
+
+
+DESCRIPTION = """
+    Package to analyze EEG, ECoG and other electrophysiology formats. It
+    allows for visualization of the results and for a GUI that can be used to
+    score sleep stages.
+    """
 
 settings = QSettings("wonambi", "wonambi")
-lg.info('Reading settings from {}'.format(settings.fileName()))
 
 
 class MainWindow(QMainWindow):
@@ -44,6 +41,9 @@ class MainWindow(QMainWindow):
     """
     def __init__(self):
         super().__init__()
+
+        lg.info('WONAMBI v{}'.format(__version__))
+        lg.debug('Reading settings from {}'.format(settings.fileName()))
 
         self.info = None
         self.labels = None
@@ -248,10 +248,51 @@ app = None
 
 
 def main():
+
     global app
     app = QApplication([])
+    app.setWindowIcon(QIcon(ICON['application']))
 
-    q = MainWindow()
-    q.show()
+    parser = ArgumentParser(prog='wonambi',
+                            description=DESCRIPTION)
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Return version')
+    parser.add_argument('-l', '--log', default='info',
+                        help='Logging level: info (default), debug')
+    parser.add_argument('--reset', action='store_true',
+                        help='Reset (clear) configuration file')
+    parser.add_argument('dataset', nargs='?',
+                        help='full path to dataset to open')
 
-    app.exec_()
+    args = parser.parse_args()
+
+    DATE_FORMAT = '%H:%M:%S'
+    if args.log[:1].lower() == 'i':
+        lg.setLevel(INFO)
+        FORMAT = '{asctime:<10}{message}'
+
+    elif args.log[:1].lower() == 'd':
+        lg.setLevel(DEBUG)
+        FORMAT = '{asctime:<10}{levelname:<10}({filename:<40}/{funcName:<40}): {message}'
+
+    formatter = Formatter(fmt=FORMAT, datefmt=DATE_FORMAT, style='{')
+    handler = StreamHandler()
+    handler.setFormatter(formatter)
+
+    lg.handlers = []
+    lg.addHandler(handler)
+
+    if args.reset:
+        settings.clear()
+
+    if args.version:
+        lg.info('WONAMBI v{}'.format(__version__))
+
+    else:
+        q = MainWindow()
+        q.show()
+
+        if args.dataset:
+            q.info.open_dataset(args.dataset)
+
+        app.exec_()

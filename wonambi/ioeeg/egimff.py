@@ -1,13 +1,15 @@
 from datetime import datetime
-from glob import glob
 from logging import getLogger
 from os import SEEK_CUR
-from os.path import basename, join, splitext
+from pathlib import Path
 from struct import unpack
 from xml.etree.ElementTree import parse
 
 from numpy import (append, asarray, cumsum, diff, empty, NaN, sum,
                    where, ndarray, unique)
+
+from .utils import DEFAULT_DATETIME
+
 
 lg = getLogger(__name__)
 
@@ -22,7 +24,7 @@ class EgiMff:
 
     """
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = Path(filename)
         self._signal = []
         self._block_hdr = []
         self._i_data = []
@@ -50,14 +52,13 @@ class EgiMff:
 
         """
         orig = {}
-        for xml_file in glob(join(self.filename, '*.xml')):
-            xml_type = splitext(basename(xml_file))[0]
-            orig[xml_type] = parse_xml(xml_file)
+        for xml_file in self.filename.glob('*.xml'):
+            orig[xml_file.stem] = parse_xml(str(xml_file))
 
-        signals = sorted(glob(join(self.filename, 'signal*.bin')))
+        signals = sorted(self.filename.glob('signal*.bin'))
 
         for signal in signals:
-            block_hdr, i_data = read_all_block_hdr(join(self.filename, signal))
+            block_hdr, i_data = read_all_block_hdr(signal)
             self._signal.append(signal)
             self._block_hdr.append(block_hdr)
             self._i_data.append(i_data)
@@ -72,12 +73,11 @@ class EgiMff:
             start_time = datetime.strptime(orig['info'][0]['recordTime'][:26],
                                            '%Y-%m-%dT%H:%M:%S.%f')
         except KeyError:
-            start_time = datetime.now()  # TODO: what do use when time is not available?
-
+            start_time = DEFAULT_DATETIME
         self.start_time = start_time
 
-        videos = glob(join(self.filename, '*.mp4'))  # as described in specs
-        videos.extend(glob(join(self.filename, '*.mov')))  # actual example
+        videos = (list(self.filename.glob('*.mp4')) +  # as described in specs
+                  list(self.filename.glob('*.mov')))  # actual example
 
         if len(videos) > 1:
             lg.warning('More than one video present: ' + ', '.join(videos))
@@ -119,6 +119,11 @@ class EgiMff:
         assume that there are max two signals, one EEG and one PIB box. We
         just use the boundary between them to define if a channel belongs to
         the first group or to the second.
+
+        TODO
+        ----
+        use wonambi.ioeeg.utils._select_blocks here, but you need to test it
+        with a PIB box.
         """
         assert begsam < endsam
 
@@ -153,7 +158,7 @@ class EgiMff:
             except IndexError:
                 endrec = len(x)
 
-            f = open(self._signal[one_signal], 'rb')
+            f = self._signal[one_signal].open('rb')
 
             i0 = 0
             for rec in range(begrec, endrec + 1):
@@ -328,7 +333,7 @@ def read_block_hdr(f):
 
 def read_all_block_hdr(filename):
 
-    with open(filename, 'rb') as f:
+    with filename.open('rb') as f:
 
         block_hdr = []
         i_data = []

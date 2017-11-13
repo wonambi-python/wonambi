@@ -254,13 +254,13 @@ class Dataset:
             names of the channels to read
         begtime : int or datedelta or datetime or list
             start of the data to read;
-            if it's int, it's assumed it's s;
+            if it's int or float, it's assumed it's s;
             if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
         endtime : int or datedelta or datetime
             end of the data to read;
-            if it's int, it's assumed it's s;
+            if it's int or float, it's assumed it's s;
             if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.

@@ -13,6 +13,7 @@ from collections import Iterable
 from logging import getLogger
 
 from numpy import asarray, empty, linspace, ones, setdiff1d
+from numpy.lib.stride_tricks import as_strided
 from scipy.signal import decimate
 
 lg = getLogger(__name__)
@@ -46,7 +47,7 @@ def select(data, trial=None, invert=False, **axes_to_select):
 
     for axis_to_select, values_to_select in axes_to_select.items():
         if (not isinstance(values_to_select, Iterable) or
-            isinstance(values_to_select, str)):
+           isinstance(values_to_select, str)):
             raise TypeError(axis_to_select + ' needs to be iterable.')
 
     if trial is None:
@@ -79,7 +80,7 @@ def select(data, trial=None, invert=False, **axes_to_select):
 
                 else:
                     if (values_to_select[0] is None and
-                        values_to_select[1] is None):
+                       values_to_select[1] is None):
                         bool_values = ones(len(values), dtype=bool)
                     elif values_to_select[0] is None:
                         bool_values = values < values_to_select[1]
@@ -179,3 +180,30 @@ def get_times(data, cycle, stage, chunking, min_dur, exclude='poor'):
         The start and end times of each segment
     """
     times = []
+
+def _create_subepochs(x, nperseg, step):
+    """Transform the data into a matrix for easy manipulation
+    
+    Parameters
+    ----------
+    x : 1d ndarray
+        actual data values
+    nperseg : int
+        number of samples in each row to create
+    step : int
+        distance in samples between rows
+    Returns
+    -------
+    2d ndarray
+        a view (i.e. doesn't copy data) of the original x, with shape
+        determined by nperseg and step. You should use the last dimension
+    """
+    axis = x.ndim - 1  # last dim
+    nsmp = x.shape[axis]
+    stride = x.strides[axis]
+    noverlap = nperseg - step
+    v_shape = *x.shape[:axis], (nsmp - noverlap) // step, nperseg
+    v_strides = *x.strides[:axis], stride * step, stride
+    v = as_strided(x, shape=v_shape, strides=v_strides,
+                  writeable=False)  # much safer
+    return v

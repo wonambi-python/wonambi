@@ -190,6 +190,7 @@ class Info(QWidget):
                     msg = ('no stored values for username and password for ' +
                            repo)
                     self.parent.statusBar().showMessage(msg)
+                    lg.debug(msg)
                     return
 
             else:
@@ -239,6 +240,7 @@ class Info(QWidget):
 
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
+        lg.info('Reading dataset: ' + str(filename))
         try:
             self.filename = filename
             self.repo = repo
@@ -247,12 +249,14 @@ class Info(QWidget):
                                                  password_md5=password)
             self.dataset = Dataset(filename, server=repo)
         except FileNotFoundError:
-            self.parent.statusBar().showMessage('File ' + basename(filename) +
-                                                ' cannot be read')
+            msg = 'File ' + basename(filename) + ' cannot be read'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
             return
 
         except BaseException as err:
             self.parent.statusBar().showMessage(str(err))
+            lg.info(str(err))
             return
 
         self.parent.statusBar().showMessage('')

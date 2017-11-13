@@ -144,7 +144,7 @@ class Spectrum(QWidget):
             self.update()
 
         chan_name = self.idx_chan.currentText()
-        lg.info('Power spectrum for channel ' + chan_name)
+        lg.debug('Power spectrum for channel ' + chan_name)
 
         if chan_name:
             trial = 0

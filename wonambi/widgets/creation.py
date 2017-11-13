@@ -272,7 +272,7 @@ def create_menubar(MAIN):
     submenu_detect.addAction(actions['spindle'])
     submenu_detect.addAction(actions['slow_wave'])
 
-    menu_analysis.addAction(actions['analyze_events'])    
+    menu_analysis.addAction(actions['analyze_events'])
     menu_analysis.addAction(actions['analyze'])
 
 

@@ -7,7 +7,7 @@ Features
 --------
 - Can read files of format:
 
-  - Axon (.abf)
+  - Axon (.abf, ABF2 only)
   - Blackrock (.nev, .ns2, .ns3, .ns5)
   - BCI2000 (.dat)
   - European Data Format (.edf)
@@ -32,6 +32,16 @@ See `Installation for details <http://wonambi-python.github.io/installation.html
 If you want to scroll recordings and do some sleep scoring (requires PyQt5)
 
     wonambi
+
+Run it!
+-------
+From the command line, simply type:
+
+    wonambi
+
+To open a dataset directly, add the full path to the file you want to open:
+
+    wonambi /home/me/sleep_recordings.edf
 
 Documentation
 -------------

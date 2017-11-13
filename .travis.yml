@@ -20,12 +20,10 @@ before_install:
 
 install: 
  # install requirements
- - pip install numpy scipy pyqt5 
- - pip install pytest pytest-qt pytest-cov codecov 
+ - pip install numpy scipy
+ - pip install nibabel pyqt5 vispy
+ - pip install pytest pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme
- - pip install nibabel mne
- - pip install https://github.com/vispy/vispy/archive/master.zip
-
  - pip install -e .
 
 before_script:
@@ -36,11 +34,11 @@ script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y pytest-qt pyqt5 nibabel mne
+ - pip uninstall -y pytest-qt pyqt5 nibabel
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements for docs
- - pip install pyqt5 nibabel mne
+ - pip install pyqt5 nibabel
  - python setup_wonambi.py --docs
 
 after_success:

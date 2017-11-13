@@ -1,5 +1,6 @@
 """Widget to redefine the labels.
 """
+from logging import getLogger
 from pathlib import Path
 from re import split
 
@@ -16,6 +17,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QTableWidgetItem,
                              QWidget
                              )
+
+lg = getLogger(__name__)
 
 
 class Labels(QWidget):

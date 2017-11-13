@@ -6,8 +6,8 @@ from logging import getLogger
 from re import compile
 
 from numpy import (abs, arange, argmin, around, asarray, ceil, empty, floor,
-                   in1d, max, min, linspace, log2, logical_or, nanmean, pad,
-                   power)
+                   in1d, max, min, linspace, log2, logical_or, nan_to_num,
+                   nanmean, pad, power)
 
 from PyQt5.QtCore import QPointF, Qt, QRectF
 from PyQt5.QtGui import (QBrush,
@@ -221,7 +221,7 @@ class Traces(QGraphicsView):
         act.setShortcut(QKeySequence.FindNext)
         act.triggered.connect(self.go_to_epoch)
         actions['go_to_epoch'] = act
-        
+
         act = QAction('Line Up with Epoch', self)
         act.triggered.connect(self.line_up_with_epoch)
         actions['line_up_with_epoch'] = act
@@ -578,13 +578,13 @@ class Traces(QGraphicsView):
                     self.scene.addItem(item)
                     self.idx_annot_labels.append(item)
 
-                    item = RectMarker(mrk_start, 0, mrk_end - mrk_start, 
-                                      h_annot, zvalue=-8, 
+                    item = RectMarker(mrk_start, 0, mrk_end - mrk_start,
+                                      h_annot, zvalue=-8,
                                       color=color.lighter(120))
 
                     """
                     item = QGraphicsRectItem(mrk_start + 0.5, 0,
-                                             mrk_end - mrk_start - 1, 
+                                             mrk_end - mrk_start - 1,
                                              h_annot)
                     item.setBrush(color.lighter(120))
                     item.setPen(color.lighter(120))
@@ -600,11 +600,11 @@ class Traces(QGraphicsView):
                     y_annot -= y_distance / 2
 
                     for y in y_annot:
-                        item = RectMarker(mrk_start, y, mrk_end - mrk_start, 
+                        item = RectMarker(mrk_start, y, mrk_end - mrk_start,
                                           y_distance, zvalue=-7, color=color)
                         self.scene.addItem(item)
                         self.idx_annot.append(item)
-                        
+
                         """
                         item = QGraphicsRectItem(mrk_start + 0.5, y,
                                                  mrk_end - mrk_start - 1,
@@ -670,16 +670,16 @@ class Traces(QGraphicsView):
             self.parent.statusBar().showMessage(str(err))
             return
         self.parent.overview.update_position(window_start)
-        
+
     def line_up_with_epoch(self):
         """Go to the start of the present epoch."""
         if self.parent.notes.annot is None:  # TODO: remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
-        
+
         new_window_start = self.parent.notes.annot.get_epoch_start(
-                self.parent.value('window_start'))
-        
+            self.parent.value('window_start'))
+
         self.parent.overview.update_position(new_window_start)
 
     def add_time(self, extra_time):
@@ -1062,6 +1062,8 @@ def _create_data_to_plot(data, chan_groups):
                                     one_grp['chan_to_plot'] +
                                     one_grp['ref_chan'])
         data1 = montage(sel_data, ref_chan=one_grp['ref_chan'])
+
+        data1.data[0] = nan_to_num(data1.data[0])
 
         if one_grp['hp'] is not None:
             data1 = filter_(data1, low_cut=one_grp['hp'])

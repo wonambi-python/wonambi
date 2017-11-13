@@ -21,14 +21,13 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda info -a
-  - conda create -q -n test-environment numpy scipy 
+  - conda create -q -n test-environment python=3.6 numpy scipy 
   - activate test-environment
 
   # pip
-  - pip install pyqt5 sphinx sphinx_rtd_theme
-  - pip install pytest pytest-cov pytest-qt codecov 
-  - pip install nibabel mne
-  - pip install https://github.com/vispy/vispy/archive/master.zip
+  - pip install nibabel pyqt5 vispy
+  - pip install pytest pytest-qt pytest-cov codecov plotly
+  - pip install sphinx sphinx_rtd_theme
   - pip install -e .
 
 before_test:
@@ -39,9 +38,9 @@ test_script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y pyqt5 pytest-qt nibabel mne
+ - pip uninstall -y pyqt5 pytest-qt nibabel
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements for docs
- - pip install pyqt5 nibabel mne
+ - pip install pyqt5 nibabel
  - python setup_wonambi.py --docs

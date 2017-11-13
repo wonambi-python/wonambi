@@ -41,6 +41,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QListWidgetItem,
                              QMessageBox,
                              QPushButton,
+                             QSpinBox,
                              QTableWidget,
                              QTableWidgetItem,
                              QTabWidget,
@@ -108,7 +109,7 @@ class ConfigNotes(Config):
         self.index['scoring_window'] = FormInt()
 
         form_layout = QFormLayout()
-        form_layout.addRow('Length of scoring window',
+        form_layout.addRow('Default scoring epoch length',
                            self.index['scoring_window'])
         box2.setLayout(form_layout)
 
@@ -396,7 +397,7 @@ class Notes(QTabWidget):
         act.triggered.connect(self.parent.show_event_analysis_dialog)
         act.setEnabled(False)
         actions['analyze_events'] = act
-        
+
         act = QAction('Analysis... (coming soon)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
@@ -512,7 +513,9 @@ class Notes(QTabWidget):
             start and end of the new bookmark, in s
         """
         if self.annot is None:  # remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+            msg = 'No score file loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
             return
 
         answer = QInputDialog.getText(self, 'New Bookmark',
@@ -719,12 +722,12 @@ class Notes(QTabWidget):
 
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
-        scoring_window = self.parent.value('scoring_window')
 
-        if window_length != scoring_window:
-            self.parent.statusBar().showMessage('Zoom to '
-                                 '' + str(scoring_window) + ' (epoch length) '
-                                 'for sleep scoring.')
+        if window_length != self.annot.epoch_length:
+            msg = ('Zoom to ' + str(self.annot.epoch_length) + ' (epoch length) ' +
+                   'for sleep scoring.')
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
             return
 
         try:
@@ -732,13 +735,14 @@ class Notes(QTabWidget):
                                            STAGE_NAME[stage_idx])
 
         except KeyError:
-            self.parent.statusBar().showMessage('The start of the window does '
-                                                'not correspond to any epoch '
-                                                'in sleep scoring file')
+            msg = ('The start of the window does not correspond to any epoch ' +
+                   'in sleep scoring file')
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         else:
-            lg.info('User staged ' + str(window_start) + ' as ' +
-                    STAGE_NAME[stage_idx])
+            lg.debug('User staged ' + str(window_start) + ' as ' +
+                     STAGE_NAME[stage_idx])
 
             self.set_stage_index()
             self.parent.overview.mark_stages(window_start, window_length,
@@ -749,7 +753,9 @@ class Notes(QTabWidget):
     def get_quality(self, qual_idx=None):
         """Get the signal qualifier, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+            msg = 'No score file loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
             return
 
         window_start = self.parent.value('window_start')
@@ -761,17 +767,18 @@ class Notes(QTabWidget):
                                            attr='quality')
 
         except KeyError:
-            self.parent.statusBar().showMessage('The start of the window does '
-                                                'not correspond to any epoch '
-                                                'in sleep scoring file')
+            msg = ('The start of the window does not correspond to any epoch ' +
+                   'in sleep scoring file')
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         else:
-            lg.info('User staged ' + str(window_start) + ' as ' +
-                    QUALIFIERS[qual_idx])
+            lg.debug('User staged ' + str(window_start) + ' as ' +
+                     QUALIFIERS[qual_idx])
 
             self.set_quality_index()
             self.parent.overview.mark_quality(window_start, window_length,
-                                             QUALIFIERS[qual_idx])
+                                              QUALIFIERS[qual_idx])
             self.display_stats()
             self.parent.traces.page_next()
 
@@ -794,9 +801,10 @@ class Notes(QTabWidget):
             self.annot.set_cycle_mrkr(window_start, end=end)
 
         except KeyError:
-            self.parent.statusBar().showMessage('The start of the window does '
-                                                'not correspond to any epoch '
-                                                'in sleep scoring file')
+            msg = ('The start of the window does not correspond to any epoch ' +
+                   'in sleep scoring file')
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         else:
             bound = 'start'
@@ -816,12 +824,13 @@ class Notes(QTabWidget):
             self.annot.remove_cycle_mrkr(window_start)
 
         except KeyError:
-            self.parent.statusBar().showMessage('The start of the window does '
-                                                'not correspond to any cycle '
-                                                'marker in sleep scoring file')
+            msg = ('The start of the window does not correspond to any cycle ' +
+                   'marker in sleep scoring file')
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
 
         else:
-            lg.info('User removed cycle marker at' + str(window_start))
+            lg.debug('User removed cycle marker at' + str(window_start))
             #self.trace
             self.parent.overview.update(reset=False)
             self.parent.overview.display_annotations()
@@ -835,7 +844,7 @@ class Notes(QTabWidget):
             msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
             msgBox.setDefaultButton(QMessageBox.Yes)
             response = msgBox.exec_()
-    
+
             if response == QMessageBox.No:
                 return
 
@@ -872,7 +881,9 @@ class Notes(QTabWidget):
     def new_annot(self):
         """Action: create a new file for annotations."""
         if self.parent.info.filename is None:
-            self.parent.statusBar().showMessage('No dataset loaded')
+            msg = 'No dataset loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
             return
 
         filename = splitext(self.parent.info.filename)[0] + '_scores.xml'
@@ -901,7 +912,9 @@ class Notes(QTabWidget):
         try:
             self.update_notes(filename, False)
         except FileNotFoundError:
-            self.parent.statusBar().showMessage('Annotation file not found')
+            msg = 'Annotation file not found'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
 
     def clear_annot(self):
         """Action: clear all the annotations (ask for confirmation first)."""
@@ -949,14 +962,17 @@ class Notes(QTabWidget):
             create_annotation(annot_file, from_fasst=fasst_file)
         except BaseException as err:
             self.parent.statusBar().showMessage(str(err))
+            lg.info(str(err))
             return
 
         try:
             self.update_notes(annot_file, False)
         except FileNotFoundError:
-            self.parent.statusBar().showMessage('Annotation file not found')
+            msg = 'Annotation file not found'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
 
-    def import_staging(self, source, staging_start=None, test_filename=None, 
+    def import_staging(self, source, staging_start=None, test_filename=None,
                        test_rater=None):
         """Action: import an external sleep staging file.
 
@@ -969,11 +985,15 @@ class Notes(QTabWidget):
             Absolute time when staging begins.
         """
         if self.annot is None:  # remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+            msg = 'No score file loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
             return
-        
+
         if self.parent.info.dataset is None:
-            self.parent.statusBar().showMessage('No dataset loaded')
+            msg = 'No dataset loaded'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
             return
 
         record_start = self.parent.info.dataset.header['start_time']
@@ -991,7 +1011,7 @@ class Notes(QTabWidget):
 
         if test_rater is None:
             rater, ok = QInputDialog.getText(self, 'Import staging',
-                                          'Enter rater name')
+                                            'Enter rater name')
             if not ok:
                 return
 
@@ -1013,19 +1033,20 @@ class Notes(QTabWidget):
 
         if source == 'compumedics':
             time_str, ok = QInputDialog.getText(self, 'Staging start time',
-                                              'Enter date and time when '
-                                              'staging \nbegins, using '
-                                              '24-hour clock. \n\nFormat: '
-                                              'YYYY,MM,DD HH:mm:SS')
+                                                'Enter date and time when '
+                                                'staging \nbegins, using '
+                                                '24-hour clock. \n\nFormat: '
+                                                'YYYY,MM,DD HH:mm:SS')
             if not ok:
                 return
-            
+
             try:
-                staging_start = datetime.strptime(time_str, 
+                staging_start = datetime.strptime(time_str,
                                                   '%Y,%m,%d %H:%M:%S')
             except (ValueError, TypeError) as e:
-                self.parent.statusBar().showMessage('Incorrect formatting '
-                                     'for date and time.')
+                msg = 'Incorrect formatting for date and time.'
+                self.parent.statusBar().showMessage(msg)
+                lg.info(msg)
                 return
 
         try:
@@ -1033,28 +1054,30 @@ class Notes(QTabWidget):
                                       record_start,
                                       staging_start=staging_start)
         except FileNotFoundError:
-            self.parent.statusBar().showMessage('File not found')
+            msg = 'File not found'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
 
         self.display_notes()
         self.parent.create_menubar()  # refresh list ot raters
 
     def new_rater(self):
         """Action: add a new rater.
-
-        Notes
-        -----
-        First argument, if not specified, is a bool/False:
-        http://pyqt.sourceforge.net/Docs/PyQt4/qaction.html#triggered
         """
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
-        answer = QInputDialog.getText(self, 'New Rater',
-                                      'Enter rater\'s name')
-        if answer[1]:
-            self.annot.add_rater(answer[0],
-                                 self.parent.value('scoring_window'))
+        newuser = NewUserDialog(self.parent.value('scoring_window'))
+        answer = newuser.exec_()
+
+        if answer == QDialog.Rejected:
+            return
+
+        rater_name = newuser.rater_name.text()
+
+        if rater_name != '':
+            self.annot.add_rater(rater_name, newuser.epoch_length.value())
             self.display_notes()
             self.parent.create_menubar()  # refresh list ot raters
 
@@ -2486,3 +2509,33 @@ def _select_channels(data, channels):
     output.axis['chan'][0] = asarray(channels)
 
     return output
+
+
+class NewUserDialog(QDialog):
+
+    def __init__(self, default_length):
+        super().__init__()
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+
+        bbox.clicked.connect(self.button_clicked)
+
+        self.rater_name = QLineEdit('')
+        self.epoch_length = QSpinBox()
+        self.epoch_length.setValue(default_length)
+
+        f = QFormLayout()
+        f.addRow('Rater\'s name', self.rater_name)
+        f.addRow('Epoch Length', self.epoch_length)
+        f.addRow(bbox)
+
+        self.setLayout(f)
+        self.show()
+
+    def button_clicked(self, button):
+        if button == self.idx_ok:
+            self.accept()
+
+        elif button == self.idx_cancel:
+            self.reject()
