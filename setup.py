@@ -35,18 +35,33 @@ setup(
     packages=find_packages(exclude=('test', )),
     install_requires=['numpy', 'scipy'],
     extras_require={
-        'gui': ['pyqt5',],
-        'viz': ['plotly', 'vispy'],
-        'all': [ 'mne',
-                'nibabel',
-                'python-vlc',  # for videos, to avoid problems with backends
-                'request',  # to read ieeg.org dataset
-                ]
+        'gui': [
+            'pyqt5',
+            ],
+        'viz': [
+            'plotly',
+            'vispy',
+            ],
+        'test': [  # to run tests
+            'pytest',
+            'pytest-qt',
+            'pytest-cov',
+            'codecov',
+            'plotly',
+            ],
+        'all': [
+            'mne',
+            'nibabel',
+            'python-vlc',  # for videos, to avoid problems with backends
+            'request',  # to read ieeg.org dataset
+            ]
     },
     package_data={
-        'wonambi': ['widgets/icons/oxygen/*.png',
-                   'VERSION',
-                   ],
+        'wonambi': [
+            'widgets/icons/oxygen/*.png',
+            'widgets/icons/wonambi.jpg',
+            'VERSION',
+            ],
     },
 
     entry_points={

@@ -30,7 +30,8 @@ stdicon = QCommonStyle.standardIcon
 icon_path = join(dirname(realpath(__file__)), 'icons')
 oxy_path = join(icon_path, 'oxygen')
 
-ICON = {'open_rec': join(oxy_path, 'document-open.png'),
+ICON = {'application': join(icon_path, 'wonambi.jpg'),
+        'open_rec': join(oxy_path, 'document-open.png'),
         'page_prev': join(oxy_path, 'go-previous-view.png'),
         'page_next': join(oxy_path, 'go-next-view.png'),
         'step_prev': join(oxy_path, 'go-previous.png'),

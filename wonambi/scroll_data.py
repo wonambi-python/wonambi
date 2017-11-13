@@ -13,12 +13,13 @@ from types import MethodType
 
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
+from PyQt5.QtGui import QIcon
 
 from . import __version__
 from .widgets.creation import (create_menubar, create_toolbar,
                                create_actions, create_widgets)
 from .widgets.settings import DEFAULTS
-from .widgets.utils import keep_recent_datasets
+from .widgets.utils import keep_recent_datasets, ICON
 
 now = datetime.now()
 
@@ -250,6 +251,7 @@ def main():
 
     global app
     app = QApplication([])
+    app.setWindowIcon(QIcon(ICON['application']))
 
     parser = ArgumentParser(prog='wonambi',
                             description=DESCRIPTION)
