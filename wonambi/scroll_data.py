@@ -257,6 +257,8 @@ def main():
                         help='Return version')
     parser.add_argument('-l', '--log', default='info',
                         help='Logging level: info (default), debug')
+    parser.add_argument('--reset', action='store_true',
+                        help='Reset (clear) configuration file')
     parser.add_argument('dataset', nargs='?',
                         help='full path to dataset to open')
 
@@ -277,6 +279,9 @@ def main():
 
     lg.handlers = []
     lg.addHandler(handler)
+
+    if args.reset:
+        settings.clear()
 
     if args.version:
         lg.info('WONAMBI v{}'.format(__version__))
