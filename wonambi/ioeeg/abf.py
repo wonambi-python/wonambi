@@ -146,7 +146,7 @@ def _read_header(fid):
     """
     fid.seek(0, SEEK_SET)
     fFileSignature = fid.read(4)
-    assert fFileSignature == b'ABF2'
+    assert fFileSignature == b'ABF2', 'only format ABF2 is currently supported'
 
     header = {}
     for key, offset, fmt in headerDescriptionV2:

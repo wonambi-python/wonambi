@@ -7,7 +7,7 @@ Features
 --------
 - Can read files of format:
 
-  - Axon (.abf)
+  - Axon (.abf, ABF2 only)
   - Blackrock (.nev, .ns2, .ns3, .ns5)
   - BCI2000 (.dat)
   - European Data Format (.edf)
