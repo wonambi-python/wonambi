@@ -586,7 +586,7 @@ class AnalysisDialog(QDialog):
             which button was pressed
         """
         if button is self.idx_ok:
-            #data = self.read_data()
+            self.read_data()
             
             self.accept()
 
@@ -734,9 +734,24 @@ class AnalysisDialog(QDialog):
         for button in self.event['sw']['slope']:
             button.setChecked(slopes_checked)
         
-    def _read_data(self):
+    def read_data(self):
         """Read data for analysis."""    
-        pass
+        dataset = self.parent.info.dataset
+        chan = self.get_channels()
+        chan_to_read = chan + self.one_grp['ref_chan']
+    
+        data = dataset.read_data(chan=chan_to_read)
+        
+        max_s_freq = self.parent.value('max_s_freq')
+        if data.s_freq > max_s_freq:
+            q = int(data.s_freq / max_s_freq)
+            lg.debug('Decimate (no low-pass filter) at ' + str(q))
+    
+            data.data[0] = data.data[0][:, slice(None, None, q)]
+            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
+            data.s_freq = int(data.s_freq / q)
+            
+        self.data = data
 
 
 def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None, 
