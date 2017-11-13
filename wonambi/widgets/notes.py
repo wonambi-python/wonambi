@@ -722,10 +722,9 @@ class Notes(QTabWidget):
 
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
-        scoring_window = self.parent.value('scoring_window')
 
-        if window_length != scoring_window:
-            msg = ('Zoom to ' + str(scoring_window) + ' (epoch length) ' +
+        if window_length != self.annot.epoch_length:
+            msg = ('Zoom to ' + str(self.annot.epoch_length) + ' (epoch length) ' +
                    'for sleep scoring.')
             self.parent.statusBar().showMessage(msg)
             lg.debug(msg)

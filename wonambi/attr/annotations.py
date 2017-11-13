@@ -242,6 +242,11 @@ class Annotations():
     def raters(self):
         return [rater.get('name') for rater in self.root.iter('rater')]
 
+    @property
+    def epoch_length(self):
+        epoch = next(self.epochs)
+        return epoch['end'] - epoch['start']
+
     def get_rater(self, rater_name):
         # get xml root for one rater
         found = False
@@ -863,7 +868,8 @@ class Annotations():
 
         return epoch_starts[idx]
 
-    def get_stage_for_epoch(self, epoch_start, window_length, attr='stage'):
+    def get_stage_for_epoch(self, epoch_start, window_length=None,
+                            attr='stage'):
         """Return stage for one specific epoch.
 
         Parameters
@@ -877,15 +883,16 @@ class Annotations():
         -------
         stage : str
             description of the stage.
-
         """
-
         for epoch in self.epochs:
             if epoch['start'] == epoch_start:
                 return epoch[attr]
-            elif logical_and(window_length < 30,
-                             0 <= (epoch_start - epoch['start']) < 30):
-                return epoch[attr]
+
+            if window_length is not None:
+                epoch_length = epoch['end'] - epoch['start']
+                if logical_and(window_length < epoch_length,
+                               0 <= (epoch_start - epoch['start']) < epoch_length):
+                    return epoch[attr]
 
     def time_in_stage(self, name, attr='stage'):
         """Return time (in seconds) in the selected stage.
