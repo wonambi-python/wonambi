@@ -118,7 +118,7 @@ class Abf:
                       shape=(self.n_chan, self.n_samples), offset=self.head)
 
         dat = data[chan, max((begsam, 0)):min((endsam, self.n_samples))].astype(float64)
-        dat = (dat + self.offset) * self.gain
+        dat = (dat + self.offset[chan, :]) * self.gain[chan, :]
 
         if begsam < 0:
 
