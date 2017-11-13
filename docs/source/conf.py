@@ -70,6 +70,9 @@ html_theme_options = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'wonambidoc'
 
+html_logo = 'img/wonambi.png'
+html_favicon = 'img/wonambi.ico'
+
 
 def run_apidoc(_):
     chdir(cur_dir)  # use same dir as readthedocs, which is docs/source
