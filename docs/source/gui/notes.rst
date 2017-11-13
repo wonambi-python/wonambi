@@ -32,6 +32,10 @@ If importation is successful, the converted sleep staging will appear in the ``O
 
 .. image:: images/notes_05_show_imported.png
 
+For RemLogic staging, make sure you select the following options when exporting from RemLogic:
+
+..images:: images/notes_21_remlogic_options.png
+
 Stage sleep
 -----------
 
