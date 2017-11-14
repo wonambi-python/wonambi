@@ -123,7 +123,7 @@ def test_widget_channels_save(qtbot):
     channelsgroup.idx_l0.item(2).setSelected(True)
 
     channelsgroup.idx_hp.setValue(20)
-    channelsgroup.idx_lp.setValue(30)
+    channelsgroup.idx_lp.setValue(0)
     channelsgroup.idx_scale.setValue(10)
     w.channels.color_group(test_color=QColor('#ff4a87'))
 

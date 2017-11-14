@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.05**: save and load montage when filtering is set to 0 (None)
 - **4.04**: use variable epoch length for scoring, better handling of ABF2 files
 - **4.03**: change nan to zero so we can at least plot something if there are missing data 
 - **4.02**: you can open a dataset from the command line (and better logging)

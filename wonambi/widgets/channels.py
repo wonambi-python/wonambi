@@ -115,14 +115,20 @@ class ChannelsGroup(QWidget):
         self.add_channels_to_list(self.idx_l1)
 
         self.idx_hp = QDoubleSpinBox()
-        self.idx_hp.setValue(config_value['hp'])
+        hp = config_value['hp']
+        if hp is None:
+            hp = 0
+        self.idx_hp.setValue(hp)
         self.idx_hp.setSuffix(' Hz')
         self.idx_hp.setDecimals(1)
         self.idx_hp.setMaximum(s_freq / 2)
         self.idx_hp.setToolTip('0 means no filter')
 
         self.idx_lp = QDoubleSpinBox()
-        self.idx_lp.setValue(config_value['lp'])
+        lp = config_value['lp']
+        if lp is None:
+            lp = 0
+        self.idx_lp.setValue(lp)
         self.idx_lp.setSuffix(' Hz')
         self.idx_lp.setDecimals(1)
         self.idx_lp.setMaximum(s_freq / 2)
