@@ -485,6 +485,7 @@ class Notes(QTabWidget):
             self.display_eventtype()
             self.update_annotations()
             self.display_stats()
+            self.epoch_length = self.annot.epoch_length
 
     def display_stats(self):
         """Display summary statistics about duration in each stage."""
@@ -715,7 +716,7 @@ class Notes(QTabWidget):
         self.parent.overview.update_position(window_start)
 
     def get_sleepstage(self, stage_idx=None):
-        """Get the sleep stage, using shortcuts or combobox."""
+        """Score the sleep stage, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
@@ -723,8 +724,8 @@ class Notes(QTabWidget):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
 
-        if window_length != self.annot.epoch_length:
-            msg = ('Zoom to ' + str(self.annot.epoch_length) + ' (epoch length) ' +
+        if window_length != self.epoch_length:
+            msg = ('Zoom to ' + str(self.epoch_length) + ' (epoch length) ' +
                    'for sleep scoring.')
             self.parent.statusBar().showMessage(msg)
             lg.debug(msg)

@@ -5,7 +5,7 @@ from bisect import bisect_left
 from csv import writer
 from datetime import datetime, timedelta
 from itertools import compress
-from numpy import allclose, asarray, in1d, isnan, logical_and, modf
+from numpy import allclose, around, asarray, in1d, isnan, logical_and, modf
 from math import ceil, inf
 from os.path import splitext
 from pathlib import Path
@@ -245,7 +245,7 @@ class Annotations():
     @property
     def epoch_length(self):
         epoch = next(self.epochs)
-        return epoch['end'] - epoch['start']
+        return around(epoch['end'] - epoch['start'])
 
     def get_rater(self, rater_name):
         # get xml root for one rater
@@ -891,7 +891,8 @@ class Annotations():
             if window_length is not None:
                 epoch_length = epoch['end'] - epoch['start']
                 if logical_and(window_length < epoch_length,
-                               0 <= (epoch_start - epoch['start']) < epoch_length):
+                               0 <= \
+                               (epoch_start - epoch['start']) < epoch_length):
                     return epoch[attr]
 
     def time_in_stage(self, name, attr='stage'):

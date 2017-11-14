@@ -408,7 +408,7 @@ class Overview(QGraphicsView):
             self.scene.removeItem(old_score)
             self.idx_annot.remove(old_score)
 
-        if qual_name == 'Bad':
+        if qual_name == 'Poor':
             rect = QGraphicsRectItem(start_time, y_pos, length, height)
             rect.setPen(NoPen)
             rect.setBrush(Qt.black)
