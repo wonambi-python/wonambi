@@ -21,7 +21,7 @@ Plugin 'ludovicchabant/vim-gutentags'
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
 
-
+ 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -82,15 +82,8 @@ set expandtab
 " h l continues on the previous and next line
 set whichwrap+=h,l
 
-nnoremap / /\V
-cnoremap s/ s/\V
-
-" colorscheme (default for arch, evening for cashlab03)
-if hostname() == 'archgio'
- colorscheme default
-elseif hostname() == 'cashlab03'
- colorscheme evening
-endif
+" colorscheme
+colorscheme default
 
 " folding
 set foldmethod=indent
@@ -118,12 +111,16 @@ autocmd BufRead,BufNewFile *.cls setfiletype=tex
 autocmd FileType python setlocal colorcolumn=80
 
 " SYNTASTIC
+" jump to errors
+noremap <silent> [e :lprev<CR>
+noremap <silent> ]e :lnext<CR>
+
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
 set statusline+=%*
 
-let g:syntastic_always_populate_loc_list = 0
-let g:syntastic_auto_loc_list = 0
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 " keep location list small
