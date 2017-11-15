@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.06**: new spindle method; fix for Nir2011; epoch selection ; bugfixes
 - **4.05**: save and load montage when filtering is set to 0 (None)
 - **4.04**: use variable epoch length for scoring, better handling of ABF2 files
 - **4.03**: change nan to zero so we can at least plot something if there are missing data 

@@ -68,7 +68,7 @@ STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 'Nir2011', 'Moelle2011', 'Ferrarelli2007',
-                   'UCSD']
+                   'UCSD', 'Concordia']
 SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
 
 
@@ -1232,7 +1232,8 @@ class Notes(QTabWidget):
 
             detector.det_wavelet['sd'] = params['sigma']
             detector.smooth['dur'] = params['smooth']
-            detector.det_thresh = params['det_thresh']
+            detector.det_thresh_lo = params['det_thresh_lo']
+            detector.det_thresh_hi = params['det_thresh_hi']
             detector.sel_thresh = params['sel_thresh']
             detector.min_interval = params['interval']
 
@@ -1628,7 +1629,8 @@ class SpindleDialog(ChannelDialog):
         self.index['sigma'] = FormFloat()
         self.index['win_sz'] = FormFloat()
         self.index['smooth'] = FormFloat()
-        self.index['det_thresh'] = FormFloat()
+        self.index['det_thresh_lo'] = FormFloat()
+        self.index['det_thresh_hi'] = FormFloat()
         self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
 
@@ -1642,8 +1644,10 @@ class SpindleDialog(ChannelDialog):
                            self.index['win_sz'])
         form_layout.addRow('Smoothing',
                            self.index['smooth'])
-        form_layout.addRow('Detection threshold',
-                           self.index['det_thresh'])
+        form_layout.addRow('Detection threshold, low',
+                           self.index['det_thresh_lo'])
+        form_layout.addRow('Detection threshold, high',
+                           self.index['det_thresh_hi'])
         form_layout.addRow('Selection threshold',
                            self.index['sel_thresh'])
         form_layout.addRow('Minimum interval',
@@ -1724,11 +1728,13 @@ class SpindleDialog(ChannelDialog):
 
         self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
         self.index['smooth'].set_value(spin_det.smooth['dur'])
-        self.index['det_thresh'].set_value(spin_det.det_thresh)
+        self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
+        self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
         self.index['sel_thresh'].set_value(spin_det.sel_thresh)
         self.index['interval'].set_value(spin_det.min_interval)
 
-        for param in ['sigma', 'win_sz', 'det_thresh', 'sel_thresh', 'smooth']:
+        for param in ['sigma', 'win_sz', 'det_thresh_lo', 'det_thresh_hi',
+                      'sel_thresh', 'smooth']:
             widg = self.index[param]
             if widg.get_value() == 0:
                 widg.set_value('N/A')

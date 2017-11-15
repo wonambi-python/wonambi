@@ -756,16 +756,6 @@ class Annotations():
                 else:
                     ev_qual = ep_quality[pos]
                     qual_cond = ev_qual == qual
-                """
-                if stage is None:
-                    stage_cond = True
-                else:
-                    if event_start == ep_starts[pos]:
-                        ev_stage = ep_stages[pos]
-                    else:
-                        ev_stage = ep_stages[pos - 1]
-                    stage_cond = ev_stage in stage
-                """
 
                 if time is None:
                     time_cond = True
@@ -830,7 +820,8 @@ class Annotations():
         -------
         list of dict
             each epoch is defined by start_time and end_time (in s in reference
-            to the start of the recordings) and a string of the sleep stage.
+            to the start of the recordings) and a string of the sleep stage, 
+            and a string of the signal quality.
             If you specify stages_of_interest, only epochs belonging to those
             stages will be included (can be an empty list).
 
@@ -849,6 +840,47 @@ class Annotations():
                      'quality': one_epoch.find('quality').text
                      }
             yield epoch
+
+    def get_epochs(self, time=None, stage=None, quality=None, 
+                   chan=None, name=None):
+        """Get list of events in the file.
+
+        Parameters
+        ----------
+        time : tuple of two float, optional
+            start and end time of the period of interest
+        chan : tuple of str, optional
+            list of channels of interests
+        stage : tuple of str, optional
+            list of stages of interest
+        qual : str, optional
+            epoch signal qualifier (Good or Poor)
+        chan : None
+            placeholder, to maintain format similar to get_events
+        name : None
+            placeholder, to maintain format similar to get_events
+        Returns
+        -------
+        list of dict
+            where each dict has 'start' (start time), 'end' (end time), 
+            'stage', 'quality' (signal quality)
+        """
+        time_cond = True
+        stage_cond = True
+        qual_cond = True
+        valid = []
+
+        for ep in self.epochs:
+            if stage:
+                stage_cond = ep['stage'] in stage
+            if quality:
+                qual_cond = ep['quality'] == quality
+            if time:
+                time_cond = time[0] <= ep['start'] and time[1] >= ep['end']
+            if stage_cond and qual_cond and time_cond:
+                valid.append(ep)
+
+        return valid
 
     def get_epoch_start(self, window_start):
         """ Get the position (seconds) of the nearest epoch.

@@ -108,7 +108,16 @@ def test_events():
     assert len(annot.event_types) == 1
     assert len(annot.get_events()) == 0
     
+def test_epochs():
+    d = Dataset(ns2_file)
+    create_empty_annotations(annot_file, d)
+
+    annot = Annotations(annot_file)
+    annot.add_rater('test')
     
+    assert len(annot.get_epochs()) == 50
+    assert len(annot.get_epochs(time=(1000,2000))) == 16
+        
 def test_import_alice():
     annot = Annotations(annot_file)
     record_start = datetime(2000, 1, 1, 22, 55, 6)

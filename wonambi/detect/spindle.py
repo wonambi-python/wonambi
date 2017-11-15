@@ -2,9 +2,9 @@
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
-                   diff, exp, empty, floor, hstack, insert, invert, linspace,
-                   mean, median, nan, ones, pi, ptp, sqrt, square,
-                   std, vstack, where, zeros)
+                   diff, exp, empty, floor, hstack, insert, invert, mean, 
+                   median, nan, ones, pi, ptp, sqrt, square, std, vstack, 
+                   where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram, tukey)
@@ -41,25 +41,26 @@ class DetectSpindle:
         self.duration = duration
         self.merge = merge
         self.min_interval = 0
+        self.det_thresh_hi = 0
 
         self.power_peaks = 'interval'
 
         if method == 'Ferrarelli2007':
-            self.det_butter = {'order': 4,
+            self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
             self.det_wavelet = {'sd': None}
-            self.det_thresh = 8
+            self.det_thresh_lo = 8
             self.sel_thresh = 2
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': None}
 
         elif method == 'Nir2011':
-            self.det_butter = {'order': 4,
+            self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
             self.det_wavelet = {'sd': None}
-            self.det_thresh = 3
+            self.det_thresh_lo = 3
             self.sel_thresh = 1
             self.min_interval = 1
             self.moving_rms = {'dur': None}
@@ -70,7 +71,7 @@ class DetectSpindle:
                                 'sd': .5,
                                 'dur': 2,
                                 }
-            self.det_thresh = 4.5
+            self.det_thresh_lo = 4.5
             self.sel_thresh = None  # necessary for gui/detect
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .1}
@@ -83,7 +84,7 @@ class DetectSpindle:
                                 'win': .5,
                                 'sd': None
                                 }
-            self.det_thresh = 2  # wavelet_peak_thresh
+            self.det_thresh_lo = 2  # wavelet_peak_thresh
             self.sel_wavelet = {'freqs': arange(frequency[0],
                                                 frequency[1] + .5, .5),
                                 'dur': 1,
@@ -96,14 +97,26 @@ class DetectSpindle:
             self.smooth = {'dur': None}
 
         elif method == 'Moelle2011':
-            self.det_butter = {'order': 4,
+            self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
             self.det_wavelet = {'sd': None}
-            self.det_thresh = 1.5
+            self.det_thresh_lo = 1.5
             self.sel_thresh = None
             self.moving_rms = {'dur': .2}
             self.smooth = {'dur': .2}
+            
+        elif method == 'Concordia':
+            self.det_butter = {'order': 3,
+                               'freq': self.frequency,
+                               }
+            self.det_wavelet = {'sd': None}
+            self.det_thresh_lo = 1.5
+            self.det_thresh_hi = 8
+            self.sel_thresh = 0.5
+            self.moving_rms = {'dur': .2}
+            self.smooth = {'dur': .2}
+            self.min_interval = 0.5
 
         else:
             raise ValueError('Unknown method')
@@ -140,7 +153,8 @@ class DetectSpindle:
 
             if self.method == 'Ferrarelli2007':
                 sp_in_chan, values, density = detect_Ferrarelli2007(dat_orig,
-                                                                    data.s_freq, time,
+                                                                    data.s_freq, 
+                                                                    time,
                                                                     self)
 
             elif self.method == 'Nir2011':
@@ -161,6 +175,10 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_Moelle2011(dat_orig,
                                                                 data.s_freq,
                                                                 time, self)
+            elif self.method == 'Concordia':
+                sp_in_chan, values, density = detect_Concordia(dat_orig,
+                                                               data.s_freq,
+                                                               time, self)
             else:
                 raise ValueError('Unknown method')
 
@@ -225,7 +243,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'hilbert')
     dat_det = transform_signal(dat_det, s_freq, 'abs')
 
-    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
+    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
     sel_value = define_threshold(dat_det, s_freq, 'mean', opts.sel_thresh)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
@@ -299,7 +317,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
+    det_value = define_threshold(dat_det, s_freq, 'mean+std', 
+                                 opts.det_thresh_lo)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
 
@@ -377,15 +396,16 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'abs')
     dat_det = transform_signal(dat_det, s_freq, 'gaussian', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', opts.det_thresh)
+    det_value = define_threshold(dat_det, s_freq, 'mean+std', 
+                                 opts.det_thresh_lo)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
-        events = select_events(dat_det, events, 'above_thresh', sel_value)
-
         events = _merge_close(dat_det, events, time, opts.min_interval)
+        
+        events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
 
@@ -445,7 +465,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
+    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
 
@@ -509,7 +529,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                                opts.det_wavelet)
 
     det_value = define_threshold(dat_det, s_freq, 'median+std',
-                                 opts.det_thresh)
+                                 opts.det_thresh_lo)
 
     events = detect_events(dat_det, 'maxima', det_value)
 
@@ -532,6 +552,79 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                                dat_orig, time, s_freq)
 
     values = {'det_value': det_value, 'sel_value': sel_value}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
+
+
+def detect_Concordia(dat_orig, s_freq, time, opts):
+    """Spindle detection, experimental Concordia method. Similar to Moelle 2011
+    and Nir2011.
+    
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    opts : instance of 'DetectSpindle'
+        'det_butter' : dict
+            parameters for 'butter',
+        'moving_rms' : dict
+            parameters for 'moving_rms'
+        'smooth' : dict
+            parameters for 'moving_avg'
+        'det_thresh_lo' : float
+            low detection threshold
+        'det_thresh_hi' : float
+            high detection threshold
+        'sel_thresh' : float
+            selection threshold
+        'duration' : tuple of float
+            min and max duration of spindles
+
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value_lo', 'det_value_hi' with detection values, 'sel_value' with
+        selection value
+    float
+        spindle density, per 30-s epoch
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+
+    det_value_lo = define_threshold(dat_det, s_freq, 'mean+std', 
+                                    opts.det_thresh_lo)
+    det_value_hi = define_threshold(dat_det, s_freq, 'mean+std', 
+                                    opts.det_thresh_hi)
+    sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
+
+    events = detect_events(dat_det, 'above_thresh', det_value_lo)
+    events = detect_events(dat_det, 'below_thresh', det_value_hi)
+
+    if events is not None:
+        events = _merge_close(dat_det, events, time, opts.min_interval)
+        
+        events = select_events(dat_det, events, 'above_thresh', sel_value)
+
+        events = within_duration(events, time, opts.duration)
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value_lo': det_value_lo, 'det_value_hi': det_value_hi,
+              'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 

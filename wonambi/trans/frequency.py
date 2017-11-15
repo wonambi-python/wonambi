@@ -480,7 +480,7 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     theorem.
 
     Note that scipy.signal is not consistent with these names, but the
-    formulas are the sames. Also, scipy (v1.1 at least) does not handle dpss.
+    formulas are the same. Also, scipy (v1.1 at least) does not handle dpss.
 
     Finally, the complex output has an additional dimension (taper), for each
     taper (even for the boxcar or hann taper). This is useful for multitaper

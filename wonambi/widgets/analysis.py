@@ -577,22 +577,6 @@ class AnalysisDialog(QDialog):
 
         self.setLayout(hlayout)
 
-    def button_clicked(self, button):
-        """Action when button was clicked.
-
-        Parameters
-        ----------
-        button : instance of QPushButton
-            which button was pressed
-        """
-        if button is self.idx_ok:
-            self.read_data()
-
-            self.accept()
-
-        if button is self.idx_cancel:
-            self.reject()
-
     def update_types(self):
         """Update the event types list when dialog is opened."""
         self.event_types = self.parent.notes.annot.event_types
@@ -734,7 +718,23 @@ class AnalysisDialog(QDialog):
         slopes_checked = self.event['sw']['all_slope'].get_value()
         for button in self.event['sw']['slope']:
             button.setChecked(slopes_checked)
-        
+
+    def button_clicked(self, button):
+        """Action when button was clicked.
+
+        Parameters
+        ----------
+        button : instance of QPushButton
+            which button was pressed
+        """
+        if button is self.idx_ok:
+            self.read_data()
+
+            self.accept()
+
+        if button is self.idx_cancel:
+            self.reject()
+
     def read_data(self):
         """Read data for analysis."""    
         dataset = self.parent.info.dataset
@@ -753,6 +753,145 @@ class AnalysisDialog(QDialog):
             data.s_freq = int(data.s_freq / q)
             
         self.data = data
+        
+    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None, 
+                  min_dur=0, exclude=True):
+        """Get start and end times for selected segments of data, bundled 
+        together with info.
+        
+        Parameters
+        ----------
+        evt_type: list of str or float or str, optional
+            This parameter determines the chunking of the signal: events, epochs or
+            continuous segments. If events desired, enter event type(s) as list of 
+            str. If epochs desired, enter float for epoch duration (s) or 
+            'lock_to_scoring' to return epochs synchronized with annotations. If
+            continuous segments desired, enter None. Defaults to None.
+        stage: list of str, optional
+            Stage(s) of interest. If None, all stages are used.
+        cycle: tuple of int, optional
+            Cycle(s) of interest. If None, cycles are disregarded.
+        min_dur: float
+            Minimum duration of signal chunks returned. Defaults to 0.
+        exclude: bool
+            Exclude epochs by quality. If True, epochs marked as 'Poor' quality
+            or staged as 'Artefact' will be rejected (and the signal cisioned in
+            consequence). Defaults to True.
+            
+        Returns
+        -------
+        list of dict
+            Each dict has times (the start and end times of each segment, as 
+            list of tuple of float), stage, cycle, chan, name (event type, 
+            if applicable)
+        """      
+        bundles = []
+        
+        for i in [stage, cycle, chan]:
+            if i is None:
+                i = (None,)
+        
+        evt_types = (None,)
+        evt_chan = (None,)
+        getter = self.annot.get_epochs
+        qual = None         
+
+        if isinstance(evt_type, list):
+            evt_types = evt_type
+            evt_chan = chan
+            getter = self.annot.get_events
+        
+        if exclude:
+            qual = 'Poor'
+            
+        for et in evt_types:
+            
+            for ch in evt_chan:
+            
+                for cyc in cycle:
+                    
+                    for ss in stage:
+                        
+                        evochs = getter(name=et, time=cyc, chan=ch, 
+                                        stage=ss, qual=qual)
+                        times = [(e['start'], e['end']) for e in evochs]
+                        one_bundle = {'times': times,
+                                      'stage': ss,
+                                      'cycle': cyc,
+                                      'chan': ch,
+                                      'name': et}
+                        bundles.append(one_bundle)
+
+        return bundles
+
+    def concat(self, bundles, cat=(0, 0, 0, 1, 0)):
+        """Concatenate events or epochs.
+        
+        Parameters
+        ----------
+        bundles : list of dict
+            Each dict has times (the start and end times of each segment, as 
+            list of tuple of float), and the stage, cycle, chan and name (event 
+            type, if applicable) associated with the segment bundle
+        cat : tuple of int
+            Determines whether and where the signal is concatenated.
+            If 1st digit is 1, channels will be concatenated in order listed 
+            in chan.
+            If 2nd digit is 1, cycles selected in cycle will be 
+            concatenated.
+            If 3rd digit is 1, different stages selected in stage will be
+            concatenated.
+            If 4th digit is 1, discontinuous signal within a same stage will
+            be concatenated.
+            If 5th digit is 1, events of different types will be concatenated.
+            0 in any position indicates no concatenation.
+            Defaults to (0, 0, 0 , 1), i.e. concatenate signal within stages 
+            only.
+        
+        Returns
+        -------
+        list of dict
+            Each dict has times (the start and end times of each segment, as 
+            list of tuple of float), stage, cycle, chan, name (event type, 
+            if applicable)
+        """   
+        output = []
+        chan = (None,)
+        cycle = (None,)
+        stage = (None,)
+        evt_type = (None,)        
+        
+        if not cat[0]:
+            chan = set([x['chan'] for x in bundles])
+        
+        if not cat[1]:
+            cycle = set([x['cycle'] for x in bundles])
+            
+        if not cat[2]:
+            stage = set([x['stage'] for x in bundles])
+            
+        if not cat[4]:
+            evt_type = set([x['name'] for x in bundles])
+            
+        for ch in chan: # except chan is none for epochs...
+            
+            for cyc in cycle:
+                
+                for st in stage:
+                    
+                    for et in evt_type:
+                        
+                        for bd in bundles:
+                            chan_cond = ch in (bd['chan'], None)
+                            cyc_cond = cyc in (bd['cyc'], None)
+                            st_cond = st in (bd['stage'], None)
+                            et_cond = et in (bd['name'], None)
+                            
+                            if logical_and(chan_cond, cyc_cond, st_cond, 
+                                           et_cond):
+                                output.append(bd)
+                                
+        pass                    
 
 
 def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None,
@@ -807,5 +946,4 @@ def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None,
         Selected data with separate events/epochs/segments as trials.
     """
     pass
-
 

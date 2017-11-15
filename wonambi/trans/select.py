@@ -150,37 +150,6 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
 
     return output
 
-def get_times(data, cycle, stage, chunking, min_dur, exclude='poor'):
-    """Get start and end times for selected segments of data.
-    
-    Parameters
-    ----------
-    data: instance of Data
-        Raw data from which to fetch segments of interest
-    cycle: tuple of int, optional
-        Cycle(s) of interest. If None, cycles are disregarded.
-    stage: list of str, optional
-        Stage(s) of interest. If None, all stages are used.
-    chunking: list of str or float or str, optional
-        This parameter determines the chunking of the signal: events, epochs or
-        continuous segments. If events desired, enter event type(s) as list of 
-        str. If epochs desired, enter float for epoch duration (s) or 
-        'lock_to_scoring' to return epochs synchronized with annotations. If
-        continuous segments desired, enter None. Defaults to None.
-    min_dur: float
-        Minimum duration of signal chunks returned. Defaults to 0.
-    exclude: str, optional
-        Exclude epochs by quality. If 'poor', epochs marked as 'Poor' quality
-        or staged as 'Artefact' will be rejected (and the signal cisioned in
-        consequence). Defaults to 'poor'.
-        
-    Returns
-    -------
-    list of tuple of float
-        The start and end times of each segment
-    """
-    times = []
-
 def _create_subepochs(x, nperseg, step):
     """Transform the data into a matrix for easy manipulation
     
