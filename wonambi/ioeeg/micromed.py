@@ -2,16 +2,18 @@ from os import SEEK_SET, SEEK_END
 from datetime import datetime
 from struct import unpack
 
-from numpy import fromfile
+from numpy import fromfile, memmap, NaN, pad
 
-units = {-1: -1e9,  # nV
+
+UNITS = {-1: -1e9,  # nV
          0: -1e6,  # uV,
          1: -1e3,  # mV
          2: 1,
          100: 100,  # percent
          101: 1,  # dimentionless
          102: 1,  # dimentionless
-        }
+         }
+
 
 class Micromed:
     """Basic class to read the data.
@@ -58,6 +60,12 @@ class Micromed:
 
             f.seek(138, SEEK_SET)
             BOData, n_chan, Multiplexer, s_freq, N_BYTES = unpack('IHHHH', f.read(12))
+            self._info = {'BOData': BOData,
+                          'n_chan': n_chan,
+                          'Multiplexer': Multiplexer,
+                          's_freq': s_freq,
+                          'N_BYTES': N_BYTES,
+                          }
 
             f.seek(175, SEEK_SET)
             hdr_version = unpack('b', f.read(1))[0]
@@ -69,6 +77,8 @@ class Micromed:
                 zname = zname.decode('utf-8').strip()
                 zones[zname] = pos, length
 
+            self._zones = zones
+
             pos, length = zones['ORDER']
             f.seek(pos, 0)
             order = fromfile(f, dtype='u2', count=n_chan)
@@ -78,7 +88,13 @@ class Micromed:
             n_samples = int((EOData - BOData) / (n_chan * N_BYTES))
             self.n_smp = n_samples
 
-            chan_name =  _read_channels(f, n_chan, order, zones)[0]
+            chan_name, ground, factor, unit, all_s_freq = _read_channels(f, n_chan,
+                                                                 order, zones)
+            self._chan = {'factors': factor,
+                          'ground': ground,
+                          'units': unit,
+                          'all_s_freq': all_s_freq,
+                          }
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -115,7 +131,14 @@ class Micromed:
         else:
             endpad = 0
 
-        return None
+        dshape = (self._info['n_chan'], endsam - begsam)
+        sig_dtype = 'u' + str(self._info['N_BYTES'])
+        offset = self._info['BOData'] + begsam * self._info['N_BYTES'] * self._info['n_chan']
+        dat = memmap(str(self.filename), dtype=sig_dtype, order='F', mode='r', shape=dshape, offset=offset).astype('float')
+
+        dat = pad(dat, ((0, 0), (begpad, endpad)), mode='constant', constant_values=NaN)
+
+        return dat[chan, :]
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
@@ -139,6 +162,9 @@ class Micromed:
 
 def _read_channels(f, n_chan, order, zones):
     chan_names = []
+    factors = []
+    grounds = []
+    units = []
     all_s_freq = []
 
     for c in range(n_chan):
@@ -150,17 +176,21 @@ def _read_channels(f, n_chan, order, zones):
         ground = f.read(6).strip(b'\x01\x00').decode()
 
         logical_min, logical_max, logical_ground, physical_min, physical_max = unpack('iiiii', f.read(20))
-        factor = float(physical_max - physical_min) / float( logical_max - logical_min + 1)
+        grounds.append(logical_ground)
+
+        factor = float(physical_max - physical_min) / float(logical_max - logical_min + 1)
+        factors.append(factor)
 
         k = unpack('h', f.read(2))[0]
-        if k in units.keys():
-            unit = units[k]
+        if k in UNITS.keys():
+            unit = UNITS[k]
         else:
-            unit = units[0]
+            unit = UNITS[0]
+        units.append(unit)
 
         f.seek(8, 1)
         s_rate = unpack('H', f.read(2))[0]
         all_s_freq.append(s_rate)
 
         # signal = (rawdata[:, c].astype('f') - logical_ground) * factor * unit
-    return chan_names,  factor, unit, all_s_freq
+    return chan_names, grounds, factors, units, all_s_freq
