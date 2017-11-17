@@ -755,7 +755,7 @@ class AnalysisDialog(QDialog):
         self.data = data
         
     def get_times(self, evt_type=None, stage=None, cycle=None, chan=None, 
-                  min_dur=0, exclude=True):
+                  exclude=True):
         """Get start and end times for selected segments of data, bundled 
         together with info.
         
@@ -767,12 +767,12 @@ class AnalysisDialog(QDialog):
             str. If epochs desired, enter float for epoch duration (s) or 
             'lock_to_scoring' to return epochs synchronized with annotations. If
             continuous segments desired, enter None. Defaults to None.
-        stage: list of str, optional
+        stage: list of str or tuple of None
             Stage(s) of interest. If None, all stages are used.
-        cycle: tuple of int, optional
+        cycle: list of int or tuple of None
             Cycle(s) of interest. If None, cycles are disregarded.
-        min_dur: float
-            Minimum duration of signal chunks returned. Defaults to 0.
+        chan: list of str or tuple of None
+            Channel(s) of interest. If None, channels are disregarded.
         exclude: bool
             Exclude epochs by quality. If True, epochs marked as 'Poor' quality
             or staged as 'Artefact' will be rejected (and the signal cisioned in
@@ -785,14 +785,21 @@ class AnalysisDialog(QDialog):
             list of tuple of float), stage, cycle, chan, name (event type, 
             if applicable)
         """      
+        if stage is None:
+            stage = ('',)
+        if cycle is None:
+            cycle = ('',)
+        if chan is None:
+            chan = ('',)  
+        if evt_type is None:
+            evt_type = ('',)
+        elif isinstance(evt_type[0], str):
+            getter = self.annot.get_events
+        
         bundles = []
         
-        for i in [stage, cycle, chan]:
-            if i is None:
-                i = (None,)
-        
-        evt_types = (None,)
-        evt_chan = (None,)
+        evt_types = ('',)
+        evt_chan = ('',)
         getter = self.annot.get_epochs
         qual = None         
 
@@ -806,7 +813,7 @@ class AnalysisDialog(QDialog):
             
         for et in evt_types:
             
-            for ch in evt_chan:
+            for ch in chan:
             
                 for cyc in cycle:
                     
@@ -855,7 +862,9 @@ class AnalysisDialog(QDialog):
             list of tuple of float), stage, cycle, chan, name (event type, 
             if applicable)
         """   
-        output = []
+        to_concat = []
+        concatenated = []
+        
         chan = (None,)
         cycle = (None,)
         stage = (None,)
@@ -873,7 +882,7 @@ class AnalysisDialog(QDialog):
         if not cat[4]:
             evt_type = set([x['name'] for x in bundles])
             
-        for ch in chan: # except chan is none for epochs...
+        for ch in chan:
             
             for cyc in cycle:
                 
@@ -889,9 +898,31 @@ class AnalysisDialog(QDialog):
                             
                             if logical_and(chan_cond, cyc_cond, st_cond, 
                                            et_cond):
-                                output.append(bd)
-                                
+                                to_concat.append(bd)
+        
+        if cat[3]:
+            
+            for bd in to_concat:
+                sorted_times = sorted(bd['times'])
+                concatenated.append(concatenate(bd['times']))
+                
+        else:
+            
+            for bd in to_concat:
+                
+                for ti in bd['times']:
+                    
+                    if ti[0] 
+                        
         pass                    
+
+
+    def min_dur(self):
+        """
+        min_dur: float
+            Minimum duration of signal chunks returned. Defaults to 0.
+        """
+        pass
 
 
 def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None,

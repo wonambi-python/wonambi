@@ -43,7 +43,12 @@ def test_detect_spindle_UCSD():
     
     sp = detsp(data)
     assert len(sp.events) == 4
-
+    
+def test_detect_spindle_Concordia():
+    detsp = DetectSpindle(method='Concordia')
+    
+    sp = detsp(data)
+    assert (len(sp.events)) == 0
 
 def test_detect_spindle_unknownmethod():
     with raises(ValueError):

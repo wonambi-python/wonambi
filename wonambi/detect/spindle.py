@@ -113,7 +113,7 @@ class DetectSpindle:
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 1.5
             self.det_thresh_hi = 8
-            self.sel_thresh = 0.5
+            self.sel_thresh = 1
             self.moving_rms = {'dur': .2}
             self.smooth = {'dur': .2}
             self.min_interval = 0.5
@@ -141,7 +141,8 @@ class DetectSpindle:
         """
         spindle = Spindles()
         spindle.chan_name = data.axis['chan'][0]
-        spindle.det_value = zeros(data.number_of('chan')[0])
+        spindle.det_value_lo = zeros(data.number_of('chan')[0])
+        spindle.det_value_hi = zeros(data.number_of('chan')[0])
         spindle.sel_value = zeros(data.number_of('chan')[0])
         spindle.density = zeros(data.number_of('chan')[0])
 
@@ -182,7 +183,8 @@ class DetectSpindle:
             else:
                 raise ValueError('Unknown method')
 
-            spindle.det_value[i] = values['det_value']
+            spindle.det_value_lo[i] = values['det_value_lo']
+            spindle.det_value_hi[i] = values['det_value_hi']
             spindle.sel_value[i] = values['sel_value']
             spindle.density[i] = density
 
@@ -226,7 +228,8 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value' with detection value, 'sel_value' with selection value
+        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'sel_value' with selection value
     float
         spindle density, per 30-s epoch
 
@@ -264,8 +267,8 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value': det_value, 'sel_value': sel_value}
-    lg.info(str(values))
+    values = {'det_value_lo': det_value, 'det_value_hi': nan,
+              'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -300,7 +303,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value' with detection value, 'sel_value' with nan
+        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'sel_value' with nan
     float
         spindle density, per 30-s epoch
 
@@ -336,8 +340,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value': det_value, 'sel_value': nan}
-
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -373,7 +377,8 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value' with detection value, 'sel_value' with selection value
+        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'sel_value' with selection value
     float
         spindle density, per 30-s epoch
 
@@ -418,8 +423,9 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value': det_value, 'sel_value': sel_value}
-
+    values = {'det_value_lo': det_value, 'det_value_hi': nan,
+              'sel_value': sel_value}
+    
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -453,8 +459,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value' with detection value, 'sel_value' is nan (for consistency
-        with other methods)
+        'det_value_lo' with detection value, 'det_value_hi' is nan, 
+        'sel_value' is nan (for consistency with other methods)
     float
         spindle density, per 30-s epoch
 
@@ -483,8 +489,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value': det_value, 'sel_value': nan}
-
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -520,7 +526,8 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value' with detection value, 'sel_value' is selection value
+        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'sel_value' with selection value
     float
         spindle density, per 30-s epoch
 
@@ -551,8 +558,9 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
     sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
                                dat_orig, time, s_freq)
 
-    values = {'det_value': det_value, 'sel_value': sel_value}
-
+    values = {'det_value_lo': det_value, 'det_value_hi': nan,
+              'sel_value': sel_value}
+    
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -604,8 +612,8 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
                                     opts.det_thresh_hi)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
-    events = detect_events(dat_det, 'above_thresh', det_value_lo)
-    events = detect_events(dat_det, 'below_thresh', det_value_hi)
+    events = detect_events(dat_det, 'between_thresh', 
+                           (det_value_lo, det_value_hi))
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
@@ -815,8 +823,10 @@ def detect_events(dat, method, value=None):
         vector with the data after transformation
     method : str
         'above_thresh', 'below_thresh' or 'maxima'
-    value : float
-        for 'threshold's, it's the value of threshold for the event detection
+    value : float or tuple of float
+        for 'above_thresh' or 'below_thresh', it's the value of threshold for 
+        the event detection
+        for 'between_thresh', it's the lower and upper threshold as tuple
         for 'maxima', it's the distance in s from the peak to find a minimum
 
     Returns
@@ -825,30 +835,28 @@ def detect_events(dat, method, value=None):
         N x 3 matrix with start, peak, end samples
 
     """
-    if method == 'above_thresh':
-        above_det = dat >= value
-        detected = _detect_start_end(above_det)
-        
+    if 'thresh' in method:
+    
+        if method == 'above_thresh':
+            above_det = dat >= value
+            detected = _detect_start_end(above_det)
+    
+        if method == 'below_thresh':
+            below_det = dat < value
+            detected = _detect_start_end(below_det)
+    
+        if method == 'between_thresh':
+            above_det = dat >= value[0]
+            between_det = above_det <= value[1]
+            detected = _detect_start_end(between_det)
+            
         if detected is None:
             return None
-
-        # add the location of the peak in the middle
-        detected = insert(detected, 1, 0, axis=1)
-        for i in detected:
-            i[1] = i[0] + argmax(dat[i[0]:i[2]])
-
-    if method == 'below_thresh':
-        below_det = dat < value
-        detected = _detect_start_end(below_det)
         
-        if detected is None:
-            return None
-
         # add the location of the trough in the middle
         detected = insert(detected, 1, 0, axis=1)
         for i in detected:
             i[1] = i[0] + argmin(dat[i[0]:i[2]])
-        #lg.info('troughs values: ' + str(dat[detected[:,1]]))
 
     if method == 'maxima':
         peaks = argrelmax(dat)[0]
@@ -1297,14 +1305,14 @@ def _merge_close(dat, events, time, min_interval):
         begs = concatenate([[events[0, 0]], events[1:, 0][no_merge]])
         ends = concatenate([events[:-1, 2][no_merge], [events[-1, 2]]])
 
-        new_events = vstack((begs, ends)).T
+        new_events = vstack((begs, ends)).T                
     else:
-        new_events = asarray[[events[0, 0], events[-1, 2]]]
-
+        new_events = asarray([[events[0, 0], events[-1, 2]]])
+        
     # add the location of the peak in the middle
     new_events = insert(new_events, 1, 0, axis=1)
     for i in new_events:
-        i[1] = i[0] + argmax(dat[i[0]:i[2]])
+        i[1] = i[0] + argmax(dat[i[0]:i[2]])    
 
     return new_events
 
