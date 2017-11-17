@@ -273,7 +273,7 @@ def main():
 
     elif args.log[:1].lower() == 'd':
         lg.setLevel(DEBUG)
-        FORMAT = '{asctime:<10}{levelname:<10}({filename:<40}/{funcName:<40}): {message}'
+        FORMAT = '{asctime:<10}{levelname:<10}{filename:<40}(l. {lineno: 6d})/ {funcName:<40}: {message}'
 
     formatter = Formatter(fmt=FORMAT, datefmt=DATE_FORMAT, style='{')
     handler = StreamHandler()
@@ -295,4 +295,4 @@ def main():
         if args.dataset:
             q.info.open_dataset(args.dataset)
 
-        app.exec_()
+        app.exec()
