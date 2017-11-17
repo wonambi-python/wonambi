@@ -11,6 +11,13 @@ It has quite some useful packages:
 
 ## Special Environments
 
+### PyQt5
+
+Conda has Qt5.6, while the latest is Qt5.9.
+I tried to uninstall qt, pyqt and sip from conda and install them from pip (to use the system Qt5.9).
+However, I get a seg fault when I run wonambi. 
+I don't get any error when running it within ipython (`gui qt`) and I don't know how to debug it.
+
 ### Install matlab_kernel in conda
 We need python 3.4 because that the latest python version compatible with matlab 2016a.
 ```bash
