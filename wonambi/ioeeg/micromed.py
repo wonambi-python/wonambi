@@ -2,7 +2,7 @@ from os import SEEK_SET, SEEK_END, SEEK_CUR
 from datetime import datetime, date
 from struct import unpack
 
-from numpy import array, dtype, fromfile, memmap, NaN, pad
+from numpy import array, dtype, empty, fromfile, iinfo, memmap, NaN, pad
 
 N_ZONES = 15
 MAX_SAMPLE = 128
@@ -50,11 +50,16 @@ class Micromed:
         self._bodata = orig['BOData']
         self._n_chan = orig['n_chan']
         self._n_bytes = orig['n_bytes']
-        self._n_smp = (EOData - self._bodata) / (self._n_chan * self._n_bytes)
+        self._s_freq = orig['s_freq']
+        self._n_smp = int((EOData - self._bodata) /
+                          (self._n_chan * self._n_bytes))
 
         self._factors = array([ch['factor'] for ch in orig['chans']])
         self._offset = array([ch['logical_ground'] for ch in orig['chans']])
         chan_name = [ch['chan_name'] for ch in orig['chans']]
+
+        self._triggers = orig['trigger']
+        self._videos = orig['dvideo']
 
         return subj_id, orig['start_time'], orig['s_freq'], chan_name, self._n_smp, orig
 
@@ -75,6 +80,11 @@ class Micromed:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
+        if (begsam >= self._n_smp) or (endsam < 0):
+            dat = empty((len(chan), endsam - begsam))
+            dat.fill(NaN)
+            return dat
+
         if begsam < 0:
             begpad = -1 * begsam
             begsam = 0
@@ -115,15 +125,45 @@ class Micromed:
             exceptions).
         """
         markers = []
+
+        triggers = self._triggers
+        DTYPE_MAX = iinfo(triggers.dtype['sample']).max
+        triggers = triggers[triggers['sample'] != DTYPE_MAX]
+
+        for trig in triggers:
+            markers.append(
+                {'name': str(trig['code']),
+                 'start': trig['sample'] / self._s_freq,
+                 'end': trig['sample'] / self._s_freq,
+                 })
+
         return markers
 
     def return_videos(self, begtime, endtime):
+        vid = self._videos
+
+        # remove empty rows
+        DTYPE_MAX = iinfo(vid.dtype['delay']).max
+        vid = vid[vid['delay'] != DTYPE_MAX]
+
+        if vid.shape[0] == 0:
+            raise OSError('No videos for this dataset')
+
+        if vid.shape[0] > 1:
+            raise NotImplementedError('Currently it handles only one video.')
+
+        # TODO: to test if delay is positive or negative
+        video_beg = begtime + vid['delay'].item() / 1000
+        video_end = endtime + vid['delay'].item() / 1000
+
+        # full name without number
+        video_name = 'VID_' + str(vid['file_ext'].item()) + '.AVI'
 
         mpgfiles = [
-            '/Fridge/bci/data/bcipatients/jan2/micromed/VID_1858.AVI',
+            str(self.filename.parent / video_name),
             ]
 
-        return mpgfiles, 200, 230
+        return mpgfiles, video_beg, video_end
 
 
 def _read_header(f):
@@ -145,7 +185,8 @@ def _read_header(f):
     orig['start_time'] = datetime(year + 1900, month, day, hour, minute, sec)
 
     acquisition_unit_code = unpack('h', f.read(2))[0]
-    orig['acquisition_unit'] = ACQUISITION_UNIT[acquisition_unit_code]
+    orig['acquisition_unit'] = ACQUISITION_UNIT.get(acquisition_unit_code,
+                                                    str(acquisition_unit_code))
     filetype_code = unpack('H', f.read(2))[0]
     orig['filetype'] = FILETYPE[filetype_code]
 
@@ -227,7 +268,7 @@ def _read_header(f):
     event_b = fromfile(f, dtype=DTYPE, count=int(length / DTYPE.itemsize))
 
     pos, length = zones['TRIGGER']
-    DTYPE = dtype([('sample', 'u4'), ('begin', 'u4'), ('end', 'u4')])
+    DTYPE = dtype([('sample', 'u4'), ('code', 'u2')])
     f.seek(pos, 0)
     trigger = fromfile(f, dtype=DTYPE, count=int(length / DTYPE.itemsize))
 

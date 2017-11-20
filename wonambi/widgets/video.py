@@ -120,7 +120,9 @@ class Video(QWidget):
 
     def check_if_finished(self):
         if self.cnt_video == self.n_video:
+            print(f'{self.mediaplayer.get_time()}')
             if self.mediaplayer.get_time() > self.endsec * 1000:
+                self.idx_button.setText('Stop')
                 self.medialistplayer.stop()
                 self.t.stop()
 
@@ -154,6 +156,7 @@ class Video(QWidget):
         elif 'Stop' in self.idx_button.text():
             self.idx_button.setText('Start')
             self.medialistplayer.stop()
+            self.t.stop()
 
     def update_video(self):
         """Read list of files, convert to video time, and add video to queue.
@@ -164,6 +167,7 @@ class Video(QWidget):
 
         videos, begsec, endsec = d.read_videos(window_start,
                                                window_start + window_length)
+        print(f'{begsec} - {endsec}')
         self.endsec = endsec
         medialist = vlc.MediaList(videos)
         self.medialistplayer.set_media_list(medialist)
