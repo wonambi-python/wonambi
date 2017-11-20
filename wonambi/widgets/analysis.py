@@ -736,35 +736,35 @@ class AnalysisDialog(QDialog):
             self.reject()
 
     def read_data(self):
-        """Read data for analysis."""    
+        """Read data for analysis."""
         dataset = self.parent.info.dataset
         chan = self.get_channels()
         chan_to_read = chan + self.one_grp['ref_chan']
-    
+
         data = dataset.read_data(chan=chan_to_read)
-        
+
         max_s_freq = self.parent.value('max_s_freq')
         if data.s_freq > max_s_freq:
             q = int(data.s_freq / max_s_freq)
             lg.debug('Decimate (no low-pass filter) at ' + str(q))
-    
+
             data.data[0] = data.data[0][:, slice(None, None, q)]
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
-            
+
         self.data = data
-        
-    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None, 
+
+    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None,
                   exclude=True):
-        """Get start and end times for selected segments of data, bundled 
+        """Get start and end times for selected segments of data, bundled
         together with info.
-        
+
         Parameters
         ----------
         evt_type: list of str or float or str, optional
             This parameter determines the chunking of the signal: events, epochs or
-            continuous segments. If events desired, enter event type(s) as list of 
-            str. If epochs desired, enter float for epoch duration (s) or 
+            continuous segments. If events desired, enter event type(s) as list of
+            str. If epochs desired, enter float for epoch duration (s) or
             'lock_to_scoring' to return epochs synchronized with annotations. If
             continuous segments desired, enter None. Defaults to None.
         stage: list of str or tuple of None
@@ -777,49 +777,49 @@ class AnalysisDialog(QDialog):
             Exclude epochs by quality. If True, epochs marked as 'Poor' quality
             or staged as 'Artefact' will be rejected (and the signal cisioned in
             consequence). Defaults to True.
-            
+
         Returns
         -------
         list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), stage, cycle, chan, name (event type, 
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), stage, cycle, chan, name (event type,
             if applicable)
-        """      
+        """
         if stage is None:
             stage = ('',)
         if cycle is None:
             cycle = ('',)
         if chan is None:
-            chan = ('',)  
+            chan = ('',)
         if evt_type is None:
             evt_type = ('',)
         elif isinstance(evt_type[0], str):
             getter = self.annot.get_events
-        
+
         bundles = []
-        
+
         evt_types = ('',)
         evt_chan = ('',)
         getter = self.annot.get_epochs
-        qual = None         
+        qual = None
 
         if isinstance(evt_type, list):
             evt_types = evt_type
             evt_chan = chan
             getter = self.annot.get_events
-        
+
         if exclude:
             qual = 'Poor'
-            
+
         for et in evt_types:
-            
+
             for ch in chan:
-            
+
                 for cyc in cycle:
-                    
+
                     for ss in stage:
-                        
-                        evochs = getter(name=et, time=cyc, chan=ch, 
+
+                        evochs = getter(name=et, time=cyc, chan=ch,
                                         stage=ss, qual=qual)
                         times = [(e['start'], e['end']) for e in evochs]
                         one_bundle = {'times': times,
@@ -833,18 +833,18 @@ class AnalysisDialog(QDialog):
 
     def concat(self, bundles, cat=(0, 0, 0, 1, 0)):
         """Concatenate events or epochs.
-        
+
         Parameters
         ----------
         bundles : list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), and the stage, cycle, chan and name (event 
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), and the stage, cycle, chan and name (event
             type, if applicable) associated with the segment bundle
         cat : tuple of int
             Determines whether and where the signal is concatenated.
-            If 1st digit is 1, channels will be concatenated in order listed 
+            If 1st digit is 1, channels will be concatenated in order listed
             in chan.
-            If 2nd digit is 1, cycles selected in cycle will be 
+            If 2nd digit is 1, cycles selected in cycle will be
             concatenated.
             If 3rd digit is 1, different stages selected in stage will be
             concatenated.
@@ -852,69 +852,69 @@ class AnalysisDialog(QDialog):
             be concatenated.
             If 5th digit is 1, events of different types will be concatenated.
             0 in any position indicates no concatenation.
-            Defaults to (0, 0, 0 , 1), i.e. concatenate signal within stages 
+            Defaults to (0, 0, 0 , 1), i.e. concatenate signal within stages
             only.
-        
+
         Returns
         -------
         list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), stage, cycle, chan, name (event type, 
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), stage, cycle, chan, name (event type,
             if applicable)
-        """   
+        """
         to_concat = []
         concatenated = []
-        
+
         chan = (None,)
         cycle = (None,)
         stage = (None,)
-        evt_type = (None,)        
-        
+        evt_type = (None,)
+
         if not cat[0]:
             chan = set([x['chan'] for x in bundles])
-        
+
         if not cat[1]:
             cycle = set([x['cycle'] for x in bundles])
-            
+
         if not cat[2]:
             stage = set([x['stage'] for x in bundles])
-            
+
         if not cat[4]:
             evt_type = set([x['name'] for x in bundles])
-            
+
         for ch in chan:
-            
+
             for cyc in cycle:
-                
+
                 for st in stage:
-                    
+
                     for et in evt_type:
-                        
+
                         for bd in bundles:
                             chan_cond = ch in (bd['chan'], None)
                             cyc_cond = cyc in (bd['cyc'], None)
                             st_cond = st in (bd['stage'], None)
                             et_cond = et in (bd['name'], None)
-                            
-                            if logical_and(chan_cond, cyc_cond, st_cond, 
+
+                            if logical_and(chan_cond, cyc_cond, st_cond,
                                            et_cond):
                                 to_concat.append(bd)
-        
+
         if cat[3]:
-            
+
             for bd in to_concat:
                 sorted_times = sorted(bd['times'])
                 concatenated.append(concatenate(bd['times']))
-                
+
         else:
-            
+
             for bd in to_concat:
-                
+
                 for ti in bd['times']:
-                    
-                    if ti[0] 
-                        
-        pass                    
+
+                    if ti[0]:
+
+                        pass
 
 
     def min_dur(self):
