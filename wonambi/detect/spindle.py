@@ -2,9 +2,9 @@
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
-                   diff, exp, empty, floor, hstack, insert, invert, mean, 
-                   median, nan, ones, pi, ptp, sqrt, square, std, vstack, 
-                   where, zeros)
+                   diff, exp, empty, floor, hstack, insert, invert, 
+                   logical_and, mean, median, nan, ones, pi, ptp, sqrt, square,
+                   std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram, tukey)
@@ -64,7 +64,7 @@ class DetectSpindle:
             self.sel_thresh = 1
             self.min_interval = 1
             self.moving_rms = {'dur': None}
-            self.smooth = {'dur': .4}  # is in fact sigma
+            self.smooth = {'dur': .04}  # is in fact sigma
 
         elif method == 'Wamsley2012':
             self.det_wavelet = {'f0': mean(self.frequency),
@@ -112,11 +112,11 @@ class DetectSpindle:
                                }
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 1.5
-            self.det_thresh_hi = 8
+            self.det_thresh_hi = 10
             self.sel_thresh = 1
             self.moving_rms = {'dur': .2}
             self.smooth = {'dur': .2}
-            self.min_interval = 0.5
+            self.min_interval = 0.2
 
         else:
             raise ValueError('Unknown method')
@@ -613,7 +613,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
     events = detect_events(dat_det, 'between_thresh', 
-                           (det_value_lo, det_value_hi))
+                           value=(det_value_lo, det_value_hi))
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
@@ -847,7 +847,8 @@ def detect_events(dat, method, value=None):
     
         if method == 'between_thresh':
             above_det = dat >= value[0]
-            between_det = above_det <= value[1]
+            below_det = dat < value[1]
+            between_det = logical_and(above_det, below_det)
             detected = _detect_start_end(between_det)
             
         if detected is None:
