@@ -256,7 +256,7 @@ class Info(QWidget):
 
         except BaseException as err:
             self.parent.statusBar().showMessage(str(err))
-            lg.info(str(err))
+            lg.info('Error ' + str(err))
             return
 
         self.parent.statusBar().showMessage('')

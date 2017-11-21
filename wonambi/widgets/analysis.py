@@ -737,29 +737,29 @@ class AnalysisDialog(QDialog):
             self.reject()
 
     def read_data(self):
-        """Read data for analysis."""    
+        """Read data for analysis."""
         dataset = self.parent.info.dataset
         chan = self.get_channels()
         chan_to_read = chan + self.one_grp['ref_chan']
-    
+
         data = dataset.read_data(chan=chan_to_read)
-        
+
         max_s_freq = self.parent.value('max_s_freq')
         if data.s_freq > max_s_freq:
             q = int(data.s_freq / max_s_freq)
             lg.debug('Decimate (no low-pass filter) at ' + str(q))
-    
+
             data.data[0] = data.data[0][:, slice(None, None, q)]
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
-            
+
         self.data = data
-        
-    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None, 
+
+    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None,
                   exclude=True):
-        """Get start and end times for selected segments of data, bundled 
+        """Get start and end times for selected segments of data, bundled
         together with info.
-        
+
         Parameters
         ----------
         evt_type: list of str, optional
@@ -780,8 +780,8 @@ class AnalysisDialog(QDialog):
         Returns
         -------
         list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), stage, cycle, chan, name (event type, 
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), stage, cycle, chan, name (event type,
             if applicable)
             
         Notes
@@ -791,7 +791,7 @@ class AnalysisDialog(QDialog):
         necessarily be chronological.
         """      
         getter = self.annot.get_epochs
-        
+
         if stage is None:
             stage = (None,)
         if cycle is None:
@@ -813,12 +813,12 @@ class AnalysisDialog(QDialog):
         for et in evt_type:
             
             for ch in chan:
-            
+
                 for cyc in cycle:
-                    
+
                     for ss in stage:
-                        
-                        evochs = getter(name=et, time=cyc, chan=ch, 
+
+                        evochs = getter(name=et, time=cyc, chan=ch,
                                         stage=ss, qual=qual)
                         times = [(e['start'], e['end']) for e in evochs]
                         one_bundle = {'times': times,
@@ -832,12 +832,12 @@ class AnalysisDialog(QDialog):
 
     def concat(self, bundles, cat=(0, 0, 1, 0)):
         """Concatenate events or epochs.
-        
+
         Parameters
         ----------
         bundles : list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), and the stage, cycle, chan and name (event 
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), and the stage, cycle, chan and name (event
             type, if applicable) associated with the segment bundle
         cat : tuple of int
             Determines whether and where the signal is concatenated.
@@ -851,7 +851,7 @@ class AnalysisDialog(QDialog):
             0 in any position indicates no concatenation.
             Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages 
             only.
-        
+
         Returns
         -------
         list of dict
@@ -888,11 +888,11 @@ class AnalysisDialog(QDialog):
             
         to_concat = []
         for ch in chan:
-            
+
             for cyc in cycle:
-                
+
                 for st in stage:
-                    
+
                     for et in evt_type:
                         new_times = []
                         
