@@ -2,12 +2,13 @@ from datetime import datetime
 from logging import getLogger
 
 from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
-                   pi, ptp, real, sin, tile, zeros)
+                   pi, ptp, real, round, sin, tile, zeros)
 # numpy.random.random has an empty __module__ and sphinx autodoc adds it to api
 from numpy import random
 from numpy.fft import fft, ifft
 
 from ..datatype import ChanTime, ChanFreq, ChanTimeFreq
+from ..attr import Channels
 
 
 lg = getLogger(__name__)
@@ -16,7 +17,8 @@ lg = getLogger(__name__)
 def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
                 chan_name=None, n_chan=8,
                 time=None, freq=None, start_time=None,
-                signal='random', amplitude=1, color=0, sine_freq=10):
+                signal='random', amplitude=1, color=0, sine_freq=10,
+                attr=None):
     """Create data of different datatype from scratch.
 
     Parameters
@@ -37,10 +39,12 @@ def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
         if tuple, the first and second numbers indicate beginning and end
     start_time : datetime.datetime, optional
         starting time of the recordings
+    attr : list of str
+        list of possible attributes (currently only 'channels')
 
     Only for datatype == 'ChanTime'
     signal : str
-        'random', 'sine', 'ekg'
+        'random', 'sine'
     amplitude : float
         amplitude (peak-to-peak) of the signal
     color : float
@@ -78,7 +82,7 @@ def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
         freq = arange(0, s_freq / 2. + 1)
 
     if chan_name is None:
-        chan_name = ['chan{0:02}'.format(i) for i in range(n_chan)]
+        chan_name = _make_chan_name(n_chan)
     else:
         n_chan = len(chan_name)
 
@@ -100,10 +104,6 @@ def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
                 for i_ch in range(n_chan):
                     values[i_ch, :] = sin(2 * pi * sine_freq * time +
                                           random.randn())
-
-            elif signal == 'ekg':
-                n_sec = around(time[-1] - time[0])
-                values = tile(_make_ekg(s_freq), (len(chan_name), n_sec))
 
             data.data[i] = values / ptp(values, axis=1)[:, None] * amplitude
 
@@ -135,7 +135,39 @@ def create_data(datatype='ChanTime', n_trial=1, s_freq=256,
         for i in range(n_trial):
             data.axis['freq'][i] = freq
 
+    if attr is not None:
+        if 'chan' in attr:
+            data.attr['chan'] = create_channels(data.chan[0])
+
     return data
+
+
+def create_channels(chan_name=None, n_chan=None):
+    """Create instance of Channels with random xyz coordinates
+
+    Parameters
+    ----------
+    chan_name : list of str
+        names of the channels
+    n_chan : int
+        if chan_name is not specified, this defines the number of channels
+
+    Returns
+    -------
+    instance of Channels
+        where the location of the channels is random
+    """
+    if chan_name is not None:
+        n_chan = len(chan_name)
+
+    elif n_chan is not None:
+        chan_name = _make_chan_name(n_chan)
+
+    else:
+        raise TypeError('You need to specify either the channel names (chan_name) or the number of channels (n_chan)')
+
+    xyz = round(random.randn(n_chan, 3) * 10, decimals=2)
+    return Channels(chan_name, xyz)
 
 
 def _color_noise(x, s_freq, coef=0):
@@ -202,37 +234,5 @@ def f(x, coef):
     return y
 
 
-def _make_ekg(s_freq):
-    """Create a simulated EKG of one second.
-
-    Parameters
-    ----------
-    s_freq : int
-        sampling frequency / duration of the sample
-
-    Returns
-    -------
-    ndarray
-        vector of length "s_freq" with one EKG in it, with peak at 1.
-
-    Notes
-    -----
-    Based on ecg.m in Matlab, in the signal toolbox.
-    """
-    from scipy.signal import savgol_filter  # scipy is optional dependency
-
-    EKG_val = asarray([0, 1, 40, 1, 0, -34, 118, -99, 0, 2, 21, 2, 0, 0, 0])
-    EKG_time = asarray([0, 27, 59, 91, 131, 141, 163, 185, 195, 275, 307, 339,
-                        357, 390, 440, 500])
-
-    EKG_time = around(EKG_time * s_freq / EKG_time[-2])
-    EKG_time[-1] = s_freq
-    x = empty(s_freq)
-    for i in range(len(EKG_val) - 1):
-        m = arange(EKG_time[i], EKG_time[i + 1])
-        slope = (EKG_val[i + 1] - EKG_val[i]) / (EKG_time[i + 1] - EKG_time[i])
-        x[EKG_time[i]:EKG_time[i + 1]] = EKG_val[i] + slope * (m - EKG_time[i])
-
-    polyorder = int(s_freq / 40 / 2) * 2 + 1
-    x = savgol_filter(x, polyorder, 0)
-    return x / max(x)
+def _make_chan_name(n_chan):
+    return ['chan{0:02}'.format(i) for i in range(n_chan)]
