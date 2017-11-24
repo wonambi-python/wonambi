@@ -152,7 +152,7 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
 
 def _create_subepochs(x, nperseg, step):
     """Transform the data into a matrix for easy manipulation
-    
+
     Parameters
     ----------
     x : 1d ndarray
@@ -174,5 +174,5 @@ def _create_subepochs(x, nperseg, step):
     v_shape = *x.shape[:axis], (nsmp - noverlap) // step, nperseg
     v_strides = *x.strides[:axis], stride * step, stride
     v = as_strided(x, shape=v_shape, strides=v_strides,
-                  writeable=False)  # much safer
+                   writeable=False)  # much safer
     return v

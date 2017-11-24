@@ -2,7 +2,7 @@
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
-                   diff, exp, empty, floor, hstack, insert, invert, 
+                   diff, exp, empty, floor, hstack, insert, invert,
                    logical_and, mean, median, nan, ones, pi, ptp, sqrt, square,
                    std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
@@ -105,7 +105,7 @@ class DetectSpindle:
             self.sel_thresh = None
             self.moving_rms = {'dur': .2}
             self.smooth = {'dur': .2}
-            
+
         elif method == 'Concordia':
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
@@ -154,7 +154,7 @@ class DetectSpindle:
 
             if self.method == 'Ferrarelli2007':
                 sp_in_chan, values, density = detect_Ferrarelli2007(dat_orig,
-                                                                    data.s_freq, 
+                                                                    data.s_freq,
                                                                     time,
                                                                     self)
 
@@ -228,7 +228,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'det_value_lo' with detection value, 'det_value_hi' with nan,
         'sel_value' with selection value
     float
         spindle density, per 30-s epoch
@@ -303,7 +303,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'det_value_lo' with detection value, 'det_value_hi' with nan,
         'sel_value' with nan
     float
         spindle density, per 30-s epoch
@@ -321,7 +321,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', 
+    det_value = define_threshold(dat_det, s_freq, 'mean+std',
                                  opts.det_thresh_lo)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
@@ -341,7 +341,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         sp_in_chan = []
 
     values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
-    
+
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -377,7 +377,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'det_value_lo' with detection value, 'det_value_hi' with nan,
         'sel_value' with selection value
     float
         spindle density, per 30-s epoch
@@ -401,7 +401,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'abs')
     dat_det = transform_signal(dat_det, s_freq, 'gaussian', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean+std', 
+    det_value = define_threshold(dat_det, s_freq, 'mean+std',
                                  opts.det_thresh_lo)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
@@ -409,7 +409,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
-        
+
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
@@ -425,7 +425,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
 
     values = {'det_value_lo': det_value, 'det_value_hi': nan,
               'sel_value': sel_value}
-    
+
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -459,7 +459,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value_lo' with detection value, 'det_value_hi' is nan, 
+        'det_value_lo' with detection value, 'det_value_hi' is nan,
         'sel_value' is nan (for consistency with other methods)
     float
         spindle density, per 30-s epoch
@@ -490,7 +490,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         sp_in_chan = []
 
     values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
-    
+
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -526,7 +526,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
     list of dict
         list of detected spindles
     dict
-        'det_value_lo' with detection value, 'det_value_hi' with nan, 
+        'det_value_lo' with detection value, 'det_value_hi' with nan,
         'sel_value' with selection value
     float
         spindle density, per 30-s epoch
@@ -560,7 +560,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
 
     values = {'det_value_lo': det_value, 'det_value_hi': nan,
               'sel_value': sel_value}
-    
+
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
     return sp_in_chan, values, density
@@ -569,7 +569,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
 def detect_Concordia(dat_orig, s_freq, time, opts):
     """Spindle detection, experimental Concordia method. Similar to Moelle 2011
     and Nir2011.
-    
+
     Parameters
     ----------
     dat_orig : ndarray (dtype='float')
@@ -606,18 +606,18 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
-    det_value_lo = define_threshold(dat_det, s_freq, 'mean+std', 
+    det_value_lo = define_threshold(dat_det, s_freq, 'mean+std',
                                     opts.det_thresh_lo)
-    det_value_hi = define_threshold(dat_det, s_freq, 'mean+std', 
+    det_value_hi = define_threshold(dat_det, s_freq, 'mean+std',
                                     opts.det_thresh_hi)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
-    events = detect_events(dat_det, 'between_thresh', 
+    events = detect_events(dat_det, 'between_thresh',
                            value=(det_value_lo, det_value_hi))
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
-        
+
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
@@ -824,7 +824,7 @@ def detect_events(dat, method, value=None):
     method : str
         'above_thresh', 'below_thresh' or 'maxima'
     value : float or tuple of float
-        for 'above_thresh' or 'below_thresh', it's the value of threshold for 
+        for 'above_thresh' or 'below_thresh', it's the value of threshold for
         the event detection
         for 'between_thresh', it's the lower and upper threshold as tuple
         for 'maxima', it's the distance in s from the peak to find a minimum
@@ -836,24 +836,24 @@ def detect_events(dat, method, value=None):
 
     """
     if 'thresh' in method:
-    
+
         if method == 'above_thresh':
             above_det = dat >= value
             detected = _detect_start_end(above_det)
-    
+
         if method == 'below_thresh':
             below_det = dat < value
             detected = _detect_start_end(below_det)
-    
+
         if method == 'between_thresh':
             above_det = dat >= value[0]
             below_det = dat < value[1]
             between_det = logical_and(above_det, below_det)
             detected = _detect_start_end(between_det)
-            
+
         if detected is None:
             return None
-        
+
         # add the location of the trough in the middle
         detected = insert(detected, 1, 0, axis=1)
         for i in detected:
@@ -936,7 +936,7 @@ def merge_close(events, min_interval, merge_to_longer=False):
                     start = min(lower['start'], higher['start'])
                     higher.update({'start': start})
                     merged[-1] = higher
-                        
+
                 else:
                     end = max(lower['end'], higher['end'])
                     merged[-1].update({'end': end})
@@ -1306,14 +1306,14 @@ def _merge_close(dat, events, time, min_interval):
         begs = concatenate([[events[0, 0]], events[1:, 0][no_merge]])
         ends = concatenate([events[:-1, 2][no_merge], [events[-1, 2]]])
 
-        new_events = vstack((begs, ends)).T                
+        new_events = vstack((begs, ends)).T
     else:
         new_events = asarray([[events[0, 0], events[-1, 2]]])
-        
+
     # add the location of the peak in the middle
     new_events = insert(new_events, 1, 0, axis=1)
     for i in new_events:
-        i[1] = i[0] + argmax(dat[i[0]:i[2]])    
+        i[1] = i[0] + argmax(dat[i[0]:i[2]])
 
     return new_events
 
