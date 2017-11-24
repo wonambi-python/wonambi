@@ -43,7 +43,9 @@ SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 IO_PATH = SAMPLE_PATH / 'io'
 ktlx_file = IO_PATH / 'xltek'
 mff_file = IO_PATH / 'egi.mff'
+nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
 ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
+ns4_file = IO_PATH / 'blackrock' / 'sampleData.ns4'
 
 # Folder where to export data
 EXPORTED_PATH = test_path / 'exported'

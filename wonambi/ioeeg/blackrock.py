@@ -147,29 +147,23 @@ class BlackRock:
 
         """
         nev_file = splitext(self.filename)[0] + '.nev'
-        try:
-            markers = _read_neuralev(nev_file, read_markers=True)
+        markers = _read_neuralev(nev_file, read_markers=True)
 
-        except Exception as err:
-            print('Contact Gio with error report below')
-            raise err
+        if trigger_bits == 8:
+            to8 = lambda x: str(int(x) - (256 ** 2 - 256))
+            for m in markers:
+                m['name'] = to8(m['name'])
 
-        else:
-            if trigger_bits == 8:
-                to8 = lambda x: str(int(x) - (256 ** 2 - 256))
-                for m in markers:
-                    m['name'] = to8(m['name'])
+        if trigger_zero:
+            no_zero = (i for i, m in enumerate(markers) if m['name'] != '0')
 
-            if trigger_zero:
-                no_zero = (i for i, m in enumerate(markers) if m['name'] != '0')
+            markers_no_zero = []
+            for i in no_zero:
+                if (i + 1) < len(markers) and markers[i + 1]['name'] == '0':
+                    markers[i]['end'] = markers[i + 1]['start']
+                markers_no_zero.append(markers[i])
 
-                markers_no_zero = []
-                for i in no_zero:
-                    if (i + 1) < len(markers) and markers[i + 1]['name'] == '0':
-                        markers[i]['end'] = markers[i + 1]['start']
-                    markers_no_zero.append(markers[i])
-
-            return markers_no_zero
+        return markers_no_zero
 
 
 def _read_nsx(filename, BOData, sess_begin, sess_end, factor, begsam, endsam):
