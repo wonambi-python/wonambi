@@ -50,6 +50,7 @@ setup(
             'plotly',
             ],
         'all': [
+            'h5py',
             'mne',
             'nibabel',
             'python-vlc',  # for videos, to avoid problems with backends
