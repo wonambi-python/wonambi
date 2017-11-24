@@ -9,7 +9,7 @@ from pathlib import Path
 from numpy import arange, asarray, empty, int64
 
 from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip,
-                    Moberg, Wonambi, OpBox, Micromed, BCI2000)
+                    Moberg, Wonambi, Micromed, BCI2000)
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
@@ -82,9 +82,6 @@ def detect_format(filename):
 
         if filename.suffix.lower() == '.trc':
             return Micromed
-
-        if filename.suffix == '.bin':  # very general
-            return OpBox
 
         if filename.suffix == '.edf':
             return Edf
