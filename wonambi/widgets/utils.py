@@ -99,7 +99,7 @@ class RectMarker(QGraphicsRectItem):
         self.setZValue(zvalue)
         buffer = 1
         self.marker = QRectF(x, y, width, height)
-        self.b_rect = QRectF(x - buffer/2, y + buffer/2, width + buffer,
+        self.b_rect = QRectF(x - buffer / 2, y + buffer / 2, width + buffer,
                              height + buffer)
 
     def boundingRect(self):
@@ -156,11 +156,7 @@ def keep_recent_datasets(max_dataset_history, info=None):
         history = [history]
 
     if info is not None and info.filename is not None:
-        if info.repo is not None:
-            # this will parsed by self.info.open_dataset()
-            new_dataset = info.filename + ' (' + info.repo + ')'
-        else:
-            new_dataset = info.filename
+        new_dataset = info.filename
 
         if new_dataset in history:
             lg.debug(new_dataset + ' already present, will be replaced')
@@ -184,15 +180,13 @@ def choose_file_or_dir():
     Returns
     -------
     str
-        'dir' or 'file' or 'ieegorg' or 'abort'
+        'dir' or 'file' or 'abort'
 
     """
     question = QMessageBox(QMessageBox.Information, 'Open Dataset',
-                           'Do you want to open a file, a directory or a '
-                           'remote ieeg.org dataset?')
+                           'Do you want to open a file or a directory?')
     dir_button = question.addButton('Directory', QMessageBox.YesRole)
     file_button = question.addButton('File', QMessageBox.NoRole)
-    remote_button = question.addButton('Remote Dataset', QMessageBox.NoRole)
     question.addButton(QMessageBox.Cancel)
     question.exec_()
     response = question.clickedButton()
@@ -201,8 +195,6 @@ def choose_file_or_dir():
         return 'dir'
     elif response == file_button:
         return 'file'
-    elif response == remote_button:
-        return 'remote'
     else:
         return 'abort'
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip, IEEG_org,
+from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip,
                     Moberg, Wonambi, OpBox, Micromed, BCI2000)
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -52,7 +52,7 @@ def _convert_time_to_sample(abs_time, dataset):
     return sample
 
 
-def detect_format(filename, server=None):
+def detect_format(filename):
     """Detect file format.
 
     Parameters
@@ -64,61 +64,53 @@ def detect_format(filename, server=None):
     -------
     class used to read the data.
     """
-    if server is None:
-        filename = Path(filename)
+    filename = Path(filename)
 
-        if filename.is_dir():
-            if list(filename.glob('*.stc')) and list(filename.glob('*.erd')):
-                return Ktlx
-            elif (filename / 'patient.info').exists():
-                return Moberg
-            elif (filename / 'info.xml').exists():
-                return EgiMff
-            else:
-                raise UnrecognizedFormat('Unrecognized format for directory ' +
-                                         str(filename))
+    if filename.is_dir():
+        if list(filename.glob('*.stc')) and list(filename.glob('*.erd')):
+            return Ktlx
+        elif (filename / 'patient.info').exists():
+            return Moberg
+        elif (filename / 'info.xml').exists():
+            return EgiMff
         else:
-            if filename.suffix == '.won':
-                return Wonambi
-
-            if filename.suffix.lower() == '.trc':
-                return Micromed
-
-            if filename.suffix == '.bin':  # very general
-                return OpBox
-
-            if filename.suffix == '.edf':
-                return Edf
-
-            if filename.suffix == '.abf':
-                return Abf
-
-            if filename.suffix == '.dat':  # very general
-                try:
-                    _read_header_length(filename)
-
-                except (AttributeError, ValueError):  # there is no HeaderLen
-                    pass
-
-                else:
-                    return BCI2000
-
-            with filename.open('rb') as f:
-                file_header = f.read(8)
-                if file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
-                    return BlackRock
-                elif file_header[:6] == b'MATLAB':  # we might need to read more
-                    return FieldTrip
-                else:
-                    raise UnrecognizedFormat('Unrecognized format for file ' +
-                                             str(filename))
-
+            raise UnrecognizedFormat('Unrecognized format for directory ' +
+                                     str(filename))
     else:
-        if server == 'ieeg.org':
-            return IEEG_org
-        else:
-            raise UnrecognizedFormat('Unrecognized remote repository for ' +
-                                     filename)
+        if filename.suffix == '.won':
+            return Wonambi
+
+        if filename.suffix.lower() == '.trc':
+            return Micromed
+
+        if filename.suffix == '.bin':  # very general
+            return OpBox
+
+        if filename.suffix == '.edf':
+            return Edf
+
+        if filename.suffix == '.abf':
+            return Abf
+
+        if filename.suffix == '.dat':  # very general
+            try:
+                _read_header_length(filename)
+
+            except (AttributeError, ValueError):  # there is no HeaderLen
+                pass
+
+            else:
+                return BCI2000
+
+        with filename.open('rb') as f:
+            file_header = f.read(8)
+            if file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
+                return BlackRock
+            elif file_header[:6] == b'MATLAB':  # we might need to read more
+                return FieldTrip
+            else:
+                raise UnrecognizedFormat('Unrecognized format for file ' +
+                                         str(filename))
 
 
 class Dataset:
@@ -130,8 +122,6 @@ class Dataset:
         name of the file
     IOClass : class
         one of the classes of wonambi.ioeeg
-    server : str
-        remote repository ('ieeg.org')
 
     Attributes
     ----------
@@ -166,13 +156,13 @@ class Dataset:
     differences, for example, if the argument points to a file within a
     directory, or if the file is mapped to memory.
     """
-    def __init__(self, filename, IOClass=None, server=None):
+    def __init__(self, filename, IOClass=None):
         self.filename = Path(filename)
 
         if IOClass is not None:
             self.IOClass = IOClass
         else:
-            self.IOClass = detect_format(filename, server)
+            self.IOClass = detect_format(filename)
 
         self.dataset = self.IOClass(self.filename)
         output = self.dataset.return_hdr()
