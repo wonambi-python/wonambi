@@ -1,8 +1,8 @@
 from datetime import datetime
 from logging import getLogger
 
-from numpy import (abs, angle, arange, around, asarray, empty, exp, linspace,
-                   pi, ptp, real, round, sin, tile, zeros)
+from numpy import (abs, angle, arange, asarray, empty, exp, linspace,
+                   pi, ptp, real, round, sin, zeros)
 # numpy.random.random has an empty __module__ and sphinx autodoc adds it to api
 from numpy import random
 from numpy.fft import fft, ifft
