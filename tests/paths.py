@@ -46,6 +46,7 @@ mff_file = IO_PATH / 'egi.mff'
 nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
 ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
 ns4_file = IO_PATH / 'blackrock' / 'sampleData.ns4'
+hdf5_file = IO_PATH / 'fieldtrip_hdf5.mat'
 
 # Folder where to export data
 EXPORTED_PATH = test_path / 'exported'
@@ -56,6 +57,7 @@ annot_fasst_export_file = EXPORTED_PATH / 'annot_fasst.xml'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
 channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'
+fieldtrip_file = EXPORTED_PATH / 'fieldtrip.mat'
 wonambi_file = EXPORTED_PATH / 'exported.won'
 
 # Store images
