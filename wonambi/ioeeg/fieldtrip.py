@@ -1,15 +1,9 @@
-from logging import getLogger
-lg = getLogger(__name__)
-
 from datetime import datetime
-
+from logging import getLogger
 from numpy import around, empty
-try:
-    from scipy.io import loadmat, savemat
-except ImportError:
-    lg.warning('scipy (optional dependency) is not installed. You will not '
-               'be able to read and write in FieldTrip format.')
+from scipy.io import loadmat, savemat
 
+lg = getLogger(__name__)
 VAR = 'data'
 
 
@@ -49,7 +43,6 @@ class FieldTrip:
         'data'
 
         h5py is necessary for this function
-
         """
         # fieldtrip does not have this information
         orig = dict()
@@ -85,8 +78,7 @@ class FieldTrip:
                 for l in f[VAR]['label'].value.flat:  # convert to np for flat
                     chan_name.append(''.join([chr(x) for x in f[l].value]))
 
-                n_smp = f[VAR]['sampleinfo'][1] - f[VAR]['sampleinfo'][0] + 1
-                n_samples = int(around(n_smp))
+                n_samples = int(around(f[f[VAR]['trial'][0].item()].shape[0]))
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -134,18 +126,11 @@ class FieldTrip:
             in seconds from the start of the recordings, and 'chan' as list of
             str with the channels involved (if not of relevance, it's None).
 
-        Raises
-        ------
-        FileNotFoundError
-            when it cannot read the events for some reason (don't use other
-            exceptions).
+        TODO
+        ----
+        How to read markers / events from fieldtrip file
         """
-        markers = [{'name': 'one_trigger',
-                    'start': 10,
-                    'end': 15,  # duration of 5s
-                    'chan': ['chan1', 'chan2'],  # or None
-                    }]
-        return markers
+        return []
 
 
 def write_fieldtrip(data, filename):
