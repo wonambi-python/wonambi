@@ -34,7 +34,6 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QListWidgetItem,
                              QMessageBox,
                              QPushButton,
-                             QRadioButton,
                              QTableWidget,
                              QTableWidgetItem,
                              QTabWidget,
@@ -46,7 +45,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 from .. import ChanTime
 from ..trans import montage, filter_
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
-from .settings import Config, FormStr, FormInt, FormFloat, FormBool, FormMenu
+from .settings import (Config, FormStr, FormInt, FormFloat, FormBool, FormMenu,
+                       FormRadio)
 
 lg = getLogger(__name__)
 
@@ -99,27 +99,32 @@ class AnalysisDialog(QDialog):
 
         box0 = QGroupBox('Chunking')
 
-        self.chunk['event'] = QRadioButton('by e&vent')
-        self.chunk['epoch'] = QRadioButton('by e&poch')
-        self.chunk['segment'] = QRadioButton('by &segment')
-        self.idx_evt_type = FormMenu(self.event_types)
+        self.chunk['event'] = FormRadio('by e&vent')
+        self.chunk['epoch'] = FormRadio('by e&poch')
+        self.chunk['segment'] = FormRadio('by &segment')
         self.label['evt_type'] = QLabel('Event type')
         self.label['epoch_dur'] = QLabel('Duration (s)')
         self.label['min_dur'] = QLabel('Minimum duration (s)')
         self.epoch_dur = FormFloat(30.0)
+        self.lock_to_staging = FormBool('Lock to staging epochs')
         self.min_dur = FormFloat(0.0)
+
+        evt_box = QListWidget()
+        evt_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.idx_evt_type = evt_box
 
         grid = QGridLayout(box0)
         box0.setLayout(grid)
         grid.addWidget(self.chunk['event'], 0, 0)
-        grid.addWidget(self.label['evt_type'], 0, 1)
-        grid.addWidget(self.idx_evt_type, 0, 2)
-        grid.addWidget(self.chunk['epoch'], 1, 0)
-        grid.addWidget(self.label['epoch_dur'], 1, 1)
-        grid.addWidget(self.epoch_dur, 1, 2)
-        grid.addWidget(self.chunk['segment'], 2, 0)
-        grid.addWidget(self.label['min_dur'], 3, 0)
-        grid.addWidget(self.min_dur, 3, 2)
+        grid.addWidget(self.label['evt_type'], 1, 0)
+        grid.addWidget(self.idx_evt_type, 1, 1, 1, 2)
+        grid.addWidget(self.chunk['epoch'], 2, 0)
+        grid.addWidget(self.label['epoch_dur'], 2, 1)
+        grid.addWidget(self.epoch_dur, 2, 2)
+        grid.addWidget(self.lock_to_staging, 3, 0, 1, 3)
+        grid.addWidget(self.chunk['segment'], 4, 0)
+        grid.addWidget(self.label['min_dur'], 5, 0)
+        grid.addWidget(self.min_dur, 5, 2)
 
         """ ------ LOCATION ------ """
 
@@ -180,25 +185,20 @@ class AnalysisDialog(QDialog):
 
         self.trans['button'] = {}
         tb = self.trans['button']
-        tb['none'] = QRadioButton('&None')
-        tb['butter'] = QRadioButton('&Butterworth filter')
-        tb['cheby'] = QRadioButton('&Chebyshev filter')
-        tb['bessel'] = QRadioButton('Besse&l filter')
+        tb['none'] = FormRadio('&None')
+        tb['butter'] = FormRadio('&Butterworth filter')
+        tb['cheby'] = FormRadio('&Chebyshev filter')
+        tb['bessel'] = FormRadio('Besse&l filter')
 
         self.trans['filt'] = {}
         filt = self.trans['filt']
-        filt['order'] = FormInt(default=3)
-        filt['f1'] = FormFloat()
-        filt['f2'] = FormFloat()
-        filt['notch_centre'] = FormFloat()
-        filt['notch_bandw'] = FormFloat()
-        filt['order_l'] = QLabel('Order')
-        filt['bandpass_l'] = QLabel('Bandpass')
-        filt['f1_l'] = QLabel('Lowcut (Hz)')
-        filt['f2_l'] = QLabel('Highcut (Hz)')
-        filt['notch_l'] = QLabel('Notch')
-        filt['notch_centre_l'] = QLabel('Centre (Hz)')
-        filt['notch_bandw_l'] = QLabel('Bandwidth (Hz)')
+        filt['order'] = QLabel('Order'), FormInt(default=3)
+        filt['f1'] = QLabel('Lowcut (Hz)'), FormFloat()
+        filt['f2'] = QLabel('Highcut (Hz)'), FormFloat()
+        filt['notch_centre'] = QLabel('Centre (Hz)'), FormFloat()
+        filt['notch_bandw'] = QLabel('Bandwidth (Hz)'), FormFloat()
+        filt['bandpass_l'] = QLabel('Bandpass'), None
+        filt['notch_l'] = QLabel('Notch'), None
 
         form_layout = QFormLayout()
         box2.setLayout(form_layout)
@@ -206,18 +206,13 @@ class AnalysisDialog(QDialog):
         form_layout.addRow(tb['butter'])
         form_layout.addRow(tb['cheby'])
         form_layout.addRow(tb['bessel'])
-        form_layout.addRow(filt['order_l'],
-                           filt['order'])
-        form_layout.addRow(filt['bandpass_l'])
-        form_layout.addRow(filt['f1_l'],
-                           filt['f1'])
-        form_layout.addRow(filt['f2_l'],
-                           filt['f2'])
-        form_layout.addRow(filt['notch_l'])
-        form_layout.addRow(filt['notch_centre_l'],
-                           filt['notch_centre'])
-        form_layout.addRow(filt['notch_bandw_l'],
-                           filt['notch_bandw'])
+        form_layout.addRow(*filt['order'])
+        form_layout.addRow(filt['bandpass_l'][0])
+        form_layout.addRow(*filt['f1'])
+        form_layout.addRow(*filt['f2'])
+        form_layout.addRow(filt['notch_l'][0])
+        form_layout.addRow(*filt['notch_centre'])
+        form_layout.addRow(*filt['notch_bandw'])
 
         """ ------ EVENTS ------ """
 
@@ -417,43 +412,36 @@ class AnalysisDialog(QDialog):
 
         box_complex = QGroupBox('Complex definition')
 
-        pac['hilbert_on'] = QRadioButton('Hilbert transform')
+        pac['hilbert_on'] = FormRadio('Hilbert transform')
         pac['hilbert'] = {}
         hilb = pac['hilbert']
-        hilb['filt'] = FormMenu(['fir1', 'butter', 'bessel'])
-        hilb['cycle_pha'] = FormInt(default=3)
-        hilb['cycle_amp'] = FormInt(default=6)
-        hilb['order'] = FormInt(default=3)
-        hilb['filt_l'] = QLabel('Filter')
-        hilb['cycle_pha_l'] = QLabel('Cycles, phase')
-        hilb['cycle_amp_l'] = QLabel('Cycles, amp')
-        hilb['order_l'] = QLabel('Order')
-
-        pac['wavelet_on'] = QRadioButton('Wavelet convolution')
-        pac['wav_width'] = FormInt(default=7)
-        pac['wav_width_l'] = QLabel('Width')
+        hilb['filt'] = QLabel('Filter'), FormMenu(['fir1', 'butter', 'bessel'])
+        hilb['cycle_pha'] = QLabel('Cycles, phase'), FormInt(default=3)
+        hilb['cycle_amp'] = QLabel('Cycles, amp'), FormInt(default=6)
+        hilb['order'] = QLabel('Order'), FormInt(default=3)
+        pac['wavelet_on'] = FormRadio('Wavelet convolution')
+        pac['wav_width'] = QLabel('Width'), FormInt(default=7)
 
         grid = QGridLayout(box_complex)
         grid.addWidget(pac['hilbert_on'], 0, 0, 1, 2)
-        grid.addWidget(hilb['filt_l'], 1, 0)
-        grid.addWidget(hilb['filt'], 1, 1)
-        grid.addWidget(hilb['cycle_pha_l'], 2, 0)
-        grid.addWidget(hilb['cycle_pha'], 2, 1)
-        grid.addWidget(hilb['cycle_amp_l'], 3, 0)
-        grid.addWidget(hilb['cycle_amp'], 3, 1)
-        grid.addWidget(hilb['order_l'], 4, 0)
-        grid.addWidget(hilb['order'], 4, 1)
+        grid.addWidget(hilb['filt'][0], 1, 0)
+        grid.addWidget(hilb['filt'][1], 1, 1)
+        grid.addWidget(hilb['cycle_pha'][0], 2, 0)
+        grid.addWidget(hilb['cycle_pha'][1], 2, 1)
+        grid.addWidget(hilb['cycle_amp'][0], 3, 0)
+        grid.addWidget(hilb['cycle_amp'][1], 3, 1)
+        grid.addWidget(hilb['order'][0], 4, 0)
+        grid.addWidget(hilb['order'][1], 4, 1)
         grid.addWidget(pac['wavelet_on'], 0, 3, 1, 2)
-        grid.addWidget(pac['wav_width_l'], 1, 3)
-        grid.addWidget(pac['wav_width'], 1, 4)
+        grid.addWidget(pac['wav_width'][0], 1, 3)
+        grid.addWidget(pac['wav_width'][1], 1, 4)
 
         box_metric = QGroupBox('PAC metric')
 
         pac['metric'] = FormMenu(pac_metrics)
         pac['fpha'] = FormStr()
         pac['famp'] = FormStr()
-        pac['nbin'] = FormInt(default=18)
-        pac['nbin_l'] = QLabel('Number of bins')
+        pac['nbin'] = QLabel('Number of bins'), FormInt(default=18)
 
         form_layout = QFormLayout(box_metric)
         form_layout.addRow('PAC metric',
@@ -462,31 +450,27 @@ class AnalysisDialog(QDialog):
                            pac['fpha'])
         form_layout.addRow('Amplitude frequencies (Hz)',
                            pac['famp'])
-        form_layout.addRow(pac['nbin_l'],
-                           pac['nbin'])
+        form_layout.addRow(*pac['nbin'])
 
         box_surro = QGroupBox('Surrogate data')
 
         pac['surro_method'] = FormMenu(pac_surro)
         pac['surro'] = {}
         sur = pac['surro']
-        sur['nperm'] = FormInt(default=200)
-        sur['nperm_l'] = QLabel('Number of surrogates')
-        sur['nblocks'] = FormInt(default=2)
-        sur['nblocks_l'] = QLabel('Number of amplitude blocks')
-        sur['pval'] = FormBool('Get p-values')
-        sur['save_surro'] = FormBool('Save surrogate data')
-        sur['norm'] = FormMenu(pac_norm)
+        sur['nperm'] = QLabel('Number of surrogates'), FormInt(default=200)
+        sur['nblocks'] = (QLabel('Number of amplitude blocks'),
+                          FormInt(default=2))
+        sur['pval'] = FormBool('Get p-values'), None
+        sur['save_surro'] = FormBool('Save surrogate data'), None
+        sur['norm'] = FormMenu(pac_norm), None
 
         form_layout = QFormLayout(box_surro)
         form_layout.addRow(pac['surro_method'])
-        form_layout.addRow(sur['nperm_l'],
-                           sur['nperm'])
-        form_layout.addRow(sur['nblocks_l'],
-                           sur['nblocks'])
-        form_layout.addRow(sur['pval'])
-        form_layout.addRow(sur['save_surro'])
-        form_layout.addRow(sur['norm'])
+        form_layout.addRow(*sur['nperm'])
+        form_layout.addRow(*sur['nblocks'])
+        form_layout.addRow(sur['pval'][0])
+        form_layout.addRow(sur['save_surro'][0])
+        form_layout.addRow(sur['norm'][0])
 
         box_opts = QGroupBox('Options')
 
@@ -638,7 +622,9 @@ class AnalysisDialog(QDialog):
 
         filter_on = not self.trans['button']['none'].isChecked()
         for button in self.trans['filt'].values():
-            button.setEnabled(filter_on)
+            button[0].setEnabled(filter_on)
+            if button[1] is not None:
+                button[1].setEnabled(filter_on)
 
         density_on = self.event['density'].isChecked()
         self.event['density_per'].setEnabled(density_on)
@@ -659,22 +645,26 @@ class AnalysisDialog(QDialog):
         hilb_on = self.pac['hilbert_on'].isChecked()
         wav_on = self.pac['wavelet_on'].isChecked()
         for button in self.pac['hilbert'].values():
-            button.setEnabled(hilb_on)
-        self.pac['wav_width'].setEnabled(wav_on)
-        self.pac['wav_width_l'].setEnabled(wav_on)
+            button[0].setEnabled(hilb_on)
+            if button[1] is not None:
+                button[1].setEnabled(hilb_on)
+        self.pac['wav_width'][0].setEnabled(wav_on)
+        self.pac['wav_width'][1].setEnabled(wav_on)
 
         if self.pac['metric'].get_value() in [
                 'Kullback-Leibler Distance',
                 'Heights ratio']:
-            self.pac['nbin'].setEnabled(True)
-            self.pac['nbin_l'].setEnabled(True)
+            self.pac['nbin'][0].setEnabled(True)
+            self.pac['nbin'][1].setEnabled(True)
         else:
-            self.pac['nbin'].setEnabled(False)
-            self.pac['nbin_l'].setEnabled(False)
+            self.pac['nbin'][0].setEnabled(False)
+            self.pac['nbin'][1].setEnabled(False)
 
         if self.pac['metric'] == 'ndPac':
             for button in self.pac['surro'].values():
-                button.setEnabled(False)
+                button[0].setEnabled(False)
+                if button[1] is not None:
+                    button[1].setEnabled(False)
             self.pac['surro']['pval'].setEnabled(True)
 
         ndpac_on = self.pac['metric'].get_value() == 'ndPac'
@@ -684,9 +674,11 @@ class AnalysisDialog(QDialog):
         'Swap amplitude blocks across time'
         self.pac['surro_method'].setEnabled(not ndpac_on)
         for button in self.pac['surro'].values():
-            button.setEnabled(surro_on)
-        self.pac['surro']['nblocks'].setEnabled(blocks_on)
-        self.pac['surro']['nblocks_l'].setEnabled(blocks_on)
+            button[0].setEnabled(surro_on)
+            if button[1] is not None:
+                button[1].setEnabled(surro_on)
+        self.pac['surro']['nblocks'][0].setEnabled(blocks_on)
+        self.pac['surro']['nblocks'][1].setEnabled(blocks_on)
         if ndpac_on:
             self.pac['surro_method'].set_value('No surrogates')
             self.pac['surro']['pval'].setEnabled(True)
@@ -729,14 +721,74 @@ class AnalysisDialog(QDialog):
             which button was pressed
         """
         if button is self.idx_ok:
-            self.read_data()
+            """
+            evt_type = self.idx_evt_type.currentText()
+            stage = self.idx_stage.selectedItems()
+            cycle = self.parent.annot.get_cycles() # TO-DO: get cycles
+            exclude = 
+            group = self.one_grp
+            chan = self.get_channels()
+            evt_chan_only = 
+            params = {k: v.get_value() for k, v in self.chunk.items()}
+            
+            
+            bundles = self.get_times(evt_type=evt_type, stage=self.stage, 
+                                   cycle=cycle, chan=chan, exclude=exclude)
+            bundles = self.remove_artf_evts(bundles)
+            self.read_data(chan, group, bundles, evt_chan_only)
+            
+            
+            
+            
+            if self.filename is None:
+                return
 
+            freqs = (self.frequency['locut'].get_value(),
+                     self.frequency['hicut'].get_value())
+
+            if None in freqs:
+                self.parent.statusBar().showMessage(
+                        'Specify bandpass frequencies')
+                return
+
+            filename = self.filename
+            
+            chan_name = chan + ' (' + self.idx_group.currentText() + ')'
+            params = [k for k, v in self.index.items() if v.get_value()]
+            cycles = None
+            fsplit = None
+
+            if stage == []:
+                stage = None
+            else:
+                stage = [x.text() for x in self.idx_stage.selectedItems()]
+
+            if self.cyc_split.get_value():
+                cycles = self.cycles
+
+            if self.freq_split.get_value():
+                fsplit = float(self.freq_cutoff.text())
+
+            self.parent.notes.read_data(chan, self.one_grp)
+
+            summary, events = self.parent.notes.analyze_events(evt_type,
+                                                             chan_name,
+                                                             stage,
+                                                             params,
+                                                             frequency=freqs,
+                                                             cycles=cycles,
+                                                             fsplit=fsplit)
+
+            self.parent.notes.annot.export_event_data(filename, summary,
+                                                      events, cycles=cycles,
+                                                      fsplit=fsplit)
+            """
             self.accept()
 
         if button is self.idx_cancel:
             self.reject()
 
-    def read_data(self):
+    def read_data(self, chan, group, bundles, evt_chan_only):
         """Read data for analysis."""
         dataset = self.parent.info.dataset
         chan = self.get_channels()
@@ -752,8 +804,10 @@ class AnalysisDialog(QDialog):
             data.data[0] = data.data[0][:, slice(None, None, q)]
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
-
-        self.data = data
+        
+        self.data = _create_data_to_analyze(data, chan, self.one_grp, 
+                                            bundles=bundles, 
+                                            evt_chan_only=evt_chan_only)
 
     def get_times(self, evt_type=None, stage=None, cycle=None, chan=None,
                   exclude=True):
@@ -767,8 +821,9 @@ class AnalysisDialog(QDialog):
             be returned.
         stage: list of str, optional
             Stage(s) of interest. If None, all stages are used.
-        cycle: list of int, optional
-            Cycle(s) of interest. If None, cycles are disregarded.
+        cycle: list of tuple of two float, optional
+            Cycle(s) of interest, as start and end times in seconds from record
+            start. If None, cycles are disregarded.
         chan: list of str or tuple of None
             Channel(s) of interest, only used for events (epochs have no 
             channel). If None, channels are disregarded.
@@ -821,6 +876,7 @@ class AnalysisDialog(QDialog):
                         evochs = getter(name=et, time=cyc, chan=ch,
                                         stage=ss, qual=qual)
                         times = [(e['start'], e['end']) for e in evochs]
+                        times = sorted(times, key=lambda x: x['start'])
                         one_bundle = {'times': times,
                                       'stage': ss,
                                       'cycle': cyc,
@@ -829,6 +885,56 @@ class AnalysisDialog(QDialog):
                         bundles.append(one_bundle)
 
         return bundles
+
+    def remove_artf_evts(self, bundles):
+        """Correct times to remove events marked 'Artefact'.
+        
+        Parameters
+        ----------
+        bundles : list of dict
+            Each dict has times (the start and end times of each segment, as
+            list of tuple of float), and the stage, cycle, chan and name (event
+            type, if applicable) associated with the segment bundle
+
+        Returns
+        -------
+        list of dict
+            Each dict has times (the start and end times of each segment, as 
+            list of tuple of float), stage, cycle, as well as chan and event
+            type name (empty for epochs)            
+        """
+        for bund in bundles:
+            times = bund['times']
+            beg = times[0][0]
+            end = times[-1][-1]
+            stage = bund['stage']
+        
+            artefact = self.annot.get_events(name='Artefact', time=(beg, end), 
+                                             stage=stage, qual='Good')
+            
+            if artefact is not None:
+                new_times = []
+                
+                for artf in artefact:
+                    
+                    for seg in times:
+                        a_starts_in_s = seg[0] <= artf[0] <= seg[1]
+                        a_ends_in_s = seg[0] <= artf[1] <= seg[1]
+                        
+                        if a_ends_in_s and not a_starts_in_s:
+                            seg[0] = artf[1]                 
+                            
+                        elif a_starts_in_s:
+                            seg[1] = artf[0]
+
+                            if a_ends_in_s:
+                                new_times.append((artf[1], seg[1]))
+                            
+                        new_times.append(seg)
+                        
+                bund['times'] = new_times                
+            
+        return bundles                
 
     def concat(self, bundles, cat=(0, 0, 1, 0)):
         """Concatenate events or epochs.
@@ -845,8 +951,8 @@ class AnalysisDialog(QDialog):
             concatenated.
             If 2nd digit is 1, different stages selected in stage will be
             concatenated.
-            If 3rd digit is 1, discontinuous signal within a same stage will
-            be concatenated.
+            If 3rd digit is 1, discontinuous signal within a same condition 
+            (stage, cycle, event type) will be concatenated.
             If 4th digit is 1, events of different types will be concatenated.
             0 in any position indicates no concatenation.
             Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages 
@@ -861,8 +967,7 @@ class AnalysisDialog(QDialog):
             
         TO-DO
         -----
-        Sort times? Or are they already sorted?
-        Make sure the cat options are orthogonal
+        Make sure the cat options are orthogonal and make sense
         """   
         chan = list(set([x['chan'] for x in bundles]))
         cycle = sorted(set([x['cycle'] for x in bundles]))
@@ -958,56 +1063,115 @@ class AnalysisDialog(QDialog):
         return long_enough
 
 
-def fetch_signal(data, chan, reref=None, cycle=None, stage=None, chunking=None,
-                 min_dur=0., exclude=['poor'], chan_specific=True,
-                 cat=(0, 0, 0, 1)):
-    """Get raw signal either as events, as epochs or as continuous segments,
-    by channel, cycle and stage, removing artefacts, with concatenation.
+def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles, 
+                            evt_chan_only=True):
+    """Create data after montage and filtering.
 
     Parameters
     ----------
-    data: instance of Data
-        Raw data from which to fetch segments of interest
-    chan: list of str
-        Channel(s) of interest
-    reref: list of str, optional
-        Re-referencing channel(s). If None, raw signal is used.
-    cycle: tuple of int, optional
-        Cycle(s) of interest. If None, cycles are disregarded.
-    stage: list of str, optional
-        Stage(s) of interest. If None, all stages are used.
-    chunking: list of str or float or str, optional
-        This parameter determines the chunking of the signal: events, epochs or
-        continuous segments. If events desired, enter event type(s) as list of
-        str. If epochs desired, enter float for epoch duration (s) or
-        'lock_to_scoring' to return epochs synchronized with annotations. If
-        continuous segments desired, enter None. Defaults to None.
-    min_dur: float
-        Minimum duration of signal chunks returned. Defaults to 0.
-    exclude: str, optional
-        Exclude epochs by quality. If 'poor', epochs marked as 'Poor' quality
-        or staged as 'Artefact' will be rejected (and the signal cisioned in
-        consequence). Defaults to 'poor'.
-    chan_specific: bool
-        For events only, mark as True to only get event signal for channel(s)
-        on which they were marked. If False, signal on all channels concurrent
-        to each event will be returned. Defaults to True.
-    cat: tuple of int
-        Determines whether and where the signal is concatenated.
-        If first digit is 1, channels will be concatenated in order listed in
-        chan.
-        If second digit is 1, cycles selected in cycle will be concatenated.
-        If third digit is 1, different stages selected in stage will be
-        concatenated.
-        If fourth digit is 1, discontinuous signal within a same stage will be
-        concatenated.
-        0 in any position indicates no concatenation.
-        Defaults to (0, 0, 0 , 1), i.e. concatenate signal within stages only.
+    data : instance of ChanTime
+        the raw data
+    analysis_chans : list of str
+        the channel(s) of interest and their reference(s), if any
+    chan_grp : dict
+        information about channels to plot, to use as reference and about
+        filtering etc.
+    times : list of dict
+        Each dict has times (the start and end times of each segment, as
+        list of tuple of float), stage, cycle, chan, name (event type,
+        if applicable)
+    evt_chan_only: bool
+        For use with events. If True, data concurrent with the event on all
+        channels in analysis_chans will be returned. If False, only the data
+        on the original channel where the event was marked will be returned.
 
     Returns
     -------
-    instance of Data, same as data
-        Selected data with separate events/epochs/segments as trials.
+    instance of ChanTime
+        data ready to be analyzed. one trial only.
     """
-    pass
+    s_freq = data.s_freq
+    output = {}
 
+    for bund in bundles:
+        times = [(int(t0 * s_freq),
+                  int(t1 * s_freq)) for (t0, t1) in bundles['times']]        
+
+        one_segment = ChanTime()
+        one_segment.s_freq = s_freq
+        one_segment.axis['chan'] = empty(1, dtype='O')
+        one_segment.axis['time'] = empty(1, dtype='O')
+        one_segment.data = empty(1, dtype='O')
+    
+        all_epoch_data = []
+        clock_time = []
+        all_chan_grp_name = []
+        
+        if evt_chan_only and bund['chan'] is not None:
+            these_chans = bund['chan']
+        else:
+            these_chans = analysis_chans
+    
+        for chan in these_chans:
+            chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
+            all_chan_grp_name.append(chan_grp_name)
+    
+        sel_data = _select_channels(data,
+                                    these_chans +
+                                    chan_grp['ref_chan'])
+        data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
+    
+        for (t0, t1) in times:
+            one_interval = data.axis['time'][0][t0: t1]
+            clock_time.append(one_interval)
+            epoch_dat = empty((len(these_chans), len(one_interval)))
+            i_ch = 0
+    
+            for chan in these_chans:
+                dat = data1(chan=chan, trial=0)
+                #dat = dat - nanmean(dat)
+                epoch_dat[i_ch, :] = dat[t0: t1]
+                i_ch += 1
+    
+            all_epoch_data.append(epoch_dat)
+    
+        one_segment.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
+        one_segment.axis['time'][0] = concatenate(clock_time)
+        one_segment.data[0] = concatenate(all_epoch_data, axis=1)
+        output.update({'data': one_segment,
+                       'chan': bund['chan'],
+                       'stage': bund['stage'],
+                       'cycle': bund['cycle'],
+                       'name': bund['name']})
+
+    return output
+
+def _select_channels(data, channels):
+    """Select channels.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data with all the channels
+    channels : list
+        channels of interest
+
+    Returns
+    -------
+    instance of ChanTime
+        data with only channels of interest
+
+    Notes
+    -----
+    This function does the same as sleepytimes.trans.select, but it's much faster.
+    sleepytimes.trans.Select needs to flexible for any data type, here we assume
+    that we have one trial, and that channel is the first dimension.
+
+    """
+    output = data._copy()
+    chan_list = list(data.axis['chan'][0])
+    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
+    output.data[0] = data.data[0][idx_chan, :]
+    output.axis['chan'][0] = asarray(channels)
+
+    return output

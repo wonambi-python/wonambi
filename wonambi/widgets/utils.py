@@ -111,6 +111,9 @@ class RectMarker(QGraphicsRectItem):
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.marker)
         super().paint(painter, option, widget)
+        
+    def contains(self, pos):
+        return self.marker.contains(pos)
 
 
 class TextItem_with_BG(QGraphicsSimpleTextItem):

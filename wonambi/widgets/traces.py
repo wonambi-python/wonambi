@@ -775,21 +775,25 @@ class Traces(QGraphicsView):
         else:
             for annot in self.idx_annot:
                 if annot.contains(xy_scene):
-                    beg = annot.rect().x() - 0.5
-                    end = beg + annot.rect().width() + 1
+                    beg = annot.marker.x() - 0.5
+                    end = beg + annot.marker.width() + 1
                     msg = 'Event from ' + str(beg) + ' to ' + str(end)
                     self.parent.statusBar().showMessage(msg)
                     self.event_sel = annot
-                    highlight = QGraphicsRectItem(annot.rect().x() - 0.5,
-                                                  annot.rect().y() - 0.5,
-                                                  annot.rect().width() + 1,
-                                                  annot.rect().height() + 1)
-                    pen = QPen(QColor(255, 255, 51), 0, Qt.SolidLine,
-                               Qt.RoundCap)
-                    brush = QBrush(QColor(255, 255, 51))
-                    highlight.setPen(pen)
-                    highlight.setBrush(brush)
-                    highlight.setZValue(-5)
+                    highlight = RectMarker(annot.marker.x(),
+                                           annot.marker.y(),
+                                           annot.marker.width(),
+                                           annot.marker.height(),
+                                           zvalue=-5, 
+                                           color=QColor(255, 255, 51))
+#==============================================================================
+#                     pen = QPen(QColor(255, 255, 51), 0, Qt.SolidLine,
+#                                Qt.RoundCap)
+#                     brush = QBrush(QColor(255, 255, 51))
+#                     highlight.setPen(pen)
+#                     highlight.setBrush(brush)
+#                     highlight.setZValue(-5)
+#==============================================================================
                     self.scene.addItem(highlight)
                     self.highlight = highlight
                     break
@@ -968,8 +972,8 @@ class Traces(QGraphicsView):
 
         annot = self.event_sel
         highlight = self.highlight
-        annot_start = annot.rect().x() - 0.5
-        annot_end = annot_start + annot.rect().width() + 1
+        annot_start = annot.marker.x()
+        annot_end = annot_start + annot.marker.width()
 
         if type(event) == QKeyEvent and (
            event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace):

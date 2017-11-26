@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (QCheckBox,
                              QLineEdit,
                              QListWidget,
                              QPushButton,
+                             QRadioButton,
                              QSplitter,
                              QStackedWidget,
                              QTextEdit,
@@ -744,6 +745,60 @@ class FormBool(QCheckBox):
 
         """
         self.stateChanged.connect(funct)
+
+
+class FormRadio(QRadioButton):
+    """Subclass QRadioButton to have a more consistent API across widgets.
+
+    Parameters
+    ----------
+    checkbox_label : str
+        label next to checkbox
+
+    """
+    def __init__(self, checkbox_label):
+        super().__init__(checkbox_label)
+
+    def get_value(self, default=False):
+        """Get the value of the QCheckBox, as boolean.
+
+        Parameters
+        ----------
+        default : bool
+            not used
+
+        Returns
+        -------
+        bool
+            state of the checkbox
+
+        """
+        return self.checkState() == Qt.Checked
+
+    def set_value(self, value):
+        """Set value of the checkbox.
+
+        Parameters
+        ----------
+        value : bool
+            value for the checkbox
+
+        """
+        if value:
+            self.setCheckState(Qt.Checked)
+        else:
+            self.setCheckState(Qt.Unchecked)
+
+    def connect(self, funct):
+        """Call funct when user ticks the box.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.toggled.connect(funct)
 
 
 class FormFloat(QLineEdit):
