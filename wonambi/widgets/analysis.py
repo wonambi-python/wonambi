@@ -732,9 +732,10 @@ class AnalysisDialog(QDialog):
             params = {k: v.get_value() for k, v in self.chunk.items()}
             
             
-            bundles = self.get_times(evt_type=evt_type, stage=self.stage, 
-                                   cycle=cycle, chan=chan, exclude=exclude)
-            bundles = self.remove_artf_evts(bundles)
+            bundles = get_times(self.annot, evt_type=evt_type, 
+                                stage=self.stage, cycle=cycle, chan=chan, 
+                                exclude=exclude)
+            bundles = remove_artf_evts(self.annot, bundles)
             self.read_data(chan, group, bundles, evt_chan_only)
             
             
@@ -809,258 +810,263 @@ class AnalysisDialog(QDialog):
                                             bundles=bundles, 
                                             evt_chan_only=evt_chan_only)
 
-    def get_times(self, evt_type=None, stage=None, cycle=None, chan=None,
-                  exclude=True):
-        """Get start and end times for selected segments of data, bundled
-        together with info.
 
-        Parameters
-        ----------
-        evt_type: list of str, optional
-            Enter a list of event types to get events; otherwise, epochs will
-            be returned.
-        stage: list of str, optional
-            Stage(s) of interest. If None, all stages are used.
-        cycle: list of tuple of two float, optional
-            Cycle(s) of interest, as start and end times in seconds from record
-            start. If None, cycles are disregarded.
-        chan: list of str or tuple of None
-            Channel(s) of interest, only used for events (epochs have no 
-            channel). If None, channels are disregarded.
-        exclude: bool
-            Exclude epochs by quality. If True, epochs marked as 'Poor' quality
-            or staged as 'Artefact' will be rejected (and the signal cisioned 
-            in consequence). Defaults to True.
-            
-        Returns
-        -------
-        list of dict
-            Each dict has times (the start and end times of each segment, as
-            list of tuple of float), stage, cycle, chan, name (event type,
-            if applicable)
-            
-        Notes
-        -----
-        This function returns epoch or event start and end times, bundled 
-        together according to the specified parameters. The times list will not
-        necessarily be chronological.
-        """      
-        getter = self.annot.get_epochs
+def get_times(self, annot, evt_type=None, stage=None, cycle=None, 
+              chan=None, exclude=True):
+    """Get start and end times for selected segments of data, bundled
+    together with info.
 
-        if stage is None:
-            stage = (None,)
-        if cycle is None:
-            cycle = (None,)
-        if chan is None:
-            chan = (None,)  
-        if evt_type is None:
-            evt_type = (None,)
-        elif isinstance(evt_type[0], str):
-            getter = self.annot.get_events
-        else:
-            lg.error('Event type must be list/tuple of str or None')
-            
-        qual = None
-        if exclude:
-            qual = 'Poor'
+    Parameters
+    ----------
+    annot: instance of Annotations
+        The annotation file containing events and epochs
+    evt_type: list of str, optional
+        Enter a list of event types to get events; otherwise, epochs will
+        be returned.
+    stage: list of str, optional
+        Stage(s) of interest. If None, all stages are used.
+    cycle: list of tuple of two float, optional
+        Cycle(s) of interest, as start and end times in seconds from record
+        start. If None, cycles are disregarded.
+    chan: list of str or tuple of None
+        Channel(s) of interest, only used for events (epochs have no 
+        channel). If None, channels are disregarded.
+    exclude: bool
+        Exclude epochs by quality. If True, epochs marked as 'Poor' quality
+        or staged as 'Artefact' will be rejected (and the signal cisioned 
+        in consequence). Defaults to True.
         
-        bundles = []
-        for et in evt_type:
-            
-            for ch in chan:
-
-                for cyc in cycle:
-
-                    for ss in stage:
-
-                        evochs = getter(name=et, time=cyc, chan=ch,
-                                        stage=ss, qual=qual)
-                        times = [(e['start'], e['end']) for e in evochs]
-                        times = sorted(times, key=lambda x: x['start'])
-                        one_bundle = {'times': times,
-                                      'stage': ss,
-                                      'cycle': cyc,
-                                      'chan': ch,
-                                      'name': et}
-                        bundles.append(one_bundle)
-
-        return bundles
-
-    def remove_artf_evts(self, bundles):
-        """Correct times to remove events marked 'Artefact'.
+    Returns
+    -------
+    list of dict
+        Each dict has times (the start and end times of each segment, as
+        list of tuple of float), stage, cycle, chan, name (event type,
+        if applicable)
         
-        Parameters
-        ----------
-        bundles : list of dict
-            Each dict has times (the start and end times of each segment, as
-            list of tuple of float), and the stage, cycle, chan and name (event
-            type, if applicable) associated with the segment bundle
+    Notes
+    -----
+    This function returns epoch or event start and end times, bundled 
+    together according to the specified parameters. The times list will not
+    necessarily be chronological.
+    """      
+    getter = annot.get_epochs
 
-        Returns
-        -------
-        list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), stage, cycle, as well as chan and event
-            type name (empty for epochs)            
-        """
-        for bund in bundles:
-            times = bund['times']
-            beg = times[0][0]
-            end = times[-1][-1]
-            stage = bund['stage']
+    if stage is None:
+        stage = (None,)
+    if cycle is None:
+        cycle = (None,)
+    if chan is None:
+        chan = (None,)  
+    if evt_type is None:
+        evt_type = (None,)
+    elif isinstance(evt_type[0], str):
+        getter = annot.get_events
+    else:
+        lg.error('Event type must be list/tuple of str or None')
         
-            artefact = self.annot.get_events(name='Artefact', time=(beg, end), 
-                                             stage=stage, qual='Good')
-            
-            if artefact is not None:
-                new_times = []
-                
-                for artf in artefact:
-                    
-                    for seg in times:
-                        a_starts_in_s = seg[0] <= artf[0] <= seg[1]
-                        a_ends_in_s = seg[0] <= artf[1] <= seg[1]
-                        
-                        if a_ends_in_s and not a_starts_in_s:
-                            seg[0] = artf[1]                 
-                            
-                        elif a_starts_in_s:
-                            seg[1] = artf[0]
-
-                            if a_ends_in_s:
-                                new_times.append((artf[1], seg[1]))
-                            
-                        new_times.append(seg)
-                        
-                bund['times'] = new_times                
-            
-        return bundles                
-
-    def concat(self, bundles, cat=(0, 0, 1, 0)):
-        """Concatenate events or epochs.
-
-        Parameters
-        ----------
-        bundles : list of dict
-            Each dict has times (the start and end times of each segment, as
-            list of tuple of float), and the stage, cycle, chan and name (event
-            type, if applicable) associated with the segment bundle
-        cat : tuple of int
-            Determines whether and where the signal is concatenated.
-            If 1st digit is 1, cycles selected in cycle will be 
-            concatenated.
-            If 2nd digit is 1, different stages selected in stage will be
-            concatenated.
-            If 3rd digit is 1, discontinuous signal within a same condition 
-            (stage, cycle, event type) will be concatenated.
-            If 4th digit is 1, events of different types will be concatenated.
-            0 in any position indicates no concatenation.
-            Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages 
-            only.
-
-        Returns
-        -------
-        list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), stage, cycle, as well as chan and event
-            type name (empty for epochs)
-            
-        TO-DO
-        -----
-        Make sure the cat options are orthogonal and make sense
-        """   
-        chan = list(set([x['chan'] for x in bundles]))
-        cycle = sorted(set([x['cycle'] for x in bundles]))
-        stage = set([x['stage'] for x in bundles])
-        evt_type = set([x['name'] for x in bundles])        
+    qual = None
+    if exclude:
+        qual = 'Poor'
+    
+    bundles = []
+    for et in evt_type:
         
-        # since events are channel-specific, they must be sorted by channel
-        if chan == ['']:
-            all_chan = ', '.join(chan)
-            chan = [all_chan]
-        
-        if cat[0]:
-            all_cycle = ', '.join([str(c) for c in cycle])
-            cycle = [all_cycle]
-            
-        if cat[1]:
-            all_stage = ', '.join(stage)
-            stage = [all_stage]
-            
-        if cat[3]:
-            all_evt_type = ', '.join(evt_type)
-            evt_type = [all_evt_type]
-            
-        to_concat = []
         for ch in chan:
 
             for cyc in cycle:
 
-                for st in stage:
+                for ss in stage:
 
-                    for et in evt_type:
-                        new_times = []
-                        
-                        for bund in bundles:
-                            chan_cond = ch in (bund['chan'], all_chan)
-                            cyc_cond = cyc in (bund['cycle'], all_cycle)
-                            st_cond = st in (bund['stage'], all_stage)
-                            et_cond = et in (bund['name'], all_evt_type)
-                            
-                            if logical_and(chan_cond, cyc_cond, st_cond, 
-                                           et_cond):
-                                new_times.extend(bund['times'])
-                                
-                        new_bund = {'times': new_times,
-                                  'chan': ch,
+                    evochs = getter(name=et, time=cyc, chan=ch,
+                                    stage=ss, qual=qual)
+                    times = [(e['start'], e['end']) for e in evochs]
+                    times = sorted(times, key=lambda x: x['start'])
+                    one_bundle = {'times': times,
+                                  'stage': ss,
                                   'cycle': cyc,
-                                  'stage': st,
-                                  'name': et
-                                  }
-                        to_concat.append(new_bund)
+                                  'chan': ch,
+                                  'name': et}
+                    bundles.append(one_bundle)
 
-        if not cat[2]:            
-            to_concat_new = []
+    return bundles
+
+def remove_artf_evts(self, bundles, annot):
+    """Correct times to remove events marked 'Artefact'.
+    
+    Parameters
+    ----------
+    bundles : list of dict
+        Each dict has times (the start and end times of each segment, as
+        list of tuple of float), and the stage, cycle, chan and name (event
+        type, if applicable) associated with the segment bundle
+    annot: instance of Annotations
+        The annotation file containing events and epochs
+
+    Returns
+    -------
+    list of dict
+        Each dict has times (the start and end times of each segment, as 
+        list of tuple of float), stage, cycle, as well as chan and event
+        type name (empty for epochs)            
+    """
+    for bund in bundles:
+        times = bund['times']
+        beg = times[0][0]
+        end = times[-1][-1]
+        stage = bund['stage']
+    
+        artefact = self.annot.get_events(name='Artefact', time=(beg, end), 
+                                         stage=stage, qual='Good')
+        
+        if artefact is not None:
+            new_times = []
             
-            for bund in to_concat:                
-                last = None
+            for artf in artefact:
                 
-                for i, j in enumerate(bund['times'].append((inf,inf))):
+                for seg in times:
+                    a_starts_in_s = seg[0] <= artf[0] <= seg[1]
+                    a_ends_in_s = seg[0] <= artf[1] <= seg[1]
                     
-                    if last is not None:                       
-                        if not isclose(j[0], last, abs_tol=0.1):
-                            new_times = bund['times'][:i]
-                            new_bund = bund.copy()
-                            new_bund['times'] = new_times
-                            to_concat_new.append(bund['times'][:i])
-                    last = j[1]
+                    if a_ends_in_s and not a_starts_in_s:
+                        seg[0] = artf[1]                 
+                        
+                    elif a_starts_in_s:
+                        seg[1] = artf[0]
+
+                        if a_ends_in_s:
+                            new_times.append((artf[1], seg[1]))
+                        
+                    new_times.append(seg)
+                    
+            bund['times'] = new_times                
+        
+    return bundles                
+
+def concat(self, bundles, cat=(0, 0, 1, 0)):
+    """Concatenate events or epochs.
+
+    Parameters
+    ----------
+    bundles : list of dict
+        Each dict has times (the start and end times of each segment, as
+        list of tuple of float), and the stage, cycle, chan and name (event
+        type, if applicable) associated with the segment bundle
+    cat : tuple of int
+        Determines whether and where the signal is concatenated.
+        If 1st digit is 1, cycles selected in cycle will be 
+        concatenated.
+        If 2nd digit is 1, different stages selected in stage will be
+        concatenated.
+        If 3rd digit is 1, discontinuous signal within a same condition 
+        (stage, cycle, event type) will be concatenated.
+        If 4th digit is 1, events of different types will be concatenated.
+        0 in any position indicates no concatenation.
+        Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages 
+        only.
+
+    Returns
+    -------
+    list of dict
+        Each dict has times (the start and end times of each segment, as 
+        list of tuple of float), stage, cycle, as well as chan and event
+        type name (empty for epochs)
+        
+    TO-DO
+    -----
+    Make sure the cat options are orthogonal and make sense
+    """   
+    chan = list(set([x['chan'] for x in bundles]))
+    cycle = sorted(set([x['cycle'] for x in bundles]))
+    stage = set([x['stage'] for x in bundles])
+    evt_type = set([x['name'] for x in bundles])        
+    
+    # since events are channel-specific, they must be sorted by channel
+    if chan == ['']:
+        all_chan = ', '.join(chan)
+        chan = [all_chan]
+    
+    if cat[0]:
+        all_cycle = ', '.join([str(c) for c in cycle])
+        cycle = [all_cycle]
+        
+    if cat[1]:
+        all_stage = ', '.join(stage)
+        stage = [all_stage]
+        
+    if cat[3]:
+        all_evt_type = ', '.join(evt_type)
+        evt_type = [all_evt_type]
+        
+    to_concat = []
+    for ch in chan:
+
+        for cyc in cycle:
+
+            for st in stage:
+
+                for et in evt_type:
+                    new_times = []
+                    
+                    for bund in bundles:
+                        chan_cond = ch in (bund['chan'], all_chan)
+                        cyc_cond = cyc in (bund['cycle'], all_cycle)
+                        st_cond = st in (bund['stage'], all_stage)
+                        et_cond = et in (bund['name'], all_evt_type)
+                        
+                        if logical_and(chan_cond, cyc_cond, st_cond, 
+                                       et_cond):
+                            new_times.extend(bund['times'])
+                            
+                    new_bund = {'times': new_times,
+                              'chan': ch,
+                              'cycle': cyc,
+                              'stage': st,
+                              'name': et
+                              }
+                    to_concat.append(new_bund)
+
+    if not cat[2]:            
+        to_concat_new = []
+        
+        for bund in to_concat:                
+            last = None
             
-            to_concat = to_concat_new
-                    
-        return to_concat
+            for i, j in enumerate(bund['times'].append((inf,inf))):
+                
+                if last is not None:                       
+                    if not isclose(j[0], last, abs_tol=0.1):
+                        new_times = bund['times'][:i]
+                        new_bund = bund.copy()
+                        new_bund['times'] = new_times
+                        to_concat_new.append(bund['times'][:i])
+                last = j[1]
+        
+        to_concat = to_concat_new
+                
+    return to_concat
 
 
-    def longer_than(self, bundles, min_dur):
-        """
-        Parameters
-        ----------
-        bundles : list of dict
-            Each dict has times (the start and end times of each segment, as 
-            list of tuple of float), and the stage, cycle, chan and name (event 
-            type, if applicable) associated with the segment bundle
-        min_dur: float
-            Minimum duration of signal chunks returned.
-        """
-        if min_dur <= 0:
-            return bundles
-        
-        long_enough = []
-        for bund in bundles:
-        
-            if sum([t[1] - t[0] for t in bund['times']]) >= min_dur:
-                long_enough.append(bund)
-        
-        return long_enough
+def longer_than(self, bundles, min_dur):
+    """
+    Parameters
+    ----------
+    bundles : list of dict
+        Each dict has times (the start and end times of each segment, as 
+        list of tuple of float), and the stage, cycle, chan and name (event 
+        type, if applicable) associated with the segment bundle
+    min_dur: float
+        Minimum duration of signal chunks returned.
+    """
+    if min_dur <= 0:
+        return bundles
+    
+    long_enough = []
+    for bund in bundles:
+    
+        if sum([t[1] - t[0] for t in bund['times']]) >= min_dur:
+            long_enough.append(bund)
+    
+    return long_enough
 
 
 def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles, 
