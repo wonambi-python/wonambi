@@ -214,11 +214,12 @@ class AnalysisDialog(ChannelDialog):
         tab1 = QWidget()
 
         ev = self.event
+        ev['global'] = {}
         eg = ev['global']
         eg['count'] = FormBool('Count')
         eg['density'] = FormBool('Density, per (sec)')
         eg['density_per'] = FormFloat(default=30.0)
-        eg['all_local'] = FormBool('All'), 
+        eg['all_local'] = FormBool('All')
         eg['all_local_prep'] = FormBool('')
 
         ev['local'] = {}
@@ -252,8 +253,8 @@ class AnalysisDialog(ChannelDialog):
         grid2.addWidget(QLabel('Parameter'), 0, 0)
         grid2.addWidget(QLabel('  '), 0, 1)
         grid2.addWidget(QLabel('Pre-process'), 0, 2)
-        grid2.addWidget(ev['all_local'], 1, 0)
-        grid2.addWidget(ev['all_local_prep'], 1, 2)
+        grid2.addWidget(eg['all_local'], 1, 0)
+        grid2.addWidget(eg['all_local_prep'], 1, 2)
         grid2.addWidget(el['dur'][0], 2, 0)
         grid2.addWidget(el['minamp'][0], 3, 0)
         grid2.addWidget(el['minamp'][1], 3, 2)
@@ -504,9 +505,9 @@ class AnalysisDialog(ChannelDialog):
             button.connect(self.toggle_buttons)
 
         self.idx_group.connect(self.update_channels)
-        ev['density'].connect(self.toggle_buttons)
-        ev['all_local'][0].connect(self.check_all_local)
-        ev['all_local'][1].connect(self.check_all_local)
+        eg['density'].connect(self.toggle_buttons)
+        eg['all_local'].connect(self.check_all_local)
+        eg['all_local_prep'].connect(self.check_all_local)
         ev['sw']['all_slope'].connect(self.check_all_slopes)
         self.psd['welch_on'].connect(self.toggle_buttons)
         self.psd['mtap_on'].connect(self.toggle_buttons)
@@ -613,8 +614,8 @@ class AnalysisDialog(ChannelDialog):
             if button[1] is not None:
                 button[1].setEnabled(filter_on)
 
-        density_on = self.event['density'].isChecked()
-        self.event['density_per'].setEnabled(density_on)
+        density_on = self.event['global']['density'].isChecked()
+        self.event['global']['density_per'].setEnabled(density_on)
 
         for buttons in self.event['local'].values():
             checked = buttons[0].isChecked()
