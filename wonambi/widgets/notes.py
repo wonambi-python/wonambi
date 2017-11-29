@@ -55,7 +55,7 @@ from ..trans import montage, filter_
 from ..attr import Annotations, create_empty_annotations
 from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
-from .settings import Config, FormStr, FormInt, FormFloat, FormBool
+from .settings import Config, FormStr, FormInt, FormFloat, FormBool, FormMenu
 from .utils import convert_name_to_color, short_strings, ICON
 
 lg = getLogger(__name__)
@@ -1498,11 +1498,7 @@ class ChannelDialog(QDialog):
         self.idx_ok = self.bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = self.bbox.button(QDialogButtonBox.Cancel)
 
-        chan_grp_box = QComboBox()
-        for gr in self.groups:
-            chan_grp_box.addItem(gr['name'])
-        self.idx_group = chan_grp_box
-        chan_grp_box.activated.connect(self.update_channels)
+        self.idx_group = FormMenu([gr['name'] for gr in self.groups])
 
         chan_box = QListWidget()
         self.idx_chan = chan_box

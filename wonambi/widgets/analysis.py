@@ -2,13 +2,10 @@
 
 """Dialogs for analyses, such as power spectra, PAC, event parameters
 """
-from datetime import timedelta
-from functools import partial
-from itertools import compress
+from operator import itemgetter
 from logging import getLogger
 from numpy import (asarray, concatenate, diff, empty, floor, in1d, inf, log,
                    logical_and, mean, ptp, sqrt, square, std)
-from scipy.signal import periodogram
 from math import isclose
 from os.path import basename, splitext
 from pickle import dump, load
@@ -17,44 +14,34 @@ from pickle import dump, load
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (QAbstractItemView,
-                             QAction,
-                             QCheckBox,
-                             QComboBox,
-                             QDialog,
                              QDialogButtonBox,
                              QFileDialog,
                              QFormLayout,
                              QGridLayout,
                              QGroupBox,
                              QHBoxLayout,
-                             QInputDialog,
                              QLabel,
                              QLineEdit,
                              QListWidget,
-                             QListWidgetItem,
                              QMessageBox,
                              QPushButton,
-                             QTableWidget,
-                             QTableWidgetItem,
                              QTabWidget,
                              QVBoxLayout,
                              QWidget,
-                             QScrollArea,
                              )
 
 from .. import ChanTime
 from ..trans import montage, filter_
-from ..detect import DetectSpindle, DetectSlowWave, merge_close
-from .settings import (Config, FormStr, FormInt, FormFloat, FormBool, FormMenu,
+from .notes import ChannelDialog
+from .settings import (FormStr, FormInt, FormFloat, FormBool, FormMenu,
                        FormRadio)
+from .utils import short_strings
 
 lg = getLogger(__name__)
 
-STAGE_NAME = ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
-              'Undefined', 'Unknown', 'Artefact', 'Unrecognized']
 POWER_METHODS = ['Welch', 'Multitaper']
 
-class AnalysisDialog(QDialog):
+class AnalysisDialog(ChannelDialog):
     """Dialog for specifying various types of analyses: per event, per epoch or
     per entire segments of signal. PSD, PAC, event metrics. Option to transform
     signal before analysis. Creates a pickle object.
@@ -67,7 +54,7 @@ class AnalysisDialog(QDialog):
         information about groups from Channels
     """
     def __init__(self, parent):
-        super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        ChannelDialog.__init__(self, parent)
         self.parent = parent
 
         self.setWindowTitle('Analysis')
@@ -81,8 +68,6 @@ class AnalysisDialog(QDialog):
         self.cycles = None
         self.event = {}
         self.psd = {}
-        self.psd['welch'] = {}
-        self.psd['mtap'] = {}
         self.pac = {}
 
         self.create_dialog()
@@ -95,6 +80,20 @@ class AnalysisDialog(QDialog):
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
 
+        """ ------ FILE LOCATION ------ """
+        
+        box_f = QGroupBox('File location')
+        
+        filebutton = QPushButton('Choose')
+        #filebutton.setText('Choose')
+        filebutton.clicked.connect(self.save_as)
+        self.idx_filename = filebutton
+        
+        form_layout = QFormLayout()
+        box_f.setLayout(form_layout)
+        form_layout.addRow('Filename',
+                            self.idx_filename)
+
         """ ------ CHUNKING ------ """
 
         box0 = QGroupBox('Chunking')
@@ -102,9 +101,10 @@ class AnalysisDialog(QDialog):
         self.chunk['event'] = FormRadio('by e&vent')
         self.chunk['epoch'] = FormRadio('by e&poch')
         self.chunk['segment'] = FormRadio('by &segment')
-        self.label['evt_type'] = QLabel('Event type')
-        self.label['epoch_dur'] = QLabel('Duration (s)')
-        self.label['min_dur'] = QLabel('Minimum duration (s)')
+        self.label['evt_type'] = QLabel('Event type (s)')
+        self.label['epoch_dur'] = QLabel('Duration (sec)')
+        self.label['min_dur'] = QLabel('Minimum duration (sec)')
+        self.evt_chan_only = FormBool('Channel-specific')
         self.epoch_dur = FormFloat(30.0)
         self.lock_to_staging = FormBool('Lock to staging epochs')
         self.min_dur = FormFloat(0.0)
@@ -115,35 +115,30 @@ class AnalysisDialog(QDialog):
 
         grid = QGridLayout(box0)
         box0.setLayout(grid)
-        grid.addWidget(self.chunk['event'], 0, 0)
-        grid.addWidget(self.label['evt_type'], 1, 0)
-        grid.addWidget(self.idx_evt_type, 1, 1, 1, 2)
-        grid.addWidget(self.chunk['epoch'], 2, 0)
-        grid.addWidget(self.label['epoch_dur'], 2, 1)
-        grid.addWidget(self.epoch_dur, 2, 2)
-        grid.addWidget(self.lock_to_staging, 3, 0, 1, 3)
-        grid.addWidget(self.chunk['segment'], 4, 0)
-        grid.addWidget(self.label['min_dur'], 5, 0)
-        grid.addWidget(self.min_dur, 5, 2)
+        grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
+        grid.addWidget(QLabel('    '), 1, 0)
+        grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
+        grid.addWidget(QLabel('    '), 2, 0)
+        grid.addWidget(self.label['evt_type'], 2, 1, Qt.AlignTop)
+        grid.addWidget(self.idx_evt_type, 2, 2, 1, 2)
+        grid.addWidget(self.chunk['epoch'], 3, 0, 1, 3)
+        grid.addWidget(QLabel('    '), 4, 0)        
+        grid.addWidget(self.lock_to_staging, 4, 1, 1, 2)
+        grid.addWidget(QLabel('    '), 4, 0)
+        grid.addWidget(self.label['epoch_dur'], 5, 1)
+        grid.addWidget(self.epoch_dur, 5, 2)
+        grid.addWidget(self.chunk['segment'], 6, 0, 1, 3)
+        grid.addWidget(QLabel('    '), 7, 0)
+        grid.addWidget(self.label['min_dur'], 7, 1)
+        grid.addWidget(self.min_dur, 7, 2)
 
         """ ------ LOCATION ------ """
 
         box1 = QGroupBox('Location')
 
-        self.idx_group = FormMenu([gr['name'] for gr in self.groups])
-
-        chan_box = QListWidget()
-        chan_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.idx_chan = chan_box
-
         cycle_box = QListWidget()
         cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_cycle = cycle_box
-
-        stage_box = QListWidget()
-        stage_box.addItems(STAGE_NAME) # TODO: make it find what stages were scored
-        stage_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.idx_stage = stage_box
 
         self.reject_bad = FormBool('Exclude Artefact/Poor signal epochs')
 
@@ -219,14 +214,16 @@ class AnalysisDialog(QDialog):
         tab1 = QWidget()
 
         ev = self.event
-        ev['count'] = FormBool('Count')
-        ev['density'] = FormBool('Density, per (s)')
-        ev['density_per'] = FormFloat(default=30.0)
-        ev['all_local'] = FormBool('All'), FormBool('')
+        eg = ev['global']
+        eg['count'] = FormBool('Count')
+        eg['density'] = FormBool('Density, per (sec)')
+        eg['density_per'] = FormFloat(default=30.0)
+        eg['all_local'] = FormBool('All'), 
+        eg['all_local_prep'] = FormBool('')
 
         ev['local'] = {}
         el = ev['local']
-        el['dur'] = FormBool('Duration (s)'), FormBool('')
+        el['dur'] = FormBool('Duration (sec)'), FormBool('')
         el['minamp'] = FormBool('Minimum amplitude (uV)'), FormBool('')
         el['maxamp'] = FormBool('Maximum amplitude (uV)'), FormBool('')
         el['ptp'] = FormBool('Peak-to-peak amplitude (uV)'), FormBool('')
@@ -238,16 +235,16 @@ class AnalysisDialog(QDialog):
         ev['sw'] = {}
         ev['sw']['prep'] = FormBool('Pre-process')
         ev['sw']['all_slope'] = FormBool('All slopes')
-        ev['sw']['slope'] = []
+        ev['slope'] = []
         for i in range(10):
-            ev['sw']['slope'].append(FormBool(''))
+            ev['slope'].append(FormBool(''))
 
         box_global = QGroupBox('Global')
 
         grid1 = QGridLayout(box_global)
-        grid1.addWidget(ev['count'], 0, 0)
-        grid1.addWidget(ev['density'], 1, 0)
-        grid1.addWidget(ev['density_per'], 1, 1)
+        grid1.addWidget(eg['count'], 0, 0)
+        grid1.addWidget(eg['density'], 1, 0)
+        grid1.addWidget(eg['density_per'], 1, 1)
 
         box_local = QGroupBox('Local')
 
@@ -255,8 +252,8 @@ class AnalysisDialog(QDialog):
         grid2.addWidget(QLabel('Parameter'), 0, 0)
         grid2.addWidget(QLabel('  '), 0, 1)
         grid2.addWidget(QLabel('Pre-process'), 0, 2)
-        grid2.addWidget(ev['all_local'][0], 1, 0)
-        grid2.addWidget(ev['all_local'][1], 1, 2)
+        grid2.addWidget(ev['all_local'], 1, 0)
+        grid2.addWidget(ev['all_local_prep'], 1, 2)
         grid2.addWidget(el['dur'][0], 2, 0)
         grid2.addWidget(el['minamp'][0], 3, 0)
         grid2.addWidget(el['minamp'][1], 3, 2)
@@ -286,7 +283,7 @@ class AnalysisDialog(QDialog):
         grid3.addWidget(QLabel('3'), 5, 0)
         grid3.addWidget(QLabel('4'), 6, 0)
         grid3.addWidget(QLabel('2 & 3'), 7, 0)
-        for i,w in enumerate(ev['sw']['slope']):
+        for i,w in enumerate(ev['slope']):
             x = floor(i/5)
             grid3.addWidget(w, i - 5 * x + 3, x + 1)
 
@@ -302,6 +299,9 @@ class AnalysisDialog(QDialog):
 
         box_welch = QGroupBox('Welch')
 
+        self.psd['welch'] = {}
+        self.psd['mtap'] = {}
+        
         self.psd['welch_on'] = FormBool("Welch's method")
         welch = self.psd['welch']
         welch['win_dur'] = FormFloat(default=1.)
@@ -314,9 +314,9 @@ class AnalysisDialog(QDialog):
         welch['scaling'] = FormMenu(['density', 'spectrum'])
         welch['trans'] = FormBool('Pre-process')
 
-        welch['win_dur_l'] = QLabel('Window length (s)')
+        welch['win_dur_l'] = QLabel('Window length (sec)')
         welch['overlap_l'] = QLabel('Overlap ratio')
-        welch['fft_dur_l'] = QLabel('FFT length (s)')
+        welch['fft_dur_l'] = QLabel('FFT length (sec)')
         welch['window_l'] = QLabel('Window type')
         welch['detrend_l'] = QLabel('Detrend')
         welch['scaling_l'] = QLabel('Scaling')
@@ -518,6 +518,8 @@ class AnalysisDialog(QDialog):
 
         """ ------ SET DEFAULTS ------ """
 
+        self.evt_chan_only.setChecked(True)
+        self.lock_to_staging.setChecked(True)
         self.chunk['segment'].setChecked(True)
         self.reject_bad.setChecked(True)
         self.trans['button']['none'].setChecked(True)
@@ -540,12 +542,13 @@ class AnalysisDialog(QDialog):
         btnlayout.addWidget(bbox)
 
         vlayout1 = QVBoxLayout()
+        vlayout1.addWidget(box_f)
         vlayout1.addWidget(box0)
         vlayout1.addWidget(box1)
-        vlayout1.addWidget(box_c)
         vlayout1.addStretch(1)
 
         vlayout2 = QVBoxLayout()
+        vlayout2.addWidget(box_c)
         vlayout2.addWidget(box2)
         vlayout2.addStretch(1)
 
@@ -562,32 +565,12 @@ class AnalysisDialog(QDialog):
 
         self.setLayout(hlayout)
 
-    def update_types(self):
+    def update_evt_types(self):
         """Update the event types list when dialog is opened."""
         self.event_types = self.parent.notes.annot.event_types
         self.idx_evt_type.clear()
         for ev in self.event_types:
             self.idx_evt_type.addItem(ev)
-
-    def update_groups(self):
-        """Update the channel groups list when dialog is opened."""
-        self.groups = self.parent.channels.groups
-        self.idx_group.clear()
-        for gr in self.groups:
-            self.idx_group.addItem(gr['name'])
-
-        self.update_channels()
-
-    def update_channels(self):
-        """Update the channels list when a new group is selected."""
-        group_dict = {k['name']: i for i, k in enumerate(self.groups)}
-        group_index = group_dict[self.idx_group.currentText()]
-        self.one_grp = self.groups[group_index]
-
-        self.idx_chan.clear()
-
-        for chan in self.one_grp['chan_to_plot']:
-            self.idx_chan.addItem(chan)
 
     def update_cycles(self):
         """Enable cycles checkbox only if there are cycles marked, with no
@@ -606,6 +589,8 @@ class AnalysisDialog(QDialog):
                 self.idx_cycle.setEnabled(False)
             else:
                 self.idx_cycle.setEnabled(True)
+                for i in self.cycles:
+                    self.idx_cycle.addItem(str(i+1))
 
     def toggle_buttons(self):
         """Enable and disable buttons, according to options selected."""
@@ -613,10 +598,12 @@ class AnalysisDialog(QDialog):
         epoch_on = self.chunk['epoch'].isChecked()
         segment_on = self.chunk['segment'].isChecked()
 
+        self.evt_chan_only.setEnabled(event_on)
         self.label['evt_type'].setEnabled(event_on)
         self.idx_evt_type.setEnabled(event_on)
         self.label['epoch_dur'].setEnabled(epoch_on)
         self.epoch_dur.setEnabled(epoch_on)
+        self.lock_to_staging.setEnabled(epoch_on)
         self.cat['within_stage'].setChecked(segment_on)
         self.cat['within_stage'].setEnabled(not segment_on)
 
@@ -721,74 +708,84 @@ class AnalysisDialog(QDialog):
             which button was pressed
         """
         if button is self.idx_ok:
-            """
-            evt_type = self.idx_evt_type.currentText()
-            stage = self.idx_stage.selectedItems()
-            cycle = self.parent.annot.get_cycles() # TO-DO: get cycles
-            exclude = 
+            
+            filename = self.filename
+            if filename is None:
+                return
+
             group = self.one_grp
             chan = self.get_channels()
-            evt_chan_only = 
-            params = {k: v.get_value() for k, v in self.chunk.items()}
+            #chan_name = chan + ' (' + self.idx_group.currentText() + ')'
+            if chan == []:
+                return                                    
             
-            
-            bundles = get_times(self.annot, evt_type=evt_type, 
-                                stage=self.stage, cycle=cycle, chan=chan, 
-                                exclude=exclude)
-            bundles = remove_artf_evts(self.annot, bundles)
-            self.read_data(chan, group, bundles, evt_chan_only)
-            
-            
-            
-            
-            if self.filename is None:
-                return
+            exclude = self.reject_bad.get_value()
+            evt_chan_only = self.evt_chan_only.get_value()            
+            chunk = {k: v.get_value() for k, v in self.chunk.items()}
+            cat = {k: v.get_value() for k, v in self.cat.items()}
+            trans = {k: v.get_value() for k, v in self.trans['button'].items()}
+            filt = {k: v[1].get_value() for k, v in \
+                    self.trans['filt'].items() if v[1] is not None}
+            ev_glo = {k: v.get_value() for k, v in \
+                      self.event['global'].items()}
+            ev_loc = {k: v[0].get_value() for k, v in \
+                      self.event['local'].items()}
+            ev_loc_prep = {k: v[1].get_value() for k, v in \
+                           self.event['local'].items()}            
+            ev_sw = {k: v.get_value() for k, v in self.event['sw'].items()}
+            ev_sl = [x.get_value() for x in self.event['slope']]
 
-            freqs = (self.frequency['locut'].get_value(),
-                     self.frequency['hicut'].get_value())
-
-            if None in freqs:
-                self.parent.statusBar().showMessage(
-                        'Specify bandpass frequencies')
-                return
-
-            filename = self.filename
+            if chunk['event']:
+                evt_type = self.idx_evt_type.selectedItems()
+                if evt_type == []:
+                    return
+                else:
+                    evt_type = [x.text() for x in evt_type]
             
-            chan_name = chan + ' (' + self.idx_group.currentText() + ')'
-            params = [k for k, v in self.index.items() if v.get_value()]
-            cycles = None
-            fsplit = None
-
+            idx_cyc_sel = [int(x.text()) - 1 for x in \
+                           self.idx_cycle.selectedItems()]
+            cycle = itemgetter(*[idx_cyc_sel])(self.cycles)            
+            if cycle == []:
+                cycle = None
+                
+            stage = self.idx_stage.selectedItems()
             if stage == []:
                 stage = None
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
-
-            if self.cyc_split.get_value():
-                cycles = self.cycles
-
-            if self.freq_split.get_value():
-                fsplit = float(self.freq_cutoff.text())
-
-            self.parent.notes.read_data(chan, self.one_grp)
-
-            summary, events = self.parent.notes.analyze_events(evt_type,
-                                                             chan_name,
-                                                             stage,
-                                                             params,
-                                                             frequency=freqs,
-                                                             cycles=cycles,
-                                                             fsplit=fsplit)
-
-            self.parent.notes.annot.export_event_data(filename, summary,
-                                                      events, cycles=cycles,
-                                                      fsplit=fsplit)
-            """
+            
+            # Fetch signal            
+            bundles = get_times(self.annot, evt_type=evt_type, 
+                                stage=self.stage, cycle=cycle, chan=chan, 
+                                exclude=exclude)
+            bundles = remove_artf_evts(bundles, self.annot)
+            self.read_data(chan, group, bundles, evt_chan_only)
+            
+            # Transform signal
+            
+            # Apply analyses
+            
+            # Save datafile
+                                    
             self.accept()
 
         if button is self.idx_cancel:
             self.reject()
 
+    def save_as(self):
+        """Dialog for getting name, location of data export file."""
+        filename = splitext(
+                self.parent.notes.annot.xml_file)[0] + '_ana_data.p'
+        filename, _ = QFileDialog.getSaveFileName(self, 'Export analysis data',
+                                                  filename,
+                                                  'Pickle (*.p)')
+        if filename == '':
+            return
+
+        self.filename = filename
+        short_filename = short_strings(basename(self.filename))
+        self.idx_filename.setText(short_filename)
+    
     def read_data(self, chan, group, bundles, evt_chan_only):
         """Read data for analysis."""
         dataset = self.parent.info.dataset
@@ -915,8 +912,8 @@ def remove_artf_evts(self, bundles, annot):
         end = times[-1][-1]
         stage = bund['stage']
     
-        artefact = self.annot.get_events(name='Artefact', time=(beg, end), 
-                                         stage=stage, qual='Good')
+        artefact = annot.get_events(name='Artefact', time=(beg, end), 
+                                    stage=stage, qual='Good')
         
         if artefact is not None:
             new_times = []

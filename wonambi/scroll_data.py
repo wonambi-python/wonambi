@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
 
     def show_analysis_dialog(self):
         """Create the analysis dialog."""
-        self.analysis_dialog.update_types()
+        self.analysis_dialog.update_evt_types()
         self.analysis_dialog.update_groups()
         self.analysis_dialog.update_cycles()
         self.analysis_dialog.show()
