@@ -48,6 +48,10 @@ nnoremap <CR> o<Esc>
 " use uppercase W as w, when typing fast
 command W w
 
+" block Ex mode
+map q: <Nop>
+nnoremap Q <Nop>
+
 " select and char/word count
 vnoremap <leader>m g<C-g>:<C-U>echo v:statusmsg<CR>
 
