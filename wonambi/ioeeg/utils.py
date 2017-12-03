@@ -2,13 +2,17 @@ from datetime import datetime
 from numpy import (append,
                    cumsum,
                    where,
-                  )
+                   )
 
 
 DEFAULT_DATETIME = datetime(2000, 1, 1)
 
 
-def _select_blocks(blocks, begsam,  endsam):
+def decode(s):
+    return s.decode('utf-8', errors='replace')
+
+
+def _select_blocks(blocks, begsam, endsam):
     """Convenience function to use when reading data stored in blocks on disk
     (f.e. edf).
 
@@ -53,4 +57,3 @@ def _select_blocks(blocks, begsam,  endsam):
         end_in_dat = end_in_blk - begsam + intervals[blk]
 
         yield (beg_in_dat, end_in_dat), blk, (beg_in_blk, end_in_blk)
-

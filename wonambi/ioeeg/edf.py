@@ -19,7 +19,7 @@ from numpy import (abs,
                    repeat,
                    )
 
-from .utils import _select_blocks
+from .utils import decode, _select_blocks
 
 lg = getLogger(__name__)
 
@@ -62,14 +62,14 @@ class Edf:
             assert f.read(8) == b'0       '
 
             # recording info
-            hdr['subject_id'] = f.read(80).decode('utf-8').strip()
-            hdr['recording_id'] = f.read(80).decode('utf-8').strip()
+            hdr['subject_id'] = decode(f.read(80)).strip()
+            hdr['recording_id'] = decode(f.read(80)).strip()
 
             # parse timestamp
             (day, month, year) = [int(x) for x in findall('(\d+)',
-                                  f.read(8).decode('utf-8'))]
+                                  decode(f.read(8)))]
             (hour, minute, sec) = [int(x) for x in findall('(\d+)',
-                                   f.read(8).decode('utf-8'))]
+                                   decode(f.read(8)))]
 
             # Y2K: cutoff is 1985
             if year >= 85:
@@ -87,17 +87,17 @@ class Edf:
 
             # read channel info
             channels = range(hdr['n_channels'])
-            hdr['label'] = [f.read(16).decode('utf-8').strip() for n in
+            hdr['label'] = [decode(f.read(16)).strip() for n in
                             channels]
-            hdr['transducer'] = [f.read(80).decode('utf-8').strip()
+            hdr['transducer'] = [decode(f.read(80)).strip()
                                  for n in channels]
-            hdr['physical_dim'] = [f.read(8).decode('utf-8').strip() for n in
+            hdr['physical_dim'] = [decode(f.read(8)).strip() for n in
                                    channels]
             hdr['physical_min'] = [float(f.read(8)) for n in channels]
             hdr['physical_max'] = [float(f.read(8)) for n in channels]
             hdr['digital_min'] = [float(f.read(8)) for n in channels]
             hdr['digital_max'] = [float(f.read(8)) for n in channels]
-            hdr['prefiltering'] = [f.read(80).decode('utf-8').strip()
+            hdr['prefiltering'] = [decode(f.read(80)).strip()
                                    for n in channels]
             hdr['n_samples_per_record'] = [int(f.read(8)) for n in channels]
             f.seek(32 * nchannels, 1)  # reserved
@@ -152,7 +152,7 @@ class Edf:
         subj_id = self.hdr['subject_id']
         start_time = self.hdr['start_time']
         s_freq = self.max_smp / self.hdr['record_length']
-        chan_name = [l for l in self.hdr['label'] if l != ANNOT_NAME]
+        chan_name = [label for label in self.hdr['label'] if label != ANNOT_NAME]
         n_samples = self.max_smp * self.hdr['n_records']
 
         return subj_id, start_time, s_freq, chan_name, n_samples, self.hdr
@@ -340,12 +340,12 @@ def write_edf(data, filename, physical_max=1000):
         for _ in range(n_channels):
             f.write((' ' * 32).encode('ascii'))
 
-        l = s_freq * n_channels  # length of one record
+        length_record = s_freq * n_channels  # length of one record
         for i in range(n_records):
             i0 = i * s_freq
             i1 = i0 + s_freq
             x = dat[:, i0:i1].flatten(order='C')  # assumes it's ChanTimeData
-            f.write(pack('<' + 'h' * l, *x))
+            f.write(pack('<' + 'h' * length_record, *x))
 
 
 def _read_tal(rawbytes):
@@ -365,9 +365,9 @@ def _read_tal(rawbytes):
 
     for m in finditer(PATTERN, rawbytes):
         d = m.groupdict()
-        annot = {'onset': float(d['onset'].decode()),
-                 'dur': float(d['duration'].decode()) if d['duration'] else 0.,
-                 'annotation': [a.decode() for a in d['annotation'].split(b'\x14') if a],
+        annot = {'onset': float(decode(d['onset'])),
+                 'dur': float(decode(d['duration'])) if d['duration'] else 0.,
+                 'annotation': [decode(a) for a in d['annotation'].split(b'\x14') if a],
                  }
 
         if annot['annotation']:
