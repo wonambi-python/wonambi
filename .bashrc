@@ -10,12 +10,15 @@ export PATH=$PATH:~/tools/dcm2nii
 export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
-export PATH=$FRIDGE/tools/miniconda3/bin:$PATH
-# source activate condaenv
+export PATH=~/tools/miniconda3/bin:$PATH
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
 # export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
+
+# nodejs
+export NODEJS_HOME=~/tools/node-v8.9.2
+export PATH=$NODEJS_HOME/bin:$PATH
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_5.3
