@@ -53,7 +53,8 @@ class EgiMff:
         """
         orig = {}
         for xml_file in self.filename.glob('*.xml'):
-            orig[xml_file.stem] = parse_xml(str(xml_file))
+            if xml_file.stem[0] != '.':
+                orig[xml_file.stem] = parse_xml(str(xml_file))
 
         signals = sorted(self.filename.glob('signal*.bin'))
 
@@ -78,7 +79,8 @@ class EgiMff:
 
         videos = (list(self.filename.glob('*.mp4')) +  # as described in specs
                   list(self.filename.glob('*.mov')))  # actual example
-
+        videos = [x for x in videos if x.stem[0] != '.']  # remove hidden files
+        
         if len(videos) > 1:
             lg.warning('More than one video present: ' + ', '.join(videos))
         self._videos = videos

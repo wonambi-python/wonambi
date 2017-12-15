@@ -120,7 +120,6 @@ class Video(QWidget):
 
     def check_if_finished(self):
         if self.cnt_video == self.n_video:
-            print(f'{self.mediaplayer.get_time()}')
             if self.mediaplayer.get_time() > self.endsec * 1000:
                 self.idx_button.setText('Stop')
                 self.medialistplayer.stop()
@@ -167,8 +166,10 @@ class Video(QWidget):
 
         videos, begsec, endsec = d.read_videos(window_start,
                                                window_start + window_length)
-        print(f'{begsec} - {endsec}')
+        
+        lg.debug(f'Video: {begsec} - {endsec}')
         self.endsec = endsec
+        videos = [str(v) for v in videos]  # make sure it's a str (not path)
         medialist = vlc.MediaList(videos)
         self.medialistplayer.set_media_list(medialist)
 
