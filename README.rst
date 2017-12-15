@@ -56,9 +56,12 @@ Requirements
 - Python 3.6
 - numpy
 - scipy
+
+Optional Requirements
+---------------------
 - PyQt5 (optional for sleep scoring GUI)
 - nibabel (optional to read freesurfer)
-- mne (optional to compute multitaper)
+- h5py (optional to read FieldTrip Matlab files)
 
 Status
 ------
