@@ -427,11 +427,8 @@ class Notes(QTabWidget):
         else:
             self.annot = Annotations(xml_file)
 
-        self.action['merge_events'].setEnabled(True)
-        self.action['spindle'].setEnabled(True)
-        self.action['slow_wave'].setEnabled(True)
-        self.action['analyze_events'].setEnabled(True)
-        self.action['analyze'].setEnabled(True)
+        self.enable_events()
+
         self.parent.create_menubar()
         self.idx_stage.clear()
         for one_stage in STAGE_NAME:
@@ -468,6 +465,23 @@ class Notes(QTabWidget):
         self.idx_qual_stats = layout
 
         self.display_notes()
+
+    def enable_events(self):
+        """enable slow wave and spindle detection if both
+        annotations and channels are active.
+        """
+        if self.annot is not None and self.parent.channels.groups:
+            self.action['merge_events'].setEnabled(True)
+            self.action['spindle'].setEnabled(True)
+            self.action['slow_wave'].setEnabled(True)
+            self.action['analyze_events'].setEnabled(True)
+            self.action['analyze'].setEnabled(True)
+        else:
+            self.action['merge_events'].setEnabled(False)
+            self.action['spindle'].setEnabled(False)
+            self.action['slow_wave'].setEnabled(False)
+            self.action['analyze_events'].setEnabled(False)
+            self.action['analyze'].setEnabled(False)
 
     def display_notes(self):
         """Display information about scores and raters.

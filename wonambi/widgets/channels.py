@@ -428,9 +428,11 @@ class Channels(QWidget):
         if self.groups:
             self.parent.overview.update_position()
             self.parent.spectrum.update()
+            self.parent.notes.enable_events()
         else:
             self.parent.traces.reset()
             self.parent.spectrum.reset()
+            self.parent.notes.enable_events()
 
     def read_group_info(self):
         """Get information about groups directly from the widget."""
