@@ -7,6 +7,7 @@ from os.path import basename, dirname
 from PyQt5.QtCore import QSettings
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtWidgets import (QAction,
+                             QErrorMessage,
                              QFileDialog,
                              QFormLayout,
                              QGroupBox,
@@ -209,11 +210,21 @@ class Info(QWidget):
             msg = 'File ' + basename(filename) + ' cannot be read'
             self.parent.statusBar().showMessage(msg)
             lg.info(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error opening dataset')
+            error_dialog.showMessage(msg)
+            if debug_filename is None:
+                error_dialog.exec()
             return
 
         except BaseException as err:
             self.parent.statusBar().showMessage(str(err))
             lg.info('Error ' + str(err))
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error opening dataset')
+            error_dialog.showMessage(str(err))
+            if debug_filename is None:
+                error_dialog.exec()
             return
 
         self.parent.statusBar().showMessage('')

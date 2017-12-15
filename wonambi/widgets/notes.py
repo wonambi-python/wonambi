@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QComboBox,
                              QDialog,
                              QDialogButtonBox,
+                             QErrorMessage,
                              QFileDialog,
                              QFormLayout,
                              QGroupBox,
@@ -515,8 +516,11 @@ class Notes(QTabWidget):
         """
         if self.annot is None:  # remove if buttons are disabled
             msg = 'No score file loaded'
-            self.parent.statusBar().showMessage(msg)
             lg.debug(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error adding bookmark')
+            error_dialog.showMessage(msg)
+            error_dialog.exec()
             return
 
         answer = QInputDialog.getText(self, 'New Bookmark',
@@ -718,7 +722,10 @@ class Notes(QTabWidget):
     def get_sleepstage(self, stage_idx=None):
         """Score the sleep stage, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error getting sleep stage')
+            error_dialog.showMessage('No score file loaded')
+            error_dialog.exec()
             return
 
         window_start = self.parent.value('window_start')
@@ -727,7 +734,10 @@ class Notes(QTabWidget):
         if window_length != self.epoch_length:
             msg = ('Zoom to ' + str(self.epoch_length) + ' (epoch length) ' +
                    'for sleep scoring.')
-            self.parent.statusBar().showMessage(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error getting sleep stage')
+            error_dialog.showMessage(msg)
+            error_dialog.exec()
             lg.debug(msg)
             return
 
@@ -738,7 +748,10 @@ class Notes(QTabWidget):
         except KeyError:
             msg = ('The start of the window does not correspond to any epoch ' +
                    'in sleep scoring file')
-            self.parent.statusBar().showMessage(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error getting sleep stage')
+            error_dialog.showMessage(msg)
+            error_dialog.exec()
             lg.debug(msg)
 
         else:
@@ -755,7 +768,10 @@ class Notes(QTabWidget):
         """Get the signal qualifier, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled
             msg = 'No score file loaded'
-            self.parent.statusBar().showMessage(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error getting quality')
+            error_dialog.showMessage(msg)
+            error_dialog.exec()
             lg.debug(msg)
             return
 
@@ -770,7 +786,10 @@ class Notes(QTabWidget):
         except KeyError:
             msg = ('The start of the window does not correspond to any epoch ' +
                    'in sleep scoring file')
-            self.parent.statusBar().showMessage(msg)
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error getting quality')
+            error_dialog.showMessage(msg)
+            error_dialog.exec()
             lg.debug(msg)
 
         else:

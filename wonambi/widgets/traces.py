@@ -18,6 +18,7 @@ from PyQt5.QtGui import (QBrush,
                          QPen,
                          )
 from PyQt5.QtWidgets import (QAction,
+                             QErrorMessage,
                              QFormLayout,
                              QGraphicsItem,
                              QGraphicsRectItem,
@@ -667,14 +668,23 @@ class Traces(QGraphicsView):
             rec_start_time = self.parent.info.dataset.header['start_time']
             window_start = _convert_timestr_to_seconds(time_str, rec_start_time)
         except ValueError as err:
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error moving to epoch')
+            error_dialog.showMessage(str(err))
+            if test_text_str is None:
+                error_dialog.exec()
             self.parent.statusBar().showMessage(str(err))
             return
+
         self.parent.overview.update_position(window_start)
 
     def line_up_with_epoch(self):
         """Go to the start of the present epoch."""
         if self.parent.notes.annot is None:  # TODO: remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
+            error_dialog = QErrorMessage()
+            error_dialog.setWindowTitle('Error moving to epoch')
+            error_dialog.showMessage('No score file loaded')
+            error_dialog.exec()
             return
 
         new_window_start = self.parent.notes.annot.get_epoch_start(
@@ -784,7 +794,7 @@ class Traces(QGraphicsView):
                                            annot.marker.y(),
                                            annot.marker.width(),
                                            annot.marker.height(),
-                                           zvalue=-5, 
+                                           zvalue=-5,
                                            color=QColor(255, 255, 51))
 #==============================================================================
 #                     pen = QPen(QColor(255, 255, 51), 0, Qt.SolidLine,
