@@ -172,9 +172,11 @@ class Dataset:
         hdr['orig'] = output[5]
         self.header = hdr
 
-    def read_markers(self):
-        """Return the markers."""
-        return self.dataset.return_markers()
+    def read_markers(self, **kwargs):
+        """Return the markers. You can add optional arguments that will be
+        passed to the method specific for each datafile.
+        """
+        return self.dataset.return_markers(**kwargs)
 
     def read_videos(self, begtime=None, endtime=None):
         """Return list of videos with start and end times for a period.
