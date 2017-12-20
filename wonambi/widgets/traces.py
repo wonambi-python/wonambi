@@ -869,6 +869,9 @@ class Traces(QGraphicsView):
             self.idx_sel = item
             return
 
+        if self.sel_xy[0] is None:
+            return
+
         xy_scene = self.mapToScene(event.pos())
         pos = QRectF(self.sel_xy[0], self.sel_xy[1],
                      xy_scene.x() - self.sel_xy[0],

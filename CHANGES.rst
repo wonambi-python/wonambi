@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.11**: bugfix of gui when pressing left and right button together
 - **4.10**: clear error messages and fix reading mff
 - **4.09**: improvements on analysis dialog. EDF reading more robust
 - **4.08**: fixed event deletion; improved i/o
