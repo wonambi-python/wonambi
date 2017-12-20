@@ -839,6 +839,9 @@ class Traces(QGraphicsView):
         if self.event_sel or self.deselect:
             return
 
+        if self.sel_xy[0] is None or self.sel_xy[1] is None:
+            return
+
         if self.idx_sel in self.scene.items():
             self.scene.removeItem(self.idx_sel)
             self.idx_sel = None
@@ -867,9 +870,6 @@ class Traces(QGraphicsView):
             item.setZValue(-10)
             self.scene.addItem(item)
             self.idx_sel = item
-            return
-
-        if self.sel_xy[0] is None:
             return
 
         xy_scene = self.mapToScene(event.pos())
