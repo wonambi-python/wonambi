@@ -4,8 +4,8 @@
 """
 from operator import itemgetter
 from logging import getLogger
-from numpy import (asarray, concatenate, diff, empty, floor, in1d, inf, log,
-                   logical_and, mean, ptp, sqrt, square, std)
+from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf, 
+                   log, logical_and, mean, ptp, sqrt, square, std)
 from math import isclose
 from os.path import basename, splitext
 from pickle import dump, load
@@ -59,6 +59,7 @@ class AnalysisDialog(ChannelDialog):
 
         self.setWindowTitle('Analysis')
         self.setWindowModality(Qt.ApplicationModal)
+        self.annot = self.parent.notes.annot
         self.groups = self.parent.channels.groups
         self.chunk = {}
         self.label = {}
@@ -568,7 +569,7 @@ class AnalysisDialog(ChannelDialog):
 
     def update_evt_types(self):
         """Update the event types list when dialog is opened."""
-        self.event_types = self.parent.notes.annot.event_types
+        self.event_types = self.annot.event_types
         self.idx_evt_type.clear()
         for ev in self.event_types:
             self.idx_evt_type.addItem(ev)
@@ -577,7 +578,7 @@ class AnalysisDialog(ChannelDialog):
         """Enable cycles checkbox only if there are cycles marked, with no
         errors."""
         try:
-            self.cycles = self.parent.notes.annot.get_cycles()
+            self.cycles = self.annot.get_cycles()
 
         except ValueError as err:
             self.idx_cycle.setEnabled(False)
@@ -714,19 +715,46 @@ class AnalysisDialog(ChannelDialog):
             if filename is None:
                 return
 
+            chunk = {k: v.get_value() for k, v in self.chunk.items()}
+            
+            evt_type = None
+            if chunk['event']:
+                evt_type = self.idx_evt_type.selectedItems()
+                if evt_type == []:
+                    return
+                else:
+                    evt_type = [x.text() for x in evt_type]            
+            
+            # Which channel(s)
             group = self.one_grp
             chan = self.get_channels()
             #chan_name = chan + ' (' + self.idx_group.currentText() + ')'
             if chan == []:
                 return                                    
+
+            # Which cycke(s)
+            idx_cyc_sel = [int(x.text()) - 1 for x in \
+                           self.idx_cycle.selectedItems()]
+            cycle = itemgetter(*[idx_cyc_sel])(self.cycles)            
+            if cycle == []:
+                cycle = None
+                
+            # Which stage(s)
+            stage = self.idx_stage.selectedItems()
+            if stage == []:
+                stage = None
+            else:
+                stage = [x.text() for x in self.idx_stage.selectedItems()]
             
+            # Other
             exclude = self.reject_bad.get_value()
             evt_chan_only = self.evt_chan_only.get_value()            
-            chunk = {k: v.get_value() for k, v in self.chunk.items()}
             cat = {k: v.get_value() for k, v in self.cat.items()}
             trans = {k: v.get_value() for k, v in self.trans['button'].items()}
             filt = {k: v[1].get_value() for k, v in \
                     self.trans['filt'].items() if v[1] is not None}
+            
+            # Event parameters
             ev_glo = {k: v.get_value() for k, v in \
                       self.event['global'].items()}
             ev_loc = {k: v[0].get_value() for k, v in \
@@ -735,31 +763,17 @@ class AnalysisDialog(ChannelDialog):
                            self.event['local'].items()}            
             ev_sw = {k: v.get_value() for k, v in self.event['sw'].items()}
             ev_sl = [x.get_value() for x in self.event['slope']]
-
-            if chunk['event']:
-                evt_type = self.idx_evt_type.selectedItems()
-                if evt_type == []:
-                    return
-                else:
-                    evt_type = [x.text() for x in evt_type]
-            
-            idx_cyc_sel = [int(x.text()) - 1 for x in \
-                           self.idx_cycle.selectedItems()]
-            cycle = itemgetter(*[idx_cyc_sel])(self.cycles)            
-            if cycle == []:
-                cycle = None
-                
-            stage = self.idx_stage.selectedItems()
-            if stage == []:
-                stage = None
-            else:
-                stage = [x.text() for x in self.idx_stage.selectedItems()]
             
             # Fetch signal            
             bundles = get_times(self.annot, evt_type=evt_type, 
                                 stage=self.stage, cycle=cycle, chan=chan, 
                                 exclude=exclude)
             bundles = remove_artf_evts(bundles, self.annot)
+            
+            if chunk['epoch'] and not self.lock_to_staging.get_value():
+                #bundles = 
+                pass
+            
             self.read_data(chan, group, bundles, evt_chan_only)
             
             # Transform signal
@@ -776,7 +790,7 @@ class AnalysisDialog(ChannelDialog):
     def save_as(self):
         """Dialog for getting name, location of data export file."""
         filename = splitext(
-                self.parent.notes.annot.xml_file)[0] + '_ana_data.p'
+                self.annot.xml_file)[0] + '_ana_data.p'
         filename, _ = QFileDialog.getSaveFileName(self, 'Export analysis data',
                                                   filename,
                                                   'Pickle (*.p)')
@@ -809,8 +823,8 @@ class AnalysisDialog(ChannelDialog):
                                             evt_chan_only=evt_chan_only)
 
 
-def get_times(self, annot, evt_type=None, stage=None, cycle=None, 
-              chan=None, exclude=True):
+def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None, 
+              exclude=True):
     """Get start and end times for selected segments of data, bundled
     together with info.
 
@@ -844,8 +858,7 @@ def get_times(self, annot, evt_type=None, stage=None, cycle=None,
     Notes
     -----
     This function returns epoch or event start and end times, bundled 
-    together according to the specified parameters. The times list will not
-    necessarily be chronological.
+    together according to the specified parameters. 
     """      
     getter = annot.get_epochs
 
@@ -888,7 +901,7 @@ def get_times(self, annot, evt_type=None, stage=None, cycle=None,
 
     return bundles
 
-def remove_artf_evts(self, bundles, annot):
+def remove_artf_evts(bundles, annot):
     """Correct times to remove events marked 'Artefact'.
     
     Parameters
@@ -940,7 +953,7 @@ def remove_artf_evts(self, bundles, annot):
         
     return bundles                
 
-def concat(self, bundles, cat=(0, 0, 1, 0)):
+def concat(bundles, cat=(0, 0, 1, 0)):
     """Concatenate events or epochs.
 
     Parameters
@@ -1036,7 +1049,7 @@ def concat(self, bundles, cat=(0, 0, 1, 0)):
                         new_times = bund['times'][:i]
                         new_bund = bund.copy()
                         new_bund['times'] = new_times
-                        to_concat_new.append(bund['times'][:i])
+                        to_concat_new.append(new_bund)
                 last = j[1]
         
         to_concat = to_concat_new
@@ -1044,7 +1057,43 @@ def concat(self, bundles, cat=(0, 0, 1, 0)):
     return to_concat
 
 
-def longer_than(self, bundles, min_dur):
+def find_intervals(bundles, interval):
+    """Divide bundles into consecutive segments of a certain duration, 
+    discarding any remainder.
+    
+    Parameters
+    ----------
+    bundles : list of dict
+        Each dict has times (the start and end times of each segment, as 
+        list of tuple of float), and the stage, cycle, (chan and name (event 
+        type, if applicable) associated with the segment bundle. 
+        NOTE: Discontinuous segments must already be in separate dicts.
+    interval: float
+        Duration of consecutive intervals.
+        
+    Returns
+    -------
+    list of dict
+        Each dict represents a continuous segment of duration 'interval', and
+        has start and end times (tuple of float), stage, cycle, chan and name 
+        (event type, if applicable) associated with the single segment.
+    """
+    segments = []
+    for bund in bundles:
+        beg, end = bund['times'][0][0], bund['times'][-1][1]        
+        
+        if end - beg >= interval:
+            new_begs = arange(beg, end, interval)[:-1]
+            
+            for t in new_begs:
+                seg = bund.copy()
+                seg['times'] = (t, t + interval)
+                segments.append(seg)
+            
+    return segments            
+
+
+def longer_than(bundles, min_dur):
     """
     Parameters
     ----------

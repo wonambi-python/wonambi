@@ -5,7 +5,8 @@ from bisect import bisect_left
 from csv import writer
 from datetime import datetime, timedelta
 from itertools import compress
-from numpy import allclose, around, asarray, in1d, isnan, logical_and, modf
+from numpy import (allclose, around, asarray, in1d, isnan, logical_and, modf, 
+                   nan)
 from math import ceil, inf
 from os.path import splitext
 from pathlib import Path
@@ -1123,6 +1124,102 @@ class Annotations():
                                        epoch['start'],
                                        epoch['end'],
                                        epoch['stage']))
+
+    def export_sleep_stats(self, filename, lights_out, lights_on):
+        """Create CSV with sleep statistics.
+        
+        Parameters
+        ----------
+        filename: str
+            Filename for csv export
+        lights_out: float
+            Initial time when sleeper turns off the light (or their phone) to 
+            go to sleep, in seconds from recording start.
+        lights_on: float
+            Final time when sleeper rises from bed after sleep, in seconds from
+            recording start.
+            
+        Returns
+        -------
+        float or None
+            If there are no epochs scored as sleep, returns None. Otherwise,
+            returns the sleep onset latency, for testing purposes.
+        """
+        epochs = self.get_epochs()
+        hypno = [i['stage'] for i in epochs]
+        
+        first = {}
+        latency = {}
+        for stage in ['NREM1', 'NREM2', 'NREM3', 'REM']:
+            first[stage] = next(((i, j) for i, j in enumerate(epochs) if \
+                                j['stage'] == stage), None)
+            if first[stage] is not None:
+                latency[stage] = (first[stage][1]['start'] - lights_out) / 60
+            else:
+                latency[stage] = nan
+                del first[stage]
+
+        if first == {}:
+            return None
+        
+        duration = {}
+        for stage in ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement', 
+                      'Artefact']:
+            duration[stage] = hypno.count(stage) * self.epoch_length / 60
+            
+        slp_onset = sorted(first.values(), key=lambda x: x[1]['start'])[0]
+        wake_up = next((i, j) for i, j in enumerate(epochs[::-1]) if \
+                       j['stage'] in ['NREM1', 'NREM2', 'NREM3', 'REM'])
+                        
+        total_dark_time = (lights_on - lights_out) / 60
+        slp_period_time = (wake_up[1]['start'] - slp_onset[1]['start']) / 60
+        slp_onset_lat = (slp_onset[1]['start'] - lights_out) / 60
+        waso = (hypno[slp_onset[0]:wake_up[0]].count('Wake') * 
+                self.epoch_length) / 60
+        total_slp_time = slp_period_time - waso
+        slp_eff = total_slp_time / total_dark_time
+        
+        with open(filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(filename))
+            csv_file = writer(f)
+            csv_file.writerow(['Total dark time',
+                               'Sleep onset latency',
+                               'Sleep period time',
+                               'WASO',
+                               'Total sleep time',
+                               'Sleep efficiency',
+                               'N1 latency',
+                               'N2 latency',
+                               'N3 latency',
+                               'REM latency',
+                               'N1 duration',
+                               'N2 duration',
+                               'N3 duration',
+                               'REM duration',
+                               'Wake duration',
+                               'Movement duration',
+                               'Artefact duration',
+                               ])
+            csv_file.writerow([total_dark_time,
+                               slp_onset_lat,
+                               slp_period_time,
+                               waso,
+                               total_slp_time,
+                               slp_eff,
+                               latency['NREM1'],
+                               latency['NREM2'],
+                               latency['NREM3'],
+                               latency['REM'],
+                               duration['NREM1'],
+                               duration['NREM2'],
+                               duration['NREM3'],
+                               duration['REM'],
+                               duration['Wake'],
+                               duration['Movement'],
+                               duration['Artefact'],
+                               ])
+            
+        return slp_onset_lat # for testing
 
     def export_event_data(self, filename, summary, events, cycles=None,
                           fsplit=None):

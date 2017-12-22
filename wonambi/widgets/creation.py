@@ -274,6 +274,7 @@ def create_menubar(MAIN):
 
     menu_analysis.addAction(actions['analyze_events'])
     menu_analysis.addAction(actions['analyze'])
+    menu_analysis.addAction(actions['export_sleepstats'])
 
 
     """ ------ WINDOWS ------ """

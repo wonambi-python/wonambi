@@ -54,6 +54,7 @@ EXPORTED_PATH.mkdir(exist_ok=True)
 annot_file = EXPORTED_PATH / 'annot_scores.xml'
 annot_export_file = EXPORTED_PATH / 'annot_scores.csv'
 annot_fasst_export_file = EXPORTED_PATH / 'annot_fasst.xml'
+annot_sleepstats_path = EXPORTED_PATH / 'annot_sleepstats.csv'
 exported_chan_path = EXPORTED_PATH / 'grid_chan.sfp'
 channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
 channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'

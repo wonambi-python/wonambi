@@ -18,6 +18,8 @@ from .paths import (annot_file,
                     annot_fasst_path,
                     annot_remlogic_path,
                     annot_sandman_path,
+                    annot_psg_path,
+                    annot_sleepstats_path,
                     ns2_file,
                     )
 
@@ -163,3 +165,7 @@ def test_import_fasst_error():
     with raises(UnrecognizedFormat):
         create_annotation(annot_fasst_export_file,
                           from_fasst=ns2_file)
+        
+def test_export_sleepstats():
+    annot = Annotations(annot_psg_path)
+    assert annot.export_sleep_stats(annot_sleepstats_path, 0, 29000) == 338

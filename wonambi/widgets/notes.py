@@ -403,6 +403,10 @@ class Notes(QTabWidget):
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act
+        
+        act = QAction('Sleep statistics')
+        act.triggered.connect(self.export_sleeps_stats)
+        actions['export_sleepstats'] = act
 
         self.action = actions
 
@@ -1463,6 +1467,38 @@ class Notes(QTabWidget):
             return
 
         self.annot.export(filename)
+        
+    def export_sleeps_stats(self):
+        """action: export sleep statistics CSV."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
+        fn = splitext(self.annot.xml_file)[0] + '_sleepstats.csv'
+        fn, _ = QFileDialog.getSaveFileName(self, 'Export sleep statistics', 
+                                            fn, 'Sleep stats (*.csv)')
+        if fn == '':
+            return
+
+        lights_out, ok = QInputDialog.getText(self, 'Lights out time',
+                                                'Enter the lights OUT time, '
+                                                'in seconds from recording '
+                                                'start.')
+        if not ok:
+            return
+        
+        lights_on, ok = QInputDialog.getText(self, 'Lights on time',
+                                                'Enter the lights ON time, '
+                                                'in seconds from recording '
+                                                'start.')
+        
+        if not ok:
+            return
+        
+        lights_out, lights_on = float(lights_out), float(lights_on)
+        
+        if self.annot.export_sleep_stats(fn, lights_out, lights_on) is None:
+            self.parent.statusBar().showMessage('No epochs scored as sleep.')
 
     def reset(self):
         """Remove all annotations from window."""
@@ -1632,7 +1668,7 @@ class SpindleDialog(ChannelDialog):
         self.index['f1'].set_value(10.)
         self.index['f2'].set_value(16.)
         self.index['min_dur'].set_value(0.5)
-        self.index['max_dur'].set_value(3.)
+        self.index['max_dur'].set_value(2.)
 
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
