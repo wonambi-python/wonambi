@@ -23,7 +23,7 @@ Features
 
 Installation
 ------------
-Install phypno by running:
+Install wonambi by running:
 
     pip install wonambi
 
