@@ -1,6 +1,9 @@
 # auto-generated tag files
 .tags
 
+# ignore ipython
+*.ipynb
+
 # python
 __pycache__/
 *.egg-info/
