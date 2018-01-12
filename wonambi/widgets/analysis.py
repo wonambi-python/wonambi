@@ -5,11 +5,13 @@
 from operator import itemgetter
 from logging import getLogger
 from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf, 
-                   log, logical_and, mean, ptp, sqrt, square, std)
+                   log, logical_and, mean, ptp, ravel, sqrt, square, std, 
+                   zeros)
 from math import isclose
 from os.path import basename, splitext
 from pickle import dump, load
-#from tensorpac.pacstr import pacstr
+from tensorpac import Pac
+from tensorpac.pacstr import pacstr
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
@@ -35,7 +37,7 @@ from ..trans import montage, filter_
 from .notes import ChannelDialog
 from .settings import (FormStr, FormInt, FormFloat, FormBool, FormMenu,
                        FormRadio)
-from .utils import short_strings
+from .utils import freq_from_str, short_strings
 
 lg = getLogger(__name__)
 
@@ -55,12 +57,9 @@ class AnalysisDialog(ChannelDialog):
     """
     def __init__(self, parent):
         ChannelDialog.__init__(self, parent)
-        self.parent = parent
 
         self.setWindowTitle('Analysis')
         self.setWindowModality(Qt.ApplicationModal)
-        self.annot = self.parent.notes.annot
-        self.groups = self.parent.channels.groups
         self.chunk = {}
         self.label = {}
         self.cat = {}
@@ -141,7 +140,8 @@ class AnalysisDialog(ChannelDialog):
         cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_cycle = cycle_box
 
-        self.reject_bad = FormBool('Exclude Artefact/Poor signal epochs')
+        self.reject_epoch = FormBool('Exclude Artefact/Poor signal epochs')
+        self.reject_event = FormBool('Exclude signal with Artefact event type')
 
         form_layout = QFormLayout()
         box1.setLayout(form_layout)
@@ -153,7 +153,8 @@ class AnalysisDialog(ChannelDialog):
                             self.idx_cycle)
         form_layout.addRow('Stage(s)',
                             self.idx_stage)
-        form_layout.addRow(self.reject_bad)
+        form_layout.addRow(self.reject_epoch)
+        form_layout.addRow(self.reject_event)
 
         """ ------ CONCATENATION ------ """
 
@@ -161,9 +162,10 @@ class AnalysisDialog(ChannelDialog):
 
         self.cat['chan'] = FormBool('Concatenate channels')
         self.cat['cycle'] = FormBool('Concatenate cycles')
-        self.cat['within_stage'] = FormBool('Concatenate within stage')
-        self.cat['between_stages'] = FormBool(''
-                        'Concatenate between stages')
+        self.cat['stage'] = FormBool('Concatenate between stages')
+        self.cat['discontinuous'] = FormBool(''
+                'Concatenate discontinuous signal')
+        self.cat['btw_evt_types'] = FormBool('Concatenate between event types')
 
         for box in self.cat.values():
             box.setEnabled(False)
@@ -172,8 +174,9 @@ class AnalysisDialog(ChannelDialog):
         box_c.setLayout(form_layout)
         form_layout.addRow(self.cat['chan'])
         form_layout.addRow(self.cat['cycle'])
-        form_layout.addRow(self.cat['between_stages'])
-        form_layout.addRow(self.cat['within_stage'])
+        form_layout.addRow(self.cat['stage'])
+        form_layout.addRow(self.cat['discontinuous'])
+        form_layout.addRow(self.cat['btw_evt_types'])
 
         """ ------ PRE-PROCESSING ------ """
 
@@ -386,9 +389,10 @@ class AnalysisDialog(ChannelDialog):
 
         tab3 = QWidget()
 
+        """
         # placeholders for now
         pac_metrics = ['Mean Vector Length',
-                       'Kullback-Leiber Distance',
+                       'Kullback-Leibler Distance',
                        'Heights ratio',
                        'ndPac',
                        'Phase-Synchrony']
@@ -409,10 +413,10 @@ class AnalysisDialog(ChannelDialog):
         pac_metrics[1] = 'Kullback-Leibler Distance' # corrected typo
         pac_surro = [pacstr((1, x, 0))[1] for x in range(5)]
         pac_norm = [pacstr((1, 0, x))[2] for x in range(5)]
-        """
+        
         pac = self.pac
 
-        box_complex = QGroupBox('Complex definition')
+        pac['box_complex'] = QGroupBox('Complex definition')
 
         pac['hilbert_on'] = FormRadio('Hilbert transform')
         pac['hilbert'] = {}
@@ -424,7 +428,7 @@ class AnalysisDialog(ChannelDialog):
         pac['wavelet_on'] = FormRadio('Wavelet convolution')
         pac['wav_width'] = QLabel('Width'), FormInt(default=7)
 
-        grid = QGridLayout(box_complex)
+        grid = QGridLayout(pac['box_complex'])
         grid.addWidget(pac['hilbert_on'], 0, 0, 1, 2)
         grid.addWidget(hilb['filt'][0], 1, 0)
         grid.addWidget(hilb['filt'][1], 1, 1)
@@ -438,14 +442,16 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(pac['wav_width'][0], 1, 3)
         grid.addWidget(pac['wav_width'][1], 1, 4)
 
-        box_metric = QGroupBox('PAC metric')
+        pac['box_metric'] = QGroupBox('PAC metric')
 
+        pac['pac_on'] = FormBool('Compute PAC')
         pac['metric'] = FormMenu(pac_metrics)
         pac['fpha'] = FormStr()
         pac['famp'] = FormStr()
         pac['nbin'] = QLabel('Number of bins'), FormInt(default=18)
 
-        form_layout = QFormLayout(box_metric)
+        form_layout = QFormLayout(pac['box_metric'])
+        form_layout.addRow(pac['pac_on'])
         form_layout.addRow('PAC metric',
                            pac['metric'])
         form_layout.addRow('Phase frequencies (Hz)',
@@ -454,7 +460,7 @@ class AnalysisDialog(ChannelDialog):
                            pac['famp'])
         form_layout.addRow(*pac['nbin'])
 
-        box_surro = QGroupBox('Surrogate data')
+        pac['box_surro'] = QGroupBox('Surrogate data')
 
         pac['surro_method'] = FormMenu(pac_surro)
         pac['surro'] = {}
@@ -466,7 +472,7 @@ class AnalysisDialog(ChannelDialog):
         sur['save_surro'] = FormBool('Save surrogate data'), None
         sur['norm'] = FormMenu(pac_norm), None
 
-        form_layout = QFormLayout(box_surro)
+        form_layout = QFormLayout(pac['box_surro'])
         form_layout.addRow(pac['surro_method'])
         form_layout.addRow(*sur['nperm'])
         form_layout.addRow(*sur['nblocks'])
@@ -474,22 +480,24 @@ class AnalysisDialog(ChannelDialog):
         form_layout.addRow(sur['save_surro'][0])
         form_layout.addRow(sur['norm'][0])
 
-        box_opts = QGroupBox('Options')
+        pac['box_opts'] = QGroupBox('Options')
 
         pac['optimize'] = FormMenu(['True', 'False', 'greedy', 'optimal'])
         pac['njobs'] = FormInt(default=-1)
 
-        form_layout = QFormLayout(box_opts)
+        form_layout = QFormLayout(pac['box_opts'])
         form_layout.addRow('Optimize einsum',
                            pac['optimize'])
         form_layout.addRow('Number of jobs',
                            pac['njobs'])
 
         vlayout = QVBoxLayout(tab3)
-        vlayout.addWidget(box_complex)
-        vlayout.addWidget(box_metric)
-        vlayout.addWidget(box_surro)
-        vlayout.addWidget(box_opts)
+        vlayout.addWidget(pac['pac_on'])
+        vlayout.addWidget(QLabel(''))
+        vlayout.addWidget(pac['box_metric'])
+        vlayout.addWidget(pac['box_complex'])
+        vlayout.addWidget(pac['box_surro'])
+        vlayout.addWidget(pac['box_opts'])
 
         """ ------ TRIGGERS ------ """
 
@@ -506,12 +514,14 @@ class AnalysisDialog(ChannelDialog):
             button.connect(self.toggle_buttons)
 
         self.idx_group.connect(self.update_channels)
+        self.lock_to_staging.connect(self.toggle_buttons)
         eg['density'].connect(self.toggle_buttons)
         eg['all_local'].connect(self.check_all_local)
         eg['all_local_prep'].connect(self.check_all_local)
         ev['sw']['all_slope'].connect(self.check_all_slopes)
         self.psd['welch_on'].connect(self.toggle_buttons)
         self.psd['mtap_on'].connect(self.toggle_buttons)
+        pac['pac_on'].connect(self.toggle_buttons)
         pac['hilbert_on'].toggled.connect(self.toggle_buttons)
         pac['wavelet_on'].toggled.connect(self.toggle_buttons)
         pac['metric'].connect(self.toggle_buttons)
@@ -522,8 +532,8 @@ class AnalysisDialog(ChannelDialog):
 
         self.evt_chan_only.setChecked(True)
         self.lock_to_staging.setChecked(True)
-        self.chunk['segment'].setChecked(True)
-        self.reject_bad.setChecked(True)
+        self.chunk['epoch'].setChecked(True)
+        self.reject_epoch.setChecked(True)
         self.trans['button']['none'].setChecked(True)
         el['dur'][1].set_value(False)
         mtap['low_bias'].setChecked(True)
@@ -569,7 +579,7 @@ class AnalysisDialog(ChannelDialog):
 
     def update_evt_types(self):
         """Update the event types list when dialog is opened."""
-        self.event_types = self.annot.event_types
+        self.event_types = self.parent.notes.annot.event_types
         self.idx_evt_type.clear()
         for ev in self.event_types:
             self.idx_evt_type.addItem(ev)
@@ -578,7 +588,7 @@ class AnalysisDialog(ChannelDialog):
         """Enable cycles checkbox only if there are cycles marked, with no
         errors."""
         try:
-            self.cycles = self.annot.get_cycles()
+            self.cycles = self.parent.notes.annot.get_cycles()
 
         except ValueError as err:
             self.idx_cycle.setEnabled(False)
@@ -591,14 +601,14 @@ class AnalysisDialog(ChannelDialog):
                 self.idx_cycle.setEnabled(False)
             else:
                 self.idx_cycle.setEnabled(True)
-                for i in self.cycles:
+                for i in range(len(self.cycles)):
                     self.idx_cycle.addItem(str(i+1))
 
     def toggle_buttons(self):
         """Enable and disable buttons, according to options selected."""
         event_on = self.chunk['event'].isChecked()
         epoch_on = self.chunk['epoch'].isChecked()
-        segment_on = self.chunk['segment'].isChecked()
+        #segment_on = self.chunk['segment'].isChecked()
 
         self.evt_chan_only.setEnabled(event_on)
         self.label['evt_type'].setEnabled(event_on)
@@ -606,8 +616,17 @@ class AnalysisDialog(ChannelDialog):
         self.label['epoch_dur'].setEnabled(epoch_on)
         self.epoch_dur.setEnabled(epoch_on)
         self.lock_to_staging.setEnabled(epoch_on)
-        self.cat['within_stage'].setChecked(segment_on)
-        self.cat['within_stage'].setEnabled(not segment_on)
+        self.cat['btw_evt_types'].setEnabled(event_on)
+        self.pac['surro_method'].model().item(1).setEnabled(epoch_on)
+        # "Swap phase/amplitude across trials" only available if using epochs
+        # because trials need to be of equal length
+        
+        if epoch_on and self.lock_to_staging.get_value():
+            for i in self.cat.values():
+                i.setChecked(False)
+                i.setEnabled(False)
+            self.reject_event.setChecked(False)
+            self.reject_event.setEnabled(False)
 
         filter_on = not self.trans['button']['none'].isChecked()
         for button in self.trans['filt'].values():
@@ -631,52 +650,60 @@ class AnalysisDialog(ChannelDialog):
         for button in self.psd['mtap'].values():
             button.setEnabled(mtap_on)
 
-        hilb_on = self.pac['hilbert_on'].isChecked()
-        wav_on = self.pac['wavelet_on'].isChecked()
-        for button in self.pac['hilbert'].values():
-            button[0].setEnabled(hilb_on)
-            if button[1] is not None:
-                button[1].setEnabled(hilb_on)
-        self.pac['wav_width'][0].setEnabled(wav_on)
-        self.pac['wav_width'][1].setEnabled(wav_on)
+        pac_on = self.pac['pac_on'].get_value()
+        self.pac['box_metric'].setEnabled(pac_on)
+        self.pac['box_complex'].setEnabled(pac_on)
+        self.pac['box_surro'].setEnabled(pac_on)
+        self.pac['box_opts'].setEnabled(pac_on)
+        
+        if pac_on:
 
-        if self.pac['metric'].get_value() in [
-                'Kullback-Leibler Distance',
-                'Heights ratio']:
-            self.pac['nbin'][0].setEnabled(True)
-            self.pac['nbin'][1].setEnabled(True)
-        else:
-            self.pac['nbin'][0].setEnabled(False)
-            self.pac['nbin'][1].setEnabled(False)
-
-        if self.pac['metric'] == 'ndPac':
-            for button in self.pac['surro'].values():
-                button[0].setEnabled(False)
+            hilb_on = self.pac['hilbert_on'].isChecked()
+            wav_on = self.pac['wavelet_on'].isChecked()
+            for button in self.pac['hilbert'].values():
+                button[0].setEnabled(hilb_on)
                 if button[1] is not None:
-                    button[1].setEnabled(False)
-            self.pac['surro']['pval'].setEnabled(True)
-
-        ndpac_on = self.pac['metric'].get_value() == 'ndPac'
-        surro_on = logical_and(self.pac['surro_method'].get_value() != ''
-                               'No surrogates', not ndpac_on)
-        blocks_on = self.pac['surro_method'].get_value() == ''
-        'Swap amplitude blocks across time'
-        self.pac['surro_method'].setEnabled(not ndpac_on)
-        for button in self.pac['surro'].values():
-            button[0].setEnabled(surro_on)
-            if button[1] is not None:
-                button[1].setEnabled(surro_on)
-        self.pac['surro']['nblocks'][0].setEnabled(blocks_on)
-        self.pac['surro']['nblocks'][1].setEnabled(blocks_on)
-        if ndpac_on:
-            self.pac['surro_method'].set_value('No surrogates')
-            self.pac['surro']['pval'].setEnabled(True)
+                    button[1].setEnabled(hilb_on)
+            self.pac['wav_width'][0].setEnabled(wav_on)
+            self.pac['wav_width'][1].setEnabled(wav_on)
+    
+            if self.pac['metric'].get_value() in [
+                    'Kullback-Leibler Distance',
+                    'Heights ratio']:
+                self.pac['nbin'][0].setEnabled(True)
+                self.pac['nbin'][1].setEnabled(True)
+            else:
+                self.pac['nbin'][0].setEnabled(False)
+                self.pac['nbin'][1].setEnabled(False)
+    
+            if self.pac['metric'] == 'ndPac':
+                for button in self.pac['surro'].values():
+                    button[0].setEnabled(False)
+                    if button[1] is not None:
+                        button[1].setEnabled(False)
+                self.pac['surro']['pval'].setEnabled(True)
+    
+            ndpac_on = self.pac['metric'].get_value() == 'ndPac'
+            surro_on = logical_and(self.pac['surro_method'].get_value() != ''
+                                   'No surrogates', not ndpac_on)
+            blocks_on = self.pac['surro_method'].get_value() == ''
+            'Swap amplitude blocks across time'
+            self.pac['surro_method'].setEnabled(not ndpac_on)
+            for button in self.pac['surro'].values():
+                button[0].setEnabled(surro_on)
+                if button[1] is not None:
+                    button[1].setEnabled(surro_on)
+            self.pac['surro']['nblocks'][0].setEnabled(blocks_on)
+            self.pac['surro']['nblocks'][1].setEnabled(blocks_on)
+            if ndpac_on:
+                self.pac['surro_method'].set_value('No surrogates')
+                self.pac['surro']['pval'].setEnabled(True)
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
         for i,j in zip([self.idx_chan, self.idx_cycle, self.idx_stage],
                [self.cat['chan'], self.cat['cycle'],
-                self.cat['between_stages']]):
+                self.cat['stage']]):
             if len(i.selectedItems()) > 1:
                 j.setEnabled(True)
             else:
@@ -717,13 +744,14 @@ class AnalysisDialog(ChannelDialog):
 
             chunk = {k: v.get_value() for k, v in self.chunk.items()}
             
-            evt_type = None
             if chunk['event']:
                 evt_type = self.idx_evt_type.selectedItems()
                 if evt_type == []:
                     return
                 else:
-                    evt_type = [x.text() for x in evt_type]            
+                    evt_type = [x.text() for x in evt_type]
+            else:
+                evt_type = None
             
             # Which channel(s)
             group = self.one_grp
@@ -732,12 +760,15 @@ class AnalysisDialog(ChannelDialog):
             if chan == []:
                 return                                    
 
-            # Which cycke(s)
+            # Which cycle(s)
             idx_cyc_sel = [int(x.text()) - 1 for x in \
                            self.idx_cycle.selectedItems()]
-            cycle = itemgetter(*[idx_cyc_sel])(self.cycles)            
-            if cycle == []:
+            if idx_cyc_sel == []:
                 cycle = None
+            else:
+                cycle = itemgetter(*idx_cyc_sel)(self.cycles)            
+                if len(idx_cyc_sel) == 1:
+                    cycle = [cycle]
                 
             # Which stage(s)
             stage = self.idx_stage.selectedItems()
@@ -746,10 +777,15 @@ class AnalysisDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
             
-            # Other
-            exclude = self.reject_bad.get_value()
-            evt_chan_only = self.evt_chan_only.get_value()            
+            # Concatenation
             cat = {k: v.get_value() for k, v in self.cat.items()}
+            cat_chan = cat['chan']
+            cat = (int(cat['cycle']), int(cat['stage']), 
+                   int(cat['discontinuous']), int(cat['btw_evt_types']))
+            
+            # Other options
+            exclude_epoch = self.reject_epoch.get_value()
+            evt_chan_only = self.evt_chan_only.get_value()            
             trans = {k: v.get_value() for k, v in self.trans['button'].items()}
             filt = {k: v[1].get_value() for k, v in \
                     self.trans['filt'].items() if v[1] is not None}
@@ -765,20 +801,32 @@ class AnalysisDialog(ChannelDialog):
             ev_sl = [x.get_value() for x in self.event['slope']]
             
             # Fetch signal            
-            bundles = get_times(self.annot, evt_type=evt_type, 
-                                stage=self.stage, cycle=cycle, chan=chan, 
-                                exclude=exclude)
-            bundles = remove_artf_evts(bundles, self.annot)
+            bundles = get_times(self.parent.notes.annot, evt_type=evt_type, 
+                                stage=stage, cycle=cycle, chan=chan, 
+                                exclude=exclude_epoch)
+            
+            if self.reject_event.get_value():
+                bundles = remove_artf_evts(bundles, self.parent.notes.annot)
+
+            bundles = concat(bundles, cat)
             
             if chunk['epoch'] and not self.lock_to_staging.get_value():
-                #bundles = 
-                pass
+                bundles = find_intervals(bundles, self.epoch_dur.get_value())
+                        
+            segments = longer_than(bundles, self.min_dur.get_value())
             
-            self.read_data(chan, group, bundles, evt_chan_only)
-            
+            self.read_data(chan, group, segments, concat_chan=cat_chan,
+                           evt_chan_only=evt_chan_only)
+                        
             # Transform signal
             
             # Apply analyses
+            
+            if self.pac['pac_on'].get_value():
+                xpac = self.compute_pac()
+                pac_filename = splitext(filename)[0] + '_pac.p'
+                with open(pac_filename, 'wb') as f:
+                    dump(xpac, f)
             
             # Save datafile
                                     
@@ -790,7 +838,7 @@ class AnalysisDialog(ChannelDialog):
     def save_as(self):
         """Dialog for getting name, location of data export file."""
         filename = splitext(
-                self.annot.xml_file)[0] + '_ana_data.p'
+                self.parent.notes.annot.xml_file)[0] + '_data'
         filename, _ = QFileDialog.getSaveFileName(self, 'Export analysis data',
                                                   filename,
                                                   'Pickle (*.p)')
@@ -801,7 +849,7 @@ class AnalysisDialog(ChannelDialog):
         short_filename = short_strings(basename(self.filename))
         self.idx_filename.setText(short_filename)
     
-    def read_data(self, chan, group, bundles, evt_chan_only):
+    def read_data(self, chan, group, segments, concat_chan, evt_chan_only):
         """Read data for analysis."""
         dataset = self.parent.info.dataset
         chan = self.get_channels()
@@ -818,9 +866,126 @@ class AnalysisDialog(ChannelDialog):
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
         
-        self.data = _create_data_to_analyze(data, chan, self.one_grp, 
-                                            bundles=bundles, 
-                                            evt_chan_only=evt_chan_only)
+        self.segments = _create_data_to_analyze(data, chan, self.one_grp, 
+                                                segments=segments, 
+                                                concat_chan=concat_chan,
+                                                evt_chan_only=evt_chan_only)
+        
+        self.chan = []
+        for ch in chan:
+            chan_grp_name = ch + ' (' + self.one_grp['name'] + ')'
+            self.chan.append(chan_grp_name)
+        
+    def compute_pac(self):
+        """Compute phase-amplitude coupling values from data."""        
+        pac = self.pac
+        idpac = (pac['metric'].currentIndex() + 1, 
+                 pac['surro_method'].currentIndex(),
+                 pac['surro']['norm'][0].currentIndex())
+        fpha = freq_from_str(self.pac['fpha'].get_value())
+        famp = freq_from_str(self.pac['famp'].get_value())
+        nbins = self.pac['nbin'][1].get_value()
+        nblocks = self.pac['surro']['nblocks'][1].get_value()
+        
+        if pac['hilbert_on'].isChecked():
+            dcomplex = 'hilbert'
+            filt = self.pac['hilbert']['filt'][1].get_value()
+            cycle = (self.pac['hilbert']['cycle_pha'][1].get_value(),
+                     self.pac['hilbert']['cycle_amp'][1].get_value())
+            filtorder = self.pac['hilbert']['order'][1].get_value()
+            width = 7 # not used
+        elif pac['wavelet_on'].isChecked():
+            dcomplex = 'wavelet'
+            filt = 'fir1' # not used
+            cycle = (3, 6) # not used
+            filtorder = 3 # not used
+            width = self.pac['wav_width'][1].get_value()
+        
+        p = Pac(idpac=idpac, fpha=fpha, famp=famp, dcomplex=dcomplex, 
+                filt=filt, cycle=cycle, filtorder=filtorder, width=width, 
+                nbins=nbins, nblocks=nblocks)
+        
+        nperm = self.pac['surro']['nperm'][1].get_value()
+        optimize = self.pac['optimize'].get_value()
+        get_pval = self.pac['surro']['pval'][0].get_value()
+        get_surro = self.pac['surro']['save_surro'][0].get_value()
+        njobs = self.pac['njobs'].get_value()
+        
+        if optimize == 'True':
+            optimize = True
+        elif optimize == 'False':
+            optimize = False
+        
+        xpac = {}
+        
+        for chan in self.chan:
+            batch = []
+            batch_dat = []
+        
+            for i, j in enumerate(self.segments):
+                
+                if chan in j['data'].axis['chan'][0]:
+                    batch.append(j)
+                    
+                    if idpac == 1:
+                        batch_dat.append(j['data'](chan=chan)[0])
+            
+            xpac[chan] = {}
+            xpac[chan]['data'] = zeros((len(batch), len(famp), len(fpha)))
+            xpac[chan]['times'] = []
+            xpac[chan]['stage'] = []
+            xpac[chan]['cycle'] = []
+            xpac[chan]['name'] = []
+            
+            if get_pval:
+                xpac[chan]['pval'] = zeros((len(batch), len(famp), len(fpha)))
+            
+            if idpac[2] > 0:
+                xpac[chan]['surro'] = zeros((len(batch), nperm, 
+                                            len(famp), len(fpha)))
+            
+            for i, j in enumerate(batch):
+                sf = j['data'].s_freq
+                    
+                if idpac[1] == 1:
+                    new_batch_dat = list(batch_dat)
+                    new_batch_dat.insert(0, new_batch_dat.pop(i))
+                    dat = asarray(new_batch_dat)
+                else:
+                    dat = j['data'](chan=chan)[0]
+                        
+                timeline = j['data'].axis['time'][0]
+                xpac[chan]['times'].append((timeline[0], timeline[-1]))
+                xpac[chan]['stage'].append(j['stage'])
+                xpac[chan]['cycle'].append(j['cycle'])
+                xpac[chan]['name'].append(j['name'])
+                
+                out = p.filterfit(sf=sf, xpha=dat, xamp=None, axis=1, traxis=0,
+                                  nperm=nperm, optimize=optimize, 
+                                  get_pval=get_pval, get_surro=get_surro, 
+                                  njobs=njobs)
+                
+                if get_pval:
+                    
+                    if idpac[2] > 0:
+                        (xpac[chan]['data'][i, :, :], 
+                         xpac[chan]['pval'][i, :, :],
+                         xpac[chan]['surro'][i, :, :, :]) = (out[0][:, :, 0],
+                             out[1], out[2])
+                    else:
+                        (xpac[chan]['data'][i, :, :], 
+                         xpac[chan]['pval'][i, :, :]) = (out[0][:, :, 0],
+                             out[1])
+                         
+                elif idpac[2] > 0:
+                    (xpac[chan]['data'][i, :, :], 
+                     xpac[chan]['surro'][i, :, :, :]) = (out[0][:, :, 0], 
+                         out[1])
+                
+                else:
+                    xpac[chan]['data'][i, :, :] = out[:, :, 0]
+                    
+        return xpac
 
 
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None, 
@@ -836,13 +1001,13 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         Enter a list of event types to get events; otherwise, epochs will
         be returned.
     stage: list of str, optional
-        Stage(s) of interest. If None, all stages are used.
+        Stage(s) of interest. If None, stage is ignored.
     cycle: list of tuple of two float, optional
         Cycle(s) of interest, as start and end times in seconds from record
-        start. If None, cycles are disregarded.
+        start. If None, cycles are ignored.
     chan: list of str or tuple of None
         Channel(s) of interest, only used for events (epochs have no 
-        channel). If None, channels are disregarded.
+        channel). If None, channel is ignored.
     exclude: bool
         Exclude epochs by quality. If True, epochs marked as 'Poor' quality
         or staged as 'Artefact' will be rejected (and the signal cisioned 
@@ -877,7 +1042,7 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         
     qual = None
     if exclude:
-        qual = 'Poor'
+        qual = 'Good'
     
     bundles = []
     for et in evt_type:
@@ -889,9 +1054,9 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
                 for ss in stage:
 
                     evochs = getter(name=et, time=cyc, chan=ch,
-                                    stage=ss, qual=qual)
+                                    stage=ss, quality=qual)
                     times = [(e['start'], e['end']) for e in evochs]
-                    times = sorted(times, key=lambda x: x['start'])
+                    times = sorted(times, key=lambda x: x[0])
                     one_bundle = {'times': times,
                                   'stage': ss,
                                   'cycle': cyc,
@@ -953,8 +1118,8 @@ def remove_artf_evts(bundles, annot):
         
     return bundles                
 
-def concat(bundles, cat=(0, 0, 1, 0)):
-    """Concatenate events or epochs.
+def concat(bundles, cat=(0, 0, 0, 0)):
+    """Prepare events or epochs for concatenation.
 
     Parameters
     ----------
@@ -978,9 +1143,10 @@ def concat(bundles, cat=(0, 0, 1, 0)):
     Returns
     -------
     list of dict
-        Each dict has times (the start and end times of each segment, as 
+        Each dict has times (the start and end times of each subsegment, as 
         list of tuple of float), stage, cycle, as well as chan and event
-        type name (empty for epochs)
+        type name (empty for epochs). Each bundle comprises a collection of
+        subsegments to be concatenated.
         
     TO-DO
     -----
@@ -988,24 +1154,27 @@ def concat(bundles, cat=(0, 0, 1, 0)):
     """   
     chan = list(set([x['chan'] for x in bundles]))
     cycle = sorted(set([x['cycle'] for x in bundles]))
-    stage = set([x['stage'] for x in bundles])
-    evt_type = set([x['name'] for x in bundles])        
+    stage = list(set([x['stage'] for x in bundles]))
+    evt_type = list(set([x['name'] for x in bundles]))        
+
+    all_cycle = None
+    all_stage = None
+    all_evt_type = None
     
-    # since events are channel-specific, they must be sorted by channel
-    if chan == ['']:
-        all_chan = ', '.join(chan)
-        chan = [all_chan]
+    if cycle[0] is not None:
+        all_cycle = ', '.join([str(c) for c in cycle])
+    if stage[0] is not None:
+        all_stage = ', '.join(stage)
+    if evt_type[0] is not None:
+        all_evt_type = ', '.join(evt_type)
     
     if cat[0]:
-        all_cycle = ', '.join([str(c) for c in cycle])
         cycle = [all_cycle]
         
     if cat[1]:
-        all_stage = ', '.join(stage)
         stage = [all_stage]
         
     if cat[3]:
-        all_evt_type = ', '.join(evt_type)
         evt_type = [all_evt_type]
         
     to_concat = []
@@ -1019,15 +1188,15 @@ def concat(bundles, cat=(0, 0, 1, 0)):
                     new_times = []
                     
                     for bund in bundles:
-                        chan_cond = ch in (bund['chan'], all_chan)
+                        chan_cond = ch == bund['chan']
                         cyc_cond = cyc in (bund['cycle'], all_cycle)
                         st_cond = st in (bund['stage'], all_stage)
                         et_cond = et in (bund['name'], all_evt_type)
                         
-                        if logical_and(chan_cond, cyc_cond, st_cond, 
-                                       et_cond):
+                        if chan_cond and cyc_cond and st_cond and et_cond:
                             new_times.extend(bund['times'])
                             
+                    new_times = sorted(new_times, key=lambda x: x[0])
                     new_bund = {'times': new_times,
                               'chan': ch,
                               'cycle': cyc,
@@ -1041,8 +1210,9 @@ def concat(bundles, cat=(0, 0, 1, 0)):
         
         for bund in to_concat:                
             last = None
+            bund['times'].append((inf,inf))
             
-            for i, j in enumerate(bund['times'].append((inf,inf))):
+            for i, j in enumerate(bund['times']):
                 
                 if last is not None:                       
                     if not isclose(j[0], last, abs_tol=0.1):
@@ -1093,31 +1263,31 @@ def find_intervals(bundles, interval):
     return segments            
 
 
-def longer_than(bundles, min_dur):
+def longer_than(segments, min_dur):
     """
     Parameters
     ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as 
+    segments : list of dict
+        Each dict has times (the start and end times of each sub-segment, as 
         list of tuple of float), and the stage, cycle, chan and name (event 
-        type, if applicable) associated with the segment bundle
+        type, if applicable) associated with the segment
     min_dur: float
         Minimum duration of signal chunks returned.
     """
-    if min_dur <= 0:
-        return bundles
+    if min_dur <= 0.:
+        return segments
     
     long_enough = []
-    for bund in bundles:
+    for seg in segments:
     
-        if sum([t[1] - t[0] for t in bund['times']]) >= min_dur:
-            long_enough.append(bund)
+        if sum([t[1] - t[0] for t in seg['times']]) >= min_dur:
+            long_enough.append(seg)
     
     return long_enough
 
 
-def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles, 
-                            evt_chan_only=True):
+def _create_data_to_analyze(data, analysis_chans, chan_grp, segments, 
+                            concat_chan=False, evt_chan_only=False):
     """Create data after montage and filtering.
 
     Parameters
@@ -1129,26 +1299,32 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
     chan_grp : dict
         information about channels to plot, to use as reference and about
         filtering etc.
-    times : list of dict
-        Each dict has times (the start and end times of each segment, as
+    segments : list of dict
+        Each dict has times (the start and end times of each sub-segment, as
         list of tuple of float), stage, cycle, chan, name (event type,
-        if applicable)
+        if applicable). Each dict of subsegments will be concatenated into
+        a single segment.
+    concat_chan : bool
+        If True, signal from different channels will be concatenated into one
+        vector. Defaults to False.
     evt_chan_only: bool
-        For use with events. If True, data concurrent with the event on all
-        channels in analysis_chans will be returned. If False, only the data
-        on the original channel where the event was marked will be returned.
+        For use with events. If True, only the data on the original channel 
+        where the event was marked will be returned. If False, data concurrent 
+        with the event on all channels in analysis_chans will be returned. 
 
     Returns
     -------
-    instance of ChanTime
-        data ready to be analyzed. one trial only.
+    list of dict
+        each item is a dict where 'data' is an instance of ChanTime for a 
+        single segment of signal, 'name' is the event type, if applicable, and
+        with 'chan' (str), 'stage' (str) and 'cycle' (int)
     """
     s_freq = data.s_freq
-    output = {}
+    output = []
 
-    for bund in bundles:
+    for seg in segments:
         times = [(int(t0 * s_freq),
-                  int(t1 * s_freq)) for (t0, t1) in bundles['times']]        
+                  int(t1 * s_freq)) for (t0, t1) in seg['times']]        
 
         one_segment = ChanTime()
         one_segment.s_freq = s_freq
@@ -1157,11 +1333,11 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
         one_segment.data = empty(1, dtype='O')
     
         all_epoch_data = []
-        clock_time = []
+        timeline = []
         all_chan_grp_name = []
         
-        if evt_chan_only and bund['chan'] is not None:
-            these_chans = bund['chan']
+        if evt_chan_only and seg['chan'] is not '':
+            these_chans = [seg['chan']]
         else:
             these_chans = analysis_chans
     
@@ -1176,7 +1352,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
     
         for (t0, t1) in times:
             one_interval = data.axis['time'][0][t0: t1]
-            clock_time.append(one_interval)
+            timeline.append(one_interval)
             epoch_dat = empty((len(these_chans), len(one_interval)))
             i_ch = 0
     
@@ -1189,13 +1365,19 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
             all_epoch_data.append(epoch_dat)
     
         one_segment.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-        one_segment.axis['time'][0] = concatenate(clock_time)
+        one_segment.axis['time'][0] = concatenate(timeline)
         one_segment.data[0] = concatenate(all_epoch_data, axis=1)
-        output.update({'data': one_segment,
-                       'chan': bund['chan'],
-                       'stage': bund['stage'],
-                       'cycle': bund['cycle'],
-                       'name': bund['name']})
+        
+        if concat_chan:
+            one_segment.data[0] = ravel(one_segment.data[0])
+            one_segment.axis['chan'][0] = all_chan_grp_name.join(', ')
+            # axis['time'] should not be used in this case
+        
+        output.append({'data': one_segment,
+                       'chan': these_chans,
+                       'stage': seg['stage'],
+                       'cycle': seg['cycle'],
+                       'name': seg['name']})
 
     return output
 

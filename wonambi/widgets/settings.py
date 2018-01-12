@@ -773,7 +773,7 @@ class FormRadio(QRadioButton):
             state of the checkbox
 
         """
-        return self.checkState() == Qt.Checked
+        return self.isChecked is True
 
     def set_value(self, value):
         """Set value of the checkbox.

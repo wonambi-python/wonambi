@@ -1060,7 +1060,7 @@ class Annotations():
 
         Returns
         -------
-        list of tuple
+        list of tuple of float
             start and end times for each cycle, in seconds from recording start
         """
         cycles = self.rater.find('cycles')

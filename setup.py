@@ -49,6 +49,9 @@ setup(
             'codecov',
             'plotly',
             ],
+        'pac': [ # for phase-amplitude coupling
+            'tensorpac',
+            ],
         'all': [
             'h5py',
             'mne',

@@ -2520,7 +2520,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
     output.data = empty(1, dtype='O')
 
     all_epoch_data = []
-    clock_time = []
+    timeline = []
     all_chan_grp_name = []
 
     for chan in analysis_chans:
@@ -2534,7 +2534,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
 
     for (t0, t1) in times:
         one_interval = data.axis['time'][0][t0: t1]
-        clock_time.append(one_interval)
+        timeline.append(one_interval)
         epoch_dat = empty((len(analysis_chans), len(one_interval)))
         i_ch = 0
 
@@ -2547,7 +2547,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
         all_epoch_data.append(epoch_dat)
 
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-    output.axis['time'][0] = concatenate(clock_time)
+    output.axis['time'][0] = concatenate(timeline)
     output.data[0] = concatenate(all_epoch_data, axis=1)
 
     return output

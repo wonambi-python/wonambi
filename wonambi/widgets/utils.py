@@ -2,6 +2,7 @@
 """
 from logging import getLogger
 from math import ceil, floor
+from numpy import arange
 from os.path import dirname, join, realpath
 
 from PyQt5.QtCore import QRectF, QSettings, Qt
@@ -242,3 +243,49 @@ def convert_name_to_color(s):
     color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,
                    sum_mod(v[2::3]) + h)
     return color
+
+def freq_from_str(freq_str):
+    """Obtain frequency ranges from input string, either as list or dynamic 
+    notation.
+    
+    Parameters
+    ----------
+    freq_str : str
+        String with frequency ranges, either as a list:
+        e.g. [[1-3], [3-5], [5-8]]; 
+        or with a dynamic definition: (start, stop, width, step).
+        
+    Returns
+    -------
+    list of tuple of float or None
+        Every tuple of float represents a frequency band. If input is invalid,
+        returns None.
+    """
+    freq = []
+    as_list = freq_str[1:-1].replace(' ', '').split(',')
+    
+    if freq_str[0] == '[' and freq_str[-1] == ']':
+        for i in as_list:
+            one_band = i[1:-1].split('-')
+            one_band = float(one_band[0]), float(one_band[1])
+            freq.append(one_band)
+            
+    elif freq_str[0] == '(' and freq_str[-1] == ')':
+        
+        if len(as_list) == 4:
+            start = float(as_list[0])
+            stop = float(as_list[1])
+            halfwidth = float(as_list[2]) / 2
+            step = float(as_list[3])
+            centres = arange(start, stop, step)
+            for i in centres:
+                freq.append((i - halfwidth, i + halfwidth))
+        else:
+            return None
+            
+    else:
+        return None
+    
+    return freq
+    
+    

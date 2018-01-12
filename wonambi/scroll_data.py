@@ -263,6 +263,10 @@ def main():
                         help='Reset (clear) configuration file')
     parser.add_argument('dataset', nargs='?',
                         help='full path to dataset to open')
+    parser.add_argument('annot', nargs='?',
+                        help='full path to annotations file to open')
+    parser.add_argument('montage', nargs='?',
+                        help='full path to montage file to open')
 
     args = parser.parse_args()
 
@@ -294,5 +298,11 @@ def main():
 
         if args.dataset:
             q.info.open_dataset(args.dataset)
+            
+        if args.annot:
+            q.notes.update_notes(args.annot)
+            
+        if args.montage:
+            q.channels.load_channels(test_name=args.montage)
 
         app.exec()
