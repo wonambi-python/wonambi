@@ -58,6 +58,7 @@ from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool, FormMenu
 from .utils import convert_name_to_color, short_strings, ICON
+from .analysis import remove_artf_events
 
 lg = getLogger(__name__)
 
@@ -1230,6 +1231,13 @@ class Notes(QTabWidget):
                 self.data = None
                 return
 
+        times = remove_artf_events(times, self.annot)
+        # presently, if a spindle is detected straddling a cision point created
+        # by an Artefact event, and len(Artefact) + len(spindle) < min_dur, 
+        # then an erroneous spindle will be detected. ie there is no check in
+        # place beyond spindle.within_duration that excludes spindles detected 
+        # straddling cision/concatenation points
+        
         self.data = _create_data_to_analyze(data, chan, group, times=times)
 
     def detect_events(self, method, params, label):

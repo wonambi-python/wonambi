@@ -243,7 +243,6 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
     """
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
-    dat_det = transform_signal(dat_det, s_freq, 'hilbert')
     dat_det = transform_signal(dat_det, s_freq, 'abs')
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
@@ -469,6 +468,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
     """
     dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
+    dat_det = transform_signal(dat_orig, s_freq, 'abs')
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)

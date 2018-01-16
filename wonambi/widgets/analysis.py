@@ -806,7 +806,8 @@ class AnalysisDialog(ChannelDialog):
                                 exclude=exclude_epoch)
             
             if self.reject_event.get_value():
-                bundles = remove_artf_evts(bundles, self.parent.notes.annot)
+                bundles['times'] = remove_artf_evts(bundles['times'], 
+                                                    self.parent.notes.annot)
 
             bundles = concat(bundles, cat)
             
@@ -1066,57 +1067,107 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
 
     return bundles
 
-def remove_artf_evts(bundles, annot):
+def remove_artf_evts(times, annot):
     """Correct times to remove events marked 'Artefact'.
     
     Parameters
     ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment bundle
+    times : list of tuple of float
+        the start and end times of each segment
     annot: instance of Annotations
         The annotation file containing events and epochs
 
     Returns
     -------
-    list of dict
-        Each dict has times (the start and end times of each segment, as 
-        list of tuple of float), stage, cycle, as well as chan and event
-        type name (empty for epochs)            
+    list of tuple of float
+        the new start and end times of each segment, with artefact periods 
+        taken out            
     """
-    for bund in bundles:
-        times = bund['times']
-        beg = times[0][0]
-        end = times[-1][-1]
-        stage = bund['stage']
+    new_times = times
+    beg = times[0][0]
+    end = times[-1][-1]
     
-        artefact = annot.get_events(name='Artefact', time=(beg, end), 
-                                    stage=stage, qual='Good')
+    artefact = annot.get_events(name='Artefact', time=(beg, end), qual='Good')
         
-        if artefact is not None:
-            new_times = []
+    if artefact is not None:
+        new_times = []
+        
+        for seg in times:
+            reject = False
+            new_seg = True
             
-            for artf in artefact:
-                
-                for seg in times:
-                    a_starts_in_s = seg[0] <= artf[0] <= seg[1]
-                    a_ends_in_s = seg[0] <= artf[1] <= seg[1]
+            while new_seg:
+                new_seg = False
+            
+                for artf in artefact:
+                    
+                    if artf['start'] <= seg[0] and seg[1] <= artf['end']:
+                        reject = True
+                        break
+                    
+                    a_starts_in_s = seg[0] <= artf['start'] <= seg[1]
+                    a_ends_in_s = seg[0] <= artf['end'] <= seg[1]
                     
                     if a_ends_in_s and not a_starts_in_s:
-                        seg[0] = artf[1]                 
+                        seg[0] = artf['end']                 
                         
                     elif a_starts_in_s:
-                        seg[1] = artf[0]
-
+                        seg[1] = artf['start']
+    
                         if a_ends_in_s:
-                            new_times.append((artf[1], seg[1]))
-                        
-                    new_times.append(seg)
+                            new_seg = artf['end'], seg[1]
+                        else:
+                            new_seg = False
                     
-            bund['times'] = new_times                
+                    else:
+                        new_seg = False
+            
+            if reject is False:
+                new_times.append(seg)
         
-    return bundles                
+    return new_times 
+
+
+
+
+
+
+
+
+
+
+
+    new_times = times
+    beg = times[0][0]
+    end = times[-1][-1]
+    
+    artefact = annot.get_events(name='Artefact', time=(beg, end), qual='Good')
+        
+    if artefact is not None:
+        new_times = []
+        
+        for artf in artefact:
+            
+            for seg in times:
+                
+                if artf['start'] <= seg[0] and seg[1] <= artf['end']:
+                    continue # artefact contains segment
+                
+                a_starts_in_s = seg[0] <= artf['start'] <= seg[1]
+                a_ends_in_s = seg[0] <= artf['end'] <= seg[1]
+                
+                if a_ends_in_s and not a_starts_in_s:
+                    seg[0] = artf['end']                 
+                    
+                elif a_starts_in_s:
+                    seg[1] = artf['start']
+
+                    if a_ends_in_s:
+                        new_times.append((artf['end'], seg[1]))
+                    
+                new_times.append(seg)
+        
+    return new_times            
 
 def concat(bundles, cat=(0, 0, 0, 0)):
     """Prepare events or epochs for concatenation.
