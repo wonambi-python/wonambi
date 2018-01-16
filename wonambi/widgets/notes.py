@@ -403,8 +403,8 @@ class Notes(QTabWidget):
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act
-        
-        act = QAction('Sleep statistics')
+
+        act = QAction('Sleep statistics', self)
         act.triggered.connect(self.export_sleeps_stats)
         actions['export_sleepstats'] = act
 
@@ -1467,7 +1467,7 @@ class Notes(QTabWidget):
             return
 
         self.annot.export(filename)
-        
+
     def export_sleeps_stats(self):
         """action: export sleep statistics CSV."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1475,7 +1475,7 @@ class Notes(QTabWidget):
             return
 
         fn = splitext(self.annot.xml_file)[0] + '_sleepstats.csv'
-        fn, _ = QFileDialog.getSaveFileName(self, 'Export sleep statistics', 
+        fn, _ = QFileDialog.getSaveFileName(self, 'Export sleep statistics',
                                             fn, 'Sleep stats (*.csv)')
         if fn == '':
             return
@@ -1486,17 +1486,17 @@ class Notes(QTabWidget):
                                                 'start.')
         if not ok:
             return
-        
+
         lights_on, ok = QInputDialog.getText(self, 'Lights on time',
                                                 'Enter the lights ON time, '
                                                 'in seconds from recording '
                                                 'start.')
-        
+
         if not ok:
             return
-        
+
         lights_out, lights_on = float(lights_out), float(lights_on)
-        
+
         if self.annot.export_sleep_stats(fn, lights_out, lights_on) is None:
             self.parent.statusBar().showMessage('No epochs scored as sleep.')
 
