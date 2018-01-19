@@ -14,11 +14,12 @@ export PATH=~/tools/miniconda3/bin:$PATH
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
-# export LD_LIBRARY_PATH=/Fridge/users/giovanni/tools/miniconda3/lib
-
 # nodejs
 export NODEJS_HOME=~/tools/node-v8.9.2
 export PATH=$NODEJS_HOME/bin:$PATH
+
+# fsl
+source /etc/fsl/fsl.sh
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_5.3
