@@ -842,7 +842,7 @@ class Annotations():
                      }
             yield epoch
 
-    def get_epochs(self, time=None, stage=None, quality=None, 
+    def get_epochs(self, time=None, stage=None, qual=None, 
                    chan=None, name=None):
         """Get list of events in the file.
 
@@ -864,7 +864,7 @@ class Annotations():
         -------
         list of dict
             where each dict has 'start' (start time), 'end' (end time), 
-            'stage', 'quality' (signal quality)
+            'stage', 'qual' (signal quality)
         """
         time_cond = True
         stage_cond = True
@@ -874,8 +874,8 @@ class Annotations():
         for ep in self.epochs:
             if stage:
                 stage_cond = ep['stage'] in stage
-            if quality:
-                qual_cond = ep['quality'] == quality
+            if qual:
+                qual_cond = ep['quality'] == qual
             if time:
                 time_cond = time[0] <= ep['start'] and time[1] >= ep['end']
             if stage_cond and qual_cond and time_cond:
@@ -1070,7 +1070,7 @@ class Annotations():
 
         starts = [float(mrkr.text) for mrkr in cycles.findall('cyc_start')]
         ends = [float(mrkr.text) for mrkr in cycles.findall('cyc_end')]
-        output = []
+        cyc_list = []
 
         if not starts or not ends:
             return None
@@ -1096,7 +1096,12 @@ class Annotations():
             if one_cycle[1] == inf:
                 raise ValueError('Last cycle has no end.')
 
-            output.append(one_cycle)
+            cyc_list.append(one_cycle)
+            
+        output = []
+        for i, j in enumerate(cyc_list):
+            cyc = j[0], j[1], i + 1
+            output.append(cyc)
 
         return output
 

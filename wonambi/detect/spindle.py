@@ -3,8 +3,8 @@
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
                    diff, exp, empty, floor, hstack, insert, invert,
-                   logical_and, mean, median, nan, ones, pi, ptp, sqrt, square,
-                   std, vstack, where, zeros)
+                   logical_and, mean, median, nan, ones, pi, ptp, real, sqrt, 
+                   square, std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram, tukey)
@@ -254,8 +254,8 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = _merge_close(dat_det, events, time, opts.min_interval)
-
-        events = within_duration(events, time, opts.duration)
+        events = within_duration(events, time, opts.duration)        
+        events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
@@ -327,8 +327,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
-
         events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
@@ -412,6 +412,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
@@ -468,7 +469,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
     """
     dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
-    dat_det = transform_signal(dat_orig, s_freq, 'abs')
+    dat_det = real(dat_det ** 2) ** 2
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
@@ -477,8 +478,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
 
     if events is not None:
         events = _merge_close(dat_det, events, time, opts.min_interval)
-
         events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
@@ -547,8 +548,8 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
     events = select_events(dat_sel, events, 'above_thresh', sel_value)
 
     events = _merge_close(dat_det, events, time, opts.min_interval)
-
     events = within_duration(events, time, opts.duration)
+    events = remove_straddlers(events, time, s_freq)
 
     events = power_ratio(events, dat_orig, s_freq, opts.frequency,
                          opts.ratio_thresh)
@@ -621,6 +622,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
@@ -968,6 +970,33 @@ def within_duration(events, time, limits):
     max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
 
     return events[min_dur & max_dur, :]
+
+
+def remove_straddlers(events, time, s_freq, toler=0.1):
+    """Reject an event if it straddles a cision point, by comparing its 
+    duration to its timespan
+
+    Parameters
+    ----------
+    events : ndarray (dtype='int')
+        N x 3 matrix with start, peak, end samples
+    time : ndarray (dtype='float')
+        vector with time points
+    s_freq : float
+        sampling frequency
+    toler : float, def=0.1
+        maximum tolerated difference between event duration and timespan
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 3 matrix with start , peak, end samples
+    """
+    duration = (events[:, 2] - 1 - events[:, 0]) / s_freq
+    continuous = time[events[:, 2] - 1] - time[events[:, 0]] - duration < toler
+    
+    return events[continuous, :]
+    
 
 
 def power_ratio(events, dat, s_freq, limits, ratio_thresh):

@@ -7,6 +7,7 @@ from PyQt5.QtCore import QEvent, QPointF
 from PyQt5.Qt import QMouseEvent, Qt
 
 from wonambi.scroll_data import MainWindow
+from wonambi.widgets.utils import remove_artf_evts
 
 from .test_scroll_data import (channel_make_group,
                                find_in_qt,
@@ -239,3 +240,36 @@ def test_widget_notes_import_error(qtbot):
     w.notes.import_fasst(test_fasst=str(gui_file),
                          test_annot=str(annot_fasst_export_file))
     assert 'FASST .mat file' in w.statusBar().currentMessage()
+   
+def test_widget_notes_remove_artf_evts(qtbot):
+    
+    w = MainWindow()
+    qtbot.addWidget(w)
+    
+    w.info.open_dataset(str(gui_file))
+    channel_make_group(w)
+    w.channels.button_apply.click()
+    w.channels.new_group(test_name='eog')
+    w.notes.update_notes(annot_psg_path)
+    
+    w.notes.new_eventtype(test_type_str='Artefact')
+    w.notes.action['new_event'].setChecked(True)
+    w.notes.add_event('Artefact', (1, 2), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (3, 6), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (7, 10), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (14, 31), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (70, 85), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (87, 90), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (90, 92), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (105, 120), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (125.0, 125.2), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('Artefact', (132, 142), 'EEG Pz-Oz (scalp)')
+
+    times = [(8,15), (30,50), (56, 100), (100, 111), (135, 140), (150, 160)]
+    new_times = remove_artf_evts(times, w.notes.annot)
+
+    assert new_times == [(10, 14), (31, 50), (56, 70), (85, 87), (92, 100), 
+                         (100, 105), (150, 160)]       
+        
+    w.notes.delete_eventtype(test_type_str='Artefact')
+    w.close()

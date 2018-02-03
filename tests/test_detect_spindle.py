@@ -28,7 +28,7 @@ def test_detect_spindle_Wamsley2012():
     detsp = DetectSpindle(method='Wamsley2012')
 
     sp = detsp(data)
-    assert len(sp.events) == 1
+    assert len(sp.events) == 2
 
 
 def test_detect_spindle_Ferrarelli2007():

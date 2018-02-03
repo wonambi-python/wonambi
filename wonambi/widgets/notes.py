@@ -57,8 +57,7 @@ from ..attr import Annotations, create_empty_annotations
 from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool, FormMenu
-from .utils import convert_name_to_color, short_strings, ICON
-from .analysis import remove_artf_events
+from .utils import convert_name_to_color, short_strings, ICON, remove_artf_evts
 
 lg = getLogger(__name__)
 
@@ -400,12 +399,12 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['analyze_events'] = act
 
-        act = QAction('Analysis... (coming soon)', self)
+        act = QAction('Analysis... (BETA)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act
-        
-        act = QAction('Sleep statistics')
+
+        act = QAction('Sleep statistics', self)
         act.triggered.connect(self.export_sleeps_stats)
         actions['export_sleepstats'] = act
 
@@ -766,7 +765,9 @@ class Notes(QTabWidget):
 
         except KeyError:
             msg = ('The start of the window does not correspond to any epoch ' +
-                   'in sleep scoring file')
+                   'in sleep scoring file.\n\n'
+                   'Switch to the appropriate window length in View, then use '
+                   'Navigation --> Line Up with Epoch to line up the window.')
             error_dialog = QErrorMessage()
             error_dialog.setWindowTitle('Error getting sleep stage')
             error_dialog.showMessage(msg)
@@ -1231,7 +1232,7 @@ class Notes(QTabWidget):
                 self.data = None
                 return
 
-        times = remove_artf_events(times, self.annot)
+        times = remove_artf_evts(times, self.annot)
         # presently, if a spindle is detected straddling a cision point created
         # by an Artefact event, and len(Artefact) + len(spindle) < min_dur, 
         # then an erroneous spindle will be detected. ie there is no check in
@@ -1475,7 +1476,7 @@ class Notes(QTabWidget):
             return
 
         self.annot.export(filename)
-        
+
     def export_sleeps_stats(self):
         """action: export sleep statistics CSV."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1483,7 +1484,7 @@ class Notes(QTabWidget):
             return
 
         fn = splitext(self.annot.xml_file)[0] + '_sleepstats.csv'
-        fn, _ = QFileDialog.getSaveFileName(self, 'Export sleep statistics', 
+        fn, _ = QFileDialog.getSaveFileName(self, 'Export sleep statistics',
                                             fn, 'Sleep stats (*.csv)')
         if fn == '':
             return
@@ -1494,17 +1495,17 @@ class Notes(QTabWidget):
                                                 'start.')
         if not ok:
             return
-        
+
         lights_on, ok = QInputDialog.getText(self, 'Lights on time',
                                                 'Enter the lights ON time, '
                                                 'in seconds from recording '
                                                 'start.')
-        
+
         if not ok:
             return
-        
+
         lights_out, lights_on = float(lights_out), float(lights_on)
-        
+
         if self.annot.export_sleep_stats(fn, lights_out, lights_on) is None:
             self.parent.statusBar().showMessage('No epochs scored as sleep.')
 
@@ -1650,6 +1651,7 @@ class SpindleDialog(ChannelDialog):
         self.index['merge'] = FormBool('Merge events across channels')
 
         self.label.setText('spin')
+        self.idx_group.activated.connect(self.update_channels)
         self.idx_chan.itemSelectionChanged.connect(self.count_channels)
         self.index['merge'].setCheckState(Qt.Unchecked)
         self.index['merge'].setEnabled(False)
@@ -1861,6 +1863,7 @@ class SWDialog(ChannelDialog):
 
         self.label.setText('sw')
         self.index['invert'].setCheckState(Qt.Unchecked)
+        self.idx_group.activated.connect(self.update_channels)
 
         form_layout = QFormLayout()
         box0.setLayout(form_layout)

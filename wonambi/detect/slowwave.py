@@ -4,7 +4,8 @@
 from logging import getLogger
 from numpy import argmax, concatenate, hstack, sum, zeros
 
-from .spindle import detect_events, transform_signal, within_duration
+from .spindle import (detect_events, transform_signal, within_duration, 
+                      remove_straddlers)
 from ..graphoelement import SlowWaves
 
 lg = getLogger(__name__)
@@ -147,6 +148,7 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
 
                 if len(events):
                     events = within_duration(events, time, opts.duration)
+                    events = remove_straddlers(events, time, s_freq)
                     lg.info('SWs within duration: ' + str(events.shape))
 
                     sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)

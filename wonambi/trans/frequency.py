@@ -470,7 +470,7 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     the whole duration of the input window, while PSD is normalized by the
     window length.
 
-    The Parseval's theorem says that the energy of the signal in the time-domain
+    Parseval's theorem says that the energy of the signal in the time-domain
     must be equal to the energy in the frequency domain. All the tapers are
     correct to comply with this theorem (see tests/test_trans_frequency.py for
     all the examples). Note that packages such as 'FieldTrip' and 'Chronux' do

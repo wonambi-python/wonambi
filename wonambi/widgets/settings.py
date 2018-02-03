@@ -420,7 +420,10 @@ class SpindleHelp(HelpDialog):
              'wavelet with the average of <b>Lowcut</b> and <b>Highcut</b> as '
              'the frequency, with σ = <b>Wavelet sigma</b> [0.5] s and with '
              'window size = <b>Detection window</b> [1] s.</li>'
-             '<li>The moving average of the rectified signal is calculated, '
+             '<li>The resulting complex-valued time series is squared.</li>'
+             '<li>The imaginary part of the time-series is discarded, and the '
+             'remaining real-valued time series is squared again.'
+             '<li>The moving average of the real signal is calculated, '
              'using a sliding window of size = <b>Smoothing</b> [0.1] s.</li>'
              '<li>A spindle event is identified whenever this wavelet signal '
              'exceeds threshold, defined as <b>Detection threshold</b> [4.5] '
@@ -773,7 +776,7 @@ class FormRadio(QRadioButton):
             state of the checkbox
 
         """
-        return self.isChecked is True
+        return self.isChecked  == Qt.Checked
 
     def set_value(self, value):
         """Set value of the checkbox.
