@@ -14,6 +14,7 @@ TODO:
     that are marked with "# remove if buttons are disabled"
 """
 from datetime import datetime, timedelta
+from operator import itemgetter
 from functools import partial
 from itertools import compress
 from logging import getLogger
@@ -33,6 +34,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QErrorMessage,
                              QFileDialog,
                              QFormLayout,
+                             QGridLayout,
                              QGroupBox,
                              QHBoxLayout,
                              QInputDialog,
@@ -88,31 +90,31 @@ class ConfigNotes(Config):
         self.index['annot_bookmark_color'] = FormStr()
         self.index['min_marker_dur'] = FormFloat()
 
-        form_layout = QFormLayout()
-        form_layout.addRow(self.index['marker_show'])
-        form_layout.addRow('Color of markers in the dataset',
+        flayout = QFormLayout()
+        flayout.addRow(self.index['marker_show'])
+        flayout.addRow('Color of markers in the dataset',
                            self.index['marker_color'])
-        form_layout.addRow(self.index['annot_show'])
-        form_layout.addRow('Color of bookmarks in annotations',
+        flayout.addRow(self.index['annot_show'])
+        flayout.addRow('Color of bookmarks in annotations',
                            self.index['annot_bookmark_color'])
-        form_layout.addRow('Below this duration, markers and events have no '
+        flayout.addRow('Below this duration, markers and events have no '
                            'duration', self.index['min_marker_dur'])
 
-        box0.setLayout(form_layout)
+        box0.setLayout(flayout)
 
         box1 = QGroupBox('Events')
 
-        form_layout = QFormLayout()
-        box1.setLayout(form_layout)
+        flayout = QFormLayout()
+        box1.setLayout(flayout)
 
         box2 = QGroupBox('Stages')
 
         self.index['scoring_window'] = FormInt()
 
-        form_layout = QFormLayout()
-        form_layout.addRow('Default scoring epoch length',
+        flayout = QFormLayout()
+        flayout.addRow('Default scoring epoch length',
                            self.index['scoring_window'])
-        box2.setLayout(form_layout)
+        box2.setLayout(flayout)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(box0)
@@ -1181,7 +1183,7 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
-    def read_data(self, chan, group, stage=None, quality=None):
+    def read_data(self, chan, group, period=None, stage=None, qual=None):
         """Read the data to analyze.
         # TODO: make times more flexible (see below)
         Parameters
@@ -1190,9 +1192,11 @@ class Notes(QTabWidget):
             Channel(s) to read.
         group : dict
             Channel group, for information about referencing, filtering, etc.
+        period : list of tuple
+            each tuple has (start time (sec), end time (sec), ...)
         stage : tuple of str, optional
             stage(s) of interest
-        quality : str, optional
+        qual : str, optional
             only include epochs of this signal quality
         """
         if isinstance(chan, str):
@@ -1213,31 +1217,15 @@ class Notes(QTabWidget):
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
 
-        times = None
-        if stage or quality:
-            times = []
-            stage_cond = True
-            qual_cond = True
+        if period == None:
+            period = [None]
+        
+        times = []
+        for p in period:
+            times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))                
 
-            for ep in self.annot.epochs:
-                if stage:
-                    stage_cond = ep['stage'] in stage
-                if quality:
-                    qual_cond = ep['quality'] == quality
-                if stage_cond and qual_cond:
-                    times.append((ep['start'], ep['end']))
-
-            if len(times) == 0:
-                self.parent.statusBar().showMessage('No valid epochs found.')
-                self.data = None
-                return
-
+        times = [(x['start'], x['end']) for x in times]
         times = remove_artf_evts(times, self.annot)
-        # presently, if a spindle is detected straddling a cision point created
-        # by an Artefact event, and len(Artefact) + len(spindle) < min_dur, 
-        # then an erroneous spindle will be detected. ie there is no check in
-        # place beyond spindle.within_duration that excludes spindles detected 
-        # straddling cision/concatenation points
         
         self.data = _create_data_to_analyze(data, chan, group, times=times)
 
@@ -1566,6 +1554,7 @@ class ChannelDialog(QDialog):
         self.setWindowModality(Qt.ApplicationModal)
         self.groups = self.parent.channels.groups
         self.index = {}
+        self.cycles = None
 
         self.create_basic_dialog()
 
@@ -1585,6 +1574,10 @@ class ChannelDialog(QDialog):
         stage_box.addItems(STAGE_NAME)
         stage_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_stage = stage_box
+        
+        cycle_box = QListWidget()
+        cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.idx_cycle = cycle_box
 
     def update_groups(self):
         """Update the channel groups list when dialog is opened."""
@@ -1609,6 +1602,28 @@ class ChannelDialog(QDialog):
             item = QListWidgetItem(name)
             self.idx_chan.addItem(item)
 
+    def update_cycles(self):
+        """Enable cycles checkbox only if there are cycles marked, with no
+        errors."""
+        self.idx_cycle.clear()
+        
+        try:
+            self.cycles = self.parent.notes.annot.get_cycles()
+
+        except ValueError as err:
+            self.idx_cycle.setEnabled(False)
+            msg = 'There is a problem with the cycle markers: ' + str(err)
+            self.parent.statusBar().showMessage(msg)
+            lg.debug(msg)
+
+        else:
+            if self.cycles is None:
+                self.idx_cycle.setEnabled(False)
+            else:
+                self.idx_cycle.setEnabled(True)
+                for i in range(len(self.cycles)):
+                    self.idx_cycle.addItem(str(i+1))
+
     def get_channels(self):
         """Get the selected channel(s in order). """
         selectedItems = self.idx_chan.selectedItems()
@@ -1619,6 +1634,25 @@ class ChannelDialog(QDialog):
                 chan_in_order.append(chan)
 
         return chan_in_order
+    
+    def get_cycles(self):
+        """Get the selected cycle(s in order).
+        
+        Returns
+        -------
+        list of tuple
+            Each tuple is (start time (sec), end time (sec), index (starting 
+            at 1)."""
+        idx_cyc_sel = [
+                int(x.text()) - 1 for x in self.idx_cycle.selectedItems()]
+        if not idx_cyc_sel:
+            cycle = None
+        else:
+            cycle = itemgetter(*idx_cyc_sel)(self.cycles)
+            if len(idx_cyc_sel) == 1:
+                cycle = [cycle]
+        
+        return cycle
 
 class SpindleDialog(ChannelDialog):
     """Dialog for specifying spindle detection parameters, ie:
@@ -1656,17 +1690,18 @@ class SpindleDialog(ChannelDialog):
         self.index['merge'].setCheckState(Qt.Unchecked)
         self.index['merge'].setEnabled(False)
 
-        form_layout = QFormLayout()
-        box0.setLayout(form_layout)
-        form_layout.addRow('Label',
-                           self.label)
-        form_layout.addRow('Channel group',
-                           self.idx_group)
-        form_layout.addRow('Channel(s)',
-                           self.idx_chan)
-        form_layout.addRow('Stage(s)',
-                           self.idx_stage)
-        form_layout.addRow(self.index['merge'])
+        flayout = QFormLayout(box0)
+        flayout.addRow('Label',
+                       self.label)
+        flayout.addRow('Channel group',
+                       self.idx_group)
+        flayout.addRow('Channel(s)',
+                       self.idx_chan)        
+        flayout.addRow('Cycle(s)',
+                       self.idx_cycle)
+        flayout.addRow('Stage(s)',
+                       self.idx_stage)
+        flayout.addRow(self.index['merge'])
 
         box1 = QGroupBox('General parameters')
 
@@ -1680,15 +1715,15 @@ class SpindleDialog(ChannelDialog):
         self.index['min_dur'].set_value(0.5)
         self.index['max_dur'].set_value(2.)
 
-        form_layout = QFormLayout()
-        box1.setLayout(form_layout)
-        form_layout.addRow('Lowcut (Hz)',
+        flayout = QFormLayout()
+        box1.setLayout(flayout)
+        flayout.addRow('Lowcut (Hz)',
                            self.index['f1'])
-        form_layout.addRow('Highcut (Hz)',
+        flayout.addRow('Highcut (Hz)',
                            self.index['f2'])
-        form_layout.addRow('Minimum duration (s)',
+        flayout.addRow('Minimum duration (s)',
                            self.index['min_dur'])
-        form_layout.addRow('Maximum duration (s)',
+        flayout.addRow('Maximum duration (s)',
                            self.index['max_dur'])
 
         box2 = QGroupBox('Method parameters')
@@ -1708,24 +1743,24 @@ class SpindleDialog(ChannelDialog):
         self.index['det_thresh_hi'] = FormFloat()
         self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
-
-        form_layout = QFormLayout()
-        box2.setLayout(form_layout)
-        form_layout.addRow('Method',
+        
+        flayout = QFormLayout()
+        box2.setLayout(flayout)
+        flayout.addRow('Method',
                             mbox)
-        form_layout.addRow('Wavelet sigma',
+        flayout.addRow('Wavelet sigma',
                            self.index['sigma'])
-        form_layout.addRow('Detection window',
+        flayout.addRow('Detection window',
                            self.index['win_sz'])
-        form_layout.addRow('Smoothing',
+        flayout.addRow('Smoothing',
                            self.index['smooth'])
-        form_layout.addRow('Detection threshold, low',
+        flayout.addRow('Detection threshold, low',
                            self.index['det_thresh_lo'])
-        form_layout.addRow('Detection threshold, high',
+        flayout.addRow('Detection threshold, high',
                            self.index['det_thresh_hi'])
-        form_layout.addRow('Selection threshold',
+        flayout.addRow('Selection threshold',
                            self.index['sel_thresh'])
-        form_layout.addRow('Minimum interval',
+        flayout.addRow('Minimum interval',
                            self.index['interval'])
 
         self.bbox.clicked.connect(self.button_clicked)
@@ -1735,14 +1770,17 @@ class SpindleDialog(ChannelDialog):
         btnlayout.addWidget(self.bbox)
 
         vlayout = QVBoxLayout()
-        vlayout.addWidget(box0)
         vlayout.addWidget(box1)
         vlayout.addWidget(box2)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
+        
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(box0)
+        hlayout.addLayout(vlayout)
 
         self.update_values()
-        self.setLayout(vlayout)
+        self.setLayout(hlayout)
 
     def button_clicked(self, button):
         """Action when button was clicked.
@@ -1755,6 +1793,7 @@ class SpindleDialog(ChannelDialog):
         if button is self.idx_ok:
 
             chans = self.get_channels()
+            cycle = self.get_cycles()
             stage = self.idx_stage.selectedItems()
             params = {k: v.get_value() for k, v in self.index.items()}
 
@@ -1777,8 +1816,8 @@ class SpindleDialog(ChannelDialog):
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
             lg.info('chans= '+str(chans)+' stage= '+str(stage)+' grp= '+str(self.one_grp))
 
-            self.parent.notes.read_data(chans, self.one_grp, stage=stage,
-                                        quality='Good')
+            self.parent.notes.read_data(chans, self.one_grp, period=cycle, 
+                                        stage=stage, qual='Good')
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
                                                 label=self.label.get_value())
@@ -1865,17 +1904,19 @@ class SWDialog(ChannelDialog):
         self.index['invert'].setCheckState(Qt.Unchecked)
         self.idx_group.activated.connect(self.update_channels)
 
-        form_layout = QFormLayout()
-        box0.setLayout(form_layout)
-        form_layout.addRow('Label',
+        flayout = QFormLayout()
+        box0.setLayout(flayout)
+        flayout.addRow('Label',
                            self.label)
-        form_layout.addRow('Channel group',
-                           self.idx_group)
-        form_layout.addRow('Channel(s)',
-                           self.idx_chan)
-        form_layout.addRow('Stage(s)',
-                           self.idx_stage)
-        form_layout.addRow(self.index['invert'])
+        flayout.addRow('Channel group',
+                       self.idx_group)
+        flayout.addRow('Channel(s)',
+                       self.idx_chan)
+        flayout.addRow('Cycle(s)',
+                       self.idx_cycle)
+        flayout.addRow('Stage(s)',
+                       self.idx_stage)
+        flayout.addRow(self.index['invert'])
 
         box1 = QGroupBox('General parameters')
 
@@ -1885,11 +1926,11 @@ class SWDialog(ChannelDialog):
         self.index['min_dur'].set_value(0.5)
         self.index['max_dur'].set_value(3.)
 
-        form_layout = QFormLayout()
-        box1.setLayout(form_layout)
-        form_layout.addRow('Minimum duration (s)',
+        flayout = QFormLayout()
+        box1.setLayout(flayout)
+        flayout.addRow('Minimum duration (s)',
                            self.index['min_dur'])
-        form_layout.addRow('Maximum duration (s)',
+        flayout.addRow('Maximum duration (s)',
                            self.index['max_dur'])
 
         box2 = QGroupBox('Method parameters')
@@ -1909,21 +1950,21 @@ class SWDialog(ChannelDialog):
         self.index['max_trough_amp'] = FormFloat()
         self.index['min_ptp'] = FormFloat()
 
-        form_layout = QFormLayout()
-        box2.setLayout(form_layout)
-        form_layout.addRow('Method',
+        flayout = QFormLayout()
+        box2.setLayout(flayout)
+        flayout.addRow('Method',
                             mbox)
-        form_layout.addRow('Lowcut (Hz)',
+        flayout.addRow('Lowcut (Hz)',
                            self.index['f1'])
-        form_layout.addRow('Highcut (Hz)',
+        flayout.addRow('Highcut (Hz)',
                            self.index['f2'])
-        form_layout.addRow('Minimum trough duration (s)',
+        flayout.addRow('Minimum trough duration (s)',
                            self.index['min_trough_dur'])
-        form_layout.addRow('Maximum trough duration (s)',
+        flayout.addRow('Maximum trough duration (s)',
                            self.index['max_trough_dur'])
-        form_layout.addRow('Maximum trough amplitude (uV)',
+        flayout.addRow('Maximum trough amplitude (uV)',
                            self.index['max_trough_amp'])
-        form_layout.addRow('Minimum peak-to-peak amplitude (uV)',
+        flayout.addRow('Minimum peak-to-peak amplitude (uV)',
                            self.index['min_ptp'])
 
         self.bbox.clicked.connect(self.button_clicked)
@@ -1933,14 +1974,17 @@ class SWDialog(ChannelDialog):
         btnlayout.addWidget(self.bbox)
 
         vlayout = QVBoxLayout()
-        vlayout.addWidget(box0)
         vlayout.addWidget(box1)
         vlayout.addWidget(box2)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
+        
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(box0)
+        hlayout.addLayout(vlayout)
 
         self.update_values()
-        self.setLayout(vlayout)
+        self.setLayout(hlayout)
 
     def button_clicked(self, button):
         """Action when button was clicked.
@@ -1953,6 +1997,7 @@ class SWDialog(ChannelDialog):
         if button is self.idx_ok:
 
             chans = self.get_channels()
+            cycle = self.get_cycles()
             stage = self.idx_stage.selectedItems()
             params = {k: v.get_value() for k, v in self.index.items()}
 
@@ -1967,7 +2012,7 @@ class SWDialog(ChannelDialog):
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
             self.parent.notes.read_data(chans, self.one_grp, stage=stage,
-                                        quality='Good')
+                                        qual='Good')
 
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
@@ -2052,14 +2097,14 @@ class MergeDialog(QDialog):
         self.min_interval.set_value(1.0)
         self.cross_chan.setCheckState(Qt.Checked)
 
-        form_layout = QFormLayout()
-        box0.setLayout(form_layout)
-        form_layout.addRow('Event type(s)',
+        flayout = QFormLayout()
+        box0.setLayout(flayout)
+        flayout.addRow('Event type(s)',
                            self.idx_evt_type)
-        form_layout.addRow(self.cross_chan)
-        form_layout.addRow('Merge to...',
+        flayout.addRow(self.cross_chan)
+        flayout.addRow('Merge to...',
                            self.idx_merge_to)
-        form_layout.addRow('Minimum interval (sec)',
+        flayout.addRow('Minimum interval (sec)',
                            self.min_interval)
 
         bbox = QDialogButtonBox(QDialogButtonBox.Help |
@@ -2257,17 +2302,17 @@ class EventAnalysisDialog(QDialog):
         stage_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_stage = stage_box
 
-        form_layout = QFormLayout()
-        box0.setLayout(form_layout)
-        form_layout.addRow('Filename',
+        flayout = QFormLayout()
+        box0.setLayout(flayout)
+        flayout.addRow('Filename',
                             self.idx_filename)
-        form_layout.addRow('Event type',
+        flayout.addRow('Event type',
                             self.idx_evt_type)
-        form_layout.addRow('Channel group',
+        flayout.addRow('Channel group',
                             self.idx_group)
-        form_layout.addRow('Channel',
+        flayout.addRow('Channel',
                             self.idx_chan)
-        form_layout.addRow('Stage(s)',
+        flayout.addRow('Stage(s)',
                             self.idx_stage)
 
         boxfilt = QGroupBox('Bandpass')
@@ -2278,11 +2323,11 @@ class EventAnalysisDialog(QDialog):
         self.frequency['locut'].set_value(10)
         self.frequency['hicut'].set_value(16)
 
-        form_layout = QFormLayout()
-        boxfilt.setLayout(form_layout)
-        form_layout.addRow('Lowcut (Hz)',
+        flayout = QFormLayout()
+        boxfilt.setLayout(flayout)
+        flayout.addRow('Lowcut (Hz)',
                             self.frequency['locut'])
-        form_layout.addRow('Highcut (Hz)',
+        flayout.addRow('Highcut (Hz)',
                             self.frequency['hicut'])
 
         box1 = QGroupBox('Parameters, global')
@@ -2293,10 +2338,10 @@ class EventAnalysisDialog(QDialog):
         self.index['count'].setCheckState(Qt.Checked)
         self.index['density'].setCheckState(Qt.Checked)
 
-        form_layout = QFormLayout()
-        box1.setLayout(form_layout)
-        form_layout.addRow(self.index['count'])
-        form_layout.addRow(self.index['density'])
+        flayout = QFormLayout()
+        box1.setLayout(flayout)
+        flayout.addRow(self.index['count'])
+        flayout.addRow(self.index['density'])
 
         box2 = QGroupBox('Parameters, per event')
 
@@ -2314,14 +2359,14 @@ class EventAnalysisDialog(QDialog):
         self.index['power'].setCheckState(Qt.Checked)
         self.index['rms'].setCheckState(Qt.Checked)
 
-        form_layout = QFormLayout()
-        box2.setLayout(form_layout)
-        form_layout.addRow(self.index['dur'])
-        form_layout.addRow(self.index['maxamp'])
-        form_layout.addRow(self.index['ptp'])
-        form_layout.addRow(self.index['peakf'])
-        form_layout.addRow(self.index['power'])
-        form_layout.addRow(self.index['rms'])
+        flayout = QFormLayout()
+        box2.setLayout(flayout)
+        flayout.addRow(self.index['dur'])
+        flayout.addRow(self.index['maxamp'])
+        flayout.addRow(self.index['ptp'])
+        flayout.addRow(self.index['peakf'])
+        flayout.addRow(self.index['power'])
+        flayout.addRow(self.index['rms'])
 
         box3 = QGroupBox('Options')
 
@@ -2340,11 +2385,11 @@ class EventAnalysisDialog(QDialog):
         fslayout.addWidget(self.freq_split)
         fslayout.addWidget(self.freq_cutoff)
 
-        form_layout = QFormLayout()
-        box3.setLayout(form_layout)
-        form_layout.addRow(self.index['log'])
-        form_layout.addRow(fslayout)
-        form_layout.addRow(self.cyc_split)
+        flayout = QFormLayout()
+        box3.setLayout(flayout)
+        flayout.addRow(self.index['log'])
+        flayout.addRow(fslayout)
+        flayout.addRow(self.cyc_split)
 
         btnlayout = QHBoxLayout()
         btnlayout.addStretch(1)

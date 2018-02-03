@@ -170,11 +170,13 @@ class MainWindow(QMainWindow):
     def show_spindle_dialog(self):
         """Create the spindle detection dialog."""
         self.spindle_dialog.update_groups()
+        self.spindle_dialog.update_cycles()
         self.spindle_dialog.show()
 
     def show_slow_wave_dialog(self):
         """Create the SW detection dialog."""
         self.slow_wave_dialog.update_groups()
+        self.slow_wave_dialog.update_cycles()
         self.slow_wave_dialog.show()
 
     def show_event_analysis_dialog(self):

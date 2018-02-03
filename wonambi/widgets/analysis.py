@@ -70,7 +70,6 @@ class AnalysisDialog(ChannelDialog):
         self.cat = {}
         self.trans = {}
         self.event_types = None
-        self.cycles = None
         self.event = {}
         self.psd = {}
         self.pac = {}
@@ -94,9 +93,9 @@ class AnalysisDialog(ChannelDialog):
         filebutton.clicked.connect(self.save_as)
         self.idx_filename = filebutton
 
-        form_layout = QFormLayout()
-        box_f.setLayout(form_layout)
-        form_layout.addRow('Filename',
+        flayout = QFormLayout()
+        box_f.setLayout(flayout)
+        flayout.addRow('Filename',
                             self.idx_filename)
 
         """ ------ CHUNKING ------ """
@@ -138,19 +137,21 @@ class AnalysisDialog(ChannelDialog):
 
         box1 = QGroupBox('Location')
 
-        cycle_box = QListWidget()
-        cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.idx_cycle = cycle_box
+#==============================================================================
+#         cycle_box = QListWidget()
+#         cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
+#         self.idx_cycle = cycle_box
+#==============================================================================
 
-        form_layout = QFormLayout()
-        box1.setLayout(form_layout)
-        form_layout.addRow('Channel group',
+        flayout = QFormLayout()
+        box1.setLayout(flayout)
+        flayout.addRow('Channel group',
                             self.idx_group)
-        form_layout.addRow('Channel(s)',
+        flayout.addRow('Channel(s)',
                             self.idx_chan)
-        form_layout.addRow('Cycle(s)',
+        flayout.addRow('Cycle(s)',
                             self.idx_cycle)
-        form_layout.addRow('Stage(s)',
+        flayout.addRow('Stage(s)',
                             self.idx_stage)
         
         """ ------ REJECTION ------ """
@@ -161,12 +162,12 @@ class AnalysisDialog(ChannelDialog):
         self.reject_epoch = FormBool('Exclude Poor signal epochs')
         self.reject_event = FormBool('Exclude Artefact events')
         
-        form_layout = QFormLayout()
-        box_r.setLayout(form_layout)        
-        form_layout.addRow('Minimum duration (sec)', 
+        flayout = QFormLayout()
+        box_r.setLayout(flayout)        
+        flayout.addRow('Minimum duration (sec)', 
                            self.min_dur)
-        form_layout.addRow(self.reject_epoch)
-        form_layout.addRow(self.reject_event)
+        flayout.addRow(self.reject_epoch)
+        flayout.addRow(self.reject_event)
         
         """ ------ CONCATENATION ------ """
 
@@ -182,13 +183,13 @@ class AnalysisDialog(ChannelDialog):
         for box in self.cat.values():
             box.setEnabled(False)
 
-        form_layout = QFormLayout()
-        box_c.setLayout(form_layout)
-        form_layout.addRow(self.cat['stage'])
-        form_layout.addRow(self.cat['cycle'])
-        form_layout.addRow(self.cat['evt_type'])
-        form_layout.addRow(self.cat['discontinuous'])
-        form_layout.addRow(self.cat['chan'])
+        flayout = QFormLayout()
+        box_c.setLayout(flayout)
+        flayout.addRow(self.cat['stage'])
+        flayout.addRow(self.cat['cycle'])
+        flayout.addRow(self.cat['evt_type'])
+        flayout.addRow(self.cat['discontinuous'])
+        flayout.addRow(self.cat['chan'])
 
         """ ------ PRE-PROCESSING ------ """
 
@@ -211,19 +212,19 @@ class AnalysisDialog(ChannelDialog):
         filt['bandpass_l'] = QLabel('Bandpass'), None
         filt['notch_l'] = QLabel('Notch'), None
 
-        form_layout = QFormLayout()
-        box2.setLayout(form_layout)
-        form_layout.addRow(tb['none'])
-        form_layout.addRow(tb['butter'])
-        form_layout.addRow(tb['cheby'])
-        form_layout.addRow(tb['bessel'])
-        form_layout.addRow(*filt['order'])
-        form_layout.addRow(filt['bandpass_l'][0])
-        form_layout.addRow(*filt['f1'])
-        form_layout.addRow(*filt['f2'])
-        form_layout.addRow(filt['notch_l'][0])
-        form_layout.addRow(*filt['notch_centre'])
-        form_layout.addRow(*filt['notch_bandw'])
+        flayout = QFormLayout()
+        box2.setLayout(flayout)
+        flayout.addRow(tb['none'])
+        flayout.addRow(tb['butter'])
+        flayout.addRow(tb['cheby'])
+        flayout.addRow(tb['bessel'])
+        flayout.addRow(*filt['order'])
+        flayout.addRow(filt['bandpass_l'][0])
+        flayout.addRow(*filt['f1'])
+        flayout.addRow(*filt['f2'])
+        flayout.addRow(filt['notch_l'][0])
+        flayout.addRow(*filt['notch_centre'])
+        flayout.addRow(*filt['notch_bandw'])
 
         """ ------ FREQUENCY ------ """
         
@@ -243,11 +244,11 @@ class AnalysisDialog(ChannelDialog):
         freq['detrend'] = FormMenu(['none', 'constant', 'linear'])
         freq['welch_on'] = FormBool("Welch's method")
        
-        form_layout = QFormLayout(freq['box_param'])
-        form_layout.addRow('Scaling', freq['scaling'])
-        form_layout.addRow('Taper', freq['taper'])
-        form_layout.addRow('Detrend', freq['detrend']) 
-        form_layout.addRow(freq['welch_on'])
+        flayout = QFormLayout(freq['box_param'])
+        flayout.addRow('Scaling', freq['scaling'])
+        flayout.addRow('Taper', freq['taper'])
+        flayout.addRow('Detrend', freq['detrend']) 
+        flayout.addRow(freq['welch_on'])
 
         freq['box_welch'] = QGroupBox("Welch's method")
     
@@ -260,13 +261,13 @@ class AnalysisDialog(ChannelDialog):
         freq['overlap_val'].setValue(0.5)
         freq['step_val'] = FormFloat()
         
-        grid_layout = QGridLayout(freq['box_welch'])
-        grid_layout.addWidget(QLabel('Duration (sec)'), 0, 0)
-        grid_layout.addWidget(freq['duration'], 0, 1)
-        grid_layout.addWidget(freq['overlap'], 1, 0)
-        grid_layout.addWidget(freq['step'], 2, 0)
-        grid_layout.addWidget(freq['overlap_val'], 1, 1)
-        grid_layout.addWidget(freq['step_val'], 2, 1)
+        glayout = QGridLayout(freq['box_welch'])
+        glayout.addWidget(QLabel('Duration (sec)'), 0, 0)
+        glayout.addWidget(freq['duration'], 0, 1)
+        glayout.addWidget(freq['overlap'], 1, 0)
+        glayout.addWidget(freq['step'], 2, 0)
+        glayout.addWidget(freq['overlap_val'], 1, 1)
+        glayout.addWidget(freq['step_val'], 2, 1)
         
         freq['box_mtap'] = QGroupBox('Multitaper method (DPSS) smoothing')
         
@@ -278,12 +279,12 @@ class AnalysisDialog(ChannelDialog):
         freq['nhbw_val'] = QSpinBox()        
         freq['nhbw_val'].setMinimum(0)
         
-        grid_layout = QGridLayout()
-        freq['box_mtap'].setLayout(grid_layout)
-        grid_layout.addWidget(freq['hbw'], 0, 0)
-        grid_layout.addWidget(freq['nhbw'], 1, 0)
-        grid_layout.addWidget(freq['hbw_val'], 0, 1)
-        grid_layout.addWidget(freq['nhbw_val'], 1, 1)       
+        glayout = QGridLayout()
+        freq['box_mtap'].setLayout(glayout)
+        glayout.addWidget(freq['hbw'], 0, 0)
+        glayout.addWidget(freq['nhbw'], 1, 0)
+        glayout.addWidget(freq['hbw_val'], 0, 1)
+        glayout.addWidget(freq['nhbw_val'], 1, 1)       
         
         freq['box_output'] = QGroupBox('Output')
         
@@ -293,12 +294,12 @@ class AnalysisDialog(ChannelDialog):
         freq['sides'].setRange(1,2)
         freq['sides'].setValue(1)
 
-        grid_layout = QGridLayout(freq['box_output'])
-        grid_layout.addWidget(freq['spectrald'], 0, 0, 1, 3)
-        grid_layout.addWidget(freq['complex'], 1, 0, 1, 3)
-        grid_layout.addWidget(QLabel('      '), 2, 0) 
-        grid_layout.addWidget(QLabel('Side(s)'), 2, 1) 
-        grid_layout.addWidget(freq['sides'], 2, 2) 
+        glayout = QGridLayout(freq['box_output'])
+        glayout.addWidget(freq['spectrald'], 0, 0, 1, 3)
+        glayout.addWidget(freq['complex'], 1, 0, 1, 3)
+        glayout.addWidget(QLabel('      '), 2, 0) 
+        glayout.addWidget(QLabel('Side(s)'), 2, 1) 
+        glayout.addWidget(freq['sides'], 2, 2) 
 
         freq['box_norm'] = QGroupBox('Normalization')
         
@@ -314,24 +315,24 @@ class AnalysisDialog(ChannelDialog):
         freq['norm_stage'] = stage_box        
         freq['norm_concat'] = FormBool('Concatenate')
 
-        grid_layout = QGridLayout(freq['box_norm'])
-        grid_layout.addWidget(freq['norm'], 0, 0, 1, 2)
-        grid_layout.addWidget(QLabel('Event type(s)'), 1, 0)
-        grid_layout.addWidget(QLabel('Stage(s)'), 1, 1)
-        grid_layout.addWidget(freq['norm_evt_type'], 2, 0)
-        grid_layout.addWidget(freq['norm_stage'], 2, 1)
-        grid_layout.addWidget(freq['norm_concat'], 3, 0, 1, 2)
+        glayout = QGridLayout(freq['box_norm'])
+        glayout.addWidget(freq['norm'], 0, 0, 1, 2)
+        glayout.addWidget(QLabel('Event type(s)'), 1, 0)
+        glayout.addWidget(QLabel('Stage(s)'), 1, 1)
+        glayout.addWidget(freq['norm_evt_type'], 2, 0)
+        glayout.addWidget(freq['norm_stage'], 2, 1)
+        glayout.addWidget(freq['norm_concat'], 3, 0, 1, 2)
 
-        grid_layout = QGridLayout()
-        grid_layout.addWidget(freq['box_param'], 0, 0)
-        grid_layout.addWidget(freq['box_output'], 1, 0)
-        grid_layout.addWidget(freq['box_welch'], 0, 1)
-        grid_layout.addWidget(freq['box_mtap'], 1, 1)
-        grid_layout.addWidget(freq['box_norm'], 2, 0)
+        glayout = QGridLayout()
+        glayout.addWidget(freq['box_param'], 0, 0)
+        glayout.addWidget(freq['box_output'], 1, 0)
+        glayout.addWidget(freq['box_welch'], 0, 1)
+        glayout.addWidget(freq['box_mtap'], 1, 1)
+        glayout.addWidget(freq['box_norm'], 2, 0)
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
-        vlayout.addLayout(grid_layout)
+        vlayout.addLayout(glayout)
         #vlayout.addWidget(freq['box_norm'])
         vlayout.addStretch(1)
 
@@ -383,15 +384,15 @@ class AnalysisDialog(ChannelDialog):
             pac['famp'] = FormStr()
             pac['nbin'] = QLabel('Number of bins'), FormInt(default=18)
 
-            form_layout = QFormLayout(pac['box_metric'])
-            form_layout.addRow(pac['pac_on'])
-            form_layout.addRow('PAC metric',
+            flayout = QFormLayout(pac['box_metric'])
+            flayout.addRow(pac['pac_on'])
+            flayout.addRow('PAC metric',
                                pac['metric'])
-            form_layout.addRow('Phase frequencies (Hz)',
+            flayout.addRow('Phase frequencies (Hz)',
                                pac['fpha'])
-            form_layout.addRow('Amplitude frequencies (Hz)',
+            flayout.addRow('Amplitude frequencies (Hz)',
                                pac['famp'])
-            form_layout.addRow(*pac['nbin'])
+            flayout.addRow(*pac['nbin'])
 
             pac['box_surro'] = QGroupBox('Surrogate data')
 
@@ -405,23 +406,23 @@ class AnalysisDialog(ChannelDialog):
             sur['save_surro'] = FormBool('Save surrogate data'), None
             sur['norm'] = FormMenu(pac_norm), None
 
-            form_layout = QFormLayout(pac['box_surro'])
-            form_layout.addRow(pac['surro_method'])
-            form_layout.addRow(*sur['nperm'])
-            form_layout.addRow(*sur['nblocks'])
-            form_layout.addRow(sur['pval'][0])
-            form_layout.addRow(sur['save_surro'][0])
-            form_layout.addRow(sur['norm'][0])
+            flayout = QFormLayout(pac['box_surro'])
+            flayout.addRow(pac['surro_method'])
+            flayout.addRow(*sur['nperm'])
+            flayout.addRow(*sur['nblocks'])
+            flayout.addRow(sur['pval'][0])
+            flayout.addRow(sur['save_surro'][0])
+            flayout.addRow(sur['norm'][0])
 
             pac['box_opts'] = QGroupBox('Options')
 
             pac['optimize'] = FormMenu(['True', 'False', 'greedy', 'optimal'])
             pac['njobs'] = FormInt(default=-1)
 
-            form_layout = QFormLayout(pac['box_opts'])
-            form_layout.addRow('Optimize einsum',
+            flayout = QFormLayout(pac['box_opts'])
+            flayout.addRow('Optimize einsum',
                                pac['optimize'])
-            form_layout.addRow('Number of jobs',
+            flayout.addRow('Number of jobs',
                                pac['njobs'])
 
             vlayout = QVBoxLayout(tab_pac)
@@ -641,28 +642,6 @@ class AnalysisDialog(ChannelDialog):
         for ev in self.event_types:
             self.idx_evt_type.addItem(ev)
             self.frequency['norm_evt_type'].addItem(ev)
-
-    def update_cycles(self):
-        """Enable cycles checkbox only if there are cycles marked, with no
-        errors."""
-        self.idx_cycle.clear()
-        
-        try:
-            self.cycles = self.parent.notes.annot.get_cycles()
-
-        except ValueError as err:
-            self.idx_cycle.setEnabled(False)
-            msg = 'There is a problem with the cycle markers: ' + str(err)
-            self.parent.statusBar().showMessage(msg)
-            lg.debug(msg)
-
-        else:
-            if self.cycles is None:
-                self.idx_cycle.setEnabled(False)
-            else:
-                self.idx_cycle.setEnabled(True)
-                for i in range(len(self.cycles)):
-                    self.idx_cycle.addItem(str(i+1))
 
     def toggle_buttons(self):
         """Enable and disable buttons, according to options selected."""
@@ -884,14 +863,17 @@ class AnalysisDialog(ChannelDialog):
                            ')' for i in chan]
 
             # Which cycle(s)
-            idx_cyc_sel = [int(x.text()) - 1 for x in \
-                           self.idx_cycle.selectedItems()]
-            if not idx_cyc_sel:
-                cycle = None
-            else:
-                cycle = itemgetter(*idx_cyc_sel)(self.cycles)
-                if len(idx_cyc_sel) == 1:
-                    cycle = [cycle]
+            cycle = self.get_cycles()
+#==============================================================================
+#             idx_cyc_sel = [int(x.text()) - 1 for x in \
+#                            self.idx_cycle.selectedItems()]
+#             if not idx_cyc_sel:
+#                 cycle = None
+#             else:
+#                 cycle = itemgetter(*idx_cyc_sel)(self.cycles)
+#                 if len(idx_cyc_sel) == 1:
+#                     cycle = [cycle]
+#==============================================================================
 
             # Which stage(s)
             stage = self.idx_stage.selectedItems()

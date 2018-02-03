@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.13**: cycle option in detections; spindle detection fixes; sleep stats export
 - **4.12**: bugfix as before
 - **4.11**: bugfix of gui when pressing left and right button together
 - **4.10**: clear error messages and fix reading mff
