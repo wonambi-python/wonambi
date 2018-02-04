@@ -1183,7 +1183,8 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
-    def read_data(self, chan, group, period=None, stage=None, qual=None):
+    def read_data(self, chan, group, period=None, stage=None, qual=None, 
+                  exclude_artf=True):
         """Read the data to analyze.
         # TODO: make times more flexible (see below)
         Parameters
@@ -1198,6 +1199,9 @@ class Notes(QTabWidget):
             stage(s) of interest
         qual : str, optional
             only include epochs of this signal quality
+        exclude_artf : bool
+            If True, signal concurrent with events marked 'Artefact' will be 
+            removed from the returned signal (by correcting times)
         """
         if isinstance(chan, str):
             chan = [chan]
@@ -1225,7 +1229,9 @@ class Notes(QTabWidget):
             times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))                
 
         times = [(x['start'], x['end']) for x in times]
-        times = remove_artf_evts(times, self.annot)
+        
+        if exclude_artf:
+            times = remove_artf_evts(times, self.annot)
         
         self.data = _create_data_to_analyze(data, chan, group, times=times)
 
@@ -1682,13 +1688,10 @@ class SpindleDialog(ChannelDialog):
         box0 = QGroupBox('Info')
 
         self.label = FormStr()
-        self.index['merge'] = FormBool('Merge events across channels')
 
         self.label.setText('spin')
         self.idx_group.activated.connect(self.update_channels)
         self.idx_chan.itemSelectionChanged.connect(self.count_channels)
-        self.index['merge'].setCheckState(Qt.Unchecked)
-        self.index['merge'].setEnabled(False)
 
         flayout = QFormLayout(box0)
         flayout.addRow('Label',
@@ -1701,7 +1704,6 @@ class SpindleDialog(ChannelDialog):
                        self.idx_cycle)
         flayout.addRow('Stage(s)',
                        self.idx_stage)
-        flayout.addRow(self.index['merge'])
 
         box1 = QGroupBox('General parameters')
 
@@ -1715,8 +1717,7 @@ class SpindleDialog(ChannelDialog):
         self.index['min_dur'].set_value(0.5)
         self.index['max_dur'].set_value(2.)
 
-        flayout = QFormLayout()
-        box1.setLayout(flayout)
+        flayout = QFormLayout(box1)
         flayout.addRow('Lowcut (Hz)',
                            self.index['f1'])
         flayout.addRow('Highcut (Hz)',
@@ -1744,8 +1745,7 @@ class SpindleDialog(ChannelDialog):
         self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
         
-        flayout = QFormLayout()
-        box2.setLayout(flayout)
+        flayout = QFormLayout(box2)
         flayout.addRow('Method',
                             mbox)
         flayout.addRow('Wavelet sigma',
@@ -1762,6 +1762,19 @@ class SpindleDialog(ChannelDialog):
                            self.index['sel_thresh'])
         flayout.addRow('Minimum interval',
                            self.index['interval'])
+        
+        box3 = QGroupBox('Options')
+        
+        self.index['merge'] = FormBool('Merge events across channels')
+        self.index['exclude'] = FormBool('Exclude Artefact events')
+        
+        self.index['merge'].setCheckState(Qt.Unchecked)
+        self.index['merge'].setEnabled(False) 
+        self.index['exclude'].set_value(True)
+        
+        flayout = QFormLayout(box3)
+        flayout.addRow(self.index['exclude'])
+        flayout.addRow(self.index['merge'])
 
         self.bbox.clicked.connect(self.button_clicked)
 
@@ -1772,6 +1785,7 @@ class SpindleDialog(ChannelDialog):
         vlayout = QVBoxLayout()
         vlayout.addWidget(box1)
         vlayout.addWidget(box2)
+        vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
         
@@ -1898,10 +1912,8 @@ class SWDialog(ChannelDialog):
         box0 = QGroupBox('Info')
 
         self.label = FormStr()
-        self.index['invert'] = FormBool('Invert detection')
 
         self.label.setText('sw')
-        self.index['invert'].setCheckState(Qt.Unchecked)
         self.idx_group.activated.connect(self.update_channels)
 
         flayout = QFormLayout()
@@ -1916,7 +1928,6 @@ class SWDialog(ChannelDialog):
                        self.idx_cycle)
         flayout.addRow('Stage(s)',
                        self.idx_stage)
-        flayout.addRow(self.index['invert'])
 
         box1 = QGroupBox('General parameters')
 
@@ -1966,6 +1977,17 @@ class SWDialog(ChannelDialog):
                            self.index['max_trough_amp'])
         flayout.addRow('Minimum peak-to-peak amplitude (uV)',
                            self.index['min_ptp'])
+        
+        box3 = QGroupBox('Options')
+        
+        self.index['invert'] = FormBool('Invert detection')
+        self.index['exclude'] = FormBool('Exclude Artefact events')
+         
+        self.index['exclude'].set_value(True)
+        
+        flayout = QFormLayout(box3)
+        flayout.addRow(self.index['exclude'])
+        flayout.addRow(self.index['invert'])
 
         self.bbox.clicked.connect(self.button_clicked)
 
@@ -1976,6 +1998,7 @@ class SWDialog(ChannelDialog):
         vlayout = QVBoxLayout()
         vlayout.addWidget(box1)
         vlayout.addWidget(box2)
+        vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
         

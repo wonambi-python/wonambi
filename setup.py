@@ -56,6 +56,7 @@ setup(
             'h5py',
             'mne',
             'nibabel',
+            'tensorpac',
             'python-vlc',  # for videos, to avoid problems with backends
             'request',  # to read ieeg.org dataset
             ]
