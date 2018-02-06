@@ -273,22 +273,17 @@ def remove_artf_evts(times, annot, min_dur=0.5):
         for seg in times:
             reject = False
             new_seg = True
-            print('Looping over seg ' + str(seg))
             
             while new_seg is not False:
                 if type(new_seg) is tuple:
                     seg = new_seg
-                    print('looping over new_seg')
                 end = seg[1]
             
                 for artf in artefact:
                     
-                    print('Looping over artf ' + str(artf))
                     if artf['start'] <= seg[0] and seg[1] <= artf['end']:
                         reject = True
                         new_seg = False
-                        lg.info('Rejecting evt: ' + str(artf['start']) + ' <= '
-                                ''+str(seg[0])+' and '+str(seg[1])+' <= '+str(artf['end']))
                         break
                     
                     a_starts_in_s = seg[0] <= artf['start'] <= seg[1]
@@ -296,15 +291,12 @@ def remove_artf_evts(times, annot, min_dur=0.5):
                     
                     if a_ends_in_s and not a_starts_in_s:
                         seg = artf['end'], seg[1]
-                        lg.info('updating evt start to ' + str(artf['end']))
                         
                     elif a_starts_in_s:
                         seg = seg[0], artf['start']
-                        lg.info('updating evt end to ' + str(artf['start']))
     
                         if a_ends_in_s:
                             new_seg = artf['end'], end
-                            lg.info('newseg is ' + str(new_seg))
                         else:
                             new_seg = False
                         break
@@ -313,7 +305,6 @@ def remove_artf_evts(times, annot, min_dur=0.5):
             
                 if reject is False and seg[1] - seg[0] >= min_dur:
                     new_times.append(seg)
-                    lg.info('adding segment ' + str(seg))
         
     return new_times 
 
