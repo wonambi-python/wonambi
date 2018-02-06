@@ -72,7 +72,6 @@ def filter_(data, axis='time', low_cut=None, high_cut=None, order=4,
         if high_cut > nyquist:
             raise ValueError('cutoff has to be less than Nyquist '
                              'frequency')
-
         btype = 'lowpass'
         Wn = high_cut / nyquist
 

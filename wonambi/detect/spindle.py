@@ -663,6 +663,9 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
     Notes
     -----
+    double_butter implements an effective bandpass by applying a highpass, 
+    followed by a lowpass. This method reduces filter instability, due to 
+    underlying numerical instability arising from nyquist / freq, at low freq.
     Wavelets pass only absolute values already, it does not make sense to store
     the complex values.
 
@@ -676,7 +679,13 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
     butter has parameters:
         freq : tuple of float
-            high and low values for bandpass
+            low and high values for bandpass
+        order : int
+            filter order
+            
+    double_butter has parameters:
+        freq : tuple of float
+            low and high values for highpass, then lowpass
         order : int
             filter order
 
@@ -727,9 +736,23 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         nyquist = s_freq / 2
         Wn = asarray(freq) / nyquist
         b, a = butter(N, Wn, btype='bandpass')
-        lg.info('butter: a='+str(a)+' b='+str(b)+' Wn='+str(Wn)+' N='+str(N) + ' freq: ' + str(freq))
         dat = filtfilt(b, a, dat)
 
+    if 'double_butter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+        nyquist = s_freq / 2
+        
+        # Highpass
+        Wn = freq[0] / nyquist
+        b, a = butter(N, Wn, btype='highpass')
+        dat = filtfilt(b, a, dat)
+        
+        # Lowpass
+        Wn = freq[1] / nyquist
+        b, a = butter(N, Wn, btype='lowpass')
+        dat = filtfilt(b, a, dat)
+    
     if 'morlet' == method:
         f0 = method_opt['f0']
         sd = method_opt['sd']
@@ -966,8 +989,13 @@ def within_duration(events, time, limits):
     ndarray (dtype='int')
         N x 3 matrix with start , peak, end samples
     """
-    min_dur = time[events[:, 2] - 1] - time[events[:, 0]] >= limits[0]
-    max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
+    min_dur = max_dur = ones(events.shape[0], dtype=bool)
+    
+    if limits[0] is not None:
+        min_dur = time[events[:, 2] - 1] - time[events[:, 0]] >= limits[0]
+    
+    if limits[1] is not None:
+        max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
 
     return events[min_dur & max_dur, :]
 

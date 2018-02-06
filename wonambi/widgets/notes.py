@@ -19,7 +19,7 @@ from functools import partial
 from itertools import compress
 from logging import getLogger
 from numpy import (asarray, concatenate, diff, empty, floor, in1d, log, mean,
-                   ptp, sqrt, square, std)
+                   nan_to_num, nanmean, ptp, sqrt, square, std)
 from scipy.signal import periodogram
 from os.path import basename, splitext
 
@@ -900,7 +900,7 @@ class Notes(QTabWidget):
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
         stage = self.annot.get_stage_for_epoch(window_start, window_length)
-        lg.info('winstart: ' + str(window_start) + ', stage: ' + str(stage))
+        #lg.info('winstart: ' + str(window_start) + ', stage: ' + str(stage))
 
         if stage is None:
             self.idx_stage.setCurrentIndex(-1)
@@ -913,7 +913,7 @@ class Notes(QTabWidget):
         window_length = self.parent.value('window_length')
         qual = self.annot.get_stage_for_epoch(window_start, window_length,
                                               attr='quality')
-        lg.info('winstart: ' + str(window_start) + ', quality: ' + str(qual))
+        #lg.info('winstart: ' + str(window_start) + ', quality: ' + str(qual))
 
         if qual is None:
             self.idx_quality.setCurrentIndex(-1)
@@ -1256,9 +1256,11 @@ class Notes(QTabWidget):
         self.display_eventtype()
         n_eventtype = self.idx_eventtype.count()
         self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
+        
+        if params['max_dur'] in [0, 'None']:
+            params['max_dur'] = None
 
         freq = (float(params['f1']), float(params['f2']))
-        lg.info('freq: ' + str(freq))
         duration = (params['min_dur'], params['max_dur'])
 
         if method in SPINDLE_METHODS:
@@ -1722,9 +1724,9 @@ class SpindleDialog(ChannelDialog):
                            self.index['f1'])
         flayout.addRow('Highcut (Hz)',
                            self.index['f2'])
-        flayout.addRow('Minimum duration (s)',
+        flayout.addRow('Minimum duration (sec)',
                            self.index['min_dur'])
-        flayout.addRow('Maximum duration (s)',
+        flayout.addRow(' Max. duration (sec)',
                            self.index['max_dur'])
 
         box2 = QGroupBox('Method parameters')
@@ -1929,22 +1931,7 @@ class SWDialog(ChannelDialog):
         flayout.addRow('Stage(s)',
                        self.idx_stage)
 
-        box1 = QGroupBox('General parameters')
-
-        self.index['min_dur'] = FormFloat()
-        self.index['max_dur'] = FormFloat()
-
-        self.index['min_dur'].set_value(0.5)
-        self.index['max_dur'].set_value(3.)
-
-        flayout = QFormLayout()
-        box1.setLayout(flayout)
-        flayout.addRow('Minimum duration (s)',
-                           self.index['min_dur'])
-        flayout.addRow('Maximum duration (s)',
-                           self.index['max_dur'])
-
-        box2 = QGroupBox('Method parameters')
+        box1 = QGroupBox('Parameters')
 
         mbox = QComboBox()
         method_list = SLOW_WAVE_METHODS
@@ -1960,24 +1947,28 @@ class SWDialog(ChannelDialog):
         self.index['max_trough_dur'] = FormFloat()
         self.index['max_trough_amp'] = FormFloat()
         self.index['min_ptp'] = FormFloat()
+        self.index['min_dur'] = FormFloat()
+        self.index['max_dur'] = FormFloat()
 
-        flayout = QFormLayout()
-        box2.setLayout(flayout)
+        flayout = QFormLayout(box1)
         flayout.addRow('Method',
                             mbox)
         flayout.addRow('Lowcut (Hz)',
                            self.index['f1'])
         flayout.addRow('Highcut (Hz)',
                            self.index['f2'])
-        flayout.addRow('Minimum trough duration (s)',
+        flayout.addRow('Minimum trough duration (sec)',
                            self.index['min_trough_dur'])
-        flayout.addRow('Maximum trough duration (s)',
+        flayout.addRow(' Max. trough duration (sec)',
                            self.index['max_trough_dur'])
-        flayout.addRow('Maximum trough amplitude (uV)',
+        flayout.addRow(' Max. trough amplitude (uV)',
                            self.index['max_trough_amp'])
         flayout.addRow('Minimum peak-to-peak amplitude (uV)',
                            self.index['min_ptp'])
-        
+        flayout.addRow('Minimum duration (sec)',
+                           self.index['min_dur'])
+        flayout.addRow(' Max. duration (sec)',
+                           self.index['max_dur'])        
         box3 = QGroupBox('Options')
         
         self.index['invert'] = FormBool('Invert detection')
@@ -1997,7 +1988,6 @@ class SWDialog(ChannelDialog):
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(box1)
-        vlayout.addWidget(box2)
         vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
@@ -2061,6 +2051,8 @@ class SWDialog(ChannelDialog):
         self.index['max_trough_dur'].set_value(sw_det.trough_duration[1])
         self.index['max_trough_amp'].set_value(sw_det.max_trough_amp)
         self.index['min_ptp'].set_value(sw_det.min_ptp)
+        self.index['min_dur'].set_value(sw_det.min_dur)
+        self.index['max_dur'].set_value(sw_det.max_dur)
 
         """
         for param in ['sigma', 'win_sz', 'det_thresh', 'sel_thresh', 'smooth']:
@@ -2368,8 +2360,8 @@ class EventAnalysisDialog(QDialog):
 
         box2 = QGroupBox('Parameters, per event')
 
-        self.index['dur'] = FormBool('Duration (s)')
-        self.index['maxamp'] = FormBool('Maximum amplitude (uV)')
+        self.index['dur'] = FormBool('Duration (sec)')
+        self.index['maxamp'] = FormBool(' Max. amplitude (uV)')
         self.index['ptp'] = FormBool('Peak-to-peak amplitude (uV)')
         self.index['peakf'] = FormBool('Peak frequency (Hz)')
         self.index['power'] = FormBool('Average power (uV^2)')
@@ -2610,6 +2602,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
                                 analysis_chans +
                                 chan_grp['ref_chan'])
     data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
+    
+    data1.data[0] = nan_to_num(data1.data[0])
 
     for (t0, t1) in times:
         one_interval = data.axis['time'][0][t0: t1]

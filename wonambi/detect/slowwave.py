@@ -2,14 +2,15 @@
 
 """
 from logging import getLogger
-from numpy import argmax, concatenate, hstack, sum, zeros
+from numpy import (argmax, argmin, concatenate, diff, hstack, sign, sum, where,
+                   zeros)
 
 from .spindle import (detect_events, transform_signal, within_duration, 
                       remove_straddlers)
 from ..graphoelement import SlowWaves
 
 lg = getLogger(__name__)
-MAXIMUM_DURATION = 10
+MAXIMUM_DURATION = 5
 
 
 class DetectSlowWave:
@@ -26,11 +27,7 @@ class DetectSlowWave:
     """
     def __init__(self, method='Massimini2004', duration=None):
 
-        if duration is None:
-            duration = (0.5, 3)
-
         self.method = method
-        self.duration = duration
 
         if method == 'Massimini2004':
             self.det_filt = {'order': 3,
@@ -38,6 +35,8 @@ class DetectSlowWave:
             self.trough_duration = (0.3, 1.)
             self.max_trough_amp = - 80
             self.min_ptp = 140
+            self.min_dur = 0
+            self.max_dur = None
             self.invert = False
 
         elif method == 'AASM/Massimini2004':
@@ -46,10 +45,18 @@ class DetectSlowWave:
             self.trough_duration = (0.25, 1.)
             self.max_trough_amp = - 40
             self.min_ptp = 75
+            self.min_dur = 0
+            self.max_dur = None
             self.invert = False
 
         else:
             raise ValueError('Unknown method')
+            
+        if duration is None:
+            self.duration = (self.min_dur, self.max_dur)
+        
+        else:
+            self.duration = duration
 
     def __repr__(self):
         return ('detsw_{0}_{1:04.2f}-{2:04.2f}Hz_{3:04.2f}-{4:04.2f}s'
@@ -130,7 +137,8 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     if opts.invert:
         dat_orig = -dat_orig
 
-    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_filt)
+    dat_det = transform_signal(dat_orig, s_freq, 'double_butter', 
+                               opts.det_filt)
     below_zero = detect_events(dat_det, 'below_thresh', value=0.)
 
     sw_in_chan = []
@@ -252,24 +260,32 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     if max_dur is None:
         max_dur = MAXIMUM_DURATION
     window = int(s_freq * max_dur)
+    lg.info('window: ' + str(window))
 
     peak_and_end = zeros((events.shape[0], 2), dtype='int')
     events = concatenate((events, peak_and_end), axis=1)
     selected = []
 
     for ev in events:
-        ev[4] = ev[2] + argmax(data[ev[2]:ev[0] + window] < 0)  # quickest way
-
-        if ev[2] == ev[4]:
+        zero_crossings = where(diff(sign(data[ev[2]:ev[0] + window])))[0]
+        
+        if zero_crossings.any():
+            ev[4] = ev[2] + zero_crossings[0] + 1
+            lg.info('0cross is at ' + str(ev[4]))
+            
+        else:
             selected.append(False)
+            lg.info('no 0cross, rejected')
             continue
 
-        ev[3] = argmax(data[ev[2]:ev[4]])
+        ev[3] = ev[2] + argmin(data[ev[2]:ev[4]])
 
         if abs(data[ev[1]] - data[ev[3]]) < opts.min_ptp:
             selected.append(False)
+            lg.info('ptp too low, rejected: ' + str(abs(data[ev[1]] - data[ev[3]])))
             continue
 
         selected.append(True)
+        lg.info('SW checks out, ACCEPTED! ptp is ' + str(abs(data[ev[1]] - data[ev[3]])))
 
     return events[selected, :]

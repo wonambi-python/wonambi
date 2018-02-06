@@ -5,8 +5,8 @@
 from operator import itemgetter
 from logging import getLogger
 from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf,
-                   log, logical_and, logical_or, mean, ptp, ravel, sqrt, 
-                   square, std, zeros)
+                   log, logical_and, logical_or, mean, nan_to_num, ptp, ravel, 
+                   sqrt, square, std, zeros)
 from math import isclose
 from csv import writer
 from os.path import basename, splitext
@@ -1693,6 +1693,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
                                     these_chans +
                                     chan_grp['ref_chan'])
         data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
+        
+        data1.data[0] = nan_to_num(data1.data[0])
 
         for (t0, t1) in times:
             one_interval = data.axis['time'][0][t0: t1]
