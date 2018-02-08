@@ -13,7 +13,7 @@ from ..graphoelement import Spindles
 
 lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50
-MAX_DURATION = 5
+MAX_DURATION = 10
 
 
 class DetectSpindle:
@@ -31,24 +31,18 @@ class DetectSpindle:
     def __init__(self, method='Moelle2011', frequency=None, duration=None,
                  merge=True):
 
-        if frequency is None:
-            frequency = (11, 18)
-        if duration is None:
-            duration = (0.5, 2)
-
         self.method = method
-        self.frequency = frequency
-        self.duration = duration
         self.merge = merge
         self.min_interval = 0
         self.det_thresh_hi = 0
-
         self.power_peaks = 'interval'
 
         if method == 'Ferrarelli2007':
+            self.frequency = (12, 15)
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
+            self.duration = (0, None)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 8
             self.sel_thresh = 2
@@ -56,9 +50,11 @@ class DetectSpindle:
             self.smooth = {'dur': None}
 
         elif method == 'Nir2011':
-            self.det_butter = {'order': 3,
+            self.frequency = (10, 16)
+            self.det_butter = {'order': 2,
                                'freq': self.frequency,
                                }
+            self.duration = (0.5, 2)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 3
             self.sel_thresh = 1
@@ -67,26 +63,30 @@ class DetectSpindle:
             self.smooth = {'dur': .04}  # is in fact sigma
 
         elif method == 'Wamsley2012':
+            self.frequency = (12, 15)
             self.det_wavelet = {'f0': mean(self.frequency),
                                 'sd': .5,
                                 'dur': 2,
                                 }
+            self.duration = (0.3, 3)
             self.det_thresh_lo = 4.5
             self.sel_thresh = None  # necessary for gui/detect
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .1}
 
         elif method == 'UCSD':
-            self.det_wavelet = {'freqs': arange(frequency[0],
-                                                frequency[1] + .5, .5),
+            self.frequency = (10, 16)
+            self.det_wavelet = {'freqs': arange(self.frequency[0],
+                                                self.frequency[1] + .5, .5),
                                 'dur': 1,
                                 'width': .5,
                                 'win': .5,
                                 'sd': None
                                 }
+            self.duration = (0.3, 3)
             self.det_thresh_lo = 2  # wavelet_peak_thresh
-            self.sel_wavelet = {'freqs': arange(frequency[0],
-                                                frequency[1] + .5, .5),
+            self.sel_wavelet = {'freqs': arange(self.frequency[0],
+                                                self.frequency[1] + .5, .5),
                                 'dur': 1,
                                 'width': .2,
                                 'win': .2,
@@ -97,9 +97,11 @@ class DetectSpindle:
             self.smooth = {'dur': None}
 
         elif method == 'Moelle2011':
+            self.frequency = (9, 15)
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
+            self.duration = (0.5, 3)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 1.5
             self.sel_thresh = None
@@ -107,9 +109,11 @@ class DetectSpindle:
             self.smooth = {'dur': .2}
 
         elif method == 'Concordia':
+            self.frequency = (10, 16)
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
+            self.duration = (0.5, 3)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 1.5
             self.det_thresh_hi = 10
@@ -120,6 +124,12 @@ class DetectSpindle:
 
         else:
             raise ValueError('Unknown method')
+            
+        if frequency is not None:
+            self.frequency = frequency  
+            
+        if duration is not None:
+            self.duration = duration
 
     def __repr__(self):
         return ('detsp_{0}_{1:02}-{2:02}Hz_{3:04.1f}-{4:04.1f}s'
@@ -145,6 +155,9 @@ class DetectSpindle:
         spindle.det_value_hi = zeros(data.number_of('chan')[0])
         spindle.sel_value = zeros(data.number_of('chan')[0])
         spindle.density = zeros(data.number_of('chan')[0])
+        
+        if self.duration[1] is None:
+            self.duration = self.duration[0], MAX_DURATION
 
         all_spindles = []
         for i, chan in enumerate(data.axis['chan'][0]):

@@ -1710,38 +1710,12 @@ class SpindleDialog(ChannelDialog):
         flayout.addRow('Stage(s)',
                        self.idx_stage)
 
-        box1 = QGroupBox('General parameters')
+        box1 = QGroupBox('Parameters')
 
         self.index['f1'] = FormFloat()
         self.index['f2'] = FormFloat()
         self.index['min_dur'] = FormFloat()
         self.index['max_dur'] = FormFloat()
-
-        self.index['f1'].set_value(10.)
-        self.index['f2'].set_value(16.)
-        self.index['min_dur'].set_value(0.5)
-        self.index['max_dur'].set_value(2.)
-
-        flayout = QFormLayout(box1)
-        flayout.addRow('Lowcut (Hz)',
-                           self.index['f1'])
-        flayout.addRow('Highcut (Hz)',
-                           self.index['f2'])
-        flayout.addRow('Minimum duration (sec)',
-                           self.index['min_dur'])
-        flayout.addRow(' Max. duration (sec)',
-                           self.index['max_dur'])
-
-        box2 = QGroupBox('Method parameters')
-
-        mbox = QComboBox()
-        method_list = SPINDLE_METHODS
-        for method in method_list:
-            mbox.addItem(method)
-        self.idx_method = mbox
-        self.method = mbox.currentText()
-        mbox.currentIndexChanged.connect(self.update_values)
-
         self.index['sigma'] = FormFloat()
         self.index['win_sz'] = FormFloat()
         self.index['smooth'] = FormFloat()
@@ -1749,24 +1723,36 @@ class SpindleDialog(ChannelDialog):
         self.index['det_thresh_hi'] = FormFloat()
         self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
+        self.idx_method = FormMenu(SPINDLE_METHODS)
         
-        flayout = QFormLayout(box2)
+        self.method = self.idx_method.currentText()
+        self.idx_method.currentIndexChanged.connect(self.update_values)
+
+        flayout = QFormLayout(box1)
         flayout.addRow('Method',
-                            mbox)
+                       self.idx_method)
+        flayout.addRow('Lowcut (Hz)',
+                       self.index['f1'])
+        flayout.addRow('Highcut (Hz)',
+                       self.index['f2'])
+        flayout.addRow('Min. duration (sec)',
+                       self.index['min_dur'])
+        flayout.addRow(' Max. duration (sec)',
+                       self.index['max_dur'])
         flayout.addRow('Wavelet sigma',
-                           self.index['sigma'])
+                       self.index['sigma'])
         flayout.addRow('Detection window',
-                           self.index['win_sz'])
+                       self.index['win_sz'])
         flayout.addRow('Smoothing',
-                           self.index['smooth'])
+                       self.index['smooth'])
         flayout.addRow('Detection threshold, low',
-                           self.index['det_thresh_lo'])
+                       self.index['det_thresh_lo'])
         flayout.addRow('Detection threshold, high',
-                           self.index['det_thresh_hi'])
+                       self.index['det_thresh_hi'])
         flayout.addRow('Selection threshold',
-                           self.index['sel_thresh'])
-        flayout.addRow('Minimum interval',
-                           self.index['interval'])
+                       self.index['sel_thresh'])
+        flayout.addRow('Min. interval',
+                       self.index['interval'])
         
         box3 = QGroupBox('Options')
         
@@ -1789,7 +1775,6 @@ class SpindleDialog(ChannelDialog):
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(box1)
-        vlayout.addWidget(box2)
         vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
@@ -1859,6 +1844,10 @@ class SpindleDialog(ChannelDialog):
         else:
             self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
 
+        self.index['f1'].set_value(spin_det.frequency[0])
+        self.index['f2'].set_value(spin_det.frequency[1])
+        self.index['min_dur'].set_value(spin_det.duration[0])
+        self.index['max_dur'].set_value(spin_det.duration[1])
         self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
         self.index['smooth'].set_value(spin_det.smooth['dur'])
         self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
@@ -1960,15 +1949,15 @@ class SWDialog(ChannelDialog):
                            self.index['f1'])
         flayout.addRow('Highcut (Hz)',
                            self.index['f2'])
-        flayout.addRow('Minimum trough duration (sec)',
+        flayout.addRow('Min. trough duration (sec)',
                            self.index['min_trough_dur'])
         flayout.addRow(' Max. trough duration (sec)',
                            self.index['max_trough_dur'])
         flayout.addRow(' Max. trough amplitude (uV)',
                            self.index['max_trough_amp'])
-        flayout.addRow('Minimum peak-to-peak amplitude (uV)',
+        flayout.addRow('Min. peak-to-peak amplitude (uV)',
                            self.index['min_ptp'])
-        flayout.addRow('Minimum duration (sec)',
+        flayout.addRow('Min. duration (sec)',
                            self.index['min_dur'])
         flayout.addRow(' Max. duration (sec)',
                            self.index['max_dur'])        
@@ -2126,7 +2115,7 @@ class MergeDialog(QDialog):
         flayout.addRow(self.cross_chan)
         flayout.addRow('Merge to...',
                            self.idx_merge_to)
-        flayout.addRow('Minimum interval (sec)',
+        flayout.addRow('Min. interval (sec)',
                            self.min_interval)
 
         bbox = QDialogButtonBox(QDialogButtonBox.Help |

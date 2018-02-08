@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.15**: improvements and fixes to detections; dataset export to edf and import from text; sleepstats export
 - **4.14**: cycle option in detections; spindle/SW detection fixes; sleep stats export
 - **4.13**: cycle option in detections; spindle detection fixes; sleep stats export
 - **4.12**: bugfix as before
