@@ -16,7 +16,7 @@ from .settings import (Settings, SlowWaveHelp, SpindleHelp,
 from .utils import ICON  # has to be second
 from .labels import Labels
 from .channels import Channels
-from .info import Info
+from .info import Info, ExportDatasetDialog
 from .overview import Overview
 from .notes import (Notes, MergeDialog, SpindleDialog, SWDialog,
                     EventAnalysisDialog)
@@ -39,6 +39,7 @@ def create_widgets(MAIN):
     MAIN.channels = Channels(MAIN)
     MAIN.notes = Notes(MAIN)
     MAIN.merge_dialog = MergeDialog(MAIN)
+    MAIN.export_dataset_dialog = ExportDatasetDialog(MAIN)
     MAIN.spindle_dialog = SpindleDialog(MAIN)
     MAIN.slow_wave_dialog = SWDialog(MAIN)
     MAIN.spindle_help = SpindleHelp(MAIN)
@@ -152,6 +153,7 @@ def create_menubar(MAIN):
     menu_file.addAction(MAIN.info.action['open_dataset'])
     submenu_recent = menu_file.addMenu('Recent Datasets')
     submenu_recent.addActions(MAIN.info.action['open_recent'])
+    menu_file.addAction(MAIN.info.action['export'])
 
     menu_file.addSeparator()
     menu_file.addAction(actions['open_settings'])

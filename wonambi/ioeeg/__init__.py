@@ -12,3 +12,4 @@ from .fieldtrip import FieldTrip, write_fieldtrip
 from .wonambi import Wonambi, write_wonambi
 from .micromed import Micromed
 from .bci2000 import BCI2000
+from .text import Text

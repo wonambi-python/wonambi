@@ -26,7 +26,7 @@ install:
   - conda install h5py
 
   # pip
-  - pip install nibabel pyqt5 vispy tensorpac
+  - pip install nibabel pyqt5 vispy
   - pip install pytest pytest-qt pytest-cov codecov plotly
   - pip install sphinx sphinx_rtd_theme
   - pip install -e .
@@ -39,9 +39,9 @@ test_script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y pyqt5 pytest-qt nibabel tensorpac
+ - pip uninstall -y pyqt5 pytest-qt nibabel
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements for docs
- - pip install pyqt5 nibabel tensorpac
+ - pip install pyqt5 nibabel
  - python setup_wonambi.py --docs

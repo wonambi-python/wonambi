@@ -259,7 +259,7 @@ class Edf:
         return markers
 
 
-def write_edf(data, filename, physical_max=1000):
+def write_edf(data, filename, subj_id='X X X X', physical_max=1000):
     """Export data to FieldTrip.
 
     Parameters
@@ -268,6 +268,8 @@ def write_edf(data, filename, physical_max=1000):
         data with only one trial
     filename : path to file
         file to export to (include '.mat')
+    subj_id : str
+        subject id
     physical_max : int
         values above this parameter will be considered saturated (and also
         those that are too negative). This parameter defines the precision.
@@ -300,7 +302,7 @@ def write_edf(data, filename, physical_max=1000):
 
     with open(filename, 'wb') as f:
         f.write('{:<8}'.format(0).encode('ascii'))
-        f.write('{:<80}'.format('X X X X').encode('ascii'))  # subject_id
+        f.write('{:<80}'.format(subj_id).encode('ascii'))  # subject_id
         f.write('{:<80}'.format('Startdate X X X X').encode('ascii'))
         f.write(start_time.strftime('%d.%m.%y').encode('ascii'))
         f.write(start_time.strftime('%H.%M.%S').encode('ascii'))

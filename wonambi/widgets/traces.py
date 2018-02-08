@@ -315,6 +315,7 @@ class Traces(QGraphicsView):
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
 
+
     def display(self):
         """Display the recordings."""
         if self.data is None:
@@ -344,7 +345,7 @@ class Traces(QGraphicsView):
         self.idx_markers = []
         self.idx_annot = []
         self.idx_annot_labels = []
-
+        
         self.add_chan_labels()
         self.add_time_labels()
         self.add_traces()
@@ -423,7 +424,7 @@ class Traces(QGraphicsView):
         self.chan = []
         self.chan_pos = []
         self.chan_scale = []
-
+        
         row = 0
         for one_grp in self.parent.channels.groups:
             for one_chan in one_grp['chan_to_plot']:
@@ -447,7 +448,7 @@ class Traces(QGraphicsView):
                 self.chan.append(chan_name)
                 self.chan_scale.append(one_grp['scale'])
                 self.chan_pos.append(chan_pos)
-
+                
     def display_grid(self):
         """Display grid on x-axis and y-axis."""
         window_start = self.parent.value('window_start')
@@ -1084,7 +1085,7 @@ def _create_data_to_plot(data, chan_groups):
 
         if one_grp['hp'] is not None:
             data1 = filter_(data1, low_cut=one_grp['hp'])
-
+        
         if one_grp['lp'] is not None:
             data1 = filter_(data1, high_cut=one_grp['lp'])
 

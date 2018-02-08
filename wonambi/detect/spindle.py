@@ -878,11 +878,18 @@ def detect_events(dat, method, value=None):
 
         if detected is None:
             return None
+        
+        if method == 'above_thresh':    
+            # add the location of the peak in the middle
+            detected = insert(detected, 1, 0, axis=1)
+            for i in detected:
+                i[1] = i[0] + argmax(dat[i[0]:i[2]])
 
-        # add the location of the trough in the middle
-        detected = insert(detected, 1, 0, axis=1)
-        for i in detected:
-            i[1] = i[0] + argmin(dat[i[0]:i[2]])
+        if method in ['below_thresh', 'between_thresh']:
+            # add the location of the trough in the middle
+            detected = insert(detected, 1, 0, axis=1)
+            for i in detected:
+                i[1] = i[0] + argmin(dat[i[0]:i[2]])
 
     if method == 'maxima':
         peaks = argrelmax(dat)[0]

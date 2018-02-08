@@ -864,16 +864,6 @@ class AnalysisDialog(ChannelDialog):
 
             # Which cycle(s)
             cycle = self.get_cycles()
-#==============================================================================
-#             idx_cyc_sel = [int(x.text()) - 1 for x in \
-#                            self.idx_cycle.selectedItems()]
-#             if not idx_cyc_sel:
-#                 cycle = None
-#             else:
-#                 cycle = itemgetter(*idx_cyc_sel)(self.cycles)
-#                 if len(idx_cyc_sel) == 1:
-#                     cycle = [cycle]
-#==============================================================================
 
             # Which stage(s)
             stage = self.idx_stage.selectedItems()
@@ -1235,6 +1225,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
+                       'Stitches',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1269,6 +1260,7 @@ class AnalysisDialog(ChannelDialog):
                                        seg['times'][0],
                                        seg['times'][1],
                                        seg['duration'],
+                                       seg['n_stitch'],
                                        seg['stage'],
                                        seg['cycle'][2],
                                        seg['name'],
@@ -1283,6 +1275,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
+                       'Stitch',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1325,6 +1318,7 @@ class AnalysisDialog(ChannelDialog):
                                        j[0],
                                        j[1],
                                        xpac[chan]['duration'][i],
+                                       seg['n_stitch'],
                                        xpac[chan]['stage'][i],
                                        xpac[chan]['cycle'][i][2],
                                        xpac[chan]['name'][i],
@@ -1669,6 +1663,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
         lg.info('_create: Looping over one segment')
         times = [(int(t0 * s_freq),
                   int(t1 * s_freq)) for (t0, t1) in seg['times']]
+        n_stitch = len(times) - 1
 
         one_segment = ChanTime()
         one_segment.s_freq = s_freq
@@ -1728,7 +1723,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
                        'chan': these_chans,
                        'stage': seg['stage'],
                        'cycle': seg['cycle'],
-                       'name': seg['name']})
+                       'name': seg['name'],
+                       'n_stitch': n_stitch})
 
     return output
 

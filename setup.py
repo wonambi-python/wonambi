@@ -49,14 +49,16 @@ setup(
             'codecov',
             'plotly',
             ],
-        'pac': [ # for phase-amplitude coupling
-            'tensorpac',
-            ],
+#==============================================================================
+#         'pac': [ # for phase-amplitude coupling
+#             'tensorpac',
+#             ],
+#==============================================================================
         'all': [
             'h5py',
             'mne',
             'nibabel',
-            'tensorpac',
+#            'tensorpac',
             'python-vlc',  # for videos, to avoid problems with backends
             'request',  # to read ieeg.org dataset
             ]

@@ -167,6 +167,11 @@ class MainWindow(QMainWindow):
         self.merge_dialog.update_event_types()
         self.merge_dialog.show()
 
+    def show_export_dataset_dialog(self):
+        """Create the dataset export dialog."""
+        self.export_dataset_dialog.update()
+        self.export_dataset_dialog.show()
+
     def show_spindle_dialog(self):
         """Create the spindle detection dialog."""
         self.spindle_dialog.update_groups()

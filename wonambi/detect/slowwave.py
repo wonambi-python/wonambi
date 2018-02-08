@@ -256,9 +256,9 @@ def _add_pos_halfwave(data, events, s_freq, opts):
         samples
     """
     max_dur = opts.duration[1]
-
     if max_dur is None:
         max_dur = MAXIMUM_DURATION
+    
     window = int(s_freq * max_dur)
     lg.info('window: ' + str(window))
 
@@ -278,7 +278,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
             lg.info('no 0cross, rejected')
             continue
 
-        ev[3] = ev[2] + argmin(data[ev[2]:ev[4]])
+        ev[3] = ev[2] + argmax(data[ev[2]:ev[4]])
 
         if abs(data[ev[1]] - data[ev[3]]) < opts.min_ptp:
             selected.append(False)

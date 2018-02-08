@@ -1184,7 +1184,7 @@ class Notes(QTabWidget):
         self.update_annotations()
 
     def read_data(self, chan, group, period=None, stage=None, qual=None, 
-                  exclude_artf=True):
+                  exclude_artf=True, demean=False):
         """Read the data to analyze.
         # TODO: make times more flexible (see below)
         Parameters
@@ -1202,6 +1202,8 @@ class Notes(QTabWidget):
         exclude_artf : bool
             If True, signal concurrent with events marked 'Artefact' will be 
             removed from the returned signal (by correcting times)
+        demean : bool
+            if True, mean of channel will be subtracted from data
         """
         if isinstance(chan, str):
             chan = [chan]
@@ -1233,7 +1235,8 @@ class Notes(QTabWidget):
         if exclude_artf:
             times = remove_artf_evts(times, self.annot)
         
-        self.data = _create_data_to_analyze(data, chan, group, times=times)
+        self.data = _create_data_to_analyze(data, chan, group, times=times,
+                                            demean=demean)
 
     def detect_events(self, method, params, label):
         """Detect events and display on signal.
@@ -1971,12 +1974,15 @@ class SWDialog(ChannelDialog):
                            self.index['max_dur'])        
         box3 = QGroupBox('Options')
         
-        self.index['invert'] = FormBool('Invert detection')
+        self.index['demean'] = FormBool('De-mean (by channel mean)')
         self.index['exclude'] = FormBool('Exclude Artefact events')
+        self.index['invert'] = FormBool('Invert detection')
          
+        #self.index['demean'].set_value(True)
         self.index['exclude'].set_value(True)
         
         flayout = QFormLayout(box3)
+        flayout.addRow(self.index['demean'])
         flayout.addRow(self.index['exclude'])
         flayout.addRow(self.index['invert'])
 
@@ -2024,8 +2030,9 @@ class SWDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
-            self.parent.notes.read_data(chans, self.one_grp, stage=stage,
-                                        qual='Good')
+            self.parent.notes.read_data(chans, self.one_grp, period=cycle,
+                                        stage=stage, qual='Good', 
+                                        demean=params['demean'])
 
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
@@ -2554,7 +2561,8 @@ class EventAnalysisDialog(QDialog):
             self.index['peakf'].setEnabled(True)
 
 
-def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
+def _create_data_to_analyze(data, analysis_chans, chan_grp, times, 
+                            demean=False):
     """Create data after montage and filtering.
 
     Parameters
@@ -2569,6 +2577,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
     times : list of tuple
         start and end time(s); several in case of epoch concatenation. times
         are in seconds from recording start.
+    demean : bool
+        if True, mean of channel will be subtracted from data
 
     Returns
     -------
@@ -2602,6 +2612,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
                                 analysis_chans +
                                 chan_grp['ref_chan'])
     data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
+    lg.info('Montage with reference ' + str(chan_grp['ref_chan']))
     
     data1.data[0] = nan_to_num(data1.data[0])
 
@@ -2613,7 +2624,10 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times):
 
         for chan in analysis_chans:
             dat = data1(chan=chan, trial=0)
-            #dat = dat - nanmean(dat)
+            
+            if demean:
+                dat = dat - nanmean(dat)
+                
             epoch_dat[i_ch, :] = dat[t0: t1]
             i_ch += 1
 
