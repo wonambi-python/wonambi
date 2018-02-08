@@ -59,8 +59,8 @@ class DetectSlowWave:
             self.duration = duration
 
     def __repr__(self):
-        return ('detsw_{0}_{1:04.2f}-{2:04.2f}Hz_{3:04.2f}-{4:04.2f}s'
-                ''.format(self.method, *self.det_filt['freq'], *self.duration))
+        return ('detsw_{0}_{1:04.2f}-{2:04.2f}Hz'
+                ''.format(self.method, *self.det_filt['freq']))
 
     def __call__(self, data):
         """Detect slow waves on the data.
