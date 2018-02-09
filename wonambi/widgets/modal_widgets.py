@@ -48,10 +48,10 @@ class DateTimeDialog(QDialog):
         self.idx_seconds.valueChanged.connect(self.changed_spin)
 
         self.idx_datetime = QDateTimeEdit(start_time)
-        self.idx_datetimesetMinimumDate(start_time)
-        self.idx_datetimesetMaximumDate(end_time)
-        self.idx_datetimesetDisplayFormat('dd-MMM-yyyy HH:mm:ss')
-        self.idx_datetimedateTimeChanged.connect(self.changed_datetime)
+        self.idx_datetime.setMinimumDate(start_time)
+        self.idx_datetime.setMaximumDate(end_time)
+        self.idx_datetime.setDisplayFormat('dd-MMM-yyyy HH:mm:ss')
+        self.idx_datetime.dateTimeChanged.connect(self.changed_datetime)
 
         layout = QFormLayout()
         layout.addRow('', QLabel('Enter ' + title + ' time'))
