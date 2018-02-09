@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.17**: correct way to get timestamps for lights out and lights on
 - **4.16**: Enter relative or absolute time for lights out and on
 - **4.15**: improvements and fixes to detections; dataset export to edf and import from text; sleepstats export
 - **4.14**: cycle option in detections; spindle/SW detection fixes; sleep stats export
