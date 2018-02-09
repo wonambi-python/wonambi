@@ -38,7 +38,7 @@ script:
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements for docs
- - pip install pyqt5 nibabel
+ - pip install pyqt5==5.9.2 nibabel
  - python setup_wonambi.py --docs
 
 after_success:
