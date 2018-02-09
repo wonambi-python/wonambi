@@ -1,7 +1,7 @@
 .. _notes:
 
-Add Annotations
-===============
+Annotations
+===========
 
 Wonambi allows you to add annotations to your signal, such as sleep staging and signal quality (epochwise), highlighted events, cycle markers and bookmarks.
 
@@ -134,3 +134,16 @@ To do so, click on ``Annotations`` -> ``Export staging``:
 
 then select the file where you want to store the sleep scores.
 
+Export sleep statistics as csv
+------------------------------
+
+You can export some sleep statistics (such as Total Sleep Time, WASO, etc)  as ``.csv`` file to disk.
+To do so, click on ``Analysis`` -> ``Sleep statistics``:
+
+.. image:: images/analysis_02_statistics.png
+
+then select the file where you want to store the sleep scores.
+
+In addition, you need to specify at what time the lights went off (``Lights OUT``) and when the lights went on (``Lights ON``):
+
+.. image:: images/analysis_02_timedialog.png
