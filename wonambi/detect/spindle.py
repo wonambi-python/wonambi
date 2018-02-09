@@ -42,7 +42,7 @@ class DetectSpindle:
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
-            self.duration = (0, None)
+            self.duration = (0.3, None)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 8
             self.sel_thresh = 2
