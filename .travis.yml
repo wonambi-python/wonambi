@@ -6,7 +6,7 @@ python:
 env:
   global:
    - DOWNLOADS=$HOME/downloads
-   - HTML_PATH=$TRAVIS_BUILD_DIR/docs/build/html
+   - HTML_PATH=docs/build/html
 
 cache: 
  - directories:
