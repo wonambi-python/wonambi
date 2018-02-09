@@ -1495,12 +1495,12 @@ class Notes(QTabWidget):
         dt_dialog = DateTimeDialog('Lights OUT', header['start_time'], duration)
         if not dt_dialog.exec():
             return
-        lights_out = dt_dialog.seconds.value()
+        lights_out = dt_dialog.idx_seconds.value()
 
         dt_dialog = DateTimeDialog('Lights ON', header['start_time'], duration)
         if not dt_dialog.exec():
             return
-        lights_on = dt_dialog.seconds.value()
+        lights_on = dt_dialog.idx_seconds.value()
 
         lights_out, lights_on = float(lights_out), float(lights_on)
 

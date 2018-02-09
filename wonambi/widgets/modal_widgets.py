@@ -10,41 +10,56 @@ from PyQt5.QtWidgets import (QDialog,
 
 
 class DateTimeDialog(QDialog):
+    """Dialog to specify time in the recordings, either as seconds from the
+    start of the recordings or absolute time.
 
+    Parameters
+    ----------
+    title : str
+        'Lights out' or 'Lights on'
+    start_time : datetime
+        absolute start time of the recordings
+    dur : int
+        total duration of the recordings
+
+    Notes
+    -----
+    The value of interest is in self.idx_seconds.value(), which is seconds
+    from the start of the recordings.
+    """
     def __init__(self, title, start_time, dur):
+        super().__init__()
+
         self.start_time = start_time
         self.dur = dur
-        super().__init__()
+        end_time = start_time + timedelta(seconds=dur)
+
         self.setWindowTitle(title)
+
         bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
 
         bbox.clicked.connect(self.button_clicked)
 
-        self.seconds = QSpinBox()
-        self.seconds.setMinimum(0)
-        self.seconds.setMaximum(dur)
+        self.idx_seconds = QSpinBox()
+        self.idx_seconds.setMinimum(0)
+        self.idx_seconds.setMaximum(dur)
+        self.idx_seconds.valueChanged.connect(self.changed_spin)
 
-        self.seconds.valueChanged.connect(self.changed_spin)
+        self.idx_datetime = QDateTimeEdit(start_time)
+        self.idx_datetimesetMinimumDate(start_time)
+        self.idx_datetimesetMaximumDate(end_time)
+        self.idx_datetimesetDisplayFormat('dd-MMM-yyyy HH:mm:ss')
+        self.idx_datetimedateTimeChanged.connect(self.changed_datetime)
 
-        q = QDateTimeEdit(start_time)
-        q.setMinimumDate(start_time)
-        et = start_time + timedelta(seconds=dur)
-        q.setMaximumDate(et)
-        q.setDisplayFormat('dd-MMM-yyyy HH:mm:ss')
-        q.dateTimeChanged.connect(self.changed_datetime)
-        self.idx_datetime = q
+        layout = QFormLayout()
+        layout.addRow('', QLabel('Enter ' + title + ' time'))
+        layout.addRow('Seconds from recording start', self.idx_seconds)
+        layout.addRow('Absolute time', self.idx_datetime)
+        layout.addRow(bbox)
 
-        f = QFormLayout()
-        f.addRow('', QLabel('Enter ' + title + ' time'))
-        f.addRow('Seconds from recording start', self.seconds)
-        f.addRow('Absolute time', self.idx_datetime)
-        f.addRow(bbox)
-
-        self.setLayout(f)
-        self.setModal(True)
-        self.show()
+        self.setLayout(layout)
 
     def button_clicked(self, button):
         if button == self.idx_ok:
@@ -65,6 +80,6 @@ class DateTimeDialog(QDialog):
             val = min(self.dur, max(val, 0))
             self.changed_spin(val)
 
-        self.seconds.blockSignals(True)
-        self.seconds.setValue(val)
-        self.seconds.blockSignals(False)
+        self.idx_seconds.blockSignals(True)
+        self.idx_seconds.setValue(val)
+        self.idx_seconds.blockSignals(False)
