@@ -21,7 +21,7 @@ before_install:
 install: 
  # install requirements
  - pip install numpy scipy
- - pip install nibabel pyqt5 vispy h5py
+ - pip install nibabel pyqt5==5.9.2 vispy h5py
  - pip install pytest pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme
  - pip install -e .
