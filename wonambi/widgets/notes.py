@@ -60,6 +60,7 @@ from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
 from .settings import Config, FormStr, FormInt, FormFloat, FormBool, FormMenu
 from .utils import convert_name_to_color, short_strings, ICON, remove_artf_evts
+from .modal_widgets import DateTimeDialog
 
 lg = getLogger(__name__)
 
@@ -1183,7 +1184,7 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
-    def read_data(self, chan, group, period=None, stage=None, qual=None, 
+    def read_data(self, chan, group, period=None, stage=None, qual=None,
                   exclude_artf=True, demean=False):
         """Read the data to analyze.
         # TODO: make times more flexible (see below)
@@ -1200,7 +1201,7 @@ class Notes(QTabWidget):
         qual : str, optional
             only include epochs of this signal quality
         exclude_artf : bool
-            If True, signal concurrent with events marked 'Artefact' will be 
+            If True, signal concurrent with events marked 'Artefact' will be
             removed from the returned signal (by correcting times)
         demean : bool
             if True, mean of channel will be subtracted from data
@@ -1225,16 +1226,16 @@ class Notes(QTabWidget):
 
         if period == None:
             period = [None]
-        
+
         times = []
         for p in period:
-            times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))                
+            times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))
 
         times = [(x['start'], x['end']) for x in times]
-        
+
         if exclude_artf:
             times = remove_artf_evts(times, self.annot)
-        
+
         self.data = _create_data_to_analyze(data, chan, group, times=times,
                                             demean=demean)
 
@@ -1259,7 +1260,7 @@ class Notes(QTabWidget):
         self.display_eventtype()
         n_eventtype = self.idx_eventtype.count()
         self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
-        
+
         if params['max_dur'] in [0, 'None']:
             params['max_dur'] = None
 
@@ -1488,20 +1489,18 @@ class Notes(QTabWidget):
         if fn == '':
             return
 
-        lights_out, ok = QInputDialog.getText(self, 'Lights out time',
-                                                'Enter the lights OUT time, '
-                                                'in seconds from recording '
-                                                'start.')
-        if not ok:
-            return
+        header = self.parent.info.dataset.header
+        duration = int(header['n_samples'] // header['s_freq'])
 
-        lights_on, ok = QInputDialog.getText(self, 'Lights on time',
-                                                'Enter the lights ON time, '
-                                                'in seconds from recording '
-                                                'start.')
-
-        if not ok:
+        dt_dialog = DateTimeDialog('Lights OUT', header['start_time'], duration)
+        if not dt_dialog.exec():
             return
+        lights_out = dt_dialog.seconds.value()
+
+        dt_dialog = DateTimeDialog('Lights ON', header['start_time'], duration)
+        if not dt_dialog.exec():
+            return
+        lights_on = dt_dialog.seconds.value()
 
         lights_out, lights_on = float(lights_out), float(lights_on)
 
@@ -1585,7 +1584,7 @@ class ChannelDialog(QDialog):
         stage_box.addItems(STAGE_NAME)
         stage_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_stage = stage_box
-        
+
         cycle_box = QListWidget()
         cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_cycle = cycle_box
@@ -1617,7 +1616,7 @@ class ChannelDialog(QDialog):
         """Enable cycles checkbox only if there are cycles marked, with no
         errors."""
         self.idx_cycle.clear()
-        
+
         try:
             self.cycles = self.parent.notes.annot.get_cycles()
 
@@ -1645,14 +1644,14 @@ class ChannelDialog(QDialog):
                 chan_in_order.append(chan)
 
         return chan_in_order
-    
+
     def get_cycles(self):
         """Get the selected cycle(s in order).
-        
+
         Returns
         -------
         list of tuple
-            Each tuple is (start time (sec), end time (sec), index (starting 
+            Each tuple is (start time (sec), end time (sec), index (starting
             at 1)."""
         idx_cyc_sel = [
                 int(x.text()) - 1 for x in self.idx_cycle.selectedItems()]
@@ -1662,7 +1661,7 @@ class ChannelDialog(QDialog):
             cycle = itemgetter(*idx_cyc_sel)(self.cycles)
             if len(idx_cyc_sel) == 1:
                 cycle = [cycle]
-        
+
         return cycle
 
 class SpindleDialog(ChannelDialog):
@@ -1704,7 +1703,7 @@ class SpindleDialog(ChannelDialog):
         flayout.addRow('Channel group',
                        self.idx_group)
         flayout.addRow('Channel(s)',
-                       self.idx_chan)        
+                       self.idx_chan)
         flayout.addRow('Cycle(s)',
                        self.idx_cycle)
         flayout.addRow('Stage(s)',
@@ -1724,7 +1723,7 @@ class SpindleDialog(ChannelDialog):
         self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
         self.idx_method = FormMenu(SPINDLE_METHODS)
-        
+
         self.method = self.idx_method.currentText()
         self.idx_method.currentIndexChanged.connect(self.update_values)
 
@@ -1753,16 +1752,16 @@ class SpindleDialog(ChannelDialog):
                        self.index['sel_thresh'])
         flayout.addRow('Min. interval',
                        self.index['interval'])
-        
+
         box3 = QGroupBox('Options')
-        
+
         self.index['merge'] = FormBool('Merge events across channels')
         self.index['exclude'] = FormBool('Exclude Artefact events')
-        
+
         self.index['merge'].setCheckState(Qt.Unchecked)
-        self.index['merge'].setEnabled(False) 
+        self.index['merge'].setEnabled(False)
         self.index['exclude'].set_value(True)
-        
+
         flayout = QFormLayout(box3)
         flayout.addRow(self.index['exclude'])
         flayout.addRow(self.index['merge'])
@@ -1778,7 +1777,7 @@ class SpindleDialog(ChannelDialog):
         vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
-        
+
         hlayout = QHBoxLayout()
         hlayout.addWidget(box0)
         hlayout.addLayout(vlayout)
@@ -1820,7 +1819,7 @@ class SpindleDialog(ChannelDialog):
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
             lg.info('chans= '+str(chans)+' stage= '+str(stage)+' grp= '+str(self.one_grp))
 
-            self.parent.notes.read_data(chans, self.one_grp, period=cycle, 
+            self.parent.notes.read_data(chans, self.one_grp, period=cycle,
                                         stage=stage, qual='Good')
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
@@ -1960,16 +1959,16 @@ class SWDialog(ChannelDialog):
         flayout.addRow('Min. duration (sec)',
                            self.index['min_dur'])
         flayout.addRow(' Max. duration (sec)',
-                           self.index['max_dur'])        
+                           self.index['max_dur'])
         box3 = QGroupBox('Options')
-        
+
         self.index['demean'] = FormBool('De-mean (by channel mean)')
         self.index['exclude'] = FormBool('Exclude Artefact events')
         self.index['invert'] = FormBool('Invert detection')
-         
+
         #self.index['demean'].set_value(True)
         self.index['exclude'].set_value(True)
-        
+
         flayout = QFormLayout(box3)
         flayout.addRow(self.index['demean'])
         flayout.addRow(self.index['exclude'])
@@ -1986,7 +1985,7 @@ class SWDialog(ChannelDialog):
         vlayout.addWidget(box3)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
-        
+
         hlayout = QHBoxLayout()
         hlayout.addWidget(box0)
         hlayout.addLayout(vlayout)
@@ -2020,7 +2019,7 @@ class SWDialog(ChannelDialog):
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
             self.parent.notes.read_data(chans, self.one_grp, period=cycle,
-                                        stage=stage, qual='Good', 
+                                        stage=stage, qual='Good',
                                         demean=params['demean'])
 
             if self.parent.notes.data is not None:
@@ -2550,7 +2549,7 @@ class EventAnalysisDialog(QDialog):
             self.index['peakf'].setEnabled(True)
 
 
-def _create_data_to_analyze(data, analysis_chans, chan_grp, times, 
+def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
                             demean=False):
     """Create data after montage and filtering.
 
@@ -2602,7 +2601,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
                                 chan_grp['ref_chan'])
     data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
     lg.info('Montage with reference ' + str(chan_grp['ref_chan']))
-    
+
     data1.data[0] = nan_to_num(data1.data[0])
 
     for (t0, t1) in times:
@@ -2613,10 +2612,10 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
 
         for chan in analysis_chans:
             dat = data1(chan=chan, trial=0)
-            
+
             if demean:
                 dat = dat - nanmean(dat)
-                
+
             epoch_dat[i_ch, :] = dat[t0: t1]
             i_ch += 1
 
