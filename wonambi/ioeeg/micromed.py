@@ -81,6 +81,10 @@ class Micromed:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
+
+        if type(chan) == int:  # if single value is provided it needs to be transformed to list to generate a 2d matrix
+            chan = [chan, ]
+
         if (begsam >= self._n_smp) or (endsam < 0):
             dat = empty((len(chan), endsam - begsam))
             dat.fill(NaN)
