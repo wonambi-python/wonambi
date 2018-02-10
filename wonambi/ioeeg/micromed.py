@@ -10,7 +10,7 @@ MAX_CAN_VIEW = 128
 
 
 class Micromed:
-    """Basic class to read the data.
+    """Basic class to read Micromed data. Supports .TRC and .VWR files
 
     Parameters
     ----------
