@@ -137,12 +137,6 @@ class AnalysisDialog(ChannelDialog):
 
         box1 = QGroupBox('Location')
 
-#==============================================================================
-#         cycle_box = QListWidget()
-#         cycle_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
-#         self.idx_cycle = cycle_box
-#==============================================================================
-
         flayout = QFormLayout()
         box1.setLayout(flayout)
         flayout.addRow('Channel group',
@@ -397,6 +391,7 @@ class AnalysisDialog(ChannelDialog):
             pac['box_surro'] = QGroupBox('Surrogate data')
 
             pac['surro_method'] = FormMenu(pac_surro)
+            pac['surro_norm'] = FormMenu(pac_norm)
             pac['surro'] = {}
             sur = pac['surro']
             sur['nperm'] = QLabel('Number of surrogates'), FormInt(default=200)
@@ -404,15 +399,14 @@ class AnalysisDialog(ChannelDialog):
                               FormInt(default=2))
             sur['pval'] = FormBool('Get p-values'), None
             sur['save_surro'] = FormBool('Save surrogate data'), None
-            sur['norm'] = FormMenu(pac_norm), None
 
             flayout = QFormLayout(pac['box_surro'])
             flayout.addRow(pac['surro_method'])
+            flayout.addRow(pac['surro_norm'])
             flayout.addRow(*sur['nperm'])
             flayout.addRow(*sur['nblocks'])
             flayout.addRow(sur['pval'][0])
             flayout.addRow(sur['save_surro'][0])
-            flayout.addRow(sur['norm'][0])
 
             pac['box_opts'] = QGroupBox('Options')
 
@@ -553,6 +547,7 @@ class AnalysisDialog(ChannelDialog):
             pac['wavelet_on'].toggled.connect(self.toggle_pac)
             pac['metric'].connect(self.toggle_pac)
             pac['surro_method'].connect(self.toggle_pac)
+            pac['surro_norm'].connect(self.toggle_pac)
 
         eg['density'].connect(self.toggle_buttons)
         eg['all_local'].clicked.connect(self.check_all_local)
@@ -760,46 +755,47 @@ class AnalysisDialog(ChannelDialog):
 
         if Pac is not None and pac_on:
 
-            hilb_on = self.pac['hilbert_on'].isChecked()
-            wav_on = self.pac['wavelet_on'].isChecked()
-            for button in self.pac['hilbert'].values():
+            pac = self.pac
+            hilb_on = pac['hilbert_on'].isChecked()
+            wav_on = pac['wavelet_on'].isChecked()
+            for button in pac['hilbert'].values():
                 button[0].setEnabled(hilb_on)
                 if button[1] is not None:
                     button[1].setEnabled(hilb_on)
-            self.pac['wav_width'][0].setEnabled(wav_on)
-            self.pac['wav_width'][1].setEnabled(wav_on)
+            pac['wav_width'][0].setEnabled(wav_on)
+            pac['wav_width'][1].setEnabled(wav_on)
 
-            if self.pac['metric'].get_value() in [
+            if pac['metric'].get_value() in [
                     'Kullback-Leibler Distance',
                     'Heights ratio']:
-                self.pac['nbin'][0].setEnabled(True)
-                self.pac['nbin'][1].setEnabled(True)
+                pac['nbin'][0].setEnabled(True)
+                pac['nbin'][1].setEnabled(True)
             else:
-                self.pac['nbin'][0].setEnabled(False)
-                self.pac['nbin'][1].setEnabled(False)
+                pac['nbin'][0].setEnabled(False)
+                pac['nbin'][1].setEnabled(False)
 
-            if self.pac['metric'] == 'ndPac':
-                for button in self.pac['surro'].values():
+            if pac['metric'] == 'ndPac':
+                for button in pac['surro'].values():
                     button[0].setEnabled(False)
                     if button[1] is not None:
                         button[1].setEnabled(False)
-                self.pac['surro']['pval'].setEnabled(True)
+                pac['surro']['pval'].setEnabled(True)
 
-            ndpac_on = self.pac['metric'].get_value() == 'ndPac'
-            surro_on = logical_and(self.pac['surro_method'].get_value() != ''
-                                   'No surrogates', not ndpac_on)
-            blocks_on = self.pac['surro_method'].get_value() == ''
-            'Swap amplitude blocks across time'
-            self.pac['surro_method'].setEnabled(not ndpac_on)
-            for button in self.pac['surro'].values():
-                button[0].setEnabled(surro_on)
+            ndpac_on = pac['metric'].get_value() == 'ndPac'
+            surro_on = logical_and(pac['surro_method'].get_value() != ''
+                                       'No surrogates', not ndpac_on)
+            norm_on = pac['surro_norm'].get_value() != 'No normalization'
+            blocks_on = 'across time' in pac['surro_method'].get_value()
+            pac['surro_method'].setEnabled(not ndpac_on)
+            for button in pac['surro'].values():
+                button[0].setEnabled(surro_on and norm_on)
                 if button[1] is not None:
-                    button[1].setEnabled(surro_on)
-            self.pac['surro']['nblocks'][0].setEnabled(blocks_on)
-            self.pac['surro']['nblocks'][1].setEnabled(blocks_on)
+                    button[1].setEnabled(surro_on and norm_on)            
+            pac['surro']['nblocks'][0].setEnabled(blocks_on)
+            pac['surro']['nblocks'][1].setEnabled(blocks_on)
             if ndpac_on:
-                self.pac['surro_method'].set_value('No surrogates')
-                self.pac['surro']['pval'].setEnabled(True)
+                pac['surro_method'].set_value('No surrogates')
+                pac['surro']['pval'].setEnabled(True)
 
     def check_all_local(self):
         """Check or uncheck all local event parameters."""
@@ -1100,7 +1096,7 @@ class AnalysisDialog(ChannelDialog):
         pac = self.pac
         idpac = (pac['metric'].currentIndex() + 1,
                  pac['surro_method'].currentIndex(),
-                 pac['surro']['norm'][0].currentIndex())
+                 pac['surro_norm'].currentIndex())
         fpha = freq_from_str(self.pac['fpha'].get_value())
         famp = freq_from_str(self.pac['famp'].get_value())
         nbins = self.pac['nbin'][1].get_value()
@@ -1120,6 +1116,11 @@ class AnalysisDialog(ChannelDialog):
             filtorder = 3 # not used
             width = self.pac['wav_width'][1].get_value()
 
+        lg.info(' '.join([str(x) for x in ['Instantiating PAC:', 'idpac:', 
+                          idpac, 'fpha:', fpha, 'famp:', famp,  'dcomplex:', 
+                          dcomplex, 'filt:', filt, 'cycle:', cycle, 
+                          'filtorder:', filtorder, 'width:', width, 
+                          'nbins:', nbins, 'nblocks:', nblocks]]))
         p = Pac(idpac=idpac, fpha=fpha, famp=famp, dcomplex=dcomplex,
                 filt=filt, cycle=cycle, filtorder=filtorder, width=width,
                 nbins=nbins, nblocks=nblocks)
@@ -1127,6 +1128,7 @@ class AnalysisDialog(ChannelDialog):
         nperm = self.pac['surro']['nperm'][1].get_value()
         optimize = self.pac['optimize'].get_value()
         get_pval = self.pac['surro']['pval'][0].get_value()
+        lg.info('get_pval is ' + str(get_pval is True))
         get_surro = self.pac['surro']['save_surro'][0].get_value()
         njobs = self.pac['njobs'].get_value()
 
@@ -1150,7 +1152,6 @@ class AnalysisDialog(ChannelDialog):
 
                 if chan in j['data'].axis['chan'][0]:
                     batch.append(j)
-                    lg.info('appending to batch segment with ' + str(j['data'].axis['chan'][0]))
 
                     if idpac[1] == 1:
                         batch_dat.append(j['data'](chan=chan)[0])
@@ -1178,39 +1179,44 @@ class AnalysisDialog(ChannelDialog):
                     new_batch_dat.insert(0, new_batch_dat.pop(i))
                     dat = asarray(new_batch_dat)
                 else:
-                    lg.info('seeking ' + chan + ' in ' + str(j['data'].axis['chan'][0]))
                     dat = j['data'](chan=chan)[0]
 
                 timeline = j['data'].axis['time'][0]
                 xpac[chan]['times'].append((timeline[0], timeline[-1]))
-                lg.info('Compute PAC ' + chan + ' ' + str((timeline[0], timeline[-1])))
+                lg.info('Compute PAC on ' + chan + ' ' + str((timeline[0], 
+                                                              timeline[-1])))
                 duration = len(timeline) / sf
                 xpac[chan]['duration'].append(duration)
                 xpac[chan]['stage'].append(j['stage'])
                 xpac[chan]['cycle'].append(j['cycle'])
                 xpac[chan]['name'].append(j['name'])
 
+                lg.info(' '.join([str(x) for x in ['Computing PAC', 'sf:', sf, 
+                                  'nperm:', nperm, 'optimize:', 
+                                  optimize, 'get_pval:', get_pval,
+                                 'get_surro:', get_surro, 'njobs:', njobs]]))
                 out = p.filterfit(sf=sf, xpha=dat, xamp=None, axis=1, traxis=0,
                                   nperm=nperm, optimize=optimize,
                                   get_pval=get_pval, get_surro=get_surro,
                                   njobs=njobs)
+                lg.info('out: ' + str(out))
 
                 if get_pval:
 
-                    if idpac[2] > 0:
+                    if get_surro:
                         (xpac[chan]['data'][i, :, :],
                          xpac[chan]['pval'][i, :, :],
                          xpac[chan]['surro'][i, :, :, :]) = (out[0][:, :, 0],
-                             out[1], out[2])
+                             out[1][:, :, 0], out[2][:, :, :, 0])
                     else:
                         (xpac[chan]['data'][i, :, :],
                          xpac[chan]['pval'][i, :, :]) = (out[0][:, :, 0],
-                             out[1])
+                             out[1][:, :, 0])
 
-                elif idpac[2] > 0:
+                elif get_surro:
                     (xpac[chan]['data'][i, :, :],
                      xpac[chan]['surro'][i, :, :, :]) = (out[0][:, :, 0],
-                         out[1])
+                         out[1][:, :, :, 0])
 
                 else:
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
@@ -1225,7 +1231,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
-                       'Stitches',
+#                       'Stitches',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1260,7 +1266,7 @@ class AnalysisDialog(ChannelDialog):
                                        seg['times'][0],
                                        seg['times'][1],
                                        seg['duration'],
-                                       seg['n_stitch'],
+#                                       seg['n_stitch'],
                                        seg['stage'],
                                        seg['cycle'][2],
                                        seg['name'],
@@ -1275,7 +1281,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
-                       'Stitch',
+#                       'Stitch',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1291,6 +1297,9 @@ class AnalysisDialog(ChannelDialog):
                 fa_str = str(fa[0]) + '-' + str(fa[1])
                 title_row_2.append(fp_str + '_' + fa_str)
 
+        if 'pval' in xpac[list(xpac.keys())[0]].keys():
+            title_row_2.extend(title_row_2)
+        
         xp = asarray([ravel(chan['data'][x,:,:]) for chan in xpac.values() \
                       for x in range(chan['data'].shape[0])])
         xp_log = log(xp)
@@ -1313,17 +1322,22 @@ class AnalysisDialog(ChannelDialog):
 
                 for i, j in enumerate(xpac[chan]['times']):
                     idx += 1
-                    data_row = list(ravel(xpac[chan]['data'][i,:,:]))
+                    data_row = list(ravel(xpac[chan]['data'][i, :, :]))
+                    
+                    pval_row = []
+                    if 'pval' in xpac[chan]:
+                        pval_row = list(ravel(xpac[chan]['pval'][i, :, :]))
+                        
                     csv_file.writerow([idx,
                                        j[0],
                                        j[1],
                                        xpac[chan]['duration'][i],
-                                       seg['n_stitch'],
+#                                       seg['n_stitch'],
                                        xpac[chan]['stage'][i],
                                        xpac[chan]['cycle'][i][2],
                                        xpac[chan]['name'][i],
                                        chan,
-                                       ] + data_row)
+                                       ] + data_row + pval_row)
 
 
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
@@ -1660,10 +1674,9 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
     output = []
 
     for seg in segments:
-        lg.info('_create: Looping over one segment')
         times = [(int(t0 * s_freq),
                   int(t1 * s_freq)) for (t0, t1) in seg['times']]
-        n_stitch = len(times) - 1
+        #n_stitch = len(times) - 1
 
         one_segment = ChanTime()
         one_segment.s_freq = s_freq
@@ -1693,7 +1706,6 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
 
         for (t0, t1) in times:
             one_interval = data.axis['time'][0][t0: t1]
-            lg.info('_create: ' + str((t0, t1)))
             timeline.append(one_interval)
             epoch_dat = empty((len(these_chans), len(one_interval)))
             i_ch = 0
@@ -1708,7 +1720,6 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
 
         one_segment.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
         one_segment.axis['time'][0] = concatenate(timeline)
-        lg.info('_create, concatenated: ' + str((one_segment.axis['time'][0][0], one_segment.axis['time'][0][-1])))
         one_segment.data[0] = concatenate(all_epoch_data, axis=1)
 
         if concat_chan and len(one_segment.axis['chan'][0]) > 1:
@@ -1717,14 +1728,14 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
                     all_chan_grp_name)], dtype='U')
             # axis['time'] should not be used in this case
 
-        lg.info('_created seg with chan ' + str(one_segment.axis['chan'][0]))
 
         output.append({'data': one_segment,
                        'chan': these_chans,
                        'stage': seg['stage'],
                        'cycle': seg['cycle'],
                        'name': seg['name'],
-                       'n_stitch': n_stitch})
+#                       'n_stitch': n_stitch
+                       })
 
     return output
 
