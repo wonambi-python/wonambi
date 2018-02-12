@@ -5,6 +5,12 @@ from logging import getLogger
 from numpy import (argmax, argmin, concatenate, diff, hstack, sign, sum, where,
                    zeros)
 
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QProgressDialog
+except ImportError:
+    pass
+
 from .spindle import (detect_events, transform_signal, within_duration, 
                       remove_straddlers)
 from ..graphoelement import SlowWaves
@@ -62,24 +68,35 @@ class DetectSlowWave:
         return ('detsw_{0}_{1:04.2f}-{2:04.2f}Hz'
                 ''.format(self.method, *self.det_filt['freq']))
 
-    def __call__(self, data):
+    def __call__(self, data, parent=None):
         """Detect slow waves on the data.
 
         Parameters
         ----------
         data : instance of Data
             data used for detection
-
+        parent : QWidget
+            for use with GUI, as parent widget for the progress bar
+        
         Returns
         -------
         instance of graphoelement.SlowWaves
             description of the detected SWs
         """
+        if parent is not None:
+            progress = QProgressDialog('Finding spindles', 'Abort', 
+                                       0, data.number_of('chan')[0], parent)
+            progress.setWindowModality(Qt.ApplicationModal)
+            
         slowwave = SlowWaves()
         slowwave.chan_name = data.axis['chan'][0]
 
         all_slowwaves = []
         for i, chan in enumerate(data.axis['chan'][0]):
+            
+            if parent is not None:
+                progress.setValue(i)
+            
             lg.info('Detecting slow waves on chan %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
@@ -98,6 +115,9 @@ class DetectSlowWave:
 
         lg.info('number of SW: ' + str(len(all_slowwaves)))
         slowwave.events = sorted(all_slowwaves, key=lambda x: x['start'])
+
+        if parent is not None:
+            progress.setValue(i + 1)
 
         return slowwave
 

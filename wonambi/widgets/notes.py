@@ -43,6 +43,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QListWidget,
                              QListWidgetItem,
                              QMessageBox,
+                             QProgressDialog,
                              QPushButton,
                              QSpinBox,
                              QTableWidget,
@@ -344,10 +345,12 @@ class Notes(QTabWidget):
         actions['quality'] = act
 
         act = QAction('Set cycle start', self)
+        act.setShortcut('Ctrl+[')
         act.triggered.connect(self.get_cycle_mrkr)
         actions['cyc_start'] = act
 
         act = QAction('Set cycle end', self)
+        act.setShortcut('Ctrl+]')
         act.triggered.connect(partial(self.get_cycle_mrkr, end=True))
         actions['cyc_end'] = act
 
@@ -1237,7 +1240,7 @@ class Notes(QTabWidget):
             times = remove_artf_evts(times, self.annot)
 
         self.data = _create_data_to_analyze(data, chan, group, times=times,
-                                            demean=demean)
+                                            demean=demean, parent=self)
 
     def detect_events(self, method, params, label):
         """Detect events and display on signal.
@@ -1298,13 +1301,20 @@ class Notes(QTabWidget):
             lg.info('Method not recognized: ' + method)
             return
 
-        events = detector(self.data)
+        events = detector(self.data, parent=self)
 
-        for one_ev in events:
+        progress = QProgressDialog('Saving events', 'Abort', 
+                                   0, len(events), self)
+        progress.setWindowModality(Qt.ApplicationModal) 
+        
+        for i, one_ev in enumerate(events):
+            progress.setValue(i)
             self.annot.add_event(label,(one_ev['start'],
                                         one_ev['end']),
                                         chan=one_ev['chan'])
 
+        progress.setValue(i + 1)
+            
         self.update_annotations()
 
     def analyze_events(self, event_type, chan, stage, params, frequency,
@@ -1872,7 +1882,6 @@ class SpindleDialog(ChannelDialog):
                 return
             else:
                 merge.setEnabled(True)
-                merge.setCheckState(Qt.Checked)
         else:
             self.index['merge'].setCheckState(Qt.Unchecked)
             self.index['merge'].setEnabled(False)
@@ -2550,7 +2559,7 @@ class EventAnalysisDialog(QDialog):
 
 
 def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
-                            demean=False):
+                            demean=False, parent=None):
     """Create data after montage and filtering.
 
     Parameters
@@ -2567,6 +2576,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
         are in seconds from recording start.
     demean : bool
         if True, mean of channel will be subtracted from data
+    parent : QWidget, opt
+        For use with GUI, as parent widget for the progress bar
 
     Returns
     -------
@@ -2574,6 +2585,11 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
         data ready to be analyzed. one trial only.
 
     """
+    if parent is not None:
+        progress = QProgressDialog('Fetching signal', 'Abort', 
+                                   0, len(times), parent)
+        progress.setWindowModality(Qt.ApplicationModal)
+    
     s_freq = data.s_freq
 
     if times is None:
@@ -2604,7 +2620,9 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
 
     data1.data[0] = nan_to_num(data1.data[0])
 
-    for (t0, t1) in times:
+    for i, (t0, t1) in enumerate(times):
+        if parent is not None:
+            progress.setValue(i)
         one_interval = data.axis['time'][0][t0: t1]
         timeline.append(one_interval)
         epoch_dat = empty((len(analysis_chans), len(one_interval)))
@@ -2624,6 +2642,9 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
     output.axis['time'][0] = concatenate(timeline)
     output.data[0] = concatenate(all_epoch_data, axis=1)
+    
+    if parent is not None:
+        progress.setValue(i + 1)
 
     return output
 

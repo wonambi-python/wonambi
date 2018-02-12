@@ -26,6 +26,9 @@ class Graphoelement:
     def __iter__(self):
         for one_event in self.events:
             yield one_event
+            
+    def __len__(self):
+        return len(self.events)
 
     def __call__(self, func=None):
 

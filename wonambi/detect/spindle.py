@@ -8,6 +8,11 @@ from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
                           hilbert, periodogram, tukey)
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QProgressDialog
+except ImportError:
+    pass
 
 from ..graphoelement import Spindles
 
@@ -136,19 +141,26 @@ class DetectSpindle:
                 ''.format(self.method, self.frequency[0], self.frequency[1],
                           self.duration[0], self.duration[1]))
 
-    def __call__(self, data):
+    def __call__(self, data, parent=None):
         """Detect spindles on the data.
 
         Parameters
         ----------
         data : instance of Data
             data used for detection
+        parent : QWidget
+            for use with GUI, as parent widget for the progress bar
 
         Returns
         -------
         instance of graphoelement.Spindles
             description of the detected spindles
         """
+        if parent is not None:
+            progress = QProgressDialog('Finding spindles', 'Abort', 
+                                       0, data.number_of('chan')[0], parent)
+            progress.setWindowModality(Qt.ApplicationModal)
+        
         spindle = Spindles()
         spindle.chan_name = data.axis['chan'][0]
         spindle.det_value_lo = zeros(data.number_of('chan')[0])
@@ -161,6 +173,10 @@ class DetectSpindle:
 
         all_spindles = []
         for i, chan in enumerate(data.axis['chan'][0]):
+            
+            if parent is not None:
+                progress.setValue(i)
+                
             lg.info('Detecting spindles on chan %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
@@ -212,6 +228,9 @@ class DetectSpindle:
         if self.merge and len(data.axis['chan'][0]) > 1:
             spindle.events = merge_close(spindle.events, self.min_interval)
 
+        if parent is not None:
+            progress.setValue(i + 1)
+        
         return spindle
 
 

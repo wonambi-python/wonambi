@@ -5,7 +5,7 @@
 from operator import itemgetter
 from logging import getLogger
 from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf,
-                   log, logical_and, logical_or, mean, nan_to_num, ptp, ravel,
+                   log, logical_and, logical_or, mean, nan_to_num, ptp, ravel, 
                    sqrt, square, std, zeros)
 from math import isclose
 from csv import writer
@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QLineEdit,
                              QListWidget,
                              QMessageBox,
+                             QProgressDialog,
                              QPushButton,
                              QSpinBox,
                              QTabWidget,
@@ -253,7 +254,7 @@ class AnalysisDialog(ChannelDialog):
         freq['overlap_val'].setRange(0, 1)
         freq['overlap_val'].setSingleStep(0.1)
         freq['overlap_val'].setValue(0.5)
-        freq['step_val'] = FormFloat()
+        freq['step_val'] = FormFloat(0.5)
 
         glayout = QGridLayout(freq['box_welch'])
         glayout.addWidget(QLabel('Duration (sec)'), 0, 0)
@@ -659,7 +660,10 @@ class AnalysisDialog(ChannelDialog):
         self.cat['evt_type'].setEnabled(event_on)
 
         if Pac is not None:
-            self.pac['surro_method'].model().item(1).setEnabled(epoch_on)
+            surro = self.pac['surro_method']
+            surro.model().item(1).setEnabled(epoch_on)
+            if surro.get_value() == 'Swap phase/amplitude across trials':
+                surro.set_value('No surrogates')
         # "Swap phase/amplitude across trials" only available if using epochs
         # because trials need to be of equal length
 
@@ -726,6 +730,8 @@ class AnalysisDialog(ChannelDialog):
             overlap_on = freq['overlap'].isChecked()
             freq['overlap_val'].setEnabled(overlap_on)
             freq['step_val'].setEnabled(not overlap_on)
+            freq['box_output'].setEnabled(not welch_on)
+            freq['spectrald'].setChecked(True)
 
         dpss_on = freq['taper'].get_value() == 'dpss'
         freq['box_mtap'].setEnabled(dpss_on)
@@ -737,7 +743,12 @@ class AnalysisDialog(ChannelDialog):
 
         complex_on = freq['complex'].isChecked()
         freq['sides'].setEnabled(complex_on)
-
+        if complex_on:
+            freq['welch_on'].setEnabled(False)
+            freq['welch_on'].set_value(False)
+        else:
+            freq['welch_on'].setEnabled(True)
+            
         norm_evt = freq['norm'].get_value() == 'by mean of event type(s)'
         norm_stage = freq['norm'].get_value() == 'by mean of stage(s)'
         freq['norm_evt_type'].setEnabled(norm_evt)
@@ -1011,7 +1022,8 @@ class AnalysisDialog(ChannelDialog):
         self.segments = _create_data_to_analyze(data, chan, self.one_grp,
                                                 segments=segments,
                                                 concat_chan=concat_chan,
-                                                evt_chan_only=evt_chan_only)
+                                                evt_chan_only=evt_chan_only, 
+                                                parent=self)
 
 #==============================================================================
 #         self.chan = []
@@ -1033,6 +1045,10 @@ class AnalysisDialog(ChannelDialog):
             from 'times' if the signal was concatenated)
             and with 'chan' (str), 'stage' (str) and 'cycle' (int)
         """
+        progress = QProgressDialog('Computing frequency', 'Abort', 
+                                   0, len(self.segments), self)
+        progress.setWindowModality(Qt.ApplicationModal)
+        
         freq = self.frequency
         scaling = freq['scaling'].get_value()
         sides = freq['sides'].value()
@@ -1075,24 +1091,35 @@ class AnalysisDialog(ChannelDialog):
                          str(detrend)]))
 
         xfreq = []
-        for seg in self.segments:
+        for i, seg in enumerate(self.segments):
+            progress.setValue(i)
+            new_seg = dict(seg)
             data = seg['data']
             timeline = seg['data'].axis['time'][0]
-            seg['times'] = timeline[0], timeline[-1]
-            seg['duration'] = len(timeline) / data.s_freq
+            new_seg['times'] = timeline[0], timeline[-1]
+            new_seg['duration'] = len(timeline) / data.s_freq
 
             lg.info('Compute freq ' + ' ' + str((timeline[0], timeline[-1])))
             Sxx = frequency(data, output=output, scaling=scaling, sides=sides,
                             taper=taper, halfbandwidth=halfbandwidth, NW=NW,
                             duration=duration, overlap=overlap, step=step,
                             detrend=detrend)
-            seg['data'] = Sxx
-            xfreq.append(seg)
+            new_seg['data'] = Sxx
+            xfreq.append(new_seg)
+            
+            if progress.wasCanceled():
+                break
 
+        progress.setValue(i+1)
+        
         return xfreq
 
     def compute_pac(self):
         """Compute phase-amplitude coupling values from data."""
+        progress = QProgressDialog('Computing PAC', 'Abort', 
+                                   0, len(self.segments), self)
+        progress.setWindowModality(Qt.ApplicationModal)
+        
         pac = self.pac
         idpac = (pac['metric'].currentIndex() + 1,
                  pac['surro_method'].currentIndex(),
@@ -1141,10 +1168,9 @@ class AnalysisDialog(ChannelDialog):
 
         all_chan = sorted(set(
                 [x for y in self.segments for x in y['data'].axis['chan'][0]]))
-        lg.info('all_chan: ' + str(all_chan))
 
+        counter = 0
         for chan in all_chan:
-            lg.info('compute_pac: looping: ' + str(chan))
             batch = []
             batch_dat = []
 
@@ -1172,6 +1198,9 @@ class AnalysisDialog(ChannelDialog):
                                             len(famp), len(fpha)))
 
             for i, j in enumerate(batch):
+                progress.setValue(counter)
+                counter += 1
+                
                 sf = j['data'].s_freq
 
                 if idpac[1] == 1:
@@ -1199,7 +1228,6 @@ class AnalysisDialog(ChannelDialog):
                                   nperm=nperm, optimize=optimize,
                                   get_pval=get_pval, get_surro=get_surro,
                                   njobs=njobs)
-                lg.info('out: ' + str(out))
 
                 if get_pval:
 
@@ -1221,6 +1249,8 @@ class AnalysisDialog(ChannelDialog):
                 else:
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
 
+        progress.setValue(counter)
+        
         return xpac, fpha, famp
 
     def export_freq(self, xfreq):
@@ -1253,8 +1283,8 @@ class AnalysisDialog(ChannelDialog):
             csv_file.writerow(title_row_1 + freq)
             csv_file.writerow(['Mean'] + spacer + x_mean)
             csv_file.writerow(['SD'] + spacer + x_sd)
-            csv_file.writerow(['Mean of log'] + spacer + x_mean_log)
-            csv_file.writerow(['SD of log'] + spacer + x_sd_log)
+            csv_file.writerow(['Mean of ln'] + spacer + x_mean_log)
+            csv_file.writerow(['SD of ln'] + spacer + x_sd_log)
             idx = 0
 
             for seg in xfreq:
@@ -1295,10 +1325,11 @@ class AnalysisDialog(ChannelDialog):
 
             for fa in famp:
                 fa_str = str(fa[0]) + '-' + str(fa[1])
-                title_row_2.append(fp_str + '_' + fa_str)
+                title_row_2.append(fp_str + '_' + fa_str + '_pac')
 
         if 'pval' in xpac[list(xpac.keys())[0]].keys():
-            title_row_2.extend(title_row_2)
+            title_row_3 = [x[:-4] + '_pval' for x in title_row_2]
+            title_row_2.extend(title_row_3)
         
         xp = asarray([ravel(chan['data'][x,:,:]) for chan in xpac.values() \
                       for x in range(chan['data'].shape[0])])
@@ -1314,8 +1345,8 @@ class AnalysisDialog(ChannelDialog):
             csv_file.writerow(title_row_1 + title_row_2)
             csv_file.writerow(['Mean'] + spacer + x_mean)
             csv_file.writerow(['SD'] + spacer + x_sd)
-            csv_file.writerow(['Mean of log'] + spacer + x_mean_log)
-            csv_file.writerow(['SD of log'] + spacer + x_sd_log)
+            csv_file.writerow(['Mean of ln'] + spacer + x_mean_log)
+            csv_file.writerow(['SD of ln'] + spacer + x_sd_log)
             idx = 0
 
             for chan in xpac.keys():
@@ -1638,7 +1669,8 @@ def longer_than(segments, min_dur):
 
 
 def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
-                            concat_chan=False, evt_chan_only=False):
+                            concat_chan=False, evt_chan_only=False, 
+                            parent=None):
     """Create data after montage and filtering.
 
     Parameters
@@ -1662,6 +1694,8 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
         For use with events. If True, only the data on the original channel
         where the event was marked will be returned. If False, data concurrent
         with the event on all channels in analysis_chans will be returned.
+    parent : QWidget, opt
+        For use with GUI, as parent widget for the progress bar
 
     Returns
     -------
@@ -1670,10 +1704,18 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
         single segment of signal, 'name' is the event type, if applicable, and
         with 'chan' (str), 'stage' (str) and 'cycle' (int)
     """
+    if parent is not None:
+        progress = QProgressDialog('Fetching signal', 'Abort', 
+                                   0, len(segments), parent)
+        progress.setWindowModality(Qt.ApplicationModal)
+    
     s_freq = data.s_freq
     output = []
 
-    for seg in segments:
+    for i, seg in enumerate(segments):
+        if parent is not None:
+            progress.setValue(i)
+        
         times = [(int(t0 * s_freq),
                   int(t1 * s_freq)) for (t0, t1) in seg['times']]
         #n_stitch = len(times) - 1
@@ -1737,6 +1779,9 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
 #                       'n_stitch': n_stitch
                        })
 
+    if parent is not None:
+        progress.setValue(i + 1)
+    
     return output
 
 def _select_channels(data, channels):
