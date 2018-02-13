@@ -20,7 +20,7 @@ from .info import Info, ExportDatasetDialog
 from .overview import Overview
 from .notes import (Notes, MergeDialog, SpindleDialog, SWDialog,
                     EventAnalysisDialog)
-from .analysis import AnalysisDialog
+from .analysis import AnalysisDialog, PlotDialog
 from .spectrum import Spectrum
 from .traces import Traces
 from .video import Video
@@ -47,6 +47,7 @@ def create_widgets(MAIN):
     MAIN.event_analysis_dialog = EventAnalysisDialog(MAIN)
     MAIN.evt_analysis_help = EvtAnalysisHelp(MAIN)
     MAIN.analysis_dialog = AnalysisDialog(MAIN)
+    MAIN.plot_dialog = PlotDialog(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.traces = Traces(MAIN)

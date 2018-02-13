@@ -11,6 +11,13 @@ from math import isclose
 from csv import writer
 from os.path import basename, splitext
 from pickle import dump, load
+from matplotlib.backends.backend_qt5agg \
+    import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg \
+    import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
 try:
     from tensorpac import Pac
     from tensorpac.pacstr import pacstr
@@ -20,10 +27,12 @@ except ImportError:
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (QAbstractItemView,
+                             QDialog,
                              QDialogButtonBox,
                              QDoubleSpinBox,
                              QFileDialog,
                              QFormLayout,
+                             QFrame,
                              QGridLayout,
                              QGroupBox,
                              QHBoxLayout,
@@ -33,6 +42,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QMessageBox,
                              QProgressDialog,
                              QPushButton,
+                             QSizePolicy,
                              QSpinBox,
                              QTabWidget,
                              QVBoxLayout,
@@ -229,6 +239,7 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
 
         freq['freq_on'] = FormBool('Compute frequency domain')
+        freq['plot_on'] = FormBool('Plot mean spectrum')
 
         freq['box_param'] = QGroupBox('Parameters')
 
@@ -317,6 +328,29 @@ class AnalysisDialog(ChannelDialog):
         glayout.addWidget(freq['norm_evt_type'], 2, 0)
         glayout.addWidget(freq['norm_stage'], 2, 1)
         glayout.addWidget(freq['norm_concat'], 3, 0, 1, 2)
+        
+        freq['box_plot'] = QGroupBox('Plot')
+        
+        freq['title'] = FormStr()
+        freq['axis_scale'] = FormMenu(['log y-axis', 'log both axes', 
+                                        'linear'])
+        freq['min_x_axis'] = FormFloat(0.5)
+        freq['max_x_axis'] = FormFloat()
+
+        flayout = QFormLayout(freq['box_plot'])
+        flayout.addRow(freq['plot_on'])
+        flayout.addRow('Title:', 
+                       freq['title'])
+#==============================================================================
+#         flayout.addRow('Axis scaling',
+#                        freq['axis_scale'])
+#==============================================================================
+#==============================================================================
+#         flayout.addRow('Lower limit (Hz)',
+#                        freq['min_x_axis'])        
+#         flayout.addRow('Upper limit (Hz)',
+#                        freq['max_x_axis'])
+#==============================================================================
 
         glayout = QGridLayout()
         glayout.addWidget(freq['box_param'], 0, 0)
@@ -324,11 +358,12 @@ class AnalysisDialog(ChannelDialog):
         glayout.addWidget(freq['box_welch'], 0, 1)
         glayout.addWidget(freq['box_mtap'], 1, 1)
         glayout.addWidget(freq['box_norm'], 2, 0)
+        glayout.addWidget(freq['box_plot'], 2, 1)
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
+        vlayout.addWidget(freq['plot_on'])
         vlayout.addLayout(glayout)
-        #vlayout.addWidget(freq['box_norm'])
         vlayout.addStretch(1)
 
         """ ------ PAC ------ """
@@ -535,6 +570,7 @@ class AnalysisDialog(ChannelDialog):
         self.cat['discontinuous'].connect(self.toggle_concatenate)
 
         freq['freq_on'].connect(self.toggle_freq)
+        freq['plot_on'].connect(self.toggle_freq)
         freq['taper'].connect(self.toggle_freq)
         freq['welch_on'].connect(self.toggle_freq)
         freq['complex'].connect(self.toggle_freq)
@@ -568,11 +604,13 @@ class AnalysisDialog(ChannelDialog):
         self.reject_epoch.setChecked(True)
         self.trans['button']['none'].setChecked(True)
 
+        freq['plot_on'].setEnabled(False)
         freq['box_param'].setEnabled(False)
         freq['box_welch'].setEnabled(False)
         freq['box_mtap'].setEnabled(False)
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
+        freq['box_plot'].setEnabled(False)
         freq['spectrald'].setChecked(True)
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
@@ -719,9 +757,13 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
 
         freq_on = freq['freq_on'].get_value()
+        freq['plot_on'].setEnabled(freq_on)
         freq['box_param'].setEnabled(freq_on)
         freq['box_output'].setEnabled(freq_on)
         freq['box_norm'].setEnabled(freq_on)
+        
+        plot_on = freq['plot_on'].get_value()
+        freq['box_plot'].setEnabled(plot_on)
 
         welch_on = freq['welch_on'].get_value()
         freq['box_welch'].setEnabled(welch_on)
@@ -970,7 +1012,10 @@ class AnalysisDialog(ChannelDialog):
                 with open(freq_filename, 'wb') as f:
                     dump(xfreq, f)
 
-                self.export_freq(xfreq)
+                x, y = self.export_freq(xfreq)
+                
+                if self.frequency['plot_on'].get_value():
+                    self.plot_freq(x, y)
 
             if self.pac['pac_on'].get_value():
                 xpac, fpha, famp = self.compute_pac()
@@ -1114,6 +1159,98 @@ class AnalysisDialog(ChannelDialog):
         
         return xfreq
 
+    def export_freq(self, xfreq):
+        """Write frequency analysis data to CSV."""
+        filename = splitext(self.filename)[0] + '_freq.csv'
+
+        title_row_1 = ['Segment index',
+                       'Start time',
+                       'End time',
+                       'Duration',
+#                       'Stitches',
+                       'Stage',
+                       'Cycle',
+                       'Event type',
+                       'Channel',
+                       ]
+        spacer = [''] * (len(title_row_1) - 1)
+        freq = list(xfreq[0]['data'].axis['freq'][0])
+
+        xf = asarray([y for x in xfreq for y in x['data']()[0]])
+        xf_log = log(xf)
+        x_mean = list(mean(xf, axis=0))
+        x_sd = list(std(xf, axis=0))
+        x_mean_log = list(mean(xf_log, axis=0))
+        x_sd_log = list(std(xf_log, axis=0))
+
+        with open(filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(filename))
+            csv_file = writer(f)
+            csv_file.writerow(title_row_1 + freq)
+            csv_file.writerow(['Mean'] + spacer + x_mean)
+            csv_file.writerow(['SD'] + spacer + x_sd)
+            csv_file.writerow(['Mean of ln'] + spacer + x_mean_log)
+            csv_file.writerow(['SD of ln'] + spacer + x_sd_log)
+            idx = 0
+
+            for seg in xfreq:
+
+                for chan in seg['data'].axis['chan'][0]:
+                    idx += 1
+                    data_row = list(seg['data'](chan=chan)[0])
+                    csv_file.writerow([idx,
+                                       seg['times'][0],
+                                       seg['times'][1],
+                                       seg['duration'],
+#                                       seg['n_stitch'],
+                                       seg['stage'],
+                                       seg['cycle'][2],
+                                       seg['name'],
+                                       chan,
+                                       ] + data_row)
+            
+        return asarray(freq), asarray(x_mean)
+
+    def plot_freq(self, x, y):
+        """Plot mean frequency spectrum and display in dialog.
+        
+        Parameters
+        ----------
+        x : ndarray
+            vector with frequencies
+        y : ndarray
+            vector with amplitudes            
+        """
+        freq = self.frequency
+        title = freq['title'].get_value()
+        scaling = freq['scaling'].get_value()
+#        log = freq['axis_scale'].get_value()
+#==============================================================================
+#         xlim = freq['min_x_axis'].get_value(), freq['max_x_axis'].get_value()
+#         
+#         idx_low = (abs(x - xlim[0])).argmin()
+#         
+#         if xlim[1] == 0:
+#             idx_high = None
+#         else:
+#             idx_high = (abs(x - xlim[1])).argmin()
+#             
+#         lg.info('limits: ' + str(idx_low) + ' ' + str(idx_high))
+#==============================================================================
+        
+        if freq['complex'].get_value():
+            ylabel = 'Amplitude (uV)'
+        elif 'power' == scaling:
+            ylabel = 'Power spectral density (uV ** 2 / Hz)'
+        elif 'energy' == scaling:
+            ylabel = 'Energy spectral density (uV ** 2)'
+        
+        self.parent.plot_dialog.canvas.plot(x, y, title, ylabel, 
+                                            #log=log, 
+                                            #idx_lim=(idx_low, idx_high)
+                                            )
+        self.parent.show_plot_dialog()
+
     def compute_pac(self):
         """Compute phase-amplitude coupling values from data."""
         progress = QProgressDialog('Computing PAC', 'Abort', 
@@ -1252,56 +1389,6 @@ class AnalysisDialog(ChannelDialog):
         progress.setValue(counter)
         
         return xpac, fpha, famp
-
-    def export_freq(self, xfreq):
-        """Write frequency analysis data to CSV."""
-        filename = splitext(self.filename)[0] + '_freq.csv'
-
-        title_row_1 = ['Segment index',
-                       'Start time',
-                       'End time',
-                       'Duration',
-#                       'Stitches',
-                       'Stage',
-                       'Cycle',
-                       'Event type',
-                       'Channel',
-                       ]
-        spacer = [''] * (len(title_row_1) - 1)
-        freq = list(xfreq[0]['data'].axis['freq'][0])
-
-        xf = asarray([y for x in xfreq for y in x['data']()[0]])
-        xf_log = log(xf)
-        x_mean = list(mean(xf, axis=0))
-        x_sd = list(std(xf, axis=0))
-        x_mean_log = list(mean(xf_log, axis=0))
-        x_sd_log = list(std(xf_log, axis=0))
-
-        with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
-            csv_file = writer(f)
-            csv_file.writerow(title_row_1 + freq)
-            csv_file.writerow(['Mean'] + spacer + x_mean)
-            csv_file.writerow(['SD'] + spacer + x_sd)
-            csv_file.writerow(['Mean of ln'] + spacer + x_mean_log)
-            csv_file.writerow(['SD of ln'] + spacer + x_sd_log)
-            idx = 0
-
-            for seg in xfreq:
-
-                for chan in seg['data'].axis['chan'][0]:
-                    idx += 1
-                    data_row = list(seg['data'](chan=chan)[0])
-                    csv_file.writerow([idx,
-                                       seg['times'][0],
-                                       seg['times'][1],
-                                       seg['duration'],
-#                                       seg['n_stitch'],
-                                       seg['stage'],
-                                       seg['cycle'][2],
-                                       seg['name'],
-                                       chan,
-                                       ] + data_row)
 
     def export_pac(self, xpac, fpha, famp):
         """Write PAC analysis data to CSV."""
@@ -1813,3 +1900,81 @@ def _select_channels(data, channels):
     output.axis['chan'][0] = asarray(channels)
 
     return output
+
+
+class PlotCanvas(FigureCanvas):
+    """Widget for showing plots."""
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+ 
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+ 
+        FigureCanvas.setSizePolicy(self,
+                QSizePolicy.Expanding,
+                QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+  
+    def plot(self, x, y, title, ylabel, log='log y-axis', idx_lim=(1, None)):
+        """Plot the data.
+        
+        Parameters
+        ----------
+        x : ndarray
+            vector with frequencies
+        y : ndarray
+            vector with amplitudes
+        title : str
+            title of the plot, to appear above it
+        ylabel : str
+            label for the y-axis
+        log : str
+            'log y-axis', 'log both axes' or 'linear', to set axis scaling
+        idx_lim : tuple of (int or None)    
+            indices of the data to plot. by default, the first value is left 
+            out, because of assymptotic tendencies near 0 Hz.
+        """
+        x = x[slice(*idx_lim)]
+        y = y[slice(*idx_lim)]        
+        ax = self.figure.add_subplot(111)
+        ax.set_title(title)
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel(ylabel)
+        
+        if 'log y-axis' == log:
+            ax.semilogy(x, y, 'r-')
+        elif 'log both axes' == log:
+            ax.loglog(x, y, 'r-')
+        elif 'linear' == log:
+            ax.plot(x, y, 'r-')
+
+
+class PlotDialog(QDialog):
+    """Dialog for displaying plots."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowModality(Qt.ApplicationModal)
+        
+        self.parent = parent
+        self.canvas = PlotCanvas(self)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        self.create_dialog()
+    
+    def create_dialog(self):
+        """Create the basic dialog."""
+        self.bbox = QDialogButtonBox(QDialogButtonBox.Close)
+        self.idx_close = self.bbox.button(QDialogButtonBox.Close)
+        self.idx_close.pressed.connect(self.reject)
+        
+        btnlayout = QHBoxLayout()
+        btnlayout.addStretch(1)
+        btnlayout.addWidget(self.bbox)
+        
+        layout = QVBoxLayout()
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        layout.addLayout(btnlayout)
+        layout.addStretch(1)
+        self.setLayout(layout)
