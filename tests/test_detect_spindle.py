@@ -35,18 +35,18 @@ def test_detect_spindle_Ferrarelli2007():
     detsp = DetectSpindle(method='Ferrarelli2007')
 
     sp = detsp(data)
-    assert len(sp.events) == 7
+    assert len(sp.events) == 0
 
 
 def test_detect_spindle_UCSD():
     detsp = DetectSpindle(method='UCSD')
-    
+
     sp = detsp(data)
     assert len(sp.events) == 6
-    
+
 def test_detect_spindle_Concordia():
     detsp = DetectSpindle(method='Concordia')
-    
+
     sp = detsp(data)
     assert (len(sp.events)) == 4
 
@@ -56,7 +56,7 @@ def test_detect_spindle_unknownmethod():
 
 def test_merge_close():
     detsp = DetectSpindle(method='Nir2011')
-    
+
     sp = detsp(data)
     assert len(sp.events) == 2
 
@@ -69,7 +69,7 @@ def test_detect_spindle_to_data():
 
     sp_freq = sp.to_data('peak_freq')
     assert approx(sp_freq(0)[0]) == 13.114754098360656
-    
+
     sp_ptp = sp.to_data('ptp')
     assert approx(sp_ptp(0)[0]) == 63.53406593406595
 
