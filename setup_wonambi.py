@@ -34,6 +34,7 @@ args = parser.parse_args()
 
 
 BASE_PATH = Path(__file__).resolve().parent
+PKG_PATH = BASE_PATH / 'wonambi'
 DOCS_PATH = BASE_PATH / 'docs'
 BUILD_PATH = DOCS_PATH / 'build'
 SOURCE_PATH = DOCS_PATH / 'source'
@@ -52,7 +53,7 @@ else:
     DOWNLOADS_PATH = TEST_PATH / 'downloads'  # local
 DOWNLOADS_PATH.mkdir(exist_ok=True)
 
-VER_PATH = BASE_PATH / 'wonambi' / 'VERSION'
+VER_PATH = PKG_PATH / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
 
 REMOTE_FILES = [
@@ -280,7 +281,16 @@ def _test_import():
 
 
 def _docs():
-    print(BUILD_PATH)
+    run([
+        'sphinx-apidoc',
+        '-f',
+        '-e',
+        '--module-first',
+        '-o',
+        str(API_PATH),
+        str(PKG_PATH),
+        str(PKG_PATH / 'viz'),
+        ])
     output = run(['sphinx-build',
                   '-T',
                   '-b',
