@@ -57,6 +57,9 @@ export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DAT
 # custom code (ctags)
 export PATH=~/tools/bin:$PATH
 
+# custom firefox
+export PATH=~/tools/bin/firefox:$PATH
+
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
 
