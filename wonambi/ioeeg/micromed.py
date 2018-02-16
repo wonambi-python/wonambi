@@ -10,7 +10,7 @@ MAX_CAN_VIEW = 128
 
 
 class Micromed:
-    """Basic class to read the data.
+    """Basic class to read Micromed data. Supports .TRC and .VWR files
 
     Parameters
     ----------
@@ -19,6 +19,26 @@ class Micromed:
     """
     def __init__(self, filename):
         self.filename = filename
+        self._header = {}
+
+        with open(self.filename, 'rb') as f:
+            self._header = _read_header(f)
+
+            f.seek(0, SEEK_END)
+            EOData = f.tell()
+
+        self._bodata = self._header['BOData']
+        self._n_chan = self._header['n_chan']
+        self._n_bytes = self._header['n_bytes']
+        self._s_freq = self._header['s_freq']
+        self._n_smp = int((EOData - self._bodata) /
+                          (self._n_chan * self._n_bytes))
+
+        self._factors = array([ch['factor'] for ch in self._header['chans']])
+        self._offset = array([ch['logical_ground'] for ch in self._header['chans']])
+
+        self._triggers = self._header['trigger']
+        self._videos = self._header['dvideo']
 
     def return_hdr(self):
         """Return the header for further use.
@@ -38,30 +58,11 @@ class Micromed:
         orig : dict
             additional information taken directly from the header
         """
-        orig = {}
 
-        with self.filename.open('rb') as f:
-            orig = _read_header(f)
-            subj_id = orig['name'] + ' ' + orig['surname']
+        subj_id = self._header['name'] + ' ' + self._header['surname']
+        chan_name = [ch['chan_name'] for ch in self._header['chans']]
 
-            f.seek(0, SEEK_END)
-            EOData = f.tell()
-
-        self._bodata = orig['BOData']
-        self._n_chan = orig['n_chan']
-        self._n_bytes = orig['n_bytes']
-        self._s_freq = orig['s_freq']
-        self._n_smp = int((EOData - self._bodata) /
-                          (self._n_chan * self._n_bytes))
-
-        self._factors = array([ch['factor'] for ch in orig['chans']])
-        self._offset = array([ch['logical_ground'] for ch in orig['chans']])
-        chan_name = [ch['chan_name'] for ch in orig['chans']]
-
-        self._triggers = orig['trigger']
-        self._videos = orig['dvideo']
-
-        return subj_id, orig['start_time'], orig['s_freq'], chan_name, self._n_smp, orig
+        return subj_id, self._header['start_time'], self._header['s_freq'], chan_name, self._n_smp, self._header
 
     def return_dat(self, chan, begsam, endsam):
         """Return the data as 2D numpy.ndarray.
@@ -80,6 +81,10 @@ class Micromed:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
+
+        if type(chan) == int:  # if single value is provided it needs to be transformed to list to generate a 2d matrix
+            chan = [chan, ]
+
         if (begsam >= self._n_smp) or (endsam < 0):
             dat = empty((len(chan), endsam - begsam))
             dat.fill(NaN)

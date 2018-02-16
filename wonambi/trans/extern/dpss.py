@@ -358,8 +358,8 @@ def fftconvolve(in1, in2, mode="full", axis=None):
     """
     s1 = np.array(in1.shape)
     s2 = np.array(in2.shape)
-    complex_result = (np.issubdtype(in1.dtype, np.complex) or
-                      np.issubdtype(in2.dtype, np.complex))
+    complex_result = (np.issubdtype(in1.dtype, np.complexfloating) or
+                      np.issubdtype(in2.dtype, np.complexfloating))
 
     if axis is None:
         size = s1 + s2 - 1

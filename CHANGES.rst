@@ -2,6 +2,9 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.21**: sometimes detected events can be None
+- **4.20**: handle weird / unrecognized sleep stages and mark them as unknown
+- **4.19**: improved micromed reader
 - **4.18**: full documentation for sleep statistics
 - **4.17**: correct way to get timestamps for lights out and lights on
 - **4.16**: Enter relative or absolute time for lights out and on
