@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.20**: handle weird / unrecognized sleep stages and mark them as unknown
 - **4.19**: improved micromed reader
 - **4.18**: full documentation for sleep statistics
 - **4.17**: correct way to get timestamps for lights out and lights on
