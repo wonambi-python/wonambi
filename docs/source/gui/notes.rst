@@ -124,6 +124,16 @@ Double-click on an event in the table to jump to its position on the trace.
 
 You can also delete an event from the table by clicking it and pressing the ``Delete`` button below the table.
 
+Mark artefacts
+--------------
+
+Events marked using the event type ``Artefact`` are used for data exclusion in analysis.
+
+Currently, artefacts marked on any channel will exclude concurrent signal on all channels, when the artefact exclusion option is selected (see analysis_).
+
+To mark ``Artefact`` events, click on ``Annotations`` -> ``Event`` --> ``New Event Type`` and type in "Artefact".
+Then in ``Event Mode``, mark the artefacts on any channel.
+
 Export sleep scores as csv
 --------------------------
 

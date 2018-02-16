@@ -68,7 +68,7 @@ lg = getLogger(__name__)
 MAX_FREQUENCY_OF_INTEREST = 50
 # TODO: this in ConfigNotes
 STAGE_NAME = ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
-              'Undefined', 'Unknown', 'Artefact', 'Unrecognized']
+              'Undefined', 'Unknown', 'Artefact']
 STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
@@ -405,7 +405,7 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['analyze_events'] = act
 
-        act = QAction('Analysis... (BETA)', self)
+        act = QAction('Analysis console (BETA)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act

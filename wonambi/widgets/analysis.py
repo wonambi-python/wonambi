@@ -4,9 +4,9 @@
 """
 from operator import itemgetter
 from logging import getLogger
-from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf,
-                   log, logical_and, logical_or, mean, nan_to_num, ptp, ravel, 
-                   sqrt, square, std, zeros)
+from numpy import (arange, asarray, concatenate, diff, empty, float64, floor, 
+                   in1d, inf, log, logical_and, logical_or, mean, nan_to_num, 
+                   ptp, ravel, sqrt, square, std, zeros)
 from math import isclose
 from csv import writer
 from os.path import basename, splitext
@@ -16,7 +16,6 @@ from matplotlib.backends.backend_qt5agg \
 from matplotlib.backends.backend_qt5agg \
     import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 
 try:
     from tensorpac import Pac
@@ -25,14 +24,12 @@ except ImportError:
     Pac = pacstr = None
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (QAbstractItemView,
                              QDialog,
                              QDialogButtonBox,
                              QDoubleSpinBox,
                              QFileDialog,
                              QFormLayout,
-                             QFrame,
                              QGridLayout,
                              QGroupBox,
                              QHBoxLayout,
@@ -75,7 +72,7 @@ class AnalysisDialog(ChannelDialog):
     def __init__(self, parent):
         ChannelDialog.__init__(self, parent)
 
-        self.setWindowTitle('Analysis')
+        self.setWindowTitle('Analysis console')
         self.chunk = {}
         self.label = {}
         self.cat = {}
@@ -115,7 +112,7 @@ class AnalysisDialog(ChannelDialog):
 
         self.chunk['event'] = FormRadio('by e&vent')
         self.chunk['epoch'] = FormRadio('by e&poch')
-        self.chunk['segment'] = FormRadio('by longest &segment')
+        self.chunk['segment'] = FormRadio('by longest &run')
         self.label['evt_type'] = QLabel('Event type (s)')
         self.label['epoch_dur'] = QLabel('Duration (sec)')
         self.label['min_dur'] = QLabel('Minimum duration (sec)')
@@ -341,16 +338,12 @@ class AnalysisDialog(ChannelDialog):
         flayout.addRow(freq['plot_on'])
         flayout.addRow('Title:', 
                        freq['title'])
-#==============================================================================
-#         flayout.addRow('Axis scaling',
-#                        freq['axis_scale'])
-#==============================================================================
-#==============================================================================
-#         flayout.addRow('Lower limit (Hz)',
-#                        freq['min_x_axis'])        
-#         flayout.addRow('Upper limit (Hz)',
-#                        freq['max_x_axis'])
-#==============================================================================
+        flayout.addRow('Axis scaling',
+                       freq['axis_scale'])
+        flayout.addRow('Lower limit (Hz)',
+                       freq['min_x_axis'])        
+        flayout.addRow('Upper limit (Hz)',
+                       freq['max_x_axis'])
 
         glayout = QGridLayout()
         glayout.addWidget(freq['box_param'], 0, 0)
@@ -358,7 +351,7 @@ class AnalysisDialog(ChannelDialog):
         glayout.addWidget(freq['box_welch'], 0, 1)
         glayout.addWidget(freq['box_mtap'], 1, 1)
         glayout.addWidget(freq['box_norm'], 2, 0)
-        glayout.addWidget(freq['box_plot'], 2, 1)
+        # glayout.addWidget(freq['box_plot'], 2, 1)
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
@@ -610,7 +603,7 @@ class AnalysisDialog(ChannelDialog):
         freq['box_mtap'].setEnabled(False)
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
-        freq['box_plot'].setEnabled(False)
+        # freq['box_plot'].setEnabled(False)
         freq['spectrald'].setChecked(True)
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
@@ -762,8 +755,8 @@ class AnalysisDialog(ChannelDialog):
         freq['box_output'].setEnabled(freq_on)
         freq['box_norm'].setEnabled(freq_on)
         
-        plot_on = freq['plot_on'].get_value()
-        freq['box_plot'].setEnabled(plot_on)
+        # plot_on = freq['plot_on'].get_value()
+        # freq['box_plot'].setEnabled(plot_on)
 
         welch_on = freq['welch_on'].get_value()
         freq['box_welch'].setEnabled(welch_on)
@@ -888,124 +881,26 @@ class AnalysisDialog(ChannelDialog):
         """
         if button is self.idx_ok:
 
+            # File location
             filename = self.filename
             if filename is None:
                 return
-
-            chunk = {k: v.isChecked() for k, v in self.chunk.items()}
-
-            if chunk['event']:
-                evt_type = self.idx_evt_type.selectedItems()
-                if not evt_type:
-                    return
-                else:
-                    evt_type = [x.text() for x in evt_type]
-            else:
-                evt_type = None
-
-            # Which channel(s)
-            group = self.one_grp
-            chan = self.get_channels()
-            if not chan:
-                return
-            chan_full = [i + ' (' + self.idx_group.currentText() + ''
-                           ')' for i in chan]
-
-            # Which cycle(s)
-            cycle = self.get_cycles()
-
-            # Which stage(s)
-            stage = self.idx_stage.selectedItems()
-            if not stage:
-                stage = None
-            else:
-                stage = [x.text() for x in self.idx_stage.selectedItems()]
-            lg.info('Stages from GUI: ' + str(stage))
-
-            # Concatenation
-            cat = {k: v.get_value() for k, v in self.cat.items()}
-            lg.info('Cat: ' + str(cat))
-            cat_chan = cat['chan']
-            cat = (int(cat['cycle']), int(cat['stage']),
-                   int(cat['discontinuous']), int(cat['evt_type']))
-
-            # Other options
-            lock_to_staging = self.lock_to_staging.get_value()
-            exclude_epoch = self.reject_epoch.get_value()
-            evt_chan_only = self.evt_chan_only.get_value()
-            trans = {k: v.get_value() for k, v in self.trans['button'].items()}
-            filt = {k: v[1].get_value() for k, v in \
-                    self.trans['filt'].items() if v[1] is not None}
-
-            # Event parameters
-            ev_glo = {k: v.get_value() for k, v in \
-                      self.event['global'].items()}
-            ev_loc = {k: v[0].get_value() for k, v in \
-                      self.event['local'].items()}
-            ev_loc_prep = {k: v[1].get_value() for k, v in \
-                           self.event['local'].items()}
-            ev_sw = {k: v.get_value() for k, v in self.event['sw'].items()}
-            ev_sl = [x.get_value() for x in self.event['slope']]
-
-            # Fetch signal
-            lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
-                                           str(cycle), str(chan_full),
-                                           str(exclude_epoch))))
-            bundles = get_times(self.parent.notes.annot, evt_type=evt_type,
-                                stage=stage, cycle=cycle, chan=chan_full,
-                                exclude=exclude_epoch)
-            lg.info('Get times: ' + str(len(bundles)))
-
-            if not bundles:
-                self.parent.statusBar().showMessage('No valid signal found.')
-                self.accept()
+            
+            # Which analyses?
+            freq_on = self.frequency['freq_on'].get_value()
+            freq_plot_on = self.frequency['plot_on'].get_value()
+            pac_on = self.pac['pac_on'].get_value()
+            
+            if not (freq_on or pac_on):
                 return
 
-            if self.reject_event.get_value():
-                for bund in bundles:
-                    bund['times'] = remove_artf_evts(bund['times'],
-                                                    self.parent.notes.annot,
-                                                    min_dur=0)
-            lg.info('After remove artf evts: ' + str(len(bundles)))
+            # Fetch signal            
+            self.fetch_signal()
 
-            if not bundles:
-                self.parent.statusBar().showMessage('No valid signal found.')
-                self.accept
-                return
+            # Transform signal (coming soon)
 
-            lg.info('Preparing concatenation: ' + str(cat))
-            bundles = concat(bundles, cat)
-            lg.info('After concat: ' + str(len(bundles)))
-
-            if chunk['epoch']:
-                cat = (0, 0, 0, 0)
-
-                if lock_to_staging:
-                    bundles = divide_bundles(bundles)
-                    lg.info('Divided ' + str(len(bundles)))
-
-                else:
-                    bundles = find_intervals(bundles,
-                                             self.epoch_dur.get_value())
-                    lg.info('Find intervals: ' + str(len(bundles)))
-
-            segments = longer_than(bundles, self.min_dur.get_value())
-            lg.info('Longer than: ' + str(len(segments)))
-
-            if not segments:
-                self.parent.statusBar().showMessage('No valid signal found.')
-                self.accept
-                return
-
-            self.read_data(chan, group, segments, concat_chan=cat_chan,
-                           evt_chan_only=evt_chan_only)
-            lg.info('Created data, n_seg: ' + str(len(self.segments)))
-
-            # Transform signal
-
-            # Apply analyses and save
-
-            if self.frequency['freq_on'].get_value():
+            # Frequency domain
+            if freq_on:
                 freq_filename = splitext(filename)[0] + '_freq.p'
                 xfreq = self.compute_freq()
 
@@ -1014,10 +909,11 @@ class AnalysisDialog(ChannelDialog):
 
                 x, y = self.export_freq(xfreq)
                 
-                if self.frequency['plot_on'].get_value():
-                    self.plot_freq(x, y)
+                if freq_plot_on:
+                    self.plot_freq(x, y, title=self.title)
 
-            if self.pac['pac_on'].get_value():
+            # PAC
+            if pac_on:
                 xpac, fpha, famp = self.compute_pac()
                 pac_filename = splitext(filename)[0] + '_pac.p'
 
@@ -1030,6 +926,132 @@ class AnalysisDialog(ChannelDialog):
 
         if button is self.idx_cancel:
             self.reject()
+
+    def fetch_signal(self):
+        """Read selection options and create dict (bundles) with times and
+        details (stage, cycle, etc.), then read data"""
+        # Chunking
+        chunk = {k: v.isChecked() for k, v in self.chunk.items()}
+        epoch_dur = self.epoch_dur.get_value()
+
+        # Which event type(s)
+        if chunk['event']:
+            evt_type = self.idx_evt_type.selectedItems()
+            if not evt_type:
+                return
+            else:
+                evt_type = [x.text() for x in evt_type]
+        else:
+            evt_type = None
+
+        # Which channel(s)
+        group = self.one_grp
+        chan = self.get_channels()
+        if not chan:
+            return
+        chan_full = [i + ' (' + self.idx_group.currentText() + ''
+                       ')' for i in chan]
+
+        # Which cycle(s)
+        cycle = self.get_cycles()
+
+        # Which stage(s)
+        stage = self.idx_stage.selectedItems()
+        if not stage:
+            stage = None
+        else:
+            stage = [x.text() for x in self.idx_stage.selectedItems()]
+        lg.info('Stages from GUI: ' + str(stage))
+
+        # Concatenation
+        cat = {k: v.get_value() for k, v in self.cat.items()}
+        lg.info('Cat: ' + str(cat))
+        cat_chan = cat['chan']
+        cat = (int(cat['cycle']), int(cat['stage']),
+               int(cat['discontinuous']), int(cat['evt_type']))
+
+        # Other options
+        lock_to_staging = self.lock_to_staging.get_value()
+        reject_epoch = self.reject_epoch.get_value()
+        reject_artf = self.reject_event.get_value()
+        evt_chan_only = self.evt_chan_only.get_value()
+        # trans = {k: v.get_value() for k, v in self.trans['button'].items()}
+        # filt = {k: v[1].get_value() for k, v in \
+        #         self.trans['filt'].items() if v[1] is not None}
+
+        # Get times
+        lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
+                                       str(cycle), str(chan_full),
+                                       str(reject_epoch))))
+        bundles = get_times(self.parent.notes.annot, evt_type=evt_type,
+                            stage=stage, cycle=cycle, chan=chan_full,
+                            exclude=reject_epoch)
+        lg.info('Get times: ' + str(len(bundles)))            
+
+        # Remove artefacts
+        if reject_artf and bundles:
+            for bund in bundles:
+                bund['times'] = remove_artf_evts(bund['times'],
+                                                self.parent.notes.annot,
+                                                min_dur=0)
+            lg.info('After remove artf evts: ' + str(len(bundles)))
+
+        # Minimum duration
+        if bundles:
+            bundles = longer_than(bundles, self.min_dur.get_value())
+            lg.info('Longer than: ' + str(len(bundles)))
+
+        # Make bundle = segment
+        if bundles:
+            
+            if chunk['epoch']:
+
+                if lock_to_staging:
+                    bundles = divide_bundles(bundles)
+                    lg.info('Divided ' + str(len(bundles)))
+
+                else:
+                    bundles = find_intervals(bundles, epoch_dur)
+                    lg.info('Find intervals: ' + str(len(bundles)))
+                    
+            else:
+                lg.info('Preparing concatenation: ' + str(cat))
+                bundles = _concat(bundles, cat)
+                lg.info('After concat: ' + str(len(bundles)))                
+        
+        if not bundles:
+            self.parent.statusBar().showMessage('No valid signal found.')
+            self.accept()
+            return
+
+        self.title = self.make_title(chan, cycle, stage, evt_type)
+
+        # Fetch signal
+        self.read_data(chan, group, bundles, concat_chan=cat_chan,
+                       evt_chan_only=evt_chan_only)
+        lg.info('Created data, n_seg: ' + str(len(self.segments)))
+    
+    def read_data(self, chan, group, segments, concat_chan, evt_chan_only):
+        """Read data for analysis."""
+        dataset = self.parent.info.dataset
+        chan_to_read = chan + self.one_grp['ref_chan']
+
+        data = dataset.read_data(chan=chan_to_read)
+
+        max_s_freq = self.parent.value('max_s_freq')
+        if data.s_freq > max_s_freq:
+            q = int(data.s_freq / max_s_freq)
+            lg.debug('Decimate (no low-pass filter) at ' + str(q))
+
+            data.data[0] = data.data[0][:, slice(None, None, q)]
+            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
+            data.s_freq = int(data.s_freq / q)
+
+        self.segments = _create_data_to_analyze(data, chan, self.one_grp,
+                                                segments=segments,
+                                                concat_chan=concat_chan,
+                                                evt_chan_only=evt_chan_only, 
+                                                parent=self)
 
     def save_as(self):
         """Dialog for getting name, location of data export file."""
@@ -1044,38 +1066,6 @@ class AnalysisDialog(ChannelDialog):
         self.filename = filename
         short_filename = short_strings(basename(self.filename))
         self.idx_filename.setText(short_filename)
-
-    def read_data(self, chan, group, segments, concat_chan, evt_chan_only):
-        """Read data for analysis."""
-        dataset = self.parent.info.dataset
-        #chan = self.get_channels() # already given as an argument!
-        chan_to_read = chan + self.one_grp['ref_chan']
-
-        data = dataset.read_data(chan=chan_to_read)
-
-        max_s_freq = self.parent.value('max_s_freq')
-        if data.s_freq > max_s_freq:
-            q = int(data.s_freq / max_s_freq)
-            lg.debug('Decimate (no low-pass filter) at ' + str(q))
-
-            data.data[0] = data.data[0][:, slice(None, None, q)]
-            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
-            data.s_freq = int(data.s_freq / q)
-
-        lg.info('Sending segments for _create, nseg: ' + str(len(segments)))
-
-        self.segments = _create_data_to_analyze(data, chan, self.one_grp,
-                                                segments=segments,
-                                                concat_chan=concat_chan,
-                                                evt_chan_only=evt_chan_only, 
-                                                parent=self)
-
-#==============================================================================
-#         self.chan = []
-#         for ch in chan:
-#             chan_grp_name = ch + ' (' + self.one_grp['name'] + ')'
-#             self.chan.append(chan_grp_name)
-#==============================================================================
 
     def compute_freq(self):
         """Compute frequency domain analysis.
@@ -1144,7 +1134,6 @@ class AnalysisDialog(ChannelDialog):
             new_seg['times'] = timeline[0], timeline[-1]
             new_seg['duration'] = len(timeline) / data.s_freq
 
-            lg.info('Compute freq ' + ' ' + str((timeline[0], timeline[-1])))
             Sxx = frequency(data, output=output, scaling=scaling, sides=sides,
                             taper=taper, halfbandwidth=halfbandwidth, NW=NW,
                             duration=duration, overlap=overlap, step=step,
@@ -1177,6 +1166,10 @@ class AnalysisDialog(ChannelDialog):
         freq = list(xfreq[0]['data'].axis['freq'][0])
 
         xf = asarray([y for x in xfreq for y in x['data']()[0]])
+        lg.info('xf shape: ' + str(xf.shape))
+        lg.info('xf[:] shape: ' + str([i.shape for i in xf]))
+        lg.info('xf[0] type: ' + str(type(xf[0])))
+        lg.info('xf[0][0] type: ' + str(type(xf[0][0])))
         xf_log = log(xf)
         x_mean = list(mean(xf, axis=0))
         x_sd = list(std(xf, axis=0))
@@ -1211,7 +1204,7 @@ class AnalysisDialog(ChannelDialog):
             
         return asarray(freq), asarray(x_mean)
 
-    def plot_freq(self, x, y):
+    def plot_freq(self, x, y, title=''):
         """Plot mean frequency spectrum and display in dialog.
         
         Parameters
@@ -1222,10 +1215,11 @@ class AnalysisDialog(ChannelDialog):
             vector with amplitudes            
         """
         freq = self.frequency
-        title = freq['title'].get_value()
         scaling = freq['scaling'].get_value()
-#        log = freq['axis_scale'].get_value()
+        
 #==============================================================================
+#         title = freq['title'].get_value()
+#         log = freq['axis_scale'].get_value()
 #         xlim = freq['min_x_axis'].get_value(), freq['max_x_axis'].get_value()
 #         
 #         idx_low = (abs(x - xlim[0])).argmin()
@@ -1234,10 +1228,8 @@ class AnalysisDialog(ChannelDialog):
 #             idx_high = None
 #         else:
 #             idx_high = (abs(x - xlim[1])).argmin()
-#             
-#         lg.info('limits: ' + str(idx_low) + ' ' + str(idx_high))
 #==============================================================================
-        
+                    
         if freq['complex'].get_value():
             ylabel = 'Amplitude (uV)'
         elif 'power' == scaling:
@@ -1456,6 +1448,29 @@ class AnalysisDialog(ChannelDialog):
                                        xpac[chan]['name'][i],
                                        chan,
                                        ] + data_row + pval_row)
+            
+    def compute_params(self):
+        """Compute event parameters."""
+        ev_glo = {k: v.get_value() for k, v in \
+                  self.event['global'].items()}
+        ev_loc = {k: v[0].get_value() for k, v in \
+                  self.event['local'].items()}
+        ev_loc_prep = {k: v[1].get_value() for k, v in \
+                       self.event['local'].items()}
+        ev_sw = {k: v.get_value() for k, v in self.event['sw'].items()}
+        ev_sl = [x.get_value() for x in self.event['slope']]
+    
+    def make_title(self, chan, cycle, stage, evt_type):
+        """Make a title for plots, etc."""
+        cyc_str = None
+        if cycle is not None:
+            cyc_str = [str(c[2]) for c in cycle]
+            cyc_str[0] = 'cycle ' + cyc_str[0]
+            
+        title = [' + '.join([str(x) for x in y]) for y in [chan, cyc_str, 
+                 stage, evt_type] if y is not None]
+        
+        return ', '.join(title)
 
 
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
@@ -1552,7 +1567,30 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
     return bundles
 
 
-def concat(bundles, cat=(0, 0, 0, 0)):
+def longer_than(segments, min_dur):
+    """
+    Parameters
+    ----------
+    segments : list of dict
+        Each dict has times (the start and end times of each sub-segment, as
+        list of tuple of float), and the stage, cycle, chan and name (event
+        type, if applicable) associated with the segment
+    min_dur: float
+        Minimum duration of signal chunks returned.
+    """
+    if min_dur <= 0.:
+        return segments
+
+    long_enough = []
+    for seg in segments:
+
+        if sum([t[1] - t[0] for t in seg['times']]) >= min_dur:
+            long_enough.append(seg)
+
+    return long_enough
+
+
+def _concat(bundles, cat=(0, 0, 0, 0)):
     """Prepare events or epochs for concatenation.
 
     Parameters
@@ -1732,29 +1770,6 @@ def find_intervals(bundles, interval):
     return segments
 
 
-def longer_than(segments, min_dur):
-    """
-    Parameters
-    ----------
-    segments : list of dict
-        Each dict has times (the start and end times of each sub-segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment
-    min_dur: float
-        Minimum duration of signal chunks returned.
-    """
-    if min_dur <= 0.:
-        return segments
-
-    long_enough = []
-    for seg in segments:
-
-        if sum([t[1] - t[0] for t in seg['times']]) >= min_dur:
-            long_enough.append(seg)
-
-    return long_enough
-
-
 def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
                             concat_chan=False, evt_chan_only=False, 
                             parent=None):
@@ -1871,6 +1886,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
     
     return output
 
+
 def _select_channels(data, channels):
     """Select channels.
 
@@ -1916,7 +1932,7 @@ class PlotCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
   
-    def plot(self, x, y, title, ylabel, log='log y-axis', idx_lim=(1, None)):
+    def plot(self, x, y, title, ylabel, log='log y-axis', idx_lim=(1, -1)):
         """Plot the data.
         
         Parameters
