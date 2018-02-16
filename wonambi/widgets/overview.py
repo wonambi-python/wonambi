@@ -359,12 +359,13 @@ class Overview(QGraphicsView):
             one of the stages defined in global stages.
         """
         y_pos = BARS['stage']['pos0']
+        current_stage = STAGES.get(stage_name, STAGES['Unknown'])
 
         # the -1 is really important, otherwise we stay on the edge of the rect
         old_score = self.scene.itemAt(start_time + length / 2,
                                       y_pos +
-                                      STAGES[stage_name]['pos0'] +
-                                      STAGES[stage_name]['pos1'] - 1,
+                                      current_stage['pos0'] +
+                                      current_stage['pos1'] - 1,
                                       self.transform())
 
         # check we are not removing the black border
@@ -374,11 +375,11 @@ class Overview(QGraphicsView):
             self.idx_annot.remove(old_score)
 
         rect = QGraphicsRectItem(start_time,
-                                 y_pos + STAGES[stage_name]['pos0'],
+                                 y_pos + current_stage['pos0'],
                                  length,
-                                 STAGES[stage_name]['pos1'])
+                                 current_stage['pos1'])
         rect.setPen(NoPen)
-        rect.setBrush(STAGES[stage_name]['color'])
+        rect.setBrush(current_stage['color'])
         self.scene.addItem(rect)
         self.idx_annot.append(rect)
 
