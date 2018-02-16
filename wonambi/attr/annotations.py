@@ -1278,7 +1278,8 @@ class Annotations():
         per_evt_params = list(compress(ordered_params[:-2], idx_params))
 
         lg.info('sheets: ' + str(len(sheets)) + ' summ: ' + str(len(summary)) + 'events: ' + str(len(events)))
-        lg.info('number of events ' + str(len(events[0])))
+        if events is not None:
+            lg.info('number of events ' + str(len(events[0])))
 
         for fn, summ, evs in zip(sheets, summary, events):
             first_row = list(compress(headings, idx_params))
