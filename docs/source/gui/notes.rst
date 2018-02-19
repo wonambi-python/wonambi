@@ -157,3 +157,9 @@ then select the file where you want to store the sleep scores.
 In addition, you need to specify at what time the lights went off (``Lights OUT``) and when the lights went on (``Lights ON``):
 
 .. image:: images/analysis_02_timedialog.png
+
+.. NOTE::
+  ``Lights OUT`` and ``Lights ON`` are to be used as delimiters of the *time spent intending to sleep*, not as markers of actual luminosity change in the room.
+
+.. WARNING::
+   If any epochs are scored as sleep before ``Lights OUT`` or after ``Lights ON``, sleep efficiency may exceed 1.

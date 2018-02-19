@@ -119,6 +119,28 @@ def test_epochs():
     
     assert len(annot.get_epochs()) == 50
     assert len(annot.get_epochs(time=(1000,2000))) == 16
+    
+def test_get_cycles():
+    d = Dataset(ns2_file)
+    create_empty_annotations(annot_file, d)
+
+    annot = Annotations(annot_file)
+    annot.add_rater('test')
+    
+    annot.set_cycle_mrkr(510)
+    annot.set_cycle_mrkr(540)
+    annot.set_cycle_mrkr(570)
+    annot.set_cycle_mrkr(600, end=True)
+    
+    cycles = annot.get_cycles()
+    assert len(cycles) == 3
+    assert cycles[2] == (570, 600, 3)
+    
+    annot.remove_cycle_mrkr(510)
+    annot.clear_cycles()
+    
+    cycles = annot.get_cycles()
+    assert cycles is None
         
 def test_import_alice():
     annot = Annotations(annot_file)
@@ -168,4 +190,5 @@ def test_import_fasst_error():
         
 def test_export_sleepstats():
     annot = Annotations(annot_psg_path)
-    assert annot.export_sleep_stats(annot_sleepstats_path, 0, 29000) == 338
+    assert annot.export_sleep_stats(annot_sleepstats_path, 0, 29000) == (338, 
+                                   36, 327)
