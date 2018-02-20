@@ -1303,10 +1303,10 @@ class Notes(QTabWidget):
 
         events = detector(self.data, parent=self)
 
-        progress = QProgressDialog('Saving events', 'Abort', 
+        progress = QProgressDialog('Saving events', 'Abort',
                                    0, len(events), self)
-        progress.setWindowModality(Qt.ApplicationModal) 
-        
+        progress.setWindowModality(Qt.ApplicationModal)
+
         for i, one_ev in enumerate(events):
             progress.setValue(i)
             self.annot.add_event(label,(one_ev['start'],
@@ -1314,7 +1314,7 @@ class Notes(QTabWidget):
                                         chan=one_ev['chan'])
 
         progress.setValue(i + 1)
-            
+
         self.update_annotations()
 
     def analyze_events(self, event_type, chan, stage, params, frequency,
@@ -1499,15 +1499,14 @@ class Notes(QTabWidget):
         if fn == '':
             return
 
-        header = self.parent.info.dataset.header
-        duration = int(header['n_samples'] // header['s_freq'])
-
-        dt_dialog = DateTimeDialog('Lights OUT', header['start_time'], duration)
+        dt_dialog = DateTimeDialog('Lights OUT', self.annot.start_time,
+                                   self.annot.last_second)
         if not dt_dialog.exec():
             return
         lights_out = dt_dialog.idx_seconds.value()
 
-        dt_dialog = DateTimeDialog('Lights ON', header['start_time'], duration)
+        dt_dialog = DateTimeDialog('Lights ON', self.annot.start_time,
+                                   self.annot.last_second)
         if not dt_dialog.exec():
             return
         lights_on = dt_dialog.idx_seconds.value()
@@ -2586,10 +2585,10 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
 
     """
     if parent is not None:
-        progress = QProgressDialog('Fetching signal', 'Abort', 
+        progress = QProgressDialog('Fetching signal', 'Abort',
                                    0, len(times), parent)
         progress.setWindowModality(Qt.ApplicationModal)
-    
+
     s_freq = data.s_freq
 
     if times is None:
@@ -2642,7 +2641,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
     output.axis['time'][0] = concatenate(timeline)
     output.data[0] = concatenate(all_epoch_data, axis=1)
-    
+
     if parent is not None:
         progress.setValue(i + 1)
 

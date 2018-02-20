@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.22**: improved sleep stats
 - **4.21**: sometimes detected events can be None
 - **4.20**: handle weird / unrecognized sleep stages and mark them as unknown
 - **4.19**: improved micromed reader
