@@ -7,7 +7,7 @@ Detect Events
 Wonambi can automatically detect sleep spindles and slow waves in the signal.
 
 To detect events, make sure you have first loaded a Montage and an Annotations File.
-In your montage, create the desired channels for event detection. Note that filters set in the Channels tab are not retained for event detection.
+In your Montage, create the desired channels for event detection. Note that filters set in the Channels tab are not retained for event detection.
 Now, click on ``Analysis`` -> ``Detect`` and choose the desired event. This will open the detection dialog. 
 
 Let us begin with the **spindle detection dialog**:
@@ -28,7 +28,7 @@ If no cycle is selected, detection will ignore cycles.
 Under ``Stage(s)``, select in which stage or stages to find spindles. 
 If no stage is selected, detection will ignore stages.
 
-.. NOTE::
+.. WARNING::
    If you select neither a cycle nor a stage, detection will be carried out over the entire record, even wake!
 
 *Parameters*
@@ -46,8 +46,8 @@ If you have marked events with event type "Artefact", you may check the ``Exclud
 Signal on all selected channels that is concurrent with an "Artefact" event on any channel will be excluded from detection, and the resulting signal segments will be concatenated.
 
 If you selected several channels, you may choose to merge spindles detected in close proximity across channels with ``Merge events across channels``.
-When selected, spindles on different channels that are separated by less than a certain delay will be merged onto the channel with the earliest onset spindle.
-The delay is set with ``Minimum interval``, at the bottom of the dialog. If ``Minimum interval`` is set to zero, then only overlapping spindles will be merged.
+When this option is selected, spindles on different channels that are separated by less than a specified delay will be merged onto the channel with the earliest onset spindle.
+The delay is set with ``Minimum interval``, under *Parameters*. If ``Minimum interval`` is set to zero, only overlapping spindles will be merged.
 
 The **slow wave detection dialog** is similar to the spindle detection dialog:
 

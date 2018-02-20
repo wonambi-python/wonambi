@@ -7,7 +7,7 @@ from PyQt5.QtCore import QEvent, QPointF
 from PyQt5.Qt import QMouseEvent, Qt
 
 from wonambi.scroll_data import MainWindow
-from wonambi.widgets.utils import remove_artf_evts
+from wonambi.trans.reject import remove_artf_evts
 
 from .test_scroll_data import (channel_make_group,
                                find_in_qt,

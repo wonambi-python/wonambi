@@ -1,5 +1,6 @@
 """Various functions used for the GUI.
 """
+from ast import literal_eval
 from logging import getLogger
 from math import ceil, floor
 from numpy import arange
@@ -10,18 +11,26 @@ from PyQt5.QtGui import (QBrush,
                          QColor,
                          QPainterPath,
                          )
-from PyQt5.QtWidgets import (QGraphicsItem,
+from PyQt5.QtWidgets import (QCheckBox,
+                             QComboBox,
+                             QCommonStyle,
+                             QFileDialog,
+                             QGraphicsItem,
                              QGraphicsRectItem,
                              QGraphicsSimpleTextItem,
+                             QLineEdit,
                              QMessageBox,
-                             QCommonStyle,
+                             QPushButton,
+                             QRadioButton,
                              )
 
 lg = getLogger(__name__)
 
 LINE_WIDTH = 0  # COSMETIC LINE
 LINE_COLOR = 'black'
-
+# TODO: this in ConfigNotes
+STAGE_NAME = ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
+              'Undefined', 'Unknown', 'Artefact']
 
 MAX_LENGTH = 20
 
@@ -138,6 +147,468 @@ class TextItem_with_BG(QGraphicsSimpleTextItem):
         painter.drawRect(self.boundingRect())
         super().paint(painter, option, widget)
 
+class FormBool(QCheckBox):
+    """Subclass QCheckBox to have a more consistent API across widgets.
+
+    Parameters
+    ----------
+    checkbox_label : str
+        label next to checkbox
+
+    """
+    def __init__(self, checkbox_label):
+        super().__init__(checkbox_label)
+
+    def get_value(self, default=False):
+        """Get the value of the QCheckBox, as boolean.
+
+        Parameters
+        ----------
+        default : bool
+            not used
+
+        Returns
+        -------
+        bool
+            state of the checkbox
+
+        """
+        return self.checkState() == Qt.Checked
+
+    def set_value(self, value):
+        """Set value of the checkbox.
+
+        Parameters
+        ----------
+        value : bool
+            value for the checkbox
+
+        """
+        if value:
+            self.setCheckState(Qt.Checked)
+        else:
+            self.setCheckState(Qt.Unchecked)
+
+    def connect(self, funct):
+        """Call funct when user ticks the box.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.stateChanged.connect(funct)
+
+
+class FormRadio(QRadioButton):
+    """Subclass QRadioButton to have a more consistent API across widgets.
+
+    Parameters
+    ----------
+    checkbox_label : str
+        label next to checkbox
+
+    """
+    def __init__(self, checkbox_label):
+        super().__init__(checkbox_label)
+
+    def get_value(self, default=False):
+        """Get the value of the QCheckBox, as boolean.
+
+        Parameters
+        ----------
+        default : bool
+            not used
+
+        Returns
+        -------
+        bool
+            state of the checkbox
+
+        """
+        return self.isChecked  == Qt.Checked
+
+    def set_value(self, value):
+        """Set value of the checkbox.
+
+        Parameters
+        ----------
+        value : bool
+            value for the checkbox
+
+        """
+        if value:
+            self.setCheckState(Qt.Checked)
+        else:
+            self.setCheckState(Qt.Unchecked)
+
+    def connect(self, funct):
+        """Call funct when user ticks the box.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.toggled.connect(funct)
+
+
+class FormFloat(QLineEdit):
+    """Subclass QLineEdit for float to have a more consistent API across
+    widgets.
+
+    """
+    def __init__(self, default=None):
+        super().__init__('')
+        
+        if default is not None:
+            self.set_value(default)
+
+    def get_value(self, default=0):
+        """Get float from widget.
+
+        Parameters
+        ----------
+        default : float
+            default value for the parameter in case it fails
+
+        Returns
+        -------
+        float
+            the value in text or default
+
+        """
+        text = self.text()
+        try:
+            text = float(text)
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to float.' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+        return text
+
+    def set_value(self, value):
+        """Set value of the float.
+
+        Parameters
+        ----------
+        value : float
+            value for the line edit
+
+        """
+        self.setText(str(value))
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.textEdited.connect(funct)
+
+
+class FormInt(QLineEdit):
+    """Subclass QLineEdit for int to have a more consistent API across widgets.
+
+    """
+    def __init__(self, default=None):
+        super().__init__('')
+        
+        if default is not None:
+            self.set_value(default)
+
+    def get_value(self, default=0):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : int
+            default value for the parameter in case it fails
+
+        Returns
+        -------
+        int
+            the value in text or default
+
+        """
+        text = self.text()
+        try:
+            text = int(float(text))  # to convert values like 30.0
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to int. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+        return text
+
+    def set_value(self, value):
+        """Set value of the int.
+
+        Parameters
+        ----------
+        value : int
+            value for the line edit
+
+        """
+        self.setText(str(value))
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.textEdited.connect(funct)
+
+
+class FormList(QLineEdit):
+    """Subclass QLineEdit for lists to have a more consistent API across
+    widgets.
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=None):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : list
+            list with widgets
+
+        Returns
+        -------
+        list
+            list that might contain int or str or float etc
+
+        """
+        if default is None:
+            default = []
+
+        try:
+            text = literal_eval(self.text())
+            if not isinstance(text, list):
+                pass
+                # raise ValueError
+
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to list. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+
+        return text
+
+    def set_value(self, value):
+        """Set value of the list.
+
+        Parameters
+        ----------
+        value : list
+            value for the line edit
+
+        """
+        self.setText(str(value))
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.textEdited.connect(funct)
+
+
+class FormStr(QLineEdit):
+    """Subclass QLineEdit for str to have a more consistent API across widgets.
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=''):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : str
+            not used
+
+        Returns
+        -------
+        str
+            the value in text
+
+        """
+        return self.text()
+
+    def set_value(self, value):
+        """Set value of the string.
+
+        Parameters
+        ----------
+        value : str
+            value for the line edit
+
+        """
+        self.setText(value)
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.textEdited.connect(funct)
+
+
+class FormDir(QPushButton):
+    """Subclass QPushButton for str to have a more consistent API across widgets.
+
+    Notes
+    -----
+    It calls to open the directory three times, but I don't understand why
+
+    """
+    def __init__(self):
+        super().__init__('')
+
+    def get_value(self, default=''):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : str
+            not used
+
+        Returns
+        -------
+        str
+            the value in text
+
+        """
+        return self.text()
+
+    def set_value(self, value):
+        """Set value of the string.
+
+        Parameters
+        ----------
+        value : str
+            value for the line edit
+
+        """
+        self.setText(value)
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        Notes
+        -----
+        There is something wrong here. When you run this function, it calls
+        for opening a directory three or four times. This is obviously wrong
+        but I don't understand why this happens three times. Traceback did not
+        help.
+
+        """
+        def get_directory():
+            rec = QFileDialog.getExistingDirectory(self,
+                                                   'Path to Recording'
+                                                   ' Directory')
+            if rec == '':
+                return
+
+            self.setText(rec)
+            funct()
+
+        self.clicked.connect(get_directory)
+
+class FormMenu(QComboBox):
+    """Subclass QComboBox for dropdown menus to have a more consistent API 
+    across widgets.
+    
+    Parameters
+    ----------
+    input_list: list of str
+        items to include in the dropdown menu / combobox
+    """
+    def __init__(self, input_list):
+        super().__init__()
+        
+        if input_list is not None:
+            for i in input_list:
+                self.addItem(i)
+
+    def get_value(self, default=None):
+        """Get selection from widget.
+
+        Parameters
+        ----------
+        default : str
+            str for use by widget
+
+        Returns
+        -------
+        str
+            selected item from the combobox
+
+        """
+        if default is None:
+            default = ''
+
+        try:
+            text = self.currentText()
+
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to list. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+
+        return text
+
+    def set_value(self, value):
+        """Set value of the list.
+
+        Parameters
+        ----------
+        value : str
+            value for the combobox
+
+        """
+        self.setCurrentText(str(value))
+
+    def connect(self, funct):
+        """Call funct when the selection was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.currentIndexChanged.connect(funct)
 
 def keep_recent_datasets(max_dataset_history, info=None):
     """Keep track of the most recent recordings.
@@ -243,70 +714,6 @@ def convert_name_to_color(s):
     color = QColor(sum_mod(v[::3]) + h, sum_mod(v[1::3]) + h,
                    sum_mod(v[2::3]) + h)
     return color
-
-
-def remove_artf_evts(times, annot, min_dur=0.5):
-    """Correct times to remove events marked 'Artefact'.
-
-    Parameters
-    ----------
-    times : list of tuple of float
-        the start and end times of each segment
-    annot: instance of Annotations
-        The annotation file containing events and epochs
-
-    Returns
-    -------
-    list of tuple of float
-        the new start and end times of each segment, with artefact periods 
-        taken out            
-    """    
-    new_times = times
-    beg = times[0][0]
-    end = times[-1][-1]
-    
-    artefact = annot.get_events(name='Artefact', time=(beg, end), qual='Good')
-        
-    if artefact:
-        new_times = []
-        
-        for seg in times:
-            reject = False
-            new_seg = True
-            
-            while new_seg is not False:
-                if type(new_seg) is tuple:
-                    seg = new_seg
-                end = seg[1]
-            
-                for artf in artefact:
-                    
-                    if artf['start'] <= seg[0] and seg[1] <= artf['end']:
-                        reject = True
-                        new_seg = False
-                        break
-                    
-                    a_starts_in_s = seg[0] <= artf['start'] <= seg[1]
-                    a_ends_in_s = seg[0] <= artf['end'] <= seg[1]
-                    
-                    if a_ends_in_s and not a_starts_in_s:
-                        seg = artf['end'], seg[1]
-                        
-                    elif a_starts_in_s:
-                        seg = seg[0], artf['start']
-    
-                        if a_ends_in_s:
-                            new_seg = artf['end'], end
-                        else:
-                            new_seg = False
-                        break
-                    
-                    new_seg = False
-            
-                if reject is False and seg[1] - seg[0] >= min_dur:
-                    new_times.append(seg)
-        
-    return new_times 
 
 
 def freq_from_str(freq_str):

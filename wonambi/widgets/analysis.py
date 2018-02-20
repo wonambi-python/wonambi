@@ -4,13 +4,11 @@
 """
 from logging import getLogger
 
-from numpy import (arange, asarray, concatenate, diff, empty, floor, in1d, inf,
-                   log, logical_and, logical_or, mean, nan_to_num, ptp, ravel,
-                   sqrt, square, std, zeros)
-from math import isclose
+from numpy import (asarray, concatenate, empty, floor, log, logical_and, 
+                   logical_or, mean, nan_to_num, ravel, std, zeros)
 from csv import writer
 from os.path import basename, splitext
-from pickle import dump, load
+from pickle import dump
 
 try:
     from matplotlib.backends.backend_qt5agg \
@@ -39,9 +37,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QGroupBox,
                              QHBoxLayout,
                              QLabel,
-                             QLineEdit,
                              QListWidget,
-                             QMessageBox,
                              QProgressDialog,
                              QPushButton,
                              QSizePolicy,
@@ -52,15 +48,15 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import ChanTime
-from ..trans import montage, filter_, frequency
-from .notes import ChannelDialog, STAGE_NAME
-from .settings import (FormStr, FormInt, FormFloat, FormBool, FormMenu,
-                       FormRadio)
-from .utils import freq_from_str, short_strings, remove_artf_evts
+from ..trans import (montage, frequency, remove_artf_evts, _select_channels, 
+                     get_times, longer_than, _concat, divide_bundles, 
+                     find_intervals)
+from .modal_widgets import ChannelDialog
+from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
+                    freq_from_str, short_strings, STAGE_NAME)
 
 lg = getLogger(__name__)
 
-POWER_METHODS = ['Welch', 'Multitaper']
 
 class AnalysisDialog(ChannelDialog):
     """Dialog for specifying various types of analyses: per event, per epoch or
@@ -71,8 +67,10 @@ class AnalysisDialog(ChannelDialog):
     ----------
     parent : instance of QMainWindow
         the main window
-    group : dict
-        information about groups from Channels
+    nseg : int
+        number of segments in current selection        
+    idx_evt_type : QListWidget
+        List of all event types from Annotations
     """
     def __init__(self, parent):
         ChannelDialog.__init__(self, parent)
@@ -86,6 +84,8 @@ class AnalysisDialog(ChannelDialog):
         self.event = {}
         self.psd = {}
         self.pac = {}
+        self.one_grp = None
+        self.nseg = None
 
         self.create_dialog()
 
@@ -232,6 +232,15 @@ class AnalysisDialog(ChannelDialog):
         flayout.addRow(filt['notch_l'][0])
         flayout.addRow(*filt['notch_centre'])
         flayout.addRow(*filt['notch_bandw'])
+        
+        """ ------ N_SEG ------ """
+        
+        box_nseg = QGroupBox('Info')
+        
+        self.show_nseg = QLabel('')
+        
+        form = QFormLayout(box_nseg)
+        form.addRow(self.show_nseg)
 
         """ ------ FREQUENCY ------ """
 
@@ -250,7 +259,7 @@ class AnalysisDialog(ChannelDialog):
             'blackman', 'hamming', 'bartlett', 'flattop', 'parzen', 'bohman',
                 'blackmanharris', 'nuttall', 'barthann'])
         freq['detrend'] = FormMenu(['none', 'constant', 'linear'])
-        freq['welch_on'] = FormBool("Welch's method")
+        freq['welch_on'] = FormBool("Time-averaged")
 
         flayout = QFormLayout(freq['box_param'])
         flayout.addRow('Scaling', freq['scaling'])
@@ -258,7 +267,7 @@ class AnalysisDialog(ChannelDialog):
         flayout.addRow('Detrend', freq['detrend'])
         flayout.addRow(freq['welch_on'])
 
-        freq['box_welch'] = QGroupBox("Welch's method")
+        freq['box_welch'] = QGroupBox("Time averaging")
 
         freq['duration'] = FormFloat(1)
         freq['overlap'] = FormRadio('Overlap (0-1)')
@@ -554,6 +563,7 @@ class AnalysisDialog(ChannelDialog):
 
         for button in self.chunk.values():
             button.toggled.connect(self.toggle_buttons)
+            button.toggled.connect(self.toggle_freq)
 
         for lw in [self.idx_chan, self.idx_cycle, self.idx_stage,
                    self.idx_evt_type]:
@@ -570,6 +580,14 @@ class AnalysisDialog(ChannelDialog):
         self.idx_group.activated.connect(self.update_channels)
         self.lock_to_staging.connect(self.toggle_buttons)
         self.cat['discontinuous'].connect(self.toggle_concatenate)
+        
+        self.epoch_dur.editingFinished.connect(self.update_nseg)
+        self.min_dur.editingFinished.connect(self.update_nseg)
+        self.reject_epoch.connect(self.update_nseg)
+        self.reject_event.connect(self.update_nseg)
+        
+        for box in self.cat.values():
+            box.connect(self.update_nseg)
 
         freq['freq_on'].connect(self.toggle_freq)
         freq['plot_on'].connect(self.toggle_freq)
@@ -613,6 +631,7 @@ class AnalysisDialog(ChannelDialog):
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
         # freq['box_plot'].setEnabled(False)
+        freq['welch_on'].set_value(True)
         freq['spectrald'].setChecked(True)
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
@@ -655,6 +674,7 @@ class AnalysisDialog(ChannelDialog):
         vlayout2.addWidget(box_r)
         vlayout2.addWidget(box_c)
         vlayout2.addWidget(box2)
+        vlayout2.addWidget(box_nseg)
         vlayout2.addStretch(1)
 
         vlayout3 = QVBoxLayout()
@@ -734,6 +754,8 @@ class AnalysisDialog(ChannelDialog):
             buttons[1].setEnabled(checked)
             if not checked:
                 buttons[1].setChecked(False)
+        
+        self.update_nseg()
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
@@ -753,22 +775,29 @@ class AnalysisDialog(ChannelDialog):
 
         if not self.cat['discontinuous'].get_value():
             self.cat['chan'].setEnabled(False)
+            
+        self.update_nseg()
 
     def toggle_freq(self):
         """Enable and disable frequency domain options."""
         freq = self.frequency
 
         freq_on = freq['freq_on'].get_value()
-        freq['plot_on'].setEnabled(freq_on)
         freq['box_param'].setEnabled(freq_on)
         freq['box_output'].setEnabled(freq_on)
         freq['box_norm'].setEnabled(freq_on)
+
+        welch_on = freq['welch_on'].get_value() and freq_on
+        freq['box_welch'].setEnabled(welch_on)
         
+        epoch_on = self.chunk['epoch'].isChecked()
+        rectangular = welch_on or epoch_on or (self.nseg == 1)
+        freq['plot_on'].setEnabled(freq_on and rectangular)
+        if not freq['plot_on'].isEnabled():
+            freq['plot_on'].set_value(False)        
+
         # plot_on = freq['plot_on'].get_value()
         # freq['box_plot'].setEnabled(plot_on)
-
-        welch_on = freq['welch_on'].get_value()
-        freq['box_welch'].setEnabled(welch_on)
 
         if welch_on:
             overlap_on = freq['overlap'].isChecked()
@@ -852,6 +881,21 @@ class AnalysisDialog(ChannelDialog):
                 pac['surro_method'].set_value('No surrogates')
                 pac['surro']['pval'].setEnabled(True)
 
+    def update_nseg(self):
+        """Update the number of segments, displayed in the dialog."""
+        self.nseg = None
+        if self.one_grp:        
+            bundles = self.get_bundles()
+            
+            if bundles is not None:
+                self.nseg = len(bundles)
+                self.show_nseg.setText('Number of segments: ' + str(self.nseg))
+                
+            else:
+                self.show_nseg.setText('No valid segments')
+                
+        self.toggle_freq()
+    
     def check_all_local(self):
         """Check or uncheck all local event parameters."""
         all_local_chk = self.event['global']['all_local'].isChecked()
@@ -904,7 +948,7 @@ class AnalysisDialog(ChannelDialog):
                 return
 
             # Fetch signal            
-            self.fetch_signal()
+            self.read_data()
 
             # Transform signal (coming soon)
 
@@ -915,11 +959,14 @@ class AnalysisDialog(ChannelDialog):
 
                 with open(freq_filename, 'wb') as f:
                     dump(xfreq, f)
-
-                x, y = self.export_freq(xfreq)
+                    
+                n_freq_bins = [x['data']()[0].shape for x in xfreq]
                 
-                if freq_plot_on:
-                    self.plot_freq(x, y, title=self.title)
+                if all(x == n_freq_bins[0] for x in n_freq_bins):
+                    x, y = self.export_freq(xfreq)
+                    
+                    if freq_plot_on:
+                        self.plot_freq(x, y, title=self.title)
 
             # PAC
             if pac_on:
@@ -936,9 +983,10 @@ class AnalysisDialog(ChannelDialog):
         if button is self.idx_cancel:
             self.reject()
 
-    def fetch_signal(self):
-        """Read selection options and create dict (bundles) with times and
-        details (stage, cycle, etc.), then read data"""
+    def get_bundles(self):
+        """Use information from user to find relevant data and create dicts 
+        (bundles) for each segment to be analyzed, complete with info about
+        stage, cycle, channel, event type"""
         # Chunking
         chunk = {k: v.isChecked() for k, v in self.chunk.items()}
         epoch_dur = self.epoch_dur.get_value()
@@ -954,12 +1002,11 @@ class AnalysisDialog(ChannelDialog):
             evt_type = None
 
         # Which channel(s)
-        group = self.one_grp
-        chan = self.get_channels()
-        if not chan:
+        self.chan = self.get_channels()
+        if not self.chan:
             return
         chan_full = [i + ' (' + self.idx_group.currentText() + ''
-                       ')' for i in chan]
+                       ')' for i in self.chan]
 
         # Which cycle(s)
         cycle = self.get_cycles()
@@ -975,7 +1022,7 @@ class AnalysisDialog(ChannelDialog):
         # Concatenation
         cat = {k: v.get_value() for k, v in self.cat.items()}
         lg.info('Cat: ' + str(cat))
-        cat_chan = cat['chan']
+        self.concat_chan = cat['chan']
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
 
@@ -983,7 +1030,6 @@ class AnalysisDialog(ChannelDialog):
         lock_to_staging = self.lock_to_staging.get_value()
         reject_epoch = self.reject_epoch.get_value()
         reject_artf = self.reject_event.get_value()
-        evt_chan_only = self.evt_chan_only.get_value()
         # trans = {k: v.get_value() for k, v in self.trans['button'].items()}
         # filt = {k: v[1].get_value() for k, v in \
         #         self.trans['filt'].items() if v[1] is not None}
@@ -1010,7 +1056,7 @@ class AnalysisDialog(ChannelDialog):
             bundles = longer_than(bundles, self.min_dur.get_value())
             lg.info('Longer than: ' + str(len(bundles)))
 
-        # Make bundle = segment
+        # Divide bundles into segments to be analyzed
         if bundles:
             
             if chunk['epoch']:
@@ -1027,23 +1073,24 @@ class AnalysisDialog(ChannelDialog):
                 lg.info('Preparing concatenation: ' + str(cat))
                 bundles = _concat(bundles, cat)
                 lg.info('After concat: ' + str(len(bundles)))                
+
+        # Generate title for summary plot
+        self.title = self.make_title(chan_full, cycle, stage, evt_type)
+        
+        return bundles
+    
+    def read_data(self):
+        """Read data for analysis."""
+        bundles = self.get_bundles()
         
         if not bundles:
             self.parent.statusBar().showMessage('No valid signal found.')
             self.accept()
             return
-
-        self.title = self.make_title(chan, cycle, stage, evt_type)
-
-        # Fetch signal
-        self.read_data(chan, group, bundles, concat_chan=cat_chan,
-                       evt_chan_only=evt_chan_only)
-        lg.info('Created data, n_seg: ' + str(len(self.segments)))
-    
-    def read_data(self, chan, group, segments, concat_chan, evt_chan_only):
-        """Read data for analysis."""
+        
         dataset = self.parent.info.dataset
-        chan_to_read = chan + self.one_grp['ref_chan']
+        chan_to_read = self.chan + self.one_grp['ref_chan']
+        evt_chan_only = self.evt_chan_only.get_value()
 
         data = dataset.read_data(chan=chan_to_read)
 
@@ -1056,9 +1103,9 @@ class AnalysisDialog(ChannelDialog):
             data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
             data.s_freq = int(data.s_freq / q)
 
-        self.segments = _create_data_to_analyze(data, chan, self.one_grp,
-                                                segments=segments,
-                                                concat_chan=concat_chan,
+        self.segments = _create_data_to_analyze(data, self.chan, self.one_grp,
+                                                bundles=bundles,
+                                                concat_chan=self.concat_chan,
                                                 evt_chan_only=evt_chan_only,
                                                 parent=self)
 
@@ -1484,304 +1531,7 @@ class AnalysisDialog(ChannelDialog):
         return ', '.join(title)
 
 
-def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
-              exclude=True):
-    """Get start and end times for selected segments of data, bundled
-    together with info.
-
-    Parameters
-    ----------
-    annot: instance of Annotations
-        The annotation file containing events and epochs
-    evt_type: list of str, optional
-        Enter a list of event types to get events; otherwise, epochs will
-        be returned.
-    stage: list of str, optional
-        Stage(s) of interest. If None, stage is ignored.
-    cycle: list of tuple of two float, optional
-        Cycle(s) of interest, as start and end times in seconds from record
-        start. If None, cycles are ignored.
-    chan: list of str or tuple of None
-        Channel(s) of interest, only used for events (epochs have no
-        channel). Channel format is 'chan_name (group_name)'.
-        If None, channel is ignored.
-    exclude: bool
-        Exclude epochs by quality. If True, epochs marked as 'Poor' quality
-        or staged as 'Artefact' will be rejected (and the signal cisioned
-        in consequence). Has no effect on event getting. Defaults to True.
-
-    Returns
-    -------
-    list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), stage, cycle, chan, name (event type,
-        if applicable)
-
-    Notes
-    -----
-    This function returns epoch or event start and end times, bundled
-    together according to the specified parameters.
-    Presently, setting exclude to True does not exclude events found in Poor
-    signal epochs. The rationale is that events would never be marked in Poor
-    signal epochs. If they were automatically detected, these epochs would
-    have been left out during detection. If they were manually marked, then
-    it must have been Good signal. At the moment, in the GUI, the exclude epoch
-    option is disabled when analyzing events, but we could fix the code if we
-    find a use case for rejecting events based on the quality of the epoch
-    signal.
-    """
-    getter = annot.get_epochs
-
-    if stage is None:
-        stage = (None,)
-    if cycle is None:
-        cycle = (None,)
-    if chan is None:
-        chan = (None,)
-    if evt_type is None:
-        evt_type = (None,)
-    elif isinstance(evt_type[0], str):
-        getter = annot.get_events
-    else:
-        lg.error('Event type must be list/tuple of str or None')
-
-    qual = None
-    if exclude:
-        qual = 'Good'
-
-    bundles = []
-    for et in evt_type:
-
-        for ch in chan:
-
-            for cyc in cycle:
-
-                for ss in stage:
-
-                    st_input = ss
-                    if ss is not None:
-                        st_input = (ss,)
-
-                    evochs = getter(name=et, time=cyc, chan=(ch,),
-                                    stage=st_input, qual=qual)
-                    if evochs:
-                        times = [(e['start'], e['end']) for e in evochs]
-                        times = sorted(times, key=lambda x: x[0])
-                        one_bundle = {'times': times,
-                                      'stage': ss,
-                                      'cycle': cyc,
-                                      'chan': ch,
-                                      'name': et}
-                        bundles.append(one_bundle)
-
-    lg.info('bundles: ' + str(bundles))
-    return bundles
-
-
-def longer_than(segments, min_dur):
-    """
-    Parameters
-    ----------
-    segments : list of dict
-        Each dict has times (the start and end times of each sub-segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment
-    min_dur: float
-        Minimum duration of signal chunks returned.
-    """
-    if min_dur <= 0.:
-        return segments
-
-    long_enough = []
-    for seg in segments:
-
-        if sum([t[1] - t[0] for t in seg['times']]) >= min_dur:
-            long_enough.append(seg)
-
-    return long_enough
-
-
-def _concat(bundles, cat=(0, 0, 0, 0)):
-    """Prepare events or epochs for concatenation.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment bundle
-    cat : tuple of int
-        Determines whether and where the signal is concatenated.
-        If 1st digit is 1, cycles selected in cycle will be
-        concatenated.
-        If 2nd digit is 1, different stages selected in stage will be
-        concatenated.
-        If 3rd digit is 1, discontinuous signal within a same condition
-        (stage, cycle, event type) will be concatenated.
-        If 4th digit is 1, events of different types will be concatenated.
-        0 in any position indicates no concatenation.
-        Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages
-        only.
-
-    Returns
-    -------
-    list of dict
-        Each dict has times (the start and end times of each subsegment, as
-        list of tuple of float), stage, cycle, as well as chan and event
-        type name (empty for epochs). Each bundle comprises a collection of
-        subsegments to be concatenated.
-
-    TO-DO
-    -----
-    Make sure the cat options are orthogonal and make sense
-    """
-    chan = sorted(set([x['chan'] for x in bundles]))
-    cycle = sorted(set([x['cycle'] for x in bundles]))
-    stage = sorted(set([x['stage'] for x in bundles]))
-    evt_type = sorted(set([x['name'] for x in bundles]))
-
-    all_cycle = None
-    all_stage = None
-    all_evt_type = None
-
-    if cycle[0] is not None:
-        all_cycle = ', '.join([str(c) for c in cycle])
-    if stage[0] is not None:
-        all_stage = ', '.join(stage)
-    if evt_type[0] is not None:
-        all_evt_type = ', '.join(evt_type)
-
-    if cat[0]:
-        cycle = [all_cycle]
-
-    if cat[1]:
-        stage = [all_stage]
-
-    if cat[3]:
-        evt_type = [all_evt_type]
-
-    lg.info('Concat ' +  ' ,'.join((str(chan), str(cycle), str(stage), str(evt_type))))
-
-    to_concat = []
-    for ch in chan:
-
-        for cyc in cycle:
-
-            for st in stage:
-
-                for et in evt_type:
-                    new_times = []
-
-                    for bund in bundles:
-                        chan_cond = ch == bund['chan']
-                        cyc_cond = cyc in (bund['cycle'], all_cycle)
-                        st_cond = st in (bund['stage'], all_stage)
-                        et_cond = et in (bund['name'], all_evt_type)
-
-                        if chan_cond and cyc_cond and st_cond and et_cond:
-                            new_times.extend(bund['times'])
-
-                    new_times = sorted(new_times, key=lambda x: x[0])
-                    new_bund = {'times': new_times,
-                              'chan': ch,
-                              'cycle': cyc,
-                              'stage': st,
-                              'name': et
-                              }
-                    to_concat.append(new_bund)
-                    lg.info('new bund ' + str(new_bund))
-
-    if not cat[2]:
-        to_concat_new = []
-
-        for bund in to_concat:
-            last = None
-            bund['times'].append((inf,inf))
-            start = 0
-
-            for i, j in enumerate(bund['times']):
-
-                if last is not None:
-                    if not isclose(j[0], last, abs_tol=0.1):
-                        new_times = bund['times'][start:i]
-                        new_bund = bund.copy()
-                        new_bund['times'] = new_times
-                        to_concat_new.append(new_bund)
-                        start = i
-                last = j[1]
-
-        to_concat = to_concat_new
-
-    to_concat = [x for x in to_concat if x['times']]
-
-    return to_concat
-
-
-def divide_bundles(bundles):
-    """Take each subsegment inside a bundle and put it in its own bundle,
-    copying the bundle metadata.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, (chan and name (event
-        type, if applicable) associated with the segment bundle.
-
-    Returns
-    -------
-    list of one dict
-        Dict represents a single segment, and has start and end times (tuple
-        of float), stage, cycle, chan and name (event type, if applicable)
-    """
-    divided = []
-
-    for bund in bundles:
-        for t in bund['times']:
-            new_bund = bund.copy()
-            new_bund['times'] = [t]
-            divided.append(new_bund)
-
-    return divided
-
-
-def find_intervals(bundles, interval):
-    """Divide bundles into consecutive segments of a certain duration,
-    discarding any remainder.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, (chan and name (event
-        type, if applicable) associated with the segment bundle.
-        NOTE: Discontinuous segments must already be in separate dicts.
-    interval: float
-        Duration of consecutive intervals.
-
-    Returns
-    -------
-    list of dict
-        Each dict represents a  segment of duration 'interval', and
-        has start and end times (tuple of float), stage, cycle, chan and name
-        (event type, if applicable) associated with the single segment.
-    """
-    segments = []
-    for bund in bundles:
-        beg, end = bund['times'][0][0], bund['times'][-1][1]
-
-        if end - beg >= interval:
-            new_begs = arange(beg, end, interval)[:-1]
-
-            for t in new_begs:
-                seg = bund.copy()
-                seg['times'] = (t, t + interval)
-                segments.append(seg)
-
-    return segments
-
-
-def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
+def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
                             concat_chan=False, evt_chan_only=False,
                             parent=None):
     """Create data after montage and filtering.
@@ -1795,7 +1545,7 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
     chan_grp : dict
         information about channels to plot, to use as reference and about
         filtering etc.
-    segments : list of dict
+    bundles : list of dict
         Each dict has times (the start and end times of each sub-segment, as
         list of tuple of float), stage, cycle, chan, name (event type,
         if applicable). Each dict of subsegments will be concatenated into
@@ -1819,13 +1569,13 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
     """
     if parent is not None:
         progress = QProgressDialog('Fetching signal', 'Abort',
-                                   0, len(segments), parent)
+                                   0, len(bundles), parent)
         progress.setWindowModality(Qt.ApplicationModal)
 
     s_freq = data.s_freq
     output = []
 
-    for i, seg in enumerate(segments):
+    for i, seg in enumerate(bundles):
         if parent is not None:
             progress.setValue(i)
 
@@ -1894,37 +1644,6 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, segments,
 
     if parent is not None:
         progress.setValue(i + 1)
-
-    return output
-
-
-def _select_channels(data, channels):
-    """Select channels.
-
-    Parameters
-    ----------
-    data : instance of ChanTime
-        data with all the channels
-    channels : list
-        channels of interest
-
-    Returns
-    -------
-    instance of ChanTime
-        data with only channels of interest
-
-    Notes
-    -----
-    This function does the same as sleepytimes.trans.select, but it's much faster.
-    sleepytimes.trans.Select needs to flexible for any data type, here we assume
-    that we have one trial, and that channel is the first dimension.
-
-    """
-    output = data._copy()
-    chan_list = list(data.axis['chan'][0])
-    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
-    output.data[0] = data.data[0][idx_chan, :]
-    output.axis['chan'][0] = asarray(channels)
 
     return output
 

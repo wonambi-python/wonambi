@@ -23,9 +23,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 from .. import Dataset
 from ..ioeeg import write_wonambi, write_edf
-from .settings import FormBool, FormFloat, FormMenu
 from .utils import (short_strings, ICON, keep_recent_datasets,
-                    choose_file_or_dir)
+                    choose_file_or_dir, FormBool, FormFloat, FormMenu)
 
 lg = getLogger(__name__)
 settings = QSettings("wonambi", "wonambi")

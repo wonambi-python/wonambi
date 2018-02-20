@@ -31,8 +31,8 @@ from PyQt5.QtWidgets import (QAction,
                              )
 
 from .. import ChanTime
-from ..trans import montage, filter_
-from .settings import Config, FormFloat, FormInt, FormBool
+from ..trans import montage, filter_, _select_channels
+from .settings import Config
 from .utils import (convert_name_to_color,
                     ICON,
                     LINE_COLOR,
@@ -40,6 +40,9 @@ from .utils import (convert_name_to_color,
                     Path,
                     RectMarker,
                     TextItem_with_BG,
+                    FormFloat,
+                    FormInt,
+                    FormBool,
                     )
 
 
@@ -1099,37 +1102,6 @@ def _create_data_to_plot(data, chan_groups):
             i_ch += 1
 
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-
-    return output
-
-
-def _select_channels(data, channels):
-    """Select channels.
-
-    Parameters
-    ----------
-    data : instance of ChanTime
-        data with all the channels
-    channels : list
-        channels of interest
-
-    Returns
-    -------
-    instance of ChanTime
-        data with only channels of interest
-
-    Notes
-    -----
-    This function does the same as wonambi.trans.select, but it's much
-    faster. wonambi.trans.Select needs to flexible for any data type, here
-    we assume that we have one trial, and that channel is the first dimension.
-
-    """
-    output = data._copy()
-    chan_list = list(data.axis['chan'][0])
-    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
-    output.data[0] = data.data[0][idx_chan, :]
-    output.axis['chan'][0] = asarray(channels)
 
     return output
 

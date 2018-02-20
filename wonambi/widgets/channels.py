@@ -28,7 +28,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 
-from .settings import Config, FormFloat, FormStr
+from .settings import Config
+from .utils import FormFloat, FormStr
 
 lg = getLogger(__name__)
 

@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import (QComboBox,
                              QWidget,
                              )
 
-from .utils import Path, LINE_WIDTH, LINE_COLOR
-from .settings import Config, FormFloat, FormBool
+from .utils import Path, LINE_WIDTH, LINE_COLOR, FormFloat, FormBool
+from .settings import Config
 
 lg = getLogger(__name__)
 

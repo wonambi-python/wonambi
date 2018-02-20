@@ -19,8 +19,8 @@ from PyQt5.QtWidgets import (QFormLayout,
                              QVBoxLayout,
                              )
 
-from .settings import Config, FormInt
-from .utils import convert_name_to_color, LINE_WIDTH
+from .settings import Config
+from .utils import convert_name_to_color, FormInt, LINE_WIDTH
 
 lg = getLogger(__name__)
 

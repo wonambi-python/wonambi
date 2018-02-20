@@ -18,8 +18,9 @@ from .labels import Labels
 from .channels import Channels
 from .info import Info, ExportDatasetDialog
 from .overview import Overview
-from .notes import (Notes, MergeDialog, SpindleDialog, SWDialog,
-                    EventAnalysisDialog)
+from .notes import Notes, MergeDialog
+from .detect_dialogs import SpindleDialog, SWDialog
+from .modal_widgets import EventAnalysisDialog
 from .analysis import AnalysisDialog, PlotDialog
 from .spectrum import Spectrum
 from .traces import Traces

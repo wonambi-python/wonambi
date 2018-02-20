@@ -110,6 +110,7 @@ def test_events():
     assert len(annot.event_types) == 1
     assert len(annot.get_events()) == 0
     
+
 def test_epochs():
     d = Dataset(ns2_file)
     create_empty_annotations(annot_file, d)
@@ -120,6 +121,7 @@ def test_epochs():
     assert len(annot.get_epochs()) == 50
     assert len(annot.get_epochs(time=(1000,2000))) == 16
     
+
 def test_get_cycles():
     d = Dataset(ns2_file)
     create_empty_annotations(annot_file, d)
@@ -142,11 +144,13 @@ def test_get_cycles():
     cycles = annot.get_cycles()
     assert cycles is None
         
+
 def test_import_alice():
     annot = Annotations(annot_file)
     record_start = datetime(2000, 1, 1, 22, 55, 6)
     annot.import_staging(str(annot_alice_path), 'alice', 'alice', record_start)
     assert annot.time_in_stage('REM') == 5160
+
 
 def test_import_compumedics():
     annot = Annotations(annot_file)
@@ -156,12 +160,14 @@ def test_import_compumedics():
                          staging_start=record_start)
     assert annot.time_in_stage('REM') == 5970
 
+
 def test_import_domino():
     annot = Annotations(annot_file)
     record_start = datetime(2015, 9, 21, 21, 40, 30)
     annot.import_staging(str(annot_domino_path), 'domino', 'domino', 
                          record_start)
     assert annot.time_in_stage('REM') == 2460
+
 
 def test_import_remlogic():
     annot = Annotations(annot_file)
@@ -170,12 +176,14 @@ def test_import_remlogic():
                          record_start)
     assert annot.time_in_stage('REM') == 3420
 
+
 def test_import_sandman():
     annot = Annotations(annot_file)
     record_start = datetime(2010, 10, 10, 21, 3, 36)
     annot.import_staging(str(annot_sandman_path), 'sandman', 'sandman', 
                          record_start)
     assert annot.time_in_stage('REM') == 5610
+
 
 def test_import_fasst():
     annot = create_annotation(annot_fasst_export_file,
@@ -188,6 +196,7 @@ def test_import_fasst_error():
         create_annotation(annot_fasst_export_file,
                           from_fasst=ns2_file)
         
+
 def test_export_sleepstats():
     annot = Annotations(annot_psg_path)
     assert annot.export_sleep_stats(annot_sleepstats_path, 0, 29000) == (338, 
