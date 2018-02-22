@@ -20,8 +20,8 @@ lg = getLogger(__name__)
 
 
 def frequency(data, output='spectraldensity', scaling='power', sides='one',
-              taper=None, halfbandwidth=3, NW=None,
-              duration=None, overlap=0.5, step=None, detrend='linear'):
+              taper=None, halfbandwidth=3, NW=None, duration=None, 
+              overlap=0.5, step=None, detrend='linear', n_smp=None):
     """Compute the
     power spectral density (PSD, output='spectraldensity', scaling='power'), or
     energy spectral density (ESD, output='spectraldensity', scaling='energy') or
@@ -58,6 +58,10 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         overlap).
     step : float, in s
         step in seconds between epochs (alternative to overlap)
+    n_smp: int
+        Length of FFT, in samples. If less than input axis, input is cropped.
+        If longer than input axis, input is padded with zeros. If None, FFT
+        length set to axis length.
 
     Returns
     -------
@@ -120,7 +124,8 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
                       sides=sides,
                       scaling=scaling,
                       halfbandwidth=halfbandwidth,
-                      NW=NW)
+                      NW=NW,
+                      n_smp=n_smp)
 
         if duration is not None:
             Sxx = Sxx.mean(axis=-2)
@@ -411,7 +416,7 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
 
 
 def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
-         sides='one', scaling='power', halfbandwidth=4, NW=None):
+         sides='one', scaling='power', halfbandwidth=4, NW=None, n_smp=None):
     """
     Core function taking care of computing the power spectrum / power spectral
     density or the complex representation.
@@ -443,6 +448,10 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         (only if taper='dpss') Normalized half bandwidth
         (NW = halfbandwidth * dur). Number of DPSS tapers is 2 * NW - 1.
         If specified, NW takes precedence over halfbandwidth
+    n_smp: int
+        Length of FFT, in samples. If less than input axis, input is cropped.
+        If longer than input axis, input is padded with zeros. If None, FFT
+        length set to axis length.
 
     Returns
     -------
@@ -499,7 +508,9 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         sides = 'two'
 
     axis = x.ndim - 1
-    n_smp = x.shape[axis]
+    
+    if n_smp is None:
+        n_smp = x.shape[axis]
 
     if sides == 'one':
         freqs = np_fft.rfftfreq(n_smp, 1 / s_freq)

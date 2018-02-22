@@ -318,6 +318,19 @@ class AnalysisDialog(ChannelDialog):
         glayout.addWidget(QLabel('Side(s)'), 2, 1)
         glayout.addWidget(freq['sides'], 2, 2)
 
+        freq['box_nfft'] = QGroupBox('FFT Length')
+        
+        freq['nfft_seg'] = FormRadio('Same as segment')
+        freq['nfft_fixed'] = FormRadio('Fixed:')
+        freq['nfft_fixed_val'] = FormInt()
+        freq['nfft_zeropad'] = FormRadio('Zero-pad to longest segment')
+        
+        glayout = QGridLayout(freq['box_nfft'])
+        glayout.addWidget(freq['nfft_seg'], 0, 0, 1, 2)
+        glayout.addWidget(freq['nfft_fixed'], 1, 0)
+        glayout.addWidget(freq['nfft_fixed_val'], 1, 1)
+        glayout.addWidget(freq['nfft_zeropad'], 2, 0, 1, 2)
+
         freq['box_norm'] = QGroupBox('Normalization')
 
         freq['norm'] = FormMenu(['none', 'by mean of each segment',
@@ -365,10 +378,11 @@ class AnalysisDialog(ChannelDialog):
 
         glayout = QGridLayout()
         glayout.addWidget(freq['box_param'], 0, 0)
-        glayout.addWidget(freq['box_output'], 1, 0)
         glayout.addWidget(freq['box_welch'], 0, 1)
+        glayout.addWidget(freq['box_nfft'], 1, 0)
         glayout.addWidget(freq['box_mtap'], 1, 1)
-        glayout.addWidget(freq['box_norm'], 2, 0)
+        glayout.addWidget(freq['box_output'], 2, 0)
+        glayout.addWidget(freq['box_norm'], 2, 1, 3, 1)
         # glayout.addWidget(freq['box_plot'], 2, 1)
 
         vlayout = QVBoxLayout(tab_freq)
@@ -597,6 +611,8 @@ class AnalysisDialog(ChannelDialog):
         freq['overlap'].connect(self.toggle_freq)
         freq['hbw'].connect(self.toggle_freq)
         freq['norm'].connect(self.toggle_freq)
+        freq['nfft_fixed'].connect(self.toggle_freq)
+        freq['nfft_zeropad'].connect(self.toggle_freq)
 
         if Pac is not None:
             pac['pac_on'].connect(self.toggle_pac)
@@ -627,11 +643,13 @@ class AnalysisDialog(ChannelDialog):
         freq['plot_on'].setEnabled(False)
         freq['box_param'].setEnabled(False)
         freq['box_welch'].setEnabled(False)
+        freq['box_nfft'].setEnabled(False)
         freq['box_mtap'].setEnabled(False)
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
         # freq['box_plot'].setEnabled(False)
         freq['welch_on'].set_value(True)
+        freq['nfft_seg'].setChecked(True)
         freq['spectrald'].setChecked(True)
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
@@ -786,15 +804,10 @@ class AnalysisDialog(ChannelDialog):
         freq['box_param'].setEnabled(freq_on)
         freq['box_output'].setEnabled(freq_on)
         freq['box_norm'].setEnabled(freq_on)
+        freq['box_nfft'].setEnabled(freq_on)
 
         welch_on = freq['welch_on'].get_value() and freq_on
         freq['box_welch'].setEnabled(welch_on)
-        
-        epoch_on = self.chunk['epoch'].isChecked()
-        rectangular = welch_on or epoch_on or (self.nseg == 1)
-        freq['plot_on'].setEnabled(freq_on and rectangular)
-        if not freq['plot_on'].isEnabled():
-            freq['plot_on'].set_value(False)        
 
         # plot_on = freq['plot_on'].get_value()
         # freq['box_plot'].setEnabled(plot_on)
@@ -806,6 +819,17 @@ class AnalysisDialog(ChannelDialog):
             freq['box_output'].setEnabled(not welch_on)
             freq['spectrald'].setChecked(True)
 
+        nfft_fixed_on = freq['nfft_fixed'].isChecked()
+        zeropad_on = freq['nfft_zeropad'].isChecked()
+        freq['nfft_fixed_val'].setEnabled(nfft_fixed_on)
+
+        epoch_on = self.chunk['epoch'].isChecked()
+        rectangular = welch_on or epoch_on or zeropad_on or nfft_fixed_on or \
+                        (self.nseg == 1)
+        freq['plot_on'].setEnabled(freq_on and rectangular)
+        if not freq['plot_on'].isEnabled():
+            freq['plot_on'].set_value(False) 
+        
         dpss_on = freq['taper'].get_value() == 'dpss'
         freq['box_mtap'].setEnabled(dpss_on)
 
@@ -1174,12 +1198,19 @@ class AnalysisDialog(ChannelDialog):
             step = None
         if detrend == 'none':
             detrend = None
+        
+        if freq['nfft_fixed'].isChecked():
+            n_smp = int(freq['nfft_fixed_val'].get_value())
+        elif freq['nfft_zeropad'].isChecked():
+            n_smp = max([x['data'].number_of('time') for x in self.segments])
+        elif freq['nfft_seg'].isChecked():
+            n_smp = None
 
         lg.info(' '.join(['Freq settings:', output, scaling, 'sides:',
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
                          str(NW), 'dur:', str(duration), 'overlap:',
                          str(overlap), 'step:', str(step), 'detrend:',
-                         str(detrend)]))
+                         str(detrend), 'n_smp:', str(n_smp)]))
 
         xfreq = []
         for i, seg in enumerate(self.segments):
@@ -1193,7 +1224,7 @@ class AnalysisDialog(ChannelDialog):
             Sxx = frequency(data, output=output, scaling=scaling, sides=sides,
                             taper=taper, halfbandwidth=halfbandwidth, NW=NW,
                             duration=duration, overlap=overlap, step=step,
-                            detrend=detrend)
+                            detrend=detrend, n_smp=n_smp)
             new_seg['data'] = Sxx
             xfreq.append(new_seg)
 
