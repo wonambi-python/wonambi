@@ -233,8 +233,8 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         If None, channel is ignored.
     exclude: bool
         Exclude epochs by quality. If True, epochs marked as 'Poor' quality
-        or staged as 'Artefact' will be rejected (and the signal cisioned
-        in consequence). Has no effect on event getting. Defaults to True.
+        or staged as 'Artefact' will be rejected (and the signal segmented
+        in consequence). Has no effect on event selection. Defaults to True.
 
     Returns
     -------
@@ -300,7 +300,6 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
                                       'name': et}
                         bundles.append(one_bundle)
 
-    lg.info('bundles: ' + str(bundles))
     return bundles
 
 
@@ -415,7 +414,6 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
                               'name': et
                               }
                     to_concat.append(new_bund)
-                    lg.info('new bund ' + str(new_bund))
 
     if not cat[2]:
         to_concat_new = []

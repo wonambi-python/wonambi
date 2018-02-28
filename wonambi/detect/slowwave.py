@@ -2,8 +2,7 @@
 
 """
 from logging import getLogger
-from numpy import (argmax, argmin, concatenate, diff, hstack, sign, sum, where,
-                   zeros)
+from numpy import argmax, concatenate, diff, hstack, sign, sum, where, zeros
 
 try:
     from PyQt5.QtCore import Qt
@@ -164,20 +163,20 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
     sw_in_chan = []
     if below_zero is not None:
         troughs = within_duration(below_zero, time, opts.trough_duration)
-        lg.info('troughs within duration: ' + str(troughs.shape))
+        #lg.info('troughs within duration: ' + str(troughs.shape))
 
         if troughs is not None:
             troughs = select_peaks(dat_det, troughs, opts.max_trough_amp)
-            lg.info('troughs deep enough: ' + str(troughs.shape))
+            #lg.info('troughs deep enough: ' + str(troughs.shape))
 
             if troughs is not None:
                 events = _add_pos_halfwave(dat_det, troughs, s_freq, opts)
-                lg.info('SWs high enough: ' + str(events.shape))
+                #lg.info('SWs high enough: ' + str(events.shape))
 
                 if len(events):
                     events = within_duration(events, time, opts.duration)
                     events = remove_straddlers(events, time, s_freq)
-                    lg.info('SWs within duration: ' + str(events.shape))
+                    #lg.info('SWs within duration: ' + str(events.shape))
 
                     sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
 
@@ -291,21 +290,21 @@ def _add_pos_halfwave(data, events, s_freq, opts):
         
         if zero_crossings.any():
             ev[4] = ev[2] + zero_crossings[0] + 1
-            lg.info('0cross is at ' + str(ev[4]))
+            #lg.info('0cross is at ' + str(ev[4]))
             
         else:
             selected.append(False)
-            lg.info('no 0cross, rejected')
+            #lg.info('no 0cross, rejected')
             continue
 
         ev[3] = ev[2] + argmax(data[ev[2]:ev[4]])
 
         if abs(data[ev[1]] - data[ev[3]]) < opts.min_ptp:
             selected.append(False)
-            lg.info('ptp too low, rejected: ' + str(abs(data[ev[1]] - data[ev[3]])))
+            #lg.info('ptp too low, rejected: ' + str(abs(data[ev[1]] - data[ev[3]])))
             continue
 
         selected.append(True)
-        lg.info('SW checks out, ACCEPTED! ptp is ' + str(abs(data[ev[1]] - data[ev[3]])))
+        #lg.info('SW checks out, accepted! ptp is ' + str(abs(data[ev[1]] - data[ev[3]])))
 
     return events[selected, :]

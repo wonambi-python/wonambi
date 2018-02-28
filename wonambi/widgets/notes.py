@@ -1300,17 +1300,18 @@ class Notes(QTabWidget):
 
         events = detector(self.data, parent=self)
 
-        progress = QProgressDialog('Saving events', 'Abort',
-                                   0, len(events), self)
-        progress.setWindowModality(Qt.ApplicationModal)
-
-        for i, one_ev in enumerate(events):
-            progress.setValue(i)
-            self.annot.add_event(label,(one_ev['start'],
-                                        one_ev['end']),
-                                        chan=one_ev['chan'])
-
-        progress.setValue(i + 1)
+        if events:
+            progress = QProgressDialog('Saving events', 'Abort',
+                                       0, len(events), self)
+            progress.setWindowModality(Qt.ApplicationModal)
+    
+            for i, one_ev in enumerate(events):
+                progress.setValue(i)
+                self.annot.add_event(label,(one_ev['start'],
+                                            one_ev['end']),
+                                            chan=one_ev['chan'])
+    
+            progress.setValue(i + 1)
 
         self.update_annotations()
 

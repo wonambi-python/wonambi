@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (QCheckBox,
                              QMessageBox,
                              QPushButton,
                              QRadioButton,
+                             QSpinBox,
                              )
 
 lg = getLogger(__name__)
@@ -609,6 +610,71 @@ class FormMenu(QComboBox):
 
         """
         self.currentIndexChanged.connect(funct)
+
+class FormSpin(QSpinBox):
+    """Subclass QSpinBox for int to have a more consistent API across widgets.
+
+    """
+    def __init__(self, default=None, min_val=None, max_val=None, step=None):
+        super().__init__()
+        
+        if default is not None:
+            self.set_value(default)
+            
+        if min_val is not None:
+            self.setMinimum(min_val)
+            
+        if max_val is not None:
+            self.setMaximum(max_val)
+            
+        if step is not None:
+            self.setSingleStep(step)
+
+    def get_value(self, default=0):
+        """Get int from widget.
+
+        Parameters
+        ----------
+        default : int
+            default value for the parameter in case it fails
+
+        Returns
+        -------
+        int
+            the value in text or default
+
+        """
+        text = self.value()
+        try:
+            text = int(float(text))
+        except ValueError:
+            lg.debug('Cannot convert "' + str(text) + '" to int. ' +
+                     'Using default ' + str(default))
+            text = default
+            self.set_value(text)
+        return text
+
+    def set_value(self, value):
+        """Set value of the int.
+
+        Parameters
+        ----------
+        value : int
+            value for the line edit
+
+        """
+        self.setValue(int(value))
+
+    def connect(self, funct):
+        """Call funct when the text was changed.
+
+        Parameters
+        ----------
+        funct : function
+            function that broadcasts a change.
+
+        """
+        self.valueChanged.connect(funct)
 
 def keep_recent_datasets(max_dataset_history, info=None):
     """Keep track of the most recent recordings.

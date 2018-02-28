@@ -68,7 +68,7 @@ Analysis console
 ----------------
 
 Wonambi's analysis console allows the flexible selection of signal for a variety of analyses, including frequency domain analyses and phase-amplitude coupling (PAC).
-Signal can be selected by event, epoch or longest run, and by channel, cycle and stage, with flexible concatenation options, and with artefacted signal excluded.
+Signal can be selected by event, epoch or longest run, and by channel, cycle and stage, with flexible concatenation options, and with artefacted signal exclusion.
 
 To open the dialog, click on ``Analysis`` -> ``Analysis console``.
 
