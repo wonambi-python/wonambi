@@ -1185,7 +1185,7 @@ class Notes(QTabWidget):
         self.update_annotations()
 
     def read_data(self, chan, group, period=None, stage=None, qual=None,
-                  exclude_artf=True, demean=False):
+                  exclude_artf=False, demean=False):
         """Read the data to analyze.
         # TODO: make times more flexible (see below)
         Parameters
@@ -1719,6 +1719,36 @@ class MergeDialog(QDialog):
             self.idx_evt_type.addItem(item)
 
 
+class NewUserDialog(QDialog):
+
+    def __init__(self, default_length):
+        super().__init__()
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+
+        bbox.clicked.connect(self.button_clicked)
+
+        self.rater_name = QLineEdit('')
+        self.epoch_length = QSpinBox()
+        self.epoch_length.setValue(default_length)
+
+        f = QFormLayout()
+        f.addRow('Rater\'s name', self.rater_name)
+        f.addRow('Epoch Length', self.epoch_length)
+        f.addRow(bbox)
+
+        self.setLayout(f)
+        self.show()
+
+    def button_clicked(self, button):
+        if button == self.idx_ok:
+            self.accept()
+
+        elif button == self.idx_cancel:
+            self.reject()
+
+
 def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
                             demean=False, parent=None):
     """Create data after montage and filtering.
@@ -1810,31 +1840,4 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
     return output
 
 
-class NewUserDialog(QDialog):
 
-    def __init__(self, default_length):
-        super().__init__()
-        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
-        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
-
-        bbox.clicked.connect(self.button_clicked)
-
-        self.rater_name = QLineEdit('')
-        self.epoch_length = QSpinBox()
-        self.epoch_length.setValue(default_length)
-
-        f = QFormLayout()
-        f.addRow('Rater\'s name', self.rater_name)
-        f.addRow('Epoch Length', self.epoch_length)
-        f.addRow(bbox)
-
-        self.setLayout(f)
-        self.show()
-
-    def button_clicked(self, button):
-        if button == self.idx_ok:
-            self.accept()
-
-        elif button == self.idx_cancel:
-            self.reject()

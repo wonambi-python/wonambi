@@ -1967,6 +1967,9 @@ class AnalysisDialog(ChannelDialog):
                         data_row_3 = [x for y in seg['slope'][chan] for x in y]
                         data_row_2 = data_row_2 + data_row_3
                         
+                    if seg['cycle'] is not None:
+                        seg['cycle'] = seg['cycle'][2]                    
+                        
                     csv_file.writerow([idx,
                                        seg['times'][0],
                                        seg['times'][1],

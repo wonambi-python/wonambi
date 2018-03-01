@@ -174,7 +174,8 @@ class SpindleDialog(ChannelDialog):
             lg.info('chans= '+str(chans)+' stage= '+str(stage)+' grp= '+str(self.one_grp))
 
             self.parent.notes.read_data(chans, self.one_grp, period=cycle,
-                                        stage=stage, qual='Good')
+                                        stage=stage, qual='Good',
+                                        exclude_artf=params['exclude'])
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
                                                 label=self.label.get_value())
@@ -373,7 +374,8 @@ class SWDialog(ChannelDialog):
 
             self.parent.notes.read_data(chans, self.one_grp, period=cycle,
                                         stage=stage, qual='Good',
-                                        demean=params['demean'])
+                                        demean=params['demean'],
+                                        exclude_artf=params['exclude'])
 
             if self.parent.notes.data is not None:
                 self.parent.notes.detect_events(self.method, params,
