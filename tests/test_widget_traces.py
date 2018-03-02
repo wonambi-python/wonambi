@@ -80,4 +80,6 @@ def test_widget_exportsvg(qtbot):
     w.close()
 
     svg_d = SVGDialog(str(svg_file))
+    svg_d.button_clicked(svg_d.idx_ok)
+    svg_d.button_clicked(svg_d.idx_cancel)
     svg_d.grab().save(str(GUI_PATH / 'exportsvg_02.png'))
