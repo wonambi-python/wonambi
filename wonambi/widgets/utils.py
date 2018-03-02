@@ -10,7 +10,9 @@ from PyQt5.QtCore import QRectF, QSettings, Qt
 from PyQt5.QtGui import (QBrush,
                          QColor,
                          QPainterPath,
+                         QPainter,
                          )
+from PyQt5.QtSvg import QSvgGenerator
 from PyQt5.QtWidgets import (QCheckBox,
                              QComboBox,
                              QCommonStyle,
@@ -24,6 +26,7 @@ from PyQt5.QtWidgets import (QCheckBox,
                              QRadioButton,
                              QSpinBox,
                              )
+
 
 lg = getLogger(__name__)
 
@@ -122,7 +125,7 @@ class RectMarker(QGraphicsRectItem):
         painter.setPen(Qt.NoPen)
         painter.drawRect(self.marker)
         super().paint(painter, option, widget)
-        
+
     def contains(self, pos):
         return self.marker.contains(pos)
 
@@ -228,7 +231,7 @@ class FormRadio(QRadioButton):
             state of the checkbox
 
         """
-        return self.isChecked  == Qt.Checked
+        return self.isChecked == Qt.Checked
 
     def set_value(self, value):
         """Set value of the checkbox.
@@ -263,7 +266,7 @@ class FormFloat(QLineEdit):
     """
     def __init__(self, default=None):
         super().__init__('')
-        
+
         if default is not None:
             self.set_value(default)
 
@@ -320,7 +323,7 @@ class FormInt(QLineEdit):
     """
     def __init__(self, default=None):
         super().__init__('')
-        
+
         if default is not None:
             self.set_value(default)
 
@@ -546,9 +549,9 @@ class FormDir(QPushButton):
         self.clicked.connect(get_directory)
 
 class FormMenu(QComboBox):
-    """Subclass QComboBox for dropdown menus to have a more consistent API 
+    """Subclass QComboBox for dropdown menus to have a more consistent API
     across widgets.
-    
+
     Parameters
     ----------
     input_list: list of str
@@ -556,7 +559,7 @@ class FormMenu(QComboBox):
     """
     def __init__(self, input_list):
         super().__init__()
-        
+
         if input_list is not None:
             for i in input_list:
                 self.addItem(i)
@@ -617,16 +620,16 @@ class FormSpin(QSpinBox):
     """
     def __init__(self, default=None, min_val=None, max_val=None, step=None):
         super().__init__()
-        
+
         if default is not None:
             self.set_value(default)
-            
+
         if min_val is not None:
             self.setMinimum(min_val)
-            
+
         if max_val is not None:
             self.setMaximum(max_val)
-            
+
         if step is not None:
             self.setSingleStep(step)
 
@@ -783,16 +786,16 @@ def convert_name_to_color(s):
 
 
 def freq_from_str(freq_str):
-    """Obtain frequency ranges from input string, either as list or dynamic 
+    """Obtain frequency ranges from input string, either as list or dynamic
     notation.
-    
+
     Parameters
     ----------
     freq_str : str
         String with frequency ranges, either as a list:
-        e.g. [[1-3], [3-5], [5-8]]; 
+        e.g. [[1-3], [3-5], [5-8]];
         or with a dynamic definition: (start, stop, width, step).
-        
+
     Returns
     -------
     list of tuple of float or None
@@ -801,15 +804,15 @@ def freq_from_str(freq_str):
     """
     freq = []
     as_list = freq_str[1:-1].replace(' ', '').split(',')
-    
+
     if freq_str[0] == '[' and freq_str[-1] == ']':
         for i in as_list:
             one_band = i[1:-1].split('-')
             one_band = float(one_band[0]), float(one_band[1])
             freq.append(one_band)
-            
+
     elif freq_str[0] == '(' and freq_str[-1] == ')':
-        
+
         if len(as_list) == 4:
             start = float(as_list[0])
             stop = float(as_list[1])
@@ -820,10 +823,57 @@ def freq_from_str(freq_str):
                 freq.append((i - halfwidth, i + halfwidth))
         else:
             return None
-            
+
     else:
         return None
-    
+
     return freq
-    
-    
+
+
+def export_graphics(MAIN, checked=False, test=None):
+
+    from .modal_widgets import SVGDialog  # avoid circolar import
+
+    if MAIN.info.filename is not None:
+        filename = join(dirname(MAIN.info.filename), '*.svg')
+    else:
+        filename = None
+
+    svg_dialog = SVGDialog(filename)
+
+    if test is None:
+        if not svg_dialog.exec():
+            return
+    else:
+        svg_dialog.idx_file.setText(test)
+
+    if svg_dialog.idx_list.currentText() == 'Traces':
+        widget = MAIN.traces
+    elif svg_dialog.idx_list.currentText() == 'Overview':
+        widget = MAIN.overview
+
+    svg_file = svg_dialog.idx_file.text()
+    if not svg_file.endswith('.svg'):
+        svg_file += '.svg'
+    export_graphics_to_svg(widget, svg_file)
+
+
+def export_graphics_to_svg(widget, filename):
+    """Export graphics to svg
+
+    Parameters
+    ----------
+    widget : instance of QGraphicsView
+        traces or overview
+    filename : str
+        path to save svg
+    """
+    generator = QSvgGenerator()
+    generator.setFileName(filename)
+    generator.setSize(widget.size())
+    generator.setViewBox(widget.rect())
+
+    painter = QPainter()
+    painter.begin(generator)
+    widget.render(painter)
+    painter.end()

@@ -127,8 +127,8 @@ class ChannelDialog(QDialog):
                     self.idx_cycle.addItem(str(i+1))
 
     def get_channels(self):
-        """Get the selected channel(s in order). 
-        
+        """Get the selected channel(s in order).
+
         Returns
         -------
         list of str
@@ -552,3 +552,48 @@ class DateTimeDialog(QDialog):
         self.idx_seconds.blockSignals(True)
         self.idx_seconds.setValue(val)
         self.idx_seconds.blockSignals(False)
+
+
+class SVGDialog(QDialog):
+
+    def __init__(self, dirname):
+        super().__init__()
+
+        self.dirname = str(dirname)
+
+        self.setWindowTitle('Export to SVG')
+
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+        bbox.clicked.connect(self.button_clicked)
+
+        self.idx_list = QComboBox()
+        self.idx_list.addItems(['Traces', 'Overview'])
+
+        self.idx_file = QPushButton()
+        self.idx_file.setText('(click to choose file)')
+        self.idx_file.clicked.connect(self.select_filename)
+
+        layout = QFormLayout()
+        layout.addRow('Which Panel', self.idx_list)
+        layout.addRow('File Name', self.idx_file)
+        layout.addRow(bbox)
+
+        self.setLayout(layout)
+
+    def button_clicked(self, button):
+        if button == self.idx_ok:
+            self.accept()
+
+        elif button == self.idx_cancel:
+            self.reject()
+
+    def select_filename(self):
+        filename, _ = QFileDialog.getSaveFileName(
+            self, 'Export screenshot', self.dirname, 'Image (*.svg)')
+
+        if filename == '':
+            return
+
+        self.idx_file.setText(filename)

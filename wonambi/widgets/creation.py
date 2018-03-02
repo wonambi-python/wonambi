@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QAction,
 
 from .settings import (Settings, SlowWaveHelp, SpindleHelp,
                        EvtAnalysisHelp)  # has to be first
-from .utils import ICON  # has to be second
+from .utils import ICON   # has to be second
 from .labels import Labels
 from .channels import Channels
 from .info import Info, ExportDatasetDialog
@@ -218,6 +218,9 @@ def create_menubar(MAIN):
         act.triggered.connect(partial(MAIN.traces.X_length, x))
 
     menu_view.addAction(actions['cross_chan_mrk'])
+
+    menu_view.addSeparator()
+    menu_view.addAction(actions['export_svg'])
 
     """ ------ ANNOTATIONS ------ """
     actions = MAIN.notes.action

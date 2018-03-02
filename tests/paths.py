@@ -60,6 +60,7 @@ channel_montage_file = EXPORTED_PATH / 'channel_montage.json'
 channel_montage_reref_file = EXPORTED_PATH / 'channel_montage_reref.json'
 fieldtrip_file = EXPORTED_PATH / 'fieldtrip.mat'
 wonambi_file = EXPORTED_PATH / 'exported.won'
+svg_file = EXPORTED_PATH / 'graphics_svg'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'

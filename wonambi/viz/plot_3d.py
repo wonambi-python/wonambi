@@ -3,8 +3,9 @@
 from numpy import (linspace,
                    nanmax,
                    mean,
-                   nanmin,
                    tile,
+                   array,
+                   abs,
                    )
 from vispy.color import get_colormap, ColorArray
 from vispy.geometry import MeshData
@@ -146,7 +147,7 @@ def _prepare_colors(color, values, limits_c, colormap, alpha, chan=None):
     """
     if values is not None:
         if limits_c is None:
-            limits_c = nanmin(values), nanmax(values)
+            limits_c = array([-1, 1]) * nanmax(abs(values))
 
         norm_values = normalize(values, *limits_c)
 
