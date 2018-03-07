@@ -291,7 +291,7 @@ class Traces(QGraphicsView):
 
         # Misc
         act = QAction('Export to svg...', self)
-        act.triggered.connect(partial(export_graphics, MAIN=self))
+        act.triggered.connect(partial(export_graphics, MAIN=self.parent))
         actions['export_svg'] = act
 
         self.action = actions

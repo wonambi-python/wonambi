@@ -1975,7 +1975,7 @@ class AnalysisDialog(ChannelDialog):
                                        seg['times'][1],
 #                                       seg['n_stitch'],
                                        seg['stage'],
-                                       seg['cycle'][2],
+                                       seg['cycle'],
                                        seg['name'],
                                        chan,
                                        ] + data_row_1 + data_row_2)

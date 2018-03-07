@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.25**: fix export svg
+- **4.24**: analysis console event export fix; ferrarelli2007 removed for now
 - **4.23**: export traces or overview to svg
 - **4.22**: improved sleep stats
 - **4.21**: sometimes detected events can be None

@@ -69,8 +69,12 @@ MAX_FREQUENCY_OF_INTEREST = 50
 STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
-SPINDLE_METHODS = ['Wamsley2012', 'Nir2011', 'Moelle2011', 'Ferrarelli2007',
-                   'UCSD', 'Concordia']
+SPINDLE_METHODS = ['Wamsley2012', 
+                   'Nir2011', 
+                   'Moelle2011', 
+                   #'Ferrarelli2007',
+                   'UCSD', 
+                   'Concordia']
 SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
 
 

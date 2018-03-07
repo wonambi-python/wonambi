@@ -2,11 +2,11 @@
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
-                   diff, exp, empty, floor, hstack, insert, invert,
+                   diff, exp, empty, floor, histogram, hstack, insert, invert,
                    logical_and, mean, median, nan, ones, pi, ptp, real, sqrt, 
                    square, std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
-from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve,
+from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve, 
                           hilbert, periodogram, tukey)
 try:
     from PyQt5.QtCore import Qt
@@ -43,11 +43,11 @@ class DetectSpindle:
         self.power_peaks = 'interval'
 
         if method == 'Ferrarelli2007':
-            self.frequency = (12, 15)
-            self.det_butter = {'order': 3,
+            self.frequency = (10, 16)
+            self.det_cheby2 = {'order': 6,
                                'freq': self.frequency,
                                }
-            self.duration = (0.3, None)
+            self.duration = (0.3, 3)
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 8
             self.sel_thresh = 2
@@ -172,6 +172,7 @@ class DetectSpindle:
             self.duration = self.duration[0], MAX_DURATION
 
         all_spindles = []
+        i = 0
         for i, chan in enumerate(data.axis['chan'][0]):
             
             if parent is not None:
@@ -235,7 +236,8 @@ class DetectSpindle:
 
 
 def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
-    """Spindle detection based on Ferrarelli et al. 2007.
+    """Spindle detection based on Ferrarelli et al. 2007, and scripts obtained
+    from Warby et al. (2014).
 
     Parameters
     ----------
@@ -265,34 +267,53 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     float
         spindle density, per 30-s epoch
 
-    Notes
-    -----
-    The original article does not specify a filter, but cheby2 seems the best
-    to me.
-
     References
     ----------
     Ferrarelli, F. et al. Am. J. Psychiatry 164, 483-92 (2007).
+    Warby, S. C. et al. Nat. Meth. 11(4), 385-92 (2014).
     """
-    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_orig, s_freq, 'cheby2', opts.det_cheby2)
     dat_det = transform_signal(dat_det, s_freq, 'abs')
+    
+    idx_env = peaks_in_time(dat_det)
+    #idx_peak = peaks_in_time(dat_det[idx_env])
+    #idx_trough = peaks_in_time(dat_det[idx_env], troughs=True)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
-    sel_value = define_threshold(dat_det, s_freq, 'mean', opts.sel_thresh)
-
-    events = detect_events(dat_det, 'above_thresh', det_value)
-
-    if events is not None:
-        events = select_events(dat_det, events, 'above_thresh', sel_value)
+    sel_value = define_threshold(dat_det[idx_env], s_freq, 'histmax', 
+                                 opts.sel_thresh)
+    lg.info('det_value: ' + str(det_value))
+    lg.info('sel_value: ' + str(sel_value))
+    lg.info('mean dat_det: ' + str(mean(dat_det)))
+    lg.info('median dat_det: ' + str(median(dat_det)))
+    lg.info('min, max dat_det: ' + str(max(dat_det)) + ' ' + str(min(dat_det)))
+    lg.info('mean env: ' + str(mean(dat_det[idx_env])))
+    lg.info('median env: ' + str(median(dat_det[idx_env])))
+    lg.info('min, max env: ' + str(max(dat_det[idx_env])) + ' ' + str(min(dat_det[idx_env])))
+    
+    events_env = detect_events(dat_det[idx_env], 'above_thresh', det_value)
+    
+    if events_env is not None:
+        lg.info('Peaks above threshold: ' + str(len(events_env)))
+        events_env = select_events(dat_det[idx_env], events_env, 
+                                   'above_thresh', sel_value)  
+        lg.info('Selected events: ' + str(len(events_env)))
+        events = idx_env[events_env]
+        lg.info('Translated events: ' + str(len(events)))
 
         events = _merge_close(dat_det, events, time, opts.min_interval)
+        lg.info('Merged events: ' + str(len(events)))
+        lg.info(str((events[:,2] - events[:,0]) / 512))
         events = within_duration(events, time, opts.duration)        
+        lg.info('Events within duration: ' + str(len(events)))
         events = remove_straddlers(events, time, s_freq)
+        lg.info('Straddlers removed: ' + str(len(events)))
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
                                    dat_orig, time, s_freq)
+        lg.info('Spindles in chan: ' + str(len(sp_in_chan)))
 
     else:
         lg.info('No spindle found')
@@ -683,8 +704,8 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     s_freq : float
         sampling frequency
     method : str
-        one of 'cheby2', 'butter', 'morlet', 'morlet_real', 'hilbert', 'abs',
-        'moving_avg', 'gaussian'
+        one of 'cheby2', 'butter', 'morlet', 'morlet_real', 
+        'hilbert', 'abs', 'moving_avg', 'gaussian'
     method_opt : dict
         depends on methods
 
@@ -705,10 +726,10 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     -------
     cheby2 has parameters:
         freq : tuple of float
-            high and low values for bandpass
+            low and high values for bandpass
         order : int
             filter order
-
+    
     butter has parameters:
         freq : tuple of float
             low and high values for bandpass
@@ -755,7 +776,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         freq = method_opt['freq']
         N = method_opt['order']
 
-        Rs = 80
+        Rs = 40
         nyquist = s_freq / 2
         Wn = asarray(freq) / nyquist
         b, a = cheby2(N, Rs, Wn, btype='bandpass')
@@ -836,7 +857,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     return dat
 
 
-def define_threshold(dat, s_freq, method, value):
+def define_threshold(dat, s_freq, method, value, nbins=120):
     """Return the value of the threshold based on relative values.
 
     Parameters
@@ -846,9 +867,11 @@ def define_threshold(dat, s_freq, method, value):
     s_freq : float
         sampling frequency
     method : str
-        one of 'mean', 'median', 'std', 'mean+std', 'median+std'
+        one of 'mean', 'median', 'std', 'mean+std', 'median+std', 'histmax'
     value : float
         value to multiply the values for
+    nbins : int
+        for histmax method, number of bins in the histogram
 
     Returns
     -------
@@ -866,8 +889,47 @@ def define_threshold(dat, s_freq, method, value):
         value = mean(dat) + value * std(dat)
     elif method == 'median+std':
         value = median(dat) + value * std(dat)
+    elif method == 'histmax':
+        hist = histogram(dat, bins=nbins)
+        idx_maxbin = argmax(hist[0])
+        maxamp = mean((hist[1][idx_maxbin], hist[1][idx_maxbin + 1]))
+        value = value * maxamp
 
     return value
+
+
+def peaks_in_time(dat, troughs=False):
+    """Find indices of peaks or troughs in data.
+    
+    Parameters
+    ----------
+    dat : ndarray (dtype='float')
+        vector with the data
+    troughs : bool
+        if True, will return indices of troughs instead of peaks
+        
+    Returns
+    -------
+    nadarray of int
+        indices of peaks (or troughs) in dat
+        
+    Note
+    ----
+    This function does not deal well with flat signal; when the signal is not 
+    increasing, it is assumed to be descreasing. As a result, this function
+    finds troughs where the signal begins to increase after wither decreasing 
+    or remaining constant
+    """
+    diff_dat = diff(dat)
+    increasing = zeros(len(diff_dat))
+    increasing[diff_dat > 0] = 1 # mask for all points where dat is increasing
+    flipping = diff(increasing) # peaks are -1, troughs are 1, the rest is zero
+    
+    target = -1
+    if troughs:
+        target = 1
+        
+    return where(flipping == target)[0]
 
 
 def detect_events(dat, method, value=None):
