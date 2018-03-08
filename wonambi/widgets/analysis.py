@@ -205,6 +205,8 @@ class AnalysisDialog(ChannelDialog):
 
         box2 = QGroupBox('Pre-processing')
 
+        self.trans['whiten'] = FormBool('Whiten')
+        
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
                   'diff']
         
@@ -227,6 +229,7 @@ class AnalysisDialog(ChannelDialog):
         tn2['bw'] = QLabel('Bandwidth (Hz)'), FormFloat()
         
         form = QFormLayout(box2)
+        form.addRow(self.trans['whiten'])
         form.addRow('Bandpass', self.trans['bandpass'])
         form.addRow(*tbp['order'])
         form.addRow(*tbp['f1'])
@@ -1155,7 +1158,7 @@ class AnalysisDialog(ChannelDialog):
             evt_type = None
 
         # Which channel(s)
-        self.chan = self.get_channels()
+        self.chan = self.get_channels() # chan name without group
         if not self.chan:
             return
         chan_full = [i + ' (' + self.idx_group.currentText() + ''
@@ -1234,7 +1237,8 @@ class AnalysisDialog(ChannelDialog):
         return bundles
     
     def read_data(self):
-        """Read data for analysis."""
+        """Read data for analysis. Creates list of dict, containing 'data'
+        (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""
         bundles = self.get_bundles()
         
         if not bundles:
@@ -1243,30 +1247,93 @@ class AnalysisDialog(ChannelDialog):
             return
         
         dataset = self.parent.info.dataset
-        chan_to_read = self.chan + self.one_grp['ref_chan']
+        chan_grp = self.one_grp
+        chan_to_read = self.chan + chan_grp['ref_chan']
+        active_chan = self.chan
         evt_chan_only = self.evt_chan_only.get_value()
+        output = []
+        
+        # Set up Progress Bar
+        n_subseg = sum([len(x['times']) for x in bundles])
+        progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
+                                   self)
+        progress.setWindowModality(Qt.ApplicationModal)
+        counter = 0
+        
+        # Begin bundle loop; will yield one segment per loop
+        for i, seg in enumerate(bundles):  
+            
+            one_segment = ChanTime()                    
+            one_segment.axis['chan'] = empty(1, dtype='O')
+            one_segment.axis['time'] = empty(1, dtype='O')
+            one_segment.data = empty(1, dtype='O')
+            subseg = []
+            
+            # Subsegment loop; subsegments will be concatenated
+            for t0, t1 in seg['times']:
+                counter += 1
+                progress.setValue(counter)
 
-        data = dataset.read_data(chan=chan_to_read)
+                if evt_chan_only: # for events
+                    active_chan = [seg['chan'].split(' (')[0]]
+                    chan_to_read = active_chan + chan_grp['ref_chan']
+                
+                data = dataset.read_data(chan=chan_to_read, begtime=t0, 
+                                         endtime=t1)
 
-        max_s_freq = self.parent.value('max_s_freq')
-        if data.s_freq > max_s_freq:
-            q = int(data.s_freq / max_s_freq)
-            lg.debug('Decimate (no low-pass filter) at ' + str(q))
+                # Downsample if necessary
+                max_s_freq = self.parent.value('max_s_freq')
+                if data.s_freq > max_s_freq:
+                    q = int(data.s_freq / max_s_freq)
+                    lg.debug('Decimate (no low-pass filter) at ' + str(q))
+        
+                    data.data[0] = data.data[0][:, slice(None, None, q)]
+                    data.axis['time'][0] = data.axis['time'][0][slice(
+                            None, None, q)]
+                    data.s_freq = int(data.s_freq / q)
+            
+                # read data from disk
+                subseg.append(_create_data_to_analyze(data, active_chan, 
+                                                      chan_grp))
 
-            data.data[0] = data.data[0][:, slice(None, None, q)]
-            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
-            data.s_freq = int(data.s_freq / q)
+            one_segment.s_freq = s_freq = data.s_freq
+            one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
+            one_segment.axis['time'][0] = timeline = hstack(
+                    [x.axis['time'][0] for x in subseg])
+            one_segment.data[0] = empty((len(active_chan), len(timeline)), 
+                                        dtype='f')
+            n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
 
-        self.data = _create_data_to_analyze(data, self.chan, self.one_grp,
-                                            bundles=bundles,
-                                            concat_chan=self.concat_chan,
-                                            evt_chan_only=evt_chan_only,
-                                            parent=self)
+            # For channel concatenation
+            if self.concat_chan and chs > 1:
+                one_segment.data[0] = ravel(one_segment.data[0])
+                one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
+                                dtype='U')
+                # axis['time'] should not be used in this case
+                
+            else:
+            
+                for i, chan in enumerate(subseg[0].axis['chan'][0]):                
+                    one_segment.data[0][i, :] = hstack(
+                            [x(chan=chan)[0] for x in subseg])
+
+            output.append({'data': one_segment,
+                           'chan': active_chan,
+                           'stage': seg['stage'],
+                           'cycle': seg['cycle'],
+                           'name': seg['name'],
+                           'n_stitch': n_stitch
+                           })
+
+        progress.setValue(i + 1)
+
+        self.data = output            
 
     def transform_data(self):
         """Apply pre-processing transformation to data, and add it to data 
         dict."""
         trans = self.trans
+        whiten = trans['whiten'].get_value()
         bandpass = trans['bandpass'].get_value()
         notch1 = trans['notch1'].get_value()
         notch2 = trans['notch2'].get_value()
@@ -1274,6 +1341,9 @@ class AnalysisDialog(ChannelDialog):
         for seg in self.data:
             dat = seg['data']
         
+            if whiten:
+                dat = math(dat, operator=diff, axis='time')
+            
             if bandpass != 'none':
                 order = trans['bp']['order'][1].get_value()
                 f1 = trans['bp']['f1'][1].get_value()
@@ -1417,7 +1487,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
-#                       'Stitches',
+                       'Stitches',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1440,14 +1510,19 @@ class AnalysisDialog(ChannelDialog):
 
                 for chan in seg['data'].axis['chan'][0]:
                     idx += 1
+                    
+                    cyc = None
+                    if seg['cycle'] is not None:
+                        cyc = seg['cycle'][2]
+                    
                     data_row = list(seg['data'](chan=chan)[0])
                     csv_file.writerow([idx,
                                        seg['times'][0],
                                        seg['times'][1],
                                        seg['duration'],
-#                                       seg['n_stitch'],
+                                       seg['n_stitch'],
                                        seg['stage'],
-                                       seg['cycle'][2],
+                                       cyc,
                                        seg['name'],
                                        chan,
                                        ] + data_row)
@@ -1642,7 +1717,7 @@ class AnalysisDialog(ChannelDialog):
                        'Start time',
                        'End time',
                        'Duration',
-#                       'Stitch',
+                       'Stitch',
                        'Stage',
                        'Cycle',
                        'Event type',
@@ -1676,6 +1751,11 @@ class AnalysisDialog(ChannelDialog):
 
                 for i, j in enumerate(xpac[chan]['times']):
                     idx += 1
+                    
+                    cyc = None
+                    if xpac[chan]['cycle'][i] is not None:
+                        cyc = xpac[chan]['cycle'][i][2]                                            
+                                        
                     data_row = list(ravel(xpac[chan]['data'][i, :, :]))
 
                     pval_row = []
@@ -1686,9 +1766,9 @@ class AnalysisDialog(ChannelDialog):
                                        j[0],
                                        j[1],
                                        xpac[chan]['duration'][i],
-#                                       seg['n_stitch'],
+                                       seg['n_stitch'],
                                        xpac[chan]['stage'][i],
-                                       xpac[chan]['cycle'][i][2],
+                                       cyc,
                                        xpac[chan]['name'][i],
                                        chan,
                                        ] + data_row + pval_row)
@@ -1700,6 +1780,7 @@ class AnalysisDialog(ChannelDialog):
         loc = {k: v[0].get_value() for k, v in ev['local'].items()}
         loc_prep = {k: v[1].get_value() for k, v in ev['local'].items()}
         
+        freq = ev['f1'].get_value(), ev['f2'].get_value()
         avg_slope = ev['sw']['avg_slope'].get_value() 
         max_slope = ev['sw']['max_slope'].get_value()
         slope_prep = ev['sw']['prep'].get_value()
@@ -1724,8 +1805,6 @@ class AnalysisDialog(ChannelDialog):
             dat = seg['data']
             timeline = dat.axis['time'][0]
             out['times'] = timeline[0], timeline[-1]
-            peakpf_done = False
-            peakef_done = False
             
             if loc['dur']:
                 out['dur'] = float(dat.number_of('time')) / dat.s_freq
@@ -1754,93 +1833,29 @@ class AnalysisDialog(ChannelDialog):
                     dat1 = seg['trans_data']
                 out['rms'] = math(dat1, operator=(square, _mean, sqrt), 
                    axis='time')
-                
-            if loc['power'] or loc['energy'] or loc['peakpf']:
-                f1, f2 = ev['f1'].get_value(), ev['f2'].get_value()
             
-            if loc_prep['power'] or loc_prep['energy'] or loc_prep['peakpf']:
-                dat_trans_diff = math(seg['trans_data'], operator=diff, 
-                                      axis='time')
-                
-            if loc['power']:
-                out['power'] = {}
-                if loc_prep['power']:
-                    dat1 = dat_trans_diff
-                else:
-                    dat1 = math(dat, operator=diff, axis='time')
-                Sxx = frequency(dat1)
-                sf = Sxx.axis['freq'][0]
-                b1 = asarray([abs(x - f1) for x in sf]).argmin()
-                b2 = asarray([abs(x - f2) for x in sf]).argmin()
-                
-                for chan in Sxx.axis['chan'][0]:
-                    d = Sxx(chan=chan)[0]
-                    out['power'][chan] = sum(d[b1:b2]) # integrating over f
-                
-                if loc['peakpf'] and (loc_prep['peakpf'] == loc_prep['power']):
-                    out['peakpf'] = {}
-                    peakpf_done = True
+            for pw, pk in [('power', 'peakpf'), ('energy', 'peakef')]:
+            
+                if loc[pw] or loc[pk]:
                     
-                    for chan in Sxx.axis['chan'][0]:
-                        d = Sxx(chan=chan)[0]
-                        idx_peak = d[b1:b2].argmax()
-                        out['peakpf'][chan] = sf[b1:b2][idx_peak]                                        
-                    
-            if loc['peakpf'] and not peakpf_done:
-                out['peakpf'] = {}
-                if loc_prep['peakpf']:
-                    dat1 = dat_trans_diff
-                else:
-                    dat1 = math(dat, operator=diff, axis='time')
-                Sxx = frequency(dat1)
-                sf = Sxx.axis['freq'][0]
-                b1 = asarray([abs(x - f1) for x in sf]).argmin()
-                b2 = asarray([abs(x - f2) for x in sf]).argmin()
-                
-                for chan in Sxx.axis['chan'][0]:
-                    d = Sxx(chan=chan)[0]
-                    idx_peak = d[b1:b2].argmax()
-                    out['peakpf'][chan] = sf[b1:b2][idx_peak]
-
-            if loc['energy']:
-                out['energy'] = {}
-                if loc_prep['energy']:
-                    dat1 = dat_trans_diff
-                else:
-                    dat1 = math(dat, operator=diff, axis='time')
-                Sxx = frequency(dat1, scaling='energy', detrend=None)
-                sf = Sxx.axis['freq'][0]
-                b1 = asarray([abs(x - f1) for x in sf]).argmin()
-                b2 = asarray([abs(x - f2) for x in sf]).argmin()
-                
-                for chan in Sxx.axis['chan'][0]:
-                    d = Sxx(chan=chan)[0]
-                    out['energy'][chan] = sum(d[b1:b2]) # integrating over f
-                
-                if loc['peakef'] and (loc_prep['peakef'] == loc_prep['power']):
-                    out['peakef'] = {}
-                    peakef_done = True
-                    
-                    for chan in Sxx.axis['chan'][0]:
-                        d = Sxx(chan=chan)[0]
-                        idx_peak = d[b1:b2].argmax()
-                        out['peakef'][chan] = sf[b1:b2][idx_peak] 
-                    
-            if loc['peakef'] and not peakef_done:
-                out['peakef'] = {}
-                if loc_prep['peakef']:
-                    dat1 = dat_trans_diff
-                else:
-                    dat1 = math(dat, operator=diff, axis='time')
-                Sxx = frequency(dat1, scaling='energy', detrend=None)  
-                sf = Sxx.axis['freq'][0]
-                b1 = asarray([abs(x - f1) for x in sf]).argmin()
-                b2 = asarray([abs(x - f2) for x in sf]).argmin()
-                
-                for chan in Sxx.axis['chan'][0]:
-                    d = Sxx(chan=chan)[0]
-                    idx_peak = d[b1:b2].argmax()
-                    out['peakef'][chan] = sf[b1:b2][idx_peak] 
+                    if loc_prep[pw] or loc_prep[pk]:
+                        prep_pw, prep_pk = get_power(seg['trans_data'], freq, 
+                                                     scaling=pw)
+                    if not (loc_prep[pw] and loc_prep[pk]):
+                        raw_pw, raw_pk = get_power(dat, freq, scaling=pw)
+                        
+                    if loc_prep[pw]:
+                        out[pw] = prep_pw
+                    else:
+                        out[pw] = raw_pw
+                        
+                    if loc_prep[pk]:
+                        out[pk] = prep_pk
+                    else:
+                        out[pk] = raw_pk
+                        
+            lg.info('freq for pw/pk: ' + str(freq))
+            lg.info('pw, pk: ' + str(out[pw]) + ' ' + str(out[pk]))
                 
             if avg_slope or max_slope:
                 out['slope'] = {}
@@ -1872,15 +1887,14 @@ class AnalysisDialog(ChannelDialog):
         heading_row_1 = ['Segment index',
                        'Start time',
                        'End time',
-#                       'Stitches',
+                       'Stitches',
                        'Stage',
                        'Cycle',
                        'Event type',
                        'Channel']
         spacer = [''] * (len(heading_row_1) - 1)
         
-        param_headings_1 = ['Duration (s)',
-                            'Min. amplitude (uV)',
+        param_headings_1 = ['Min. amplitude (uV)',
                             'Max. amplitude (uV)',
                             'Peak-to-peak amplitude (uV)',
                             'RMS (uV)']
@@ -1905,6 +1919,9 @@ class AnalysisDialog(ChannelDialog):
         sel_params_1 = list(compress(ordered_params_1, idx_params_1))
         heading_row_2 = list(compress(param_headings_1, idx_params_1))
         
+        if 'dur' in loc[0].keys():
+            heading_row_2 = ['Duration (s)'] + heading_row_2
+        
         idx_params_2 = in1d(ordered_params_2, list(loc[0].keys()))
         sel_params_2 = list(compress(ordered_params_2, idx_params_2))
         heading_row_3 = list(compress(param_headings_2, idx_params_2))
@@ -1915,26 +1932,40 @@ class AnalysisDialog(ChannelDialog):
                 heading_row_4.extend(slope_headings[:5])
             if next(iter(loc[0]['slope']))[1]:
                 heading_row_4.extend(slope_headings[5:])
-            
-        as_matrix_1 = asarray(
-                [ravel([ravel(y[x]()[0]) for x in sel_params_1]) for y in loc])
-        lg.info('mat1, shape: ' + str(as_matrix_1.shape) + ' ' + str(as_matrix_1))
-        as_matrix_2 = asarray([ravel([y[x][chan] for x in sel_params_2 \
-                                for chan in y[x]]) for y in loc])
-        lg.info('mat2, shape: ' + str(as_matrix_2.shape) + ' ' + str(as_matrix_2))
-        as_matrix = hstack((as_matrix_1, as_matrix_2))
-        lg.info('mat, shape: ' + str(as_matrix.shape) + ' ' + str(as_matrix))
-        if 'dur' in loc[0].keys():
-            as_matrix_0 = reshape(asarray([x['dur'] for x in loc]), 
-                                  (len(loc), 1))
-            lg.info('mat0, shape: ' + str(as_matrix_0.shape) + ' ' + str(as_matrix_0))
-            as_matrix = hstack((as_matrix_0, as_matrix))
-        if 'slope' in loc[0].keys():
-            as_matrix_3 = asarray([ravel(x['slope'][chan]) for x in loc \
-                           for chan in x['slope']])
-            as_matrix = hstack((as_matrix, as_matrix_3))
-            
-        desc = get_descriptives(as_matrix)
+
+#==============================================================================
+#         # Generate descriptives        
+#         as_matrix = asarray(
+#                 [[seg[param](chan=chan) for param in sel_params_1] \
+#                   for seg in loc for chan in seg['data'].axis['chan'][0]])
+#             
+#         lg.info('mat1, shape: ' + str(as_matrix.shape) + ' ' + str(as_matrix))
+#         
+#         as_matrix_2 = asarray([ravel([y[x][chan] for x in sel_params_2 \
+#                                 for chan in y[x]]) for y in loc])
+#             
+#         lg.info('mat2, shape: ' + str(as_matrix_2.shape) + ' ' + str(as_matrix_2))
+#         
+#         as_matrix = hstack((as_matrix_1, as_matrix_2))
+#         
+#         lg.info('mat, shape: ' + str(as_matrix.shape) + ' ' + str(as_matrix))
+#         
+#         if 'dur' in loc[0].keys():
+#             heading_row_2 = ['Duration'] + heading_row_2
+#             as_matrix_0 = reshape(asarray([x['dur'] for x in loc]), 
+#                                   (len(loc), 1))
+#             
+#             lg.info('mat0, shape: ' + str(as_matrix_0.shape) + ' ' + str(as_matrix_0))
+#             
+#             as_matrix = hstack((as_matrix_0, as_matrix))
+#             
+#         if 'slope' in loc[0].keys():
+#             as_matrix_3 = asarray([ravel(x['slope'][chan] \
+#                                         for chan in x['slope']) for x in loc])
+#             as_matrix = hstack((as_matrix, as_matrix_3))
+#             
+#         desc = get_descriptives(as_matrix)
+#==============================================================================
         
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to' + str(filename))
@@ -1947,10 +1978,10 @@ class AnalysisDialog(ChannelDialog):
 
             csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
                               + heading_row_4)            
-            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+            #csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+            #csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+            #csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
+            #csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
             idx = 0
 
             for seg in loc:
@@ -1973,7 +2004,7 @@ class AnalysisDialog(ChannelDialog):
                     csv_file.writerow([idx,
                                        seg['times'][0],
                                        seg['times'][1],
-#                                       seg['n_stitch'],
+                                       seg['n_stitch'],
                                        seg['stage'],
                                        seg['cycle'],
                                        seg['name'],
@@ -2016,6 +2047,47 @@ def get_descriptives(data):
     
     return output
 
+def get_power(data, freq, scaling='power'):
+    """Compute power or energy acoss a frequency band, and its peak frequency.
+    
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data to be analyzed
+    freq : tuple of float
+        Frequencies for band of interest. Power will be summed across this 
+        band, and peak frequency determined within it.
+    scaling : str
+        'power' or 'energy'.
+        
+    Returns
+    -------
+    dict of float
+        keys are channels, values are power or energy
+    dict of float
+        keys are channels, values are respective peak frequency
+    """
+    power = {}
+    peakf = {}
+    detrend = 'linear'
+    if 'energy' == scaling:
+        detrend = None
+    
+    data = math(data, operator=diff, axis='time')
+    Sxx = frequency(data, scaling=scaling, detrend=detrend)
+    sf = Sxx.axis['freq'][0]
+    idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
+    idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+    
+    for chan in Sxx.axis['chan'][0]:
+        s = Sxx(chan=chan)[0]
+        power[chan] = sum(s[idx_f1:idx_f2]) # integrating over f
+        
+        idx_peak = s[idx_f1:idx_f2].argmax()
+        peakf[chan] = sf[idx_f1:idx_f2][idx_peak]
+        
+    return power, peakf
+
 def get_slopes(data, s_freq, level='all', smooth=0.05):
     """Get the slopes (average and/or maximum) for each quadrant of a slow
     wave, as well as the combination of quadrants 2 and 3.
@@ -2048,7 +2120,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     idx_trough = data.argmin()
     idx_peak = data.argmax()    
     if idx_trough >= idx_peak:
-        return
+        return ((None,),)
     
     zero_crossings_0 = where(diff(sign(data[:idx_trough])))[0]
     zero_crossings_1 = where(diff(sign(data[idx_trough:idx_peak])))[0]
@@ -2056,7 +2128,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     if zero_crossings_1.any():
         idx_zero_1 = zero_crossings_1[0]
     else:
-        return
+        return ((None,),)
     
     if zero_crossings_0.any():
         idx_zero_0 = zero_crossings_0[-1]
@@ -2068,7 +2140,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     else:
         idx_zero_2 = len(data) - 1
         
-    avg_slopes = None 
+    avg_slopes = (None,) 
     if level in ['average', 'all']:
         q1 = data[idx_trough] / ((idx_trough - idx_zero_0) / s_freq)
         q2 = data[idx_trough] / ((idx_zero_1 - idx_trough) / s_freq)
@@ -2078,7 +2150,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
                 / ((idx_peak - idx_trough) / s_freq)
         avg_slopes = asarray([q1, q2, q3, q4, q23])
     
-    maxsl = None
+    maxsl = (None,)
     if level in ['maximum', 'all']:
         
         if smooth is not None:
@@ -2104,121 +2176,52 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
             maxsl[4] = max(gradient(data[idx_trough:idx_peak]))
         
     return avg_slopes, maxsl
-        
+    
 
-def _create_data_to_analyze(data, analysis_chans, chan_grp, bundles,
-                            concat_chan=False, evt_chan_only=False,
-                            parent=None):
-    """Create data after montage and filtering.
+def _create_data_to_analyze(data, active_chan, chan_grp):
+    """Create data after montage.
 
     Parameters
     ----------
     data : instance of ChanTime
         the raw data
-    analysis_chans : list of str
-        the channel(s) of interest and their reference(s), if any
+    active_chan : list of str
+        the channel(s) of interest, without reference or group
     chan_grp : dict
         information about channels to plot, to use as reference and about
         filtering etc.
-    bundles : list of dict
-        Each dict has times (the start and end times of each sub-segment, as
-        list of tuple of float), stage, cycle, chan, name (event type,
-        if applicable). Each dict of subsegments will be concatenated into
-        a single segment.
-    concat_chan : bool
-        If True, signal from different channels will be concatenated into one
-        vector. Defaults to False.
-    evt_chan_only: bool
-        For use with events. If True, only the data on the original channel
-        where the event was marked will be returned. If False, data concurrent
-        with the event on all channels in analysis_chans will be returned.
-    parent : QWidget, opt
-        For use with GUI, as parent widget for the progress bar
 
     Returns
     -------
-    list of dict
-        each item is a dict where 'data' is an instance of ChanTime for a
-        single segment of signal, 'name' is the event type, if applicable, and
-        with 'chan' (str), 'stage' (str) and 'cycle' (int)
+    instance of ChanTime
+        the re-referenced data
     """
-    if parent is not None:
-        progress = QProgressDialog('Fetching signal', 'Abort',
-                                   0, len(bundles), parent)
-        progress.setWindowModality(Qt.ApplicationModal)
+    output = ChanTime()
+    output.s_freq = data.s_freq
+    output.start_time = data.start_time
+    output.axis['time'] = data.axis['time']
+    output.axis['chan'] = empty(1, dtype='O')
+    output.data = empty(1, dtype='O')
+    output.data[0] = empty((len(active_chan), data.number_of('time')[0]),
+                           dtype='f')
 
-    s_freq = data.s_freq
-    output = []
+    all_chan_grp_name = []
 
-    for i, seg in enumerate(bundles):
-        if parent is not None:
-            progress.setValue(i)
+    lg.info('_concat: Selecting channels')
+    sel_data = _select_channels(data, active_chan + chan_grp['ref_chan'])
+    lg.info('_concat: Re-referencing')
+    data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
 
-        times = [(int(t0 * s_freq),
-                  int(t1 * s_freq)) for (t0, t1) in seg['times']]
-        #n_stitch = len(times) - 1
+    data1.data[0] = nan_to_num(data1.data[0])
 
-        one_segment = ChanTime()
-        one_segment.s_freq = s_freq
-        one_segment.axis['chan'] = empty(1, dtype='O')
-        one_segment.axis['time'] = empty(1, dtype='O')
-        one_segment.data = empty(1, dtype='O')
+    for i, chan in enumerate(active_chan):
+        chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
+        all_chan_grp_name.append(chan_grp_name)
 
-        all_epoch_data = []
-        timeline = []
-        all_chan_grp_name = []
+        dat = data1(chan=chan, trial=0)
+        output.data[0][i, :] = dat
 
-        if evt_chan_only and seg['chan'] is not '':
-            these_chans = [seg['chan'].split(' (')[0]]
-        else:
-            these_chans = analysis_chans
-
-        for chan in these_chans:
-            chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
-            all_chan_grp_name.append(chan_grp_name)
-
-        sel_data = _select_channels(data,
-                                    these_chans +
-                                    chan_grp['ref_chan'])
-        data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
-
-        data1.data[0] = nan_to_num(data1.data[0])
-
-        for (t0, t1) in times:
-            one_interval = data.axis['time'][0][t0: t1]
-            timeline.append(one_interval)
-            epoch_dat = empty((len(these_chans), len(one_interval)))
-            i_ch = 0
-
-            for chan in these_chans:
-                dat = data1(chan=chan, trial=0)
-                #dat = dat - nanmean(dat)
-                epoch_dat[i_ch, :] = dat[t0: t1]
-                i_ch += 1
-
-            all_epoch_data.append(epoch_dat)
-
-        one_segment.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-        one_segment.axis['time'][0] = concatenate(timeline)
-        one_segment.data[0] = concatenate(all_epoch_data, axis=1)
-
-        if concat_chan and len(one_segment.axis['chan'][0]) > 1:
-            one_segment.data[0] = ravel(one_segment.data[0])
-            one_segment.axis['chan'][0] = asarray([(', ').join(
-                    all_chan_grp_name)], dtype='U')
-            # axis['time'] should not be used in this case
-
-
-        output.append({'data': one_segment,
-                       'chan': these_chans,
-                       'stage': seg['stage'],
-                       'cycle': seg['cycle'],
-                       'name': seg['name'],
-#                       'n_stitch': n_stitch
-                       })
-
-    if parent is not None:
-        progress.setValue(i + 1)
+    output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
 
     return output
 

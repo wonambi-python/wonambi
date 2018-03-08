@@ -196,8 +196,8 @@ def _select_channels(data, channels):
 
     Notes
     -----
-    This function does the same as sleepytimes.trans.select, but it's much faster.
-    sleepytimes.trans.Select needs to flexible for any data type, here we assume
+    This function does the same as wonambi.trans.select, but it's much faster.
+    wonambi.trans.Select needs to flexible for any data type, here we assume
     that we have one trial, and that channel is the first dimension.
 
     """

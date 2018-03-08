@@ -152,7 +152,7 @@ def math(data, operator=None, operator_name=None, axis=None):
 
     first_op = True
     for op in operations:
-        lg.info('running operator: ' + op['name'])
+        #lg.info('running operator: ' + op['name'])
         func = op['func']
 
         if func == mode:
