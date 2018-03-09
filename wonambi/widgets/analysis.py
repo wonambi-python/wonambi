@@ -297,6 +297,7 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
 
         freq['freq_on'] = FormBool('Compute frequency domain')
+        freq['prep'] = FormBool('Pre-process')
         freq['plot_on'] = FormBool('Plot mean spectrum')
 
         freq['box_param'] = QGroupBox('Parameters')
@@ -429,6 +430,7 @@ class AnalysisDialog(ChannelDialog):
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
+        vlayout.addWidget(freq['prep'])
         vlayout.addWidget(freq['plot_on'])
         vlayout.addLayout(glayout)
         vlayout.addStretch(1)
@@ -476,6 +478,7 @@ class AnalysisDialog(ChannelDialog):
             pac['box_metric'] = QGroupBox('PAC metric')
 
             pac['pac_on'] = FormBool('Compute PAC')
+            pac['prep'] = FormBool('Pre-process')
             pac['metric'] = FormMenu(pac_metrics)
             pac['fpha'] = FormStr()
             pac['famp'] = FormStr()
@@ -524,6 +527,7 @@ class AnalysisDialog(ChannelDialog):
 
             vlayout = QVBoxLayout(tab_pac)
             vlayout.addWidget(pac['pac_on'])
+            vlayout.addWidget(pac['prep'])
             vlayout.addWidget(QLabel(''))
             vlayout.addWidget(pac['box_metric'])
             vlayout.addWidget(pac['box_complex'])
@@ -719,6 +723,7 @@ class AnalysisDialog(ChannelDialog):
         self.reject_epoch.setChecked(True)
         self.trans['button']['none'].setChecked(True)
 
+        freq['prep'].setEnabled(False)
         freq['plot_on'].setEnabled(False)
         freq['box_param'].setEnabled(False)
         freq['box_welch'].setEnabled(False)
@@ -738,6 +743,7 @@ class AnalysisDialog(ChannelDialog):
         freq['norm'].setEnabled(False) # Temp
 
         if Pac is not None:
+            pac['prep'].setEnabled(False)
             pac['wavelet_on'].setChecked(True)
             pac['metric'].set_value('Kullback-Leibler Distance')
             pac['optimize'].set_value('False')
@@ -933,6 +939,9 @@ class AnalysisDialog(ChannelDialog):
         epoch_on = self.chunk['epoch'].isChecked()
         rectangular = welch_on or epoch_on or zeropad_on or nfft_fixed_on or \
                         (self.nseg == 1)
+        freq['prep'].setEnabled(freq_on)
+        if not freq_on:
+            freq['prep'].set_value(False)
         freq['plot_on'].setEnabled(freq_on and rectangular)
         if not freq['plot_on'].isEnabled():
             freq['plot_on'].set_value(False) 
@@ -963,10 +972,14 @@ class AnalysisDialog(ChannelDialog):
         """Enable and disable PAC options."""
         if Pac is not None:
             pac_on = self.pac['pac_on'].get_value()
+            self.pac['prep'].setEnabled(pac_on)
             self.pac['box_metric'].setEnabled(pac_on)
             self.pac['box_complex'].setEnabled(pac_on)
             self.pac['box_surro'].setEnabled(pac_on)
             self.pac['box_opts'].setEnabled(pac_on)
+            
+            if not pac_on:
+                self.pac['prep'].set_value(False)
 
         if Pac is not None and pac_on:
 
@@ -1075,18 +1088,37 @@ class AnalysisDialog(ChannelDialog):
             # Which analyses?
             freq_on = self.frequency['freq_on'].get_value()
             freq_plot_on = self.frequency['plot_on'].get_value()
+            freq_prep = self.frequency['prep'].get_value()
             
             if Pac is not None:
                 pac_on = self.pac['pac_on'].get_value()
+                pac_prep = self.pac['prep'].get_value()
             else:
                 pac_on = False
+                pac_prep = False
+                
+            ev = self.event
+            glob = asarray(
+                    [v.get_value() for v in ev['global'].values()]).any()
+            loc = asarray(
+                    [v[0].get_value() for v in ev['local'].values()]).any()            
+            avg_sl = ev['sw']['avg_slope'].get_value() 
+            max_sl = ev['sw']['max_slope'].get_value()            
+            loc_prep = asarray(
+                    [v[1].get_value() for v in ev['local'].values()]).any()
+            slope_prep = ev['sw']['prep'].get_value()
             
-            #if not (freq_on or pac_on):
-            #    return
+            if not (freq_on or pac_on or glob or loc or avg_sl or max_sl):
+                return
 
             # Fetch signal            
             self.update_nseg
             self.read_data()
+            
+            # Transform signal
+            if freq_prep or pac_prep or loc_prep or slope_prep:
+                lg.info('Pre-processing data')
+                self.transform_data()
 
             # Frequency domain
             if freq_on:
@@ -1124,12 +1156,6 @@ class AnalysisDialog(ChannelDialog):
                 self.export_pac(xpac, fpha, famp, desc)
                 
             # Events
-            loc_prep = [v[1].get_value() for v in self.event['local'].values()]
-            slope_prep = self.event['sw']['prep'].get_value()
-            
-            if slope_prep or asarray(loc_prep).any():
-                self.transform_data()
-            
             glob, loc = self.compute_evt_params()
             
             self.export_evt_params(glob, loc)
@@ -1342,6 +1368,7 @@ class AnalysisDialog(ChannelDialog):
             dat = seg['data']
         
             if whiten:
+                lg.info('Whitening signal')
                 dat = math(dat, operator=diff, axis='time')
             
             if bandpass != 'none':
@@ -1459,8 +1486,13 @@ class AnalysisDialog(ChannelDialog):
         xfreq = []
         for i, seg in enumerate(self.data):
             progress.setValue(i)
+            
             new_seg = dict(seg)
             data = seg['data']
+            
+            if self.frequency['prep'].get_value():
+                data = seg['trans_data']
+                
             timeline = seg['data'].axis['time'][0]
             new_seg['times'] = timeline[0], timeline[-1]
             new_seg['duration'] = len(timeline) / data.s_freq
@@ -1629,12 +1661,17 @@ class AnalysisDialog(ChannelDialog):
             batch_dat = []
 
             for i, j in enumerate(self.data):
+                
+                if self.pac['prep'].get_value():
+                    data = j['trans_data']
+                else:
+                    data = j['data']
 
-                if chan in j['data'].axis['chan'][0]:
+                if chan in data.axis['chan'][0]:
                     batch.append(j)
 
                     if idpac[1] == 1:
-                        batch_dat.append(j['data'](chan=chan)[0])
+                        batch_dat.append(data(chan=chan)[0])
 
             xpac[chan] = {}
             xpac[chan]['data'] = zeros((len(batch), len(famp), len(fpha)))
@@ -1643,6 +1680,7 @@ class AnalysisDialog(ChannelDialog):
             xpac[chan]['stage'] = []
             xpac[chan]['cycle'] = []
             xpac[chan]['name'] = []
+            xpac[chan]['n_stitch'] = []
 
             if get_pval:
                 xpac[chan]['pval'] = zeros((len(batch), len(famp), len(fpha)))
@@ -1654,17 +1692,22 @@ class AnalysisDialog(ChannelDialog):
             for i, j in enumerate(batch):
                 progress.setValue(counter)
                 counter += 1
+                
+                if self.pac['prep'].get_value():
+                    data = j['trans_data']
+                else:
+                    data = j['data']
 
-                sf = j['data'].s_freq
+                sf = data.s_freq
 
                 if idpac[1] == 1:
                     new_batch_dat = list(batch_dat)
                     new_batch_dat.insert(0, new_batch_dat.pop(i))
                     dat = asarray(new_batch_dat)
                 else:
-                    dat = j['data'](chan=chan)[0]
+                    dat = data(chan=chan)[0]
 
-                timeline = j['data'].axis['time'][0]
+                timeline = data.axis['time'][0]
                 xpac[chan]['times'].append((timeline[0], timeline[-1]))
                 lg.info('Compute PAC on ' + chan + ' ' + str((timeline[0],
                                                               timeline[-1])))
@@ -1673,6 +1716,7 @@ class AnalysisDialog(ChannelDialog):
                 xpac[chan]['stage'].append(j['stage'])
                 xpac[chan]['cycle'].append(j['cycle'])
                 xpac[chan]['name'].append(j['name'])
+                xpac[chan]['n_stitch'].append(j['n_stitch'])
 
 #==============================================================================
 #                 lg.info(' '.join([str(x) for x in ['Computing PAC', 'sf:', sf,
@@ -1766,7 +1810,7 @@ class AnalysisDialog(ChannelDialog):
                                        j[0],
                                        j[1],
                                        xpac[chan]['duration'][i],
-                                       seg['n_stitch'],
+                                       xpac[chan]['n_stitch'],
                                        xpac[chan]['stage'][i],
                                        cyc,
                                        xpac[chan]['name'][i],
@@ -1839,6 +1883,7 @@ class AnalysisDialog(ChannelDialog):
                 if loc[pw] or loc[pk]:
                     
                     if loc_prep[pw] or loc_prep[pk]:
+                        lg.info('using pre-processed data for ' + pw + ' or ' + pk)
                         prep_pw, prep_pk = get_power(seg['trans_data'], freq, 
                                                      scaling=pw)
                     if not (loc_prep[pw] and loc_prep[pk]):
@@ -1853,10 +1898,7 @@ class AnalysisDialog(ChannelDialog):
                         out[pk] = prep_pk
                     else:
                         out[pk] = raw_pk
-                        
-            lg.info('freq for pw/pk: ' + str(freq))
-            lg.info('pw, pk: ' + str(out[pw]) + ' ' + str(out[pk]))
-                
+                                        
             if avg_slope or max_slope:
                 out['slope'] = {}
                 dat1 = dat
@@ -2073,7 +2115,6 @@ def get_power(data, freq, scaling='power'):
     if 'energy' == scaling:
         detrend = None
     
-    data = math(data, operator=diff, axis='time')
     Sxx = frequency(data, scaling=scaling, detrend=detrend)
     sf = Sxx.axis['freq'][0]
     idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
@@ -2126,7 +2167,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     zero_crossings_1 = where(diff(sign(data[idx_trough:idx_peak])))[0]
     zero_crossings_2 = where(diff(sign(data[idx_peak:])))[0]
     if zero_crossings_1.any():
-        idx_zero_1 = zero_crossings_1[0]
+        idx_zero_1 = idx_trough + zero_crossings_1[0]
     else:
         return ((None,),)
     
@@ -2136,7 +2177,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
         idx_zero_0 = 0
         
     if zero_crossings_2.any():
-        idx_zero_2 = zero_crossings_2[0]
+        idx_zero_2 = idx_peak + zero_crossings_2[0]
     else:
         idx_zero_2 = len(data) - 1
         
@@ -2205,14 +2246,11 @@ def _create_data_to_analyze(data, active_chan, chan_grp):
     output.data[0] = empty((len(active_chan), data.number_of('time')[0]),
                            dtype='f')
 
-    all_chan_grp_name = []
-
-    lg.info('_concat: Selecting channels')
     sel_data = _select_channels(data, active_chan + chan_grp['ref_chan'])
-    lg.info('_concat: Re-referencing')
     data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
-
     data1.data[0] = nan_to_num(data1.data[0])
+    
+    all_chan_grp_name = []
 
     for i, chan in enumerate(active_chan):
         chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
