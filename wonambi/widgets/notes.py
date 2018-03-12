@@ -406,7 +406,7 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['analyze_events'] = act
 
-        act = QAction('Analysis console (IN ALPHA TESTING)', self)
+        act = QAction('Analysis console (BETA)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setEnabled(False)
         actions['analyze'] = act

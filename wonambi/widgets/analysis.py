@@ -5,9 +5,10 @@
 from logging import getLogger
 
 from numpy import (amax, amin, asarray, concatenate, diff, empty, 
-                   floor, gradient, hstack, in1d, log, logical_and, logical_or, 
-                   mean, nan, nan_to_num, negative, ones, ptp, ravel, reshape, 
-                   sign, sqrt, square, std, where, zeros)
+                   gradient, hstack, in1d, isinf, log, logical_and, 
+                   logical_or, mean, nan, nan_to_num, nanmean, nanstd, 
+                   negative, ones, ptp, ravel, reshape, sign, sqrt, square, 
+                   where, zeros)
 from scipy.signal import fftconvolve
 from itertools import compress
 from csv import writer
@@ -1297,8 +1298,8 @@ class AnalysisDialog(ChannelDialog):
             
             # Subsegment loop; subsegments will be concatenated
             for t0, t1 in seg['times']:
-                counter += 1
                 progress.setValue(counter)
+                counter += 1
 
                 if evt_chan_only: # for events
                     active_chan = [seg['chan'].split(' (')[0]]
@@ -1350,8 +1351,11 @@ class AnalysisDialog(ChannelDialog):
                            'name': seg['name'],
                            'n_stitch': n_stitch
                            })
+                
+            if progress.wasCanceled():
+                break
 
-        progress.setValue(i + 1)
+        progress.setValue(counter)
 
         self.data = output            
 
@@ -1432,7 +1436,7 @@ class AnalysisDialog(ChannelDialog):
             and with 'chan' (str), 'stage' (str) and 'cycle' (int)
         """
         progress = QProgressDialog('Computing frequency', 'Abort',
-                                   0, len(self.data), self)
+                                   0, len(self.data) - 1, self)
         progress.setWindowModality(Qt.ApplicationModal)
 
         freq = self.frequency
@@ -1484,9 +1488,7 @@ class AnalysisDialog(ChannelDialog):
                          str(detrend), 'n_smp:', str(n_smp)]))
 
         xfreq = []
-        for i, seg in enumerate(self.data):
-            progress.setValue(i)
-            
+        for i, seg in enumerate(self.data):            
             new_seg = dict(seg)
             data = seg['data']
             
@@ -1503,11 +1505,10 @@ class AnalysisDialog(ChannelDialog):
                             detrend=detrend, n_smp=n_smp)
             new_seg['data'] = Sxx
             xfreq.append(new_seg)
-
+            
+            progress.setValue(i)
             if progress.wasCanceled():
                 break
-
-        progress.setValue(i+1)
 
         return xfreq
 
@@ -1594,6 +1595,7 @@ class AnalysisDialog(ChannelDialog):
         elif 'energy' == scaling:
             ylabel = 'Energy spectral density (uV ** 2)'
 
+        self.parent.plot_dialog = PlotDialog(self.parent)
         self.parent.plot_dialog.canvas.plot(x, y, title, ylabel,
                                             #log=log,
                                             #idx_lim=(idx_low, idx_high)
@@ -1748,6 +1750,9 @@ class AnalysisDialog(ChannelDialog):
 
                 else:
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
+                    
+                if progress.wasCanceled():
+                    break
 
         progress.setValue(counter)
 
@@ -1810,7 +1815,7 @@ class AnalysisDialog(ChannelDialog):
                                        j[0],
                                        j[1],
                                        xpac[chan]['duration'][i],
-                                       xpac[chan]['n_stitch'],
+                                       xpac[chan]['n_stitch'][i],
                                        xpac[chan]['stage'][i],
                                        cyc,
                                        xpac[chan]['name'][i],
@@ -1819,12 +1824,22 @@ class AnalysisDialog(ChannelDialog):
             
     def compute_evt_params(self):
         """Compute event parameters."""
+        progress = QProgressDialog('Computing PAC', 'Abort',
+                                   0, len(self.data) - 1, self)
+        progress.setWindowModality(Qt.ApplicationModal)
+        
         ev = self.event
         glob = {k: v.get_value() for k, v in ev['global'].items()}
         loc = {k: v[0].get_value() for k, v in ev['local'].items()}
         loc_prep = {k: v[1].get_value() for k, v in ev['local'].items()}
         
-        freq = ev['f1'].get_value(), ev['f2'].get_value()
+        f1, f2 = ev['f1'].get_value(), ev['f2'].get_value()
+        if not f1:
+            f1 = 0
+        if not f2:
+            f2 = 100000 # arbitrarily high frequency
+        freq = f1, f2
+        
         avg_slope = ev['sw']['avg_slope'].get_value() 
         max_slope = ev['sw']['max_slope'].get_value()
         slope_prep = ev['sw']['prep'].get_value()
@@ -1844,7 +1859,7 @@ class AnalysisDialog(ChannelDialog):
             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
             glob_out['density'] = self.nseg / (total_dur / epoch_dur)
         
-        for seg in self.data:
+        for i, seg in enumerate(self.data):            
             out = dict(seg)
             dat = seg['data']
             timeline = dat.axis['time'][0]
@@ -1883,7 +1898,6 @@ class AnalysisDialog(ChannelDialog):
                 if loc[pw] or loc[pk]:
                     
                     if loc_prep[pw] or loc_prep[pk]:
-                        lg.info('using pre-processed data for ' + pw + ' or ' + pk)
                         prep_pw, prep_pk = get_power(seg['trans_data'], freq, 
                                                      scaling=pw)
                     if not (loc_prep[pw] and loc_prep[pk]):
@@ -1920,11 +1934,17 @@ class AnalysisDialog(ChannelDialog):
             
             loc_out.append(out)
             
+            progress.setValue(i)
+            if progress.wasCanceled():
+                break
+            
         return glob_out, loc_out
         
     def export_evt_params(self, glob, loc, desc=None):
         """Write event analysis data to CSV."""
-        filename = splitext(self.filename)[0] + '_evtdat.csv'
+        basename = splitext(self.filename)[0]
+        pickle_filename = basename + 'evtdat.p'
+        csv_filename = basename + '_evtdat.csv'
         
         heading_row_1 = ['Segment index',
                        'Start time',
@@ -1974,43 +1994,45 @@ class AnalysisDialog(ChannelDialog):
                 heading_row_4.extend(slope_headings[:5])
             if next(iter(loc[0]['slope']))[1]:
                 heading_row_4.extend(slope_headings[5:])
-
-#==============================================================================
-#         # Generate descriptives        
-#         as_matrix = asarray(
-#                 [[seg[param](chan=chan) for param in sel_params_1] \
-#                   for seg in loc for chan in seg['data'].axis['chan'][0]])
-#             
-#         lg.info('mat1, shape: ' + str(as_matrix.shape) + ' ' + str(as_matrix))
-#         
-#         as_matrix_2 = asarray([ravel([y[x][chan] for x in sel_params_2 \
-#                                 for chan in y[x]]) for y in loc])
-#             
-#         lg.info('mat2, shape: ' + str(as_matrix_2.shape) + ' ' + str(as_matrix_2))
-#         
-#         as_matrix = hstack((as_matrix_1, as_matrix_2))
-#         
-#         lg.info('mat, shape: ' + str(as_matrix.shape) + ' ' + str(as_matrix))
-#         
-#         if 'dur' in loc[0].keys():
-#             heading_row_2 = ['Duration'] + heading_row_2
-#             as_matrix_0 = reshape(asarray([x['dur'] for x in loc]), 
-#                                   (len(loc), 1))
-#             
-#             lg.info('mat0, shape: ' + str(as_matrix_0.shape) + ' ' + str(as_matrix_0))
-#             
-#             as_matrix = hstack((as_matrix_0, as_matrix))
-#             
-#         if 'slope' in loc[0].keys():
-#             as_matrix_3 = asarray([ravel(x['slope'][chan] \
-#                                         for chan in x['slope']) for x in loc])
-#             as_matrix = hstack((as_matrix, as_matrix_3))
-#             
-#         desc = get_descriptives(as_matrix)
-#==============================================================================
+       
+        # Get data as matrix and compute descriptives
+        dat = []        
+        if 'dur' in loc[0].keys():
+            one_mat = reshape(asarray(([x['dur'] for x in loc])), 
+                               (len(loc), 1))
+            dat.append(one_mat) 
+            lg.info('dur mat: ' + str(one_mat.shape))
         
-        with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+        if sel_params_1:
+            one_mat = asarray([[seg[x](chan=chan)[0] for x in sel_params_1] \
+                    for seg in loc for chan in seg['data'].axis['chan'][0]])
+            dat.append(one_mat)
+            lg.info('params1 mat: ' + str(one_mat.shape))
+        
+        if sel_params_2:    
+            one_mat = asarray([[seg[x][chan] for x in sel_params_2] \
+                    for seg in loc for chan in seg['data'].axis['chan'][0]])
+            dat.append(one_mat)
+            lg.info('params2 mat: ' + str(one_mat.shape))
+            
+        if 'slope' in loc[0].keys():
+            one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
+                    for seg in loc for chan in seg['data'].axis['chan'][0]])
+            dat.append(one_mat)
+            lg.info('slope mat: ' + str(one_mat.shape))
+            
+        if not dat:
+            return
+        
+        dat = concatenate(dat, axis=1)
+        
+        desc = get_descriptives(dat)
+    
+        with open(pickle_filename, 'wb') as f:
+            dump(dat, f)
+             
+        with open(csv_filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(csv_filename))
             csv_file = writer(f)
             
             if 'count' in glob.keys():
@@ -2020,10 +2042,10 @@ class AnalysisDialog(ChannelDialog):
 
             csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
                               + heading_row_4)            
-            #csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-            #csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-            #csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-            #csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
+            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
             idx = 0
 
             for seg in loc:
@@ -2082,10 +2104,10 @@ def get_descriptives(data):
     """
     output = {}
     dat_log = log(abs(data))
-    output['mean'] = mean(data, axis=0)
-    output['sd'] = std(data, axis=0)
-    output['mean_log'] = mean(dat_log, axis=0)
-    output['sd_log'] = std(dat_log, axis=0)
+    output['mean'] = nanmean(data, axis=0)
+    output['sd'] = nanstd(data, axis=0)
+    output['mean_log'] = nanmean(dat_log, axis=0)
+    output['sd_log'] = nanstd(dat_log, axis=0)
     
     return output
 
@@ -2158,10 +2180,12 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     times AS WELL AS manually delimited ones. In the latter case, the first
     and last zero has to be detected within this function.
     """
+    nan_array = empty((5,))
+    nan_array[:] = nan
     idx_trough = data.argmin()
     idx_peak = data.argmax()    
     if idx_trough >= idx_peak:
-        return ((None,),)
+        return nan_array, nan_array
     
     zero_crossings_0 = where(diff(sign(data[:idx_trough])))[0]
     zero_crossings_1 = where(diff(sign(data[idx_trough:idx_peak])))[0]
@@ -2169,7 +2193,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     if zero_crossings_1.any():
         idx_zero_1 = idx_trough + zero_crossings_1[0]
     else:
-        return ((None,),)
+        return nan_array, nan_array
     
     if zero_crossings_0.any():
         idx_zero_0 = zero_crossings_0[-1]
@@ -2181,7 +2205,7 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     else:
         idx_zero_2 = len(data) - 1
         
-    avg_slopes = (None,) 
+    avgsl = nan_array
     if level in ['average', 'all']:
         q1 = data[idx_trough] / ((idx_trough - idx_zero_0) / s_freq)
         q2 = data[idx_trough] / ((idx_zero_1 - idx_trough) / s_freq)
@@ -2189,18 +2213,17 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
         q4 = data[idx_peak] / ((idx_zero_2 - idx_peak) / s_freq)
         q23 = (data[idx_peak] - data[idx_trough]) \
                 / ((idx_peak - idx_trough) / s_freq)
-        avg_slopes = asarray([q1, q2, q3, q4, q23])
+        avgsl = asarray([q1, q2, q3, q4, q23])
+        avgsl[isinf(avgsl)] = nan
     
-    maxsl = (None,)
+    maxsl = nan_array
     if level in ['maximum', 'all']:
         
         if smooth is not None:
             win = int(smooth * s_freq)
             flat = ones(win)
             data = fftconvolve(data, flat / sum(flat), mode='same')
-        
-        maxsl = asarray([nan, nan, nan, nan, nan])
-        
+                
         if idx_trough - idx_zero_0 >= win:
             maxsl[0] = min(gradient(data[idx_zero_0:idx_trough]))
             
@@ -2215,8 +2238,10 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
             
         if idx_peak - idx_trough >= win:
             maxsl[4] = max(gradient(data[idx_trough:idx_peak]))
+            
+        maxsl[isinf(maxsl)] = nan
         
-    return avg_slopes, maxsl
+    return avgsl, maxsl
     
 
 def _create_data_to_analyze(data, active_chan, chan_grp):

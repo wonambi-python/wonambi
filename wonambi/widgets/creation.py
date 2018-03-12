@@ -48,7 +48,7 @@ def create_widgets(MAIN):
     MAIN.event_analysis_dialog = EventAnalysisDialog(MAIN)
     MAIN.evt_analysis_help = EvtAnalysisHelp(MAIN)
     MAIN.analysis_dialog = AnalysisDialog(MAIN)
-    MAIN.plot_dialog = PlotDialog(MAIN)
+    #MAIN.plot_dialog = PlotDialog(MAIN)
     MAIN.overview = Overview(MAIN)
     MAIN.spectrum = Spectrum(MAIN)
     MAIN.traces = Traces(MAIN)
