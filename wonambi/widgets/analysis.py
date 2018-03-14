@@ -1008,7 +1008,7 @@ class AnalysisDialog(ChannelDialog):
                     button[0].setEnabled(False)
                     if button[1] is not None:
                         button[1].setEnabled(False)
-                pac['surro']['pval'].setEnabled(True)
+                pac['surro']['pval'][0].setEnabled(True)
 
             ndpac_on = pac['metric'].get_value() == 'ndPac'
             surro_on = logical_and(pac['surro_method'].get_value() != ''
@@ -1024,7 +1024,7 @@ class AnalysisDialog(ChannelDialog):
             pac['surro']['nblocks'][1].setEnabled(blocks_on)
             if ndpac_on:
                 pac['surro_method'].set_value('No surrogates')
-                pac['surro']['pval'].setEnabled(True)
+                pac['surro']['pval'][0].setEnabled(True)
 
     def update_nseg(self):
         """Update the number of segments, displayed in the dialog."""
