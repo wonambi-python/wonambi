@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 4
 ----------
+- **4.27**: hotfix: spindle frequency
 - **4.26**: console bugfixes, almost ready; removed evt analysis dialog
 - **4.25**: fix export svg
 - **4.24**: analysis console event export fix; ferrarelli2007 removed for now

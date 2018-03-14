@@ -41,9 +41,11 @@ class DetectSpindle:
         self.min_interval = 0
         self.det_thresh_hi = 0
         self.power_peaks = 'interval'
+        self.frequency = frequency
 
         if method == 'Ferrarelli2007':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.det_cheby2 = {'order': 6,
                                'freq': self.frequency,
                                }
@@ -55,7 +57,8 @@ class DetectSpindle:
             self.smooth = {'dur': None}
 
         elif method == 'Nir2011':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.det_butter = {'order': 2,
                                'freq': self.frequency,
                                }
@@ -68,7 +71,8 @@ class DetectSpindle:
             self.smooth = {'dur': .04}  # is in fact sigma
 
         elif method == 'Wamsley2012':
-            self.frequency = (12, 15)
+            if self.frequency is None:
+                self.frequency = (12, 15)
             self.det_wavelet = {'f0': mean(self.frequency),
                                 'sd': .5,
                                 'dur': 2,
@@ -80,7 +84,8 @@ class DetectSpindle:
             self.smooth = {'dur': .1}
 
         elif method == 'UCSD':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.det_wavelet = {'freqs': arange(self.frequency[0],
                                                 self.frequency[1] + .5, .5),
                                 'dur': 1,
@@ -102,7 +107,8 @@ class DetectSpindle:
             self.smooth = {'dur': None}
 
         elif method == 'Moelle2011':
-            self.frequency = (9, 15)
+            if self.frequency is None:
+                self.frequency = (9, 15)
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
@@ -114,7 +120,8 @@ class DetectSpindle:
             self.smooth = {'dur': .2}
 
         elif method == 'Concordia':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.det_butter = {'order': 3,
                                'freq': self.frequency,
                                }
