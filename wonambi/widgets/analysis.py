@@ -671,6 +671,7 @@ class AnalysisDialog(ChannelDialog):
         self.chunk['event'].toggled.connect(self.toggle_concatenate)
         self.idx_group.activated.connect(self.update_channels)
         self.lock_to_staging.connect(self.toggle_buttons)
+        self.lock_to_staging.connect(self.toggle_concatenate)
         self.cat['discontinuous'].connect(self.toggle_concatenate)
         
         self.epoch_dur.editingFinished.connect(self.update_nseg)
@@ -820,7 +821,8 @@ class AnalysisDialog(ChannelDialog):
         self.reject_epoch.setEnabled(not event_on)
         self.reject_event.setEnabled(logical_or((lock_enabled and not lock_on),
                                                 not lock_enabled))
-        self.cat['discontinuous'].setEnabled(event_on or segment_on)
+        self.cat['discontinuous'].setEnabled(event_on or segment_on or
+                (epoch_on and not lock_on))
         self.cat['evt_type'].setEnabled(event_on)
 
         if Pac is not None:
@@ -891,7 +893,9 @@ class AnalysisDialog(ChannelDialog):
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
-        if not self.chunk['epoch'].isChecked():
+        epoch_on = self.chunk['epoch'].isChecked()
+        if ((not epoch_on) or 
+            (epoch_on and not self.lock_to_staging.get_value())):
             for i,j in zip([self.idx_chan, self.idx_cycle, self.idx_stage,
                             self.idx_evt_type],
                    [self.cat['chan'], self.cat['cycle'],
@@ -1217,9 +1221,9 @@ class AnalysisDialog(ChannelDialog):
         #         self.trans['filt'].items() if v[1] is not None}
 
         # Get times
-        lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
-                                       str(cycle), str(chan_full),
-                                       str(reject_epoch))))
+        #lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
+        #                               str(cycle), str(chan_full),
+        #                               str(reject_epoch))))
         bundles = get_times(self.parent.notes.annot, evt_type=evt_type,
                             stage=stage, cycle=cycle, chan=chan_full,
                             exclude=reject_epoch)
@@ -1244,6 +1248,7 @@ class AnalysisDialog(ChannelDialog):
                     bundles = divide_bundles(bundles)
 
                 else:
+                    bundles = _concat(bundles, cat)
                     bundles = find_intervals(bundles, epoch_dur)
                     
             else:
