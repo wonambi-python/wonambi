@@ -1126,8 +1126,8 @@ class AnalysisDialog(ChannelDialog):
                 freq_filename = splitext(filename)[0] + '_freq.p'
                 xfreq = self.compute_freq()
 
-                with open(freq_filename, 'wb') as f:
-                    dump(xfreq, f)
+                #with open(freq_filename, 'wb') as f:
+                #    dump(xfreq, f)
                     
                 n_freq_bins = [x['data']()[0].shape for x in xfreq]
                 
@@ -1147,8 +1147,8 @@ class AnalysisDialog(ChannelDialog):
                 xpac, fpha, famp = self.compute_pac()
                 pac_filename = splitext(filename)[0] + '_pac.p'
 
-                with open(pac_filename, 'wb') as f:
-                    dump(xpac, f)
+                #with open(pac_filename, 'wb') as f:
+                #    dump(xpac, f)
 
                 as_matrix = asarray(
                         [ravel(chan['data'][x,:,:]) for chan in xpac.values() \
@@ -1414,7 +1414,7 @@ class AnalysisDialog(ChannelDialog):
                 self.parent.notes.annot.xml_file)[0] + '_data'
         filename, _ = QFileDialog.getSaveFileName(self, 'Export analysis data',
                                                   filename,
-                                                  'Pickle (*.p)')
+                                                  'CSV (*.csv)')
         if filename == '':
             return
 
@@ -2001,25 +2001,21 @@ class AnalysisDialog(ChannelDialog):
             one_mat = reshape(asarray(([x['dur'] for x in loc])), 
                                (len(loc), 1))
             dat.append(one_mat) 
-            lg.info('dur mat: ' + str(one_mat.shape))
         
         if sel_params_1:
             one_mat = asarray([[seg[x](chan=chan)[0] for x in sel_params_1] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-            lg.info('params1 mat: ' + str(one_mat.shape))
         
         if sel_params_2:    
             one_mat = asarray([[seg[x][chan] for x in sel_params_2] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-            lg.info('params2 mat: ' + str(one_mat.shape))
             
         if 'slope' in loc[0].keys():
             one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-            lg.info('slope mat: ' + str(one_mat.shape))
             
         if not dat:
             return
@@ -2028,8 +2024,8 @@ class AnalysisDialog(ChannelDialog):
         
         desc = get_descriptives(dat)
     
-        with open(pickle_filename, 'wb') as f:
-            dump(dat, f)
+        #with open(pickle_filename, 'wb') as f:
+        #    dump(dat, f)
              
         with open(csv_filename, 'w', newline='') as f:
             lg.info('Writing to' + str(csv_filename))

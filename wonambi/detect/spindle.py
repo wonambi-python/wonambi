@@ -181,9 +181,6 @@ class DetectSpindle:
         all_spindles = []
         i = 0
         for i, chan in enumerate(data.axis['chan'][0]):
-            
-            if parent is not None:
-                progress.setValue(i)
                 
             lg.info('Detecting spindles on chan %s', chan)
             time = hstack(data.axis['time'])
@@ -229,6 +226,11 @@ class DetectSpindle:
                 sp.update({'chan': chan})
 
             all_spindles.extend(sp_in_chan)
+            
+            if parent is not None:
+                progress.setValue(i)
+                if progress.wasCanceled():
+                    return
             # end of loop over chan
 
         spindle.events = sorted(all_spindles, key=lambda x: x['start'])
@@ -237,7 +239,7 @@ class DetectSpindle:
             spindle.events = merge_close(spindle.events, self.min_interval)
 
         if parent is not None:
-            progress.setValue(i + 1)
+            progress.setValue(i + 1)            
         
         return spindle
 
