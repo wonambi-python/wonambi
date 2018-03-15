@@ -1201,11 +1201,9 @@ class AnalysisDialog(ChannelDialog):
         else:
             stage = self.stage = [
                     x.text() for x in self.idx_stage.selectedItems()]
-        lg.info('Stages from GUI: ' + str(stage))
 
         # Concatenation
         cat = {k: v.get_value() for k, v in self.cat.items()}
-        lg.info('Cat: ' + str(cat))
         self.concat_chan = cat['chan']
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
@@ -1225,7 +1223,6 @@ class AnalysisDialog(ChannelDialog):
         bundles = get_times(self.parent.notes.annot, evt_type=evt_type,
                             stage=stage, cycle=cycle, chan=chan_full,
                             exclude=reject_epoch)
-        lg.info('Get times: ' + str(len(bundles)))            
 
         # Remove artefacts
         if reject_artf and bundles:
@@ -1233,12 +1230,10 @@ class AnalysisDialog(ChannelDialog):
                 bund['times'] = remove_artf_evts(bund['times'],
                                                 self.parent.notes.annot,
                                                 min_dur=0)
-            lg.info('After remove artf evts: ' + str(len(bundles)))
 
         # Minimum duration
         if bundles:
             bundles = longer_than(bundles, self.min_dur.get_value())
-            lg.info('Longer than: ' + str(len(bundles)))
 
         # Divide bundles into segments to be analyzed
         if bundles:
@@ -1247,16 +1242,12 @@ class AnalysisDialog(ChannelDialog):
 
                 if lock_to_staging:
                     bundles = divide_bundles(bundles)
-                    lg.info('Divided ' + str(len(bundles)))
 
                 else:
                     bundles = find_intervals(bundles, epoch_dur)
-                    lg.info('Find intervals: ' + str(len(bundles)))
                     
             else:
-                lg.info('Preparing concatenation: ' + str(cat))
                 bundles = _concat(bundles, cat)
-                lg.info('After concat: ' + str(len(bundles)))                
 
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
@@ -1353,7 +1344,7 @@ class AnalysisDialog(ChannelDialog):
                            })
                 
             if progress.wasCanceled():
-                break
+                return
 
         progress.setValue(counter)
 
@@ -1508,7 +1499,7 @@ class AnalysisDialog(ChannelDialog):
             
             progress.setValue(i)
             if progress.wasCanceled():
-                break
+                return
 
         return xfreq
 
@@ -1752,7 +1743,7 @@ class AnalysisDialog(ChannelDialog):
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
                     
                 if progress.wasCanceled():
-                    break
+                    return
 
         progress.setValue(counter)
 
@@ -1936,7 +1927,7 @@ class AnalysisDialog(ChannelDialog):
             
             progress.setValue(i)
             if progress.wasCanceled():
-                break
+                return
             
         return glob_out, loc_out
         

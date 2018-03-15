@@ -499,7 +499,7 @@ def find_intervals(bundles, interval):
 
             for t in new_begs:
                 seg = bund.copy()
-                seg['times'] = (t, t + interval)
+                seg['times'] = [(t, t + interval)]
                 segments.append(seg)
 
     return segments
