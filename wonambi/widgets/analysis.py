@@ -889,7 +889,8 @@ class AnalysisDialog(ChannelDialog):
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
-        if not self.lock_to_staging.get_value():
+        if not (self.chunk['epoch'].isChecked() and 
+                self.lock_to_staging.get_value()):
             for i,j in zip([self.idx_chan, self.idx_cycle, self.idx_stage,
                             self.idx_evt_type],
                    [self.cat['chan'], self.cat['cycle'],
