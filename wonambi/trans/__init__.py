@@ -8,7 +8,8 @@ basic elements, use the package "detect" for example.
 """
 from .filter import filter_, convolve
 from .select import (select, resample, get_times, _concat, longer_than, 
-                     divide_bundles, find_intervals, _select_channels)
+                     divide_bundles, find_intervals, _select_channels,
+                     get_bundles)
 from .frequency import frequency, timefrequency
 from .merge import concatenate
 from .math import math

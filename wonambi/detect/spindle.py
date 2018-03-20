@@ -127,7 +127,7 @@ class DetectSpindle:
                                }
             self.duration = (0.5, 3)
             self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 1.5
+            self.det_thresh_lo = 3
             self.det_thresh_hi = 10
             self.sel_thresh = 1
             self.moving_rms = {'dur': .2}

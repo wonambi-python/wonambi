@@ -17,6 +17,8 @@ from numpy.lib.stride_tricks import as_strided
 from math import isclose
 from scipy.signal import decimate
 
+from .reject import remove_artf_evts
+
 lg = getLogger(__name__)
 
 
@@ -210,6 +212,42 @@ def _select_channels(data, channels):
     return output
 
 
+def get_bundles(annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, cycle=None,
+                chan_full=None, epoch=None, epoch_dur=30, min_dur=0, 
+                reject_epoch=False, reject_artf=False):
+    """Use information from user to find relevant data and create dicts 
+    (bundles) for each segment to be analyzed, complete with info about
+    stage, cycle, channel, event type"""
+    #lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
+    #                               str(cycle), str(chan_full),
+    #                               str(reject_epoch))))
+    bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle, 
+                        chan=chan_full, exclude=reject_epoch)
+
+    # Remove artefacts
+    if reject_artf and bundles:
+        for bund in bundles:
+            bund['times'] = remove_artf_evts(bund['times'], annot, min_dur=0)
+
+    # Minimum duration
+    if bundles:
+        bundles = longer_than(bundles, min_dur)
+
+    # Divide bundles into segments to be concatenated
+    if bundles:
+        
+        if 'locked' == epoch:
+            bundles = divide_bundles(bundles)
+
+        elif 'unlocked' == epoch:
+            bundles = _concat(bundles, cat)
+            bundles = find_intervals(bundles, epoch_dur)
+                
+        elif not epoch:
+            bundles = _concat(bundles, cat)
+                
+    return bundles
+
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
               exclude=True):
     """Get start and end times for selected segments of data, bundled
@@ -327,7 +365,7 @@ def longer_than(segments, min_dur):
 
 
 def _concat(bundles, cat=(0, 0, 0, 0)):
-    """Prepare events or epochs for concatenation.
+    """Prepare event or epoch start and end times for concatenation.
 
     Parameters
     ----------
@@ -385,7 +423,7 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
     if cat[3]:
         evt_type = [all_evt_type]
 
-    lg.info('Concat ' +  ' ,'.join((str(chan), str(cycle), str(stage), str(evt_type))))
+    #lg.info('Concat ' +  ' ,'.join((str(chan), str(cycle), str(stage), str(evt_type))))
 
     to_concat = []
     for ch in chan:

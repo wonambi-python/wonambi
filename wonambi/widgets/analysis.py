@@ -8,7 +8,7 @@ from numpy import (amax, amin, asarray, concatenate, diff, empty,
                    gradient, hstack, in1d, isinf, log, logical_and, 
                    logical_or, mean, nan, nan_to_num, nanmean, nanstd, 
                    negative, ones, ptp, ravel, reshape, sign, sqrt, square, 
-                   where, zeros)
+                   stack, where, zeros)
 from scipy.signal import fftconvolve
 from itertools import compress
 from csv import writer
@@ -51,10 +51,9 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QWidget,
                              )
 
-from .. import ChanTime
-from ..trans import (math, montage, filter_, frequency, remove_artf_evts, 
-                     _select_channels, get_times, longer_than, _concat, 
-                     divide_bundles, find_intervals)
+from .. import ChanTime, ChanFreq
+from ..trans import (math, montage, filter_, frequency, _select_channels, 
+                     get_bundles, get_times)
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME)
@@ -80,6 +79,7 @@ class AnalysisDialog(ChannelDialog):
         ChannelDialog.__init__(self, parent)
 
         self.setWindowTitle('Analysis console')
+        self.filename = None
         self.chunk = {}
         self.label = {}
         self.cat = {}
@@ -89,7 +89,7 @@ class AnalysisDialog(ChannelDialog):
         self.psd = {}
         self.pac = {}
         self.one_grp = None
-        self.nseg = None
+        self.nseg = 0
 
         self.create_dialog()
 
@@ -106,7 +106,6 @@ class AnalysisDialog(ChannelDialog):
         box_f = QGroupBox('File location')
 
         filebutton = QPushButton('Choose')
-        #filebutton.setText('Choose')
         filebutton.clicked.connect(self.save_as)
         self.idx_filename = filebutton
 
@@ -377,9 +376,8 @@ class AnalysisDialog(ChannelDialog):
 
         freq['box_norm'] = QGroupBox('Normalization')
 
-        freq['norm'] = FormMenu(['none', 'by mean of each segment',
-           'by mean of event type(s)', 'by mean of stage(s)',
-            'by mean of recording'])
+        freq['norm'] = FormMenu(['none', 'by integral of each segment',
+           'by mean of event type(s)', 'by mean of stage(s)'])
         evt_box = QListWidget()
         evt_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         freq['norm_evt_type'] = evt_box
@@ -742,11 +740,12 @@ class AnalysisDialog(ChannelDialog):
         freq['hbw'].setChecked(True)
 
         # TODO: remove this
-        freq['norm'].setEnabled(False) # Temp
+        #freq['norm'].setEnabled(False) # Temp
 
         if Pac is not None:
             pac['prep'].setEnabled(False)
-            pac['wavelet_on'].setChecked(True)
+            pac['hilbert_on'].setChecked(True)
+            pac['hilbert']['filt'][1].set_value('butter')
             pac['metric'].set_value('Kullback-Leibler Distance')
             pac['optimize'].set_value('False')
             pac['box_metric'].setEnabled(False)
@@ -808,7 +807,7 @@ class AnalysisDialog(ChannelDialog):
         """Enable and disable buttons, according to options selected."""
         event_on = self.chunk['event'].isChecked()
         epoch_on = self.chunk['epoch'].isChecked()
-        segment_on = self.chunk['segment'].isChecked()
+        #segment_on = self.chunk['segment'].isChecked()
         lock_on = self.lock_to_staging.get_value()
         lock_enabled = self.lock_to_staging.isEnabled()
 
@@ -821,8 +820,6 @@ class AnalysisDialog(ChannelDialog):
         self.reject_epoch.setEnabled(not event_on)
         self.reject_event.setEnabled(logical_or((lock_enabled and not lock_on),
                                                 not lock_enabled))
-        self.cat['discontinuous'].setEnabled(event_on or segment_on or
-                (epoch_on and not lock_on))
         self.cat['evt_type'].setEnabled(event_on)
 
         if Pac is not None:
@@ -840,11 +837,10 @@ class AnalysisDialog(ChannelDialog):
 
         if epoch_on and lock_on:
             self.reject_event.setChecked(False)
-
-        if epoch_on:
             for i in self.cat.values():
                 i.setChecked(False)
-                i.setEnabled(False)
+                i.setEnabled(False)            
+        self.cat['discontinuous'].setEnabled(not epoch_on)
 
 #==============================================================================
 #         filter_on = not self.trans['button']['none'].isChecked()
@@ -888,14 +884,12 @@ class AnalysisDialog(ChannelDialog):
         slope_on = sw['avg_slope'].get_value() or sw['max_slope'].get_value()
         sw['prep'].setEnabled(slope_on)
         sw['invert'].setEnabled(slope_on)
-        
+                
         self.update_nseg()
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
-        epoch_on = self.chunk['epoch'].isChecked()
-        if ((not epoch_on) or 
-            (epoch_on and not self.lock_to_staging.get_value())):
+        if not self.lock_to_staging.get_value():
             for i,j in zip([self.idx_chan, self.idx_cycle, self.idx_stage,
                             self.idx_evt_type],
                    [self.cat['chan'], self.cat['cycle'],
@@ -911,7 +905,7 @@ class AnalysisDialog(ChannelDialog):
 
         if not self.cat['discontinuous'].get_value():
             self.cat['chan'].setEnabled(False)
-            
+                        
         self.update_nseg()
 
     def toggle_freq(self):
@@ -921,7 +915,6 @@ class AnalysisDialog(ChannelDialog):
         freq_on = freq['freq_on'].get_value()
         freq['box_param'].setEnabled(freq_on)
         freq['box_output'].setEnabled(freq_on)
-        freq['box_norm'].setEnabled(freq_on)
         freq['box_nfft'].setEnabled(freq_on)
 
         welch_on = freq['welch_on'].get_value() and freq_on
@@ -948,8 +941,11 @@ class AnalysisDialog(ChannelDialog):
         if not freq_on:
             freq['prep'].set_value(False)
         freq['plot_on'].setEnabled(freq_on and rectangular)
+        freq['box_norm'].setEnabled(freq_on and (welch_on or nfft_fixed_on))
         if not freq['plot_on'].isEnabled():
             freq['plot_on'].set_value(False) 
+        if not freq['box_norm'].isEnabled():
+            freq['norm'].set_value('none')
         
         dpss_on = freq['taper'].get_value() == 'dpss'
         freq['box_mtap'].setEnabled(dpss_on)
@@ -1032,9 +1028,9 @@ class AnalysisDialog(ChannelDialog):
 
     def update_nseg(self):
         """Update the number of segments, displayed in the dialog."""
-        self.nseg = None
+        self.nseg = 0
         if self.one_grp:        
-            bundles = self.get_bundles()
+            bundles = self.make_bundles()
             
             if bundles is not None:
                 self.nseg = len(bundles)
@@ -1086,8 +1082,14 @@ class AnalysisDialog(ChannelDialog):
         if button is self.idx_ok:
 
             # File location
-            filename = self.filename
-            if filename is None:
+            if not self.filename:
+                self.parent.statusBar().showMessage('Select file location.')
+                return
+            
+            # Check for signal
+            self.update_nseg
+            if self.nseg <= 0:
+                self.parent.statusBar().showMessage('No valid signal found.')
                 return
             
             # Which analyses?
@@ -1116,18 +1118,22 @@ class AnalysisDialog(ChannelDialog):
             if not (freq_on or pac_on or glob or loc or avg_sl or max_sl):
                 return
 
-            # Fetch signal            
-            self.update_nseg
-            self.read_data()
+            # Fetch signal
+            evt_chan_only = self.evt_chan_only.get_value()
+            concat_chan = self.cat['chan'].get_value()
+            
+            bundles = self.make_bundles()
+            self.data = self.read_data(bundles, evt_chan_only=evt_chan_only, 
+                                       concat_chan=concat_chan)
             
             # Transform signal
             if freq_prep or pac_prep or loc_prep or slope_prep:
                 lg.info('Pre-processing data')
-                self.transform_data()
+                self.data = self.transform_data(self.data)
 
             # Frequency domain
             if freq_on:
-                freq_filename = splitext(filename)[0] + '_freq.p'
+                #freq_filename = splitext(filename)[0] + '_freq.p'
                 xfreq = self.compute_freq()
 
                 #with open(freq_filename, 'wb') as f:
@@ -1149,7 +1155,7 @@ class AnalysisDialog(ChannelDialog):
             # PAC
             if pac_on:
                 xpac, fpha, famp = self.compute_pac()
-                pac_filename = splitext(filename)[0] + '_pac.p'
+                #pac_filename = splitext(filename)[0] + '_pac.p'
 
                 #with open(pac_filename, 'wb') as f:
                 #    dump(xpac, f)
@@ -1170,14 +1176,21 @@ class AnalysisDialog(ChannelDialog):
         if button is self.idx_cancel:
             self.reject()
 
-    def get_bundles(self):
-        """Use information from user to find relevant data and create dicts 
-        (bundles) for each segment to be analyzed, complete with info about
-        stage, cycle, channel, event type"""
+    def make_bundles(self):
+        """Make bundles for analysis. Creates list of dict, containing 'times',
+        'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""
         # Chunking
         chunk = {k: v.isChecked() for k, v in self.chunk.items()}
+        lock_to_staging = self.lock_to_staging.get_value()
         epoch_dur = self.epoch_dur.get_value()
-
+        epoch = None
+        
+        if chunk['epoch']:
+            if lock_to_staging:
+                epoch = 'locked'
+            else:
+                epoch = 'unlocked'
+        
         # Which event type(s)
         if chunk['event']:
             evt_type = self.idx_evt_type.selectedItems()
@@ -1187,17 +1200,17 @@ class AnalysisDialog(ChannelDialog):
                 evt_type = [x.text() for x in evt_type]
         else:
             evt_type = None
-
+        
         # Which channel(s)
         self.chan = self.get_channels() # chan name without group
         if not self.chan:
             return
         chan_full = [i + ' (' + self.idx_group.currentText() + ''
                        ')' for i in self.chan]
-
+            
         # Which cycle(s)
         cycle = self.cycle = self.get_cycles()
-
+        
         # Which stage(s)
         stage = self.idx_stage.selectedItems()
         if not stage:
@@ -1205,75 +1218,41 @@ class AnalysisDialog(ChannelDialog):
         else:
             stage = self.stage = [
                     x.text() for x in self.idx_stage.selectedItems()]
-
+    
         # Concatenation
         cat = {k: v.get_value() for k, v in self.cat.items()}
-        self.concat_chan = cat['chan']
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
-
+    
         # Other options
-        lock_to_staging = self.lock_to_staging.get_value()
+        min_dur = self.min_dur.get_value()
         reject_epoch = self.reject_epoch.get_value()
         reject_artf = self.reject_event.get_value()
-        # trans = {k: v.get_value() for k, v in self.trans['button'].items()}
-        # filt = {k: v[1].get_value() for k, v in \
-        #         self.trans['filt'].items() if v[1] is not None}
-
-        # Get times
-        #lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
-        #                               str(cycle), str(chan_full),
-        #                               str(reject_epoch))))
-        bundles = get_times(self.parent.notes.annot, evt_type=evt_type,
-                            stage=stage, cycle=cycle, chan=chan_full,
-                            exclude=reject_epoch)
-
-        # Remove artefacts
-        if reject_artf and bundles:
-            for bund in bundles:
-                bund['times'] = remove_artf_evts(bund['times'],
-                                                self.parent.notes.annot,
-                                                min_dur=0)
-
-        # Minimum duration
-        if bundles:
-            bundles = longer_than(bundles, self.min_dur.get_value())
-
-        # Divide bundles into segments to be analyzed
-        if bundles:
-            
-            if chunk['epoch']:
-
-                if lock_to_staging:
-                    bundles = divide_bundles(bundles)
-
-                else:
-                    bundles = _concat(bundles, cat)
-                    bundles = find_intervals(bundles, epoch_dur)
-                    
-            else:
-                bundles = _concat(bundles, cat)
-
+        
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
         
-        return bundles
-    
-    def read_data(self):
-        """Read data for analysis. Creates list of dict, containing 'data'
-        (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""
-        bundles = self.get_bundles()
+        bundles = get_bundles(self.parent.notes.annot, cat=cat, 
+                              evt_type=evt_type, stage=stage, cycle=cycle, 
+                              chan_full=chan_full, epoch_dur=epoch_dur, 
+                              min_dur=min_dur, epoch=epoch,
+                              reject_epoch=reject_epoch, 
+                              reject_artf=reject_artf)
         
+        return bundles
+
+    def read_data(self, bundles, evt_chan_only=False, concat_chan=False):
+        """Read data for analysis. Creates list of dict, containing 'data'
+        (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""        
         if not bundles:
             self.parent.statusBar().showMessage('No valid signal found.')
-            self.accept()
+            self.reject()
             return
         
         dataset = self.parent.info.dataset
         chan_grp = self.one_grp
         chan_to_read = self.chan + chan_grp['ref_chan']
         active_chan = self.chan
-        evt_chan_only = self.evt_chan_only.get_value()
         output = []
         
         # Set up Progress Bar
@@ -1328,7 +1307,7 @@ class AnalysisDialog(ChannelDialog):
             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
 
             # For channel concatenation
-            if self.concat_chan and chs > 1:
+            if concat_chan and chs > 1:
                 one_segment.data[0] = ravel(one_segment.data[0])
                 one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
                                 dtype='U')
@@ -1353,18 +1332,29 @@ class AnalysisDialog(ChannelDialog):
 
         progress.setValue(counter)
 
-        self.data = output            
+        return output            
 
-    def transform_data(self):
+    def transform_data(self, data):
         """Apply pre-processing transformation to data, and add it to data 
-        dict."""
+        dict.
+        
+        Parmeters
+        ---------
+        data : list of dict
+            bundles including 'data' (ChanTime)
+            
+        Returns
+        -------
+        list of dict
+            same dict with transformed data as 'trans_data' (ChanTime)
+        """
         trans = self.trans
         whiten = trans['whiten'].get_value()
         bandpass = trans['bandpass'].get_value()
         notch1 = trans['notch1'].get_value()
         notch2 = trans['notch2'].get_value()
         
-        for seg in self.data:
+        for seg in data:
             dat = seg['data']
         
             if whiten:
@@ -1403,6 +1393,8 @@ class AnalysisDialog(ChannelDialog):
                 dat = filter_(dat, high_cut=lo_pass, order=order, ftype=notch1) 
                 
             seg['trans_data'] = dat
+            
+        return data
     
     def save_as(self):
         """Dialog for getting name, location of data export file."""
@@ -1436,6 +1428,7 @@ class AnalysisDialog(ChannelDialog):
         progress.setWindowModality(Qt.ApplicationModal)
 
         freq = self.frequency
+        prep = freq['prep'].get_value()
         scaling = freq['scaling'].get_value()
         sides = freq['sides'].get_value()
         taper = freq['taper'].get_value()
@@ -1445,6 +1438,8 @@ class AnalysisDialog(ChannelDialog):
         overlap = freq['overlap_val'].value()
         step = freq['step_val'].get_value()
         detrend = freq['detrend'].get_value()
+        norm = freq['norm'].get_value()
+        norm_concat = freq['norm_concat'].get_value()
 
         if freq['spectrald'].isChecked():
             output = 'spectraldensity'
@@ -1476,19 +1471,70 @@ class AnalysisDialog(ChannelDialog):
             n_smp = max([x['data'].number_of('time') for x in self.data])
         elif freq['nfft_seg'].isChecked():
             n_smp = None
+            
+        if norm not in ['none', 'by integral of each segment']:
+            norm_evt_type = None
+            norm_stage = None
+            norm_chan = None
+            ncat = (0, 0, 0, 0)
+            
+            if norm == 'by mean of event type(s)':
+                norm_evt_type = [x.text() for x in \
+                                 freq['norm_evt_type'].selectedItems()]
+                norm_chan = [x + ' (' + self.idx_group.currentText() + ''
+                                    ')'for x in self.one_grp['chan_to_plot']]
+            if norm == 'by mean of stage(s)':
+                norm_stage = [x.text() for x in \
+                              freq['norm_stage'].selectedItems()]
+            if norm_concat:
+                ncat = (1, 1, 1, 1)    
+                        
+            lg.info(' '.join(['Getting bundles for norm. cat: ', str(ncat), 
+                              'evt_type', str(norm_evt_type), 'stage', 
+                              str(norm_stage), 'chan', str(norm_chan)]))
+            norm_bund = get_bundles(self.parent.notes.annot, ncat, 
+                                    evt_type=norm_evt_type, stage=norm_stage,
+                                    chan_full=norm_chan)
+            norm_signal = self.read_data(norm_bund)
+                
+            if prep:                
+                norm_signal = self.transform_data(norm_signal)
+                
+            all_Sxx = []
+            for seg in norm_signal:
+                dat = seg['data']
+                if prep:
+                    dat = seg['trans_data']
+                Sxx = frequency(dat, output=output, scaling=scaling, 
+                            sides=sides, taper=taper, 
+                            halfbandwidth=halfbandwidth, NW=NW,
+                            duration=duration, overlap=overlap, step=step,
+                            detrend=detrend, n_smp=n_smp)
+                all_Sxx.append(Sxx)
+                
+            nSxx = ChanFreq()
+            nSxx.s_freq = Sxx.s_freq
+            nSxx.axis['freq'] = Sxx.axis['freq']
+            nSxx.axis['chan'] = Sxx.axis['chan']
+            nSxx.data = empty(1, dtype='O')
+            nSxx.data[0] = empty((Sxx.number_of('chan')[0],
+                     Sxx.number_of('freq')[0]), dtype='f')
+            nSxx.data[0] = mean(
+                    stack([x()[0] for x in all_Sxx], axis=2), axis=2)
 
         lg.info(' '.join(['Freq settings:', output, scaling, 'sides:',
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
                          str(NW), 'dur:', str(duration), 'overlap:',
                          str(overlap), 'step:', str(step), 'detrend:',
-                         str(detrend), 'n_smp:', str(n_smp)]))
+                         str(detrend), 'n_smp:', str(n_smp), 'norm', 
+                         str(norm)]))
 
         xfreq = []
         for i, seg in enumerate(self.data):            
             new_seg = dict(seg)
             data = seg['data']
             
-            if self.frequency['prep'].get_value():
+            if prep:
                 data = seg['trans_data']
                 
             timeline = seg['data'].axis['time'][0]
@@ -1499,6 +1545,17 @@ class AnalysisDialog(ChannelDialog):
                             taper=taper, halfbandwidth=halfbandwidth, NW=NW,
                             duration=duration, overlap=overlap, step=step,
                             detrend=detrend, n_smp=n_smp)
+            
+            if norm != 'none':
+                for j, chan in enumerate(Sxx.axis['chan']):
+                    dat = Sxx.data[0][j,:]
+                    if norm == 'by integral of each segment':
+                        norm_dat = sum(dat)
+                    else:
+                        norm_dat = nSxx(chan=chan)[0]
+                    lg.info('Normalizing with ' + str(mean(norm_dat)))
+                    Sxx.data[0][j,:] = dat / norm_dat
+            
             new_seg['data'] = Sxx
             xfreq.append(new_seg)
             
@@ -1939,7 +1996,7 @@ class AnalysisDialog(ChannelDialog):
     def export_evt_params(self, glob, loc, desc=None):
         """Write event analysis data to CSV."""
         basename = splitext(self.filename)[0]
-        pickle_filename = basename + 'evtdat.p'
+        #pickle_filename = basename + 'evtdat.p'
         csv_filename = basename + '_evtdat.csv'
         
         heading_row_1 = ['Segment index',

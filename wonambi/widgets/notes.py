@@ -408,6 +408,7 @@ class Notes(QTabWidget):
 
         act = QAction('Analysis console (BETA)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
+        act.setShortcut('Ctrl+Shift+a')
         act.setEnabled(False)
         actions['analyze'] = act
 
