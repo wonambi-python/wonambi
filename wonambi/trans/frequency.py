@@ -4,8 +4,8 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, empty, exp, max, mean, pi, real, sqrt,
-                   swapaxes)
+from numpy import (arange, array, asarray, empty, exp, max, mean, pi, real, 
+                   sqrt, swapaxes)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -307,6 +307,47 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
             timefreq.data[i] = Sxx
 
     return timefreq
+
+
+def get_power(data, freq, scaling='power'):
+    """Compute power or energy acoss a frequency band, and its peak frequency.
+    
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data to be analyzed
+    freq : tuple of float
+        Frequencies for band of interest. Power will be summed across this 
+        band, and peak frequency determined within it.
+    scaling : str
+        'power' or 'energy'.
+        
+    Returns
+    -------
+    dict of float
+        keys are channels, values are power or energy
+    dict of float
+        keys are channels, values are respective peak frequency
+    """
+    power = {}
+    peakf = {}
+    detrend = 'linear'
+    if 'energy' == scaling:
+        detrend = None
+    
+    Sxx = frequency(data, scaling=scaling, detrend=detrend)
+    sf = Sxx.axis['freq'][0]
+    idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
+    idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+    
+    for chan in Sxx.axis['chan'][0]:
+        s = Sxx(chan=chan)[0]
+        power[chan] = sum(s[idx_f1:idx_f2]) # integrating over f
+        
+        idx_peak = s[idx_f1:idx_f2].argmax()
+        peakf[chan] = sf[idx_f1:idx_f2][idx_peak]
+        
+    return power, peakf
 
 
 def _create_morlet(options, s_freq):

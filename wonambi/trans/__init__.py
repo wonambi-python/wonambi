@@ -7,12 +7,11 @@ basic elements, use the package "detect" for example.
 
 """
 from .filter import filter_, convolve
-from .select import (select, resample, get_times, _concat, longer_than, 
-                     divide_bundles, find_intervals, _select_channels,
-                     get_bundles)
-from .frequency import frequency, timefrequency
+from .select import (select, resample, get_times, _select_channels,
+                     fetch_segments, Segments)
+from .frequency import frequency, timefrequency, get_power
 from .merge import concatenate
-from .math import math
+from .math import math, get_descriptives, slopes
 from .montage import montage
 from .peaks import peaks
 from .reject import rejectbadchan, remove_artf_evts

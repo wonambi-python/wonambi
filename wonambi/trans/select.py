@@ -12,14 +12,153 @@ will be added as we need them.
 from collections import Iterable
 from logging import getLogger
 
-from numpy import arange, asarray, empty, inf, linspace, ones, setdiff1d
+from numpy import (arange, asarray, diff, empty, hstack, inf, linspace, 
+                   nan_to_num, ones, ravel, setdiff1d)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
 from scipy.signal import decimate
 
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QProgressDialog
+except ImportError:
+    Qt = None
+    QProgressDialog = None
+
+from .. import ChanTime
+from .montage import montage
 from .reject import remove_artf_evts
 
 lg = getLogger(__name__)
+
+
+class Segments():
+    """Class containing a set of data segments for analysis, with metadata.
+    Only contains metadata until .read_data is called."""
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.segments = []
+        
+    def __iter__(self):
+        for one_event in self.segments:
+            yield one_event
+            
+    def __len__(self):
+        return len(self.segments)
+    
+    def __getitem__(self, index):
+        return self.segments[index]
+    
+    def read_data(self, chan, ref_chan=[], grp_name=None, evt_chan_only=False, 
+                  concat_chan=False, max_s_freq=30000, parent=None):
+        """Read data for analysis. Adds data as 'data' in each dict.
+        
+        Parameters
+        ----------
+        chan : list of str
+            active channel names as they appear in record, without ref or group
+        ref_chan : list of str
+            reference channel names as they appear in record, without group
+        grp_name : str
+            name of the channel group, required in GUI
+        evt_chan_only : bool
+            for events. if True, only returns data for chan on which event was 
+            marked
+        concat_chan : bool
+            if True, data from all channels will be concatenated
+        max_s_freq: : int
+            maximum sampling frequency
+        parent : QWidget
+            for GUI only. Identifies parent widget for display of progress dialog.
+        """        
+        chan_to_read = chan + ref_chan
+        active_chan = chan
+        output = []
+        
+        # Set up Progress Bar
+        if parent:
+            n_subseg = sum([len(x['times']) for x in self.segments])
+            progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
+                                       parent)
+            progress.setWindowModality(Qt.ApplicationModal)
+            counter = 0
+        
+        # Begin bundle loop; will yield one segment per loop
+        for i, seg in enumerate(self.segments):          
+            one_segment = ChanTime()                    
+            one_segment.axis['chan'] = empty(1, dtype='O')
+            one_segment.axis['time'] = empty(1, dtype='O')
+            one_segment.data = empty(1, dtype='O')
+            subseg = []
+            
+            # Subsegment loop; subsegments will be concatenated
+            for t0, t1 in seg['times']:
+                if parent:
+                    progress.setValue(counter)
+                    counter += 1
+    
+                if evt_chan_only: # for events
+                    active_chan = [seg['chan'].split(' (')[0]]
+                    chan_to_read = active_chan + ref_chan
+                
+                data = self.dataset.read_data(chan=chan_to_read, begtime=t0, 
+                                         endtime=t1)
+    
+                # Downsample if necessary
+                if data.s_freq > max_s_freq:
+                    q = int(data.s_freq / max_s_freq)
+                    lg.debug('Decimate (no low-pass filter) at ' + str(q))
+        
+                    data.data[0] = data.data[0][:, slice(None, None, q)]
+                    data.axis['time'][0] = data.axis['time'][0][slice(
+                            None, None, q)]
+                    data.s_freq = int(data.s_freq / q)
+            
+                # read data from disk
+                subseg.append(_create_data(
+                        data, active_chan, ref_chan=ref_chan, grp_name=grp_name))
+    
+            one_segment.s_freq = s_freq = data.s_freq
+            one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
+            one_segment.axis['time'][0] = timeline = hstack(
+                    [x.axis['time'][0] for x in subseg])
+            one_segment.data[0] = empty((len(active_chan), len(timeline)), 
+                                        dtype='f')
+            n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
+    
+            # For channel concatenation
+            if concat_chan and chs > 1:
+                one_segment.data[0] = ravel(one_segment.data[0])
+                one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
+                                dtype='U')
+                # axis['time'] should not be used in this case
+                
+            else:
+            
+                for i, chan in enumerate(subseg[0].axis['chan'][0]):                
+                    one_segment.data[0][i, :] = hstack(
+                            [x(chan=chan)[0] for x in subseg])
+    
+            output.append({'data': one_segment,
+                           'chan': active_chan,
+                           'stage': seg['stage'],
+                           'cycle': seg['cycle'],
+                           'name': seg['name'],
+                           'n_stitch': n_stitch
+                           })
+            
+            if parent:    
+                if progress.wasCanceled():
+                    parent.parent.statusBar().showMessage('Process canceled by'
+                                           ' user.')
+                    return
+    
+        if parent:
+            progress.setValue(counter)
+    
+        self.segments = output
+        
+        return 1 # for GUI
 
 
 def select(data, trial=None, invert=False, **axes_to_select):
@@ -153,74 +292,58 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
 
     return output
 
-def _create_subepochs(x, nperseg, step):
-    """Transform the data into a matrix for easy manipulation
 
+def fetch_segments(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, 
+                    cycle=None, chan_full=None, epoch=None, epoch_dur=30, 
+                    min_dur=0, reject_epoch=False, reject_artf=False):
+    """Create instance of Segments for analysis, complete with info about 
+    stage, cycle, channel, event type. Segments contains only metadata until
+    .read_data is called.
+    
     Parameters
     ----------
-    x : 1d ndarray
-        actual data values
-    nperseg : int
-        number of samples in each row to create
-    step : int
-        distance in samples between rows
-    Returns
-    -------
-    2d ndarray
-        a view (i.e. doesn't copy data) of the original x, with shape
-        determined by nperseg and step. You should use the last dimension
+    dataset : instance of Dataset
+        info about record
+    annot : instance of Annotations
+        scoring info
+    cat : tuple of int
+        Determines where the signal is concatenated.
+        If cat[0] is 1, cycles will be concatenated.
+        If cat[1] is 1, different stages will be concatenated.
+        If cat[2] is 1, discontinuous signal within a same condition
+        (stage, cycle, event type) will be concatenated.
+        If cat[3] is 1, events of different types will be concatenated.
+        0 in any position indicates no concatenation.
+    evt_type: list of str, optional
+        Enter a list of event types to get events; otherwise, epochs will
+        be returned.
+    stage: list of str, optional
+        Stage(s) of interest. If None, stage is ignored.
+    cycle: list of tuple of two float, optional
+        Cycle(s) of interest, as start and end times in seconds from record
+        start. If None, cycles are ignored.
+    chan_full: list of str or tuple of None
+        Channel(s) of interest, only used for events (epochs have no
+        channel). Channel format is 'chan_name (group_name)'.
+        If None, channel is ignored.
+    epoch : str, optional
+        If 'locked', returns epochs locked to staging. If 'unlocked', divides
+        signal (with specified concatenation) into epochs of duration epoch_dur
+        starting at first sample of every segment and discarding any remainder.
+        If None, longest run of signal is returned.
+    epoch_dur : float
+        only for epoch='unlocked'. Duration of epochs returned, in seconds.
+    min_dur : float
+        Minimum duration of segments returned, in seconds.
+    reject_epoch: bool
+        If True, epochs marked as 'Poor' quality or staged as 'Artefact' will 
+        be rejected (and the signal segmented in consequence). Has no effect on
+        event selection.
+    reject_artf : bool
+        If True, excludes events marked as 'Artefact' (and signal is segmented
+        in consequence).
+        
     """
-    axis = x.ndim - 1  # last dim
-    nsmp = x.shape[axis]
-    stride = x.strides[axis]
-    noverlap = nperseg - step
-    v_shape = *x.shape[:axis], (nsmp - noverlap) // step, nperseg
-    v_strides = *x.strides[:axis], stride * step, stride
-    v = as_strided(x, shape=v_shape, strides=v_strides,
-                   writeable=False)  # much safer
-    return v
-
-
-def _select_channels(data, channels):
-    """Select channels.
-
-    Parameters
-    ----------
-    data : instance of ChanTime
-        data with all the channels
-    channels : list
-        channels of interest
-
-    Returns
-    -------
-    instance of ChanTime
-        data with only channels of interest
-
-    Notes
-    -----
-    This function does the same as wonambi.trans.select, but it's much faster.
-    wonambi.trans.Select needs to flexible for any data type, here we assume
-    that we have one trial, and that channel is the first dimension.
-
-    """
-    output = data._copy()
-    chan_list = list(data.axis['chan'][0])
-    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
-    output.data[0] = data.data[0][idx_chan, :]
-    output.axis['chan'][0] = asarray(channels)
-
-    return output
-
-
-def get_bundles(annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, cycle=None,
-                chan_full=None, epoch=None, epoch_dur=30, min_dur=0, 
-                reject_epoch=False, reject_artf=False):
-    """Use information from user to find relevant data and create dicts 
-    (bundles) for each segment to be analyzed, complete with info about
-    stage, cycle, channel, event type"""
-    #lg.info('Getting ' + ', '.join((str(evt_type), str(stage),
-    #                               str(cycle), str(chan_full),
-    #                               str(reject_epoch))))
     bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle, 
                         chan=chan_full, exclude=reject_epoch)
 
@@ -231,25 +354,29 @@ def get_bundles(annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, cycle=None,
 
     # Minimum duration
     if bundles:
-        bundles = longer_than(bundles, min_dur)
+        bundles = _longer_than(bundles, min_dur)
 
     # Divide bundles into segments to be concatenated
     if bundles:
         
         if 'locked' == epoch:
-            bundles = divide_bundles(bundles)
+            bundles = _divide_bundles(bundles)
 
         elif 'unlocked' == epoch:
             bundles = _concat(bundles, cat)
-            bundles = find_intervals(bundles, epoch_dur)
+            bundles = _find_intervals(bundles, epoch_dur)
                 
         elif not epoch:
             bundles = _concat(bundles, cat)
                 
-    return bundles
+    segments = Segments(dataset)
+    segments.segments = bundles
+    
+    return segments
+
 
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
-              exclude=True):
+              exclude=False):
     """Get start and end times for selected segments of data, bundled
     together with info.
 
@@ -272,7 +399,7 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
     exclude: bool
         Exclude epochs by quality. If True, epochs marked as 'Poor' quality
         or staged as 'Artefact' will be rejected (and the signal segmented
-        in consequence). Has no effect on event selection. Defaults to True.
+        in consequence). Has no effect on event selection.
 
     Returns
     -------
@@ -341,17 +468,8 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
     return bundles
 
 
-def longer_than(segments, min_dur):
-    """
-    Parameters
-    ----------
-    segments : list of dict
-        Each dict has times (the start and end times of each sub-segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment
-    min_dur: float
-        Minimum duration of signal chunks returned.
-    """
+def _longer_than(segments, min_dur):
+    """Remove segments longer than min_dur."""
     if min_dur <= 0.:
         return segments
 
@@ -365,39 +483,7 @@ def longer_than(segments, min_dur):
 
 
 def _concat(bundles, cat=(0, 0, 0, 0)):
-    """Prepare event or epoch start and end times for concatenation.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, chan and name (event
-        type, if applicable) associated with the segment bundle
-    cat : tuple of int
-        Determines whether and where the signal is concatenated.
-        If 1st digit is 1, cycles selected in cycle will be
-        concatenated.
-        If 2nd digit is 1, different stages selected in stage will be
-        concatenated.
-        If 3rd digit is 1, discontinuous signal within a same condition
-        (stage, cycle, event type) will be concatenated.
-        If 4th digit is 1, events of different types will be concatenated.
-        0 in any position indicates no concatenation.
-        Defaults to (0, 0 , 1, 0), i.e. concatenate signal within stages
-        only.
-
-    Returns
-    -------
-    list of dict
-        Each dict has times (the start and end times of each subsegment, as
-        list of tuple of float), stage, cycle, as well as chan and event
-        type name (empty for epochs). Each bundle comprises a collection of
-        subsegments to be concatenated.
-
-    TO-DO
-    -----
-    Make sure the cat options are orthogonal and make sense
-    """
+    """Prepare event or epoch start and end times for concatenation."""
     chan = sorted(set([x['chan'] for x in bundles]))
     cycle = sorted(set([x['cycle'] for x in bundles]))
     stage = sorted(set([x['stage'] for x in bundles]))
@@ -479,23 +565,9 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
     return to_concat
 
 
-def divide_bundles(bundles):
+def _divide_bundles(bundles):
     """Take each subsegment inside a bundle and put it in its own bundle,
-    copying the bundle metadata.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, (chan and name (event
-        type, if applicable) associated with the segment bundle.
-
-    Returns
-    -------
-    list of one dict
-        Dict represents a single segment, and has start and end times (tuple
-        of float), stage, cycle, chan and name (event type, if applicable)
-    """
+    copying the bundle metadata."""
     divided = []
 
     for bund in bundles:
@@ -507,27 +579,9 @@ def divide_bundles(bundles):
     return divided
 
 
-def find_intervals(bundles, interval):
+def _find_intervals(bundles, interval):
     """Divide bundles into consecutive segments of a certain duration,
-    discarding any remainder.
-
-    Parameters
-    ----------
-    bundles : list of dict
-        Each dict has times (the start and end times of each segment, as
-        list of tuple of float), and the stage, cycle, (chan and name (event
-        type, if applicable) associated with the segment bundle.
-        NOTE: Discontinuous segments must already be in separate dicts.
-    interval: float
-        Duration of consecutive intervals.
-
-    Returns
-    -------
-    list of dict
-        Each dict represents a  segment of duration 'interval', and
-        has start and end times (tuple of float), stage, cycle, chan and name
-        (event type, if applicable) associated with the single segment.
-    """
+    discarding any remainder."""
     segments = []
     for bund in bundles:
         beg, end = bund['times'][0][0], bund['times'][-1][1]
@@ -541,3 +595,112 @@ def find_intervals(bundles, interval):
                 segments.append(seg)
 
     return segments
+
+
+def _create_data(data, active_chan, ref_chan=[], grp_name=None):
+    """Create data after montage.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        the raw data
+    active_chan : list of str
+        the channel(s) of interest, without reference or group
+    ref_chan : list of str
+        reference channel(s), without group
+    grp_name : str
+        name of channel group, if applicable
+
+    Returns
+    -------
+    instance of ChanTime
+        the re-referenced data
+    """
+    output = ChanTime()
+    output.s_freq = data.s_freq
+    output.start_time = data.start_time
+    output.axis['time'] = data.axis['time']
+    output.axis['chan'] = empty(1, dtype='O')
+    output.data = empty(1, dtype='O')
+    output.data[0] = empty((len(active_chan), data.number_of('time')[0]),
+                           dtype='f')
+
+    sel_data = _select_channels(data, active_chan + ref_chan)
+    data1 = montage(sel_data, ref_chan=ref_chan)
+    data1.data[0] = nan_to_num(data1.data[0])
+    
+    all_chan_grp_name = []
+
+    for i, chan in enumerate(active_chan):
+        chan_grp_name = chan
+        if grp_name:
+            chan_grp_name = chan + ' (' + grp_name + ')'
+        all_chan_grp_name.append(chan_grp_name)
+
+        dat = data1(chan=chan, trial=0)
+        output.data[0][i, :] = dat
+
+    output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
+
+    return output
+
+
+def _create_subepochs(x, nperseg, step):
+    """Transform the data into a matrix for easy manipulation
+
+    Parameters
+    ----------
+    x : 1d ndarray
+        actual data values
+    nperseg : int
+        number of samples in each row to create
+    step : int
+        distance in samples between rows
+    Returns
+    -------
+    2d ndarray
+        a view (i.e. doesn't copy data) of the original x, with shape
+        determined by nperseg and step. You should use the last dimension
+    """
+    axis = x.ndim - 1  # last dim
+    nsmp = x.shape[axis]
+    stride = x.strides[axis]
+    noverlap = nperseg - step
+    v_shape = *x.shape[:axis], (nsmp - noverlap) // step, nperseg
+    v_strides = *x.strides[:axis], stride * step, stride
+    v = as_strided(x, shape=v_shape, strides=v_strides,
+                   writeable=False)  # much safer
+    return v
+
+
+def _select_channels(data, channels):
+    """Select channels.
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data with all the channels
+    channels : list
+        channels of interest
+
+    Returns
+    -------
+    instance of ChanTime
+        data with only channels of interest
+
+    Notes
+    -----
+    This function does the same as wonambi.trans.select, but it's much faster.
+    wonambi.trans.Select needs to flexible for any data type, here we assume
+    that we have one trial, and that channel is the first dimension.
+
+    """
+    output = data._copy()
+    chan_list = list(data.axis['chan'][0])
+    idx_chan = [chan_list.index(i_chan) for i_chan in channels]
+    output.data[0] = data.data[0][idx_chan, :]
+    output.axis['chan'][0] = asarray(channels)
+
+    return output
+
+

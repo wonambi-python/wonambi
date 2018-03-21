@@ -1817,8 +1817,6 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
     data1.data[0] = nan_to_num(data1.data[0])
 
     for i, (t0, t1) in enumerate(times):
-        if parent is not None:
-            progress.setValue(i)
         one_interval = data.axis['time'][0][t0: t1]
         timeline.append(one_interval)
         epoch_dat = empty((len(analysis_chans), len(one_interval)))
@@ -1834,6 +1832,13 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
             i_ch += 1
 
         all_epoch_data.append(epoch_dat)
+        
+        if parent is not None:
+            progress.setValue(i)
+            if progress.wasCanceled():
+                parent.parent.statusBar().showMessage('Detection canceled '
+                                     'by user.')
+                return
 
     output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
     output.axis['time'][0] = concatenate(timeline)

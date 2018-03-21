@@ -83,7 +83,7 @@ class DetectSlowWave:
             description of the detected SWs
         """
         if parent is not None:
-            progress = QProgressDialog('Finding spindles', 'Abort', 
+            progress = QProgressDialog('Finding slow waves', 'Abort', 
                                        0, data.number_of('chan')[0], parent)
             progress.setWindowModality(Qt.ApplicationModal)
             
@@ -92,9 +92,6 @@ class DetectSlowWave:
 
         all_slowwaves = []
         for i, chan in enumerate(data.axis['chan'][0]):
-            
-            if parent is not None:
-                progress.setValue(i)
             
             lg.info('Detecting slow waves on chan %s', chan)
             time = hstack(data.axis['time'])
@@ -110,9 +107,13 @@ class DetectSlowWave:
             for sw in sw_in_chan:
                 sw.update({'chan': chan})
             all_slowwaves.extend(sw_in_chan)
+            
+            if parent is not None:
+                progress.setValue(i)
+                if progress.wasCanceled():
+                    return
             # end of loop over chan
 
-        lg.info('number of SW: ' + str(len(all_slowwaves)))
         slowwave.events = sorted(all_slowwaves, key=lambda x: x['start'])
 
         if parent is not None:

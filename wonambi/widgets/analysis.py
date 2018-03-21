@@ -51,9 +51,9 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QWidget,
                              )
 
-from .. import ChanTime, ChanFreq
-from ..trans import (math, montage, filter_, frequency, _select_channels, 
-                     get_bundles, get_times)
+from .. import ChanFreq
+from ..trans import (math, filter_, frequency, get_descriptives, get_power, 
+                     fetch_segments, get_times, slopes)
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME)
@@ -1031,10 +1031,10 @@ class AnalysisDialog(ChannelDialog):
         """Update the number of segments, displayed in the dialog."""
         self.nseg = 0
         if self.one_grp:        
-            bundles = self.make_bundles()
+            segments = self.get_segments()
             
-            if bundles is not None:
-                self.nseg = len(bundles)
+            if segments is not None:
+                self.nseg = len(segments)
                 self.show_nseg.setText('Number of segments: ' + str(self.nseg))
                 
             else:
@@ -1063,14 +1063,6 @@ class AnalysisDialog(ChannelDialog):
                 self.event['global']['all_local'].setChecked(False)
             if buttons[1].isEnabled() and not buttons[1].get_value():
                 self.event['global']['all_local_prep'].setChecked(False)
-
-#==============================================================================
-#     def check_all_slopes(self):
-#         """Check and uncheck slope options"""
-#         slopes_checked = self.event['sw']['all_slope'].get_value()
-#         for button in self.event['slope']:
-#             button.setChecked(slopes_checked)
-#==============================================================================
 
     def button_clicked(self, button):
         """Action when button was clicked.
@@ -1123,9 +1115,23 @@ class AnalysisDialog(ChannelDialog):
             evt_chan_only = self.evt_chan_only.get_value()
             concat_chan = self.cat['chan'].get_value()
             
-            bundles = self.make_bundles()
-            self.data = self.read_data(bundles, evt_chan_only=evt_chan_only, 
-                                       concat_chan=concat_chan)
+            self.data = self.get_segments()
+            
+            if not self.data.segments:
+                self.parent.statusBar().showMessage('No valid signal found.')
+                return
+            
+            ding = self.data.read_data(self.chan, 
+                               ref_chan=self.one_grp['ref_chan'],
+                               grp_name=self.one_grp['name'],
+                               evt_chan_only=evt_chan_only, 
+                               concat_chan=concat_chan, 
+                               max_s_freq=self.parent.value('max_s_freq'),
+                               parent=self)
+            
+            if not ding:
+                self.parent.statusBar().showMessage('Process interrupted.')
+                return
             
             # Transform signal
             if freq_prep or pac_prep or loc_prep or slope_prep:
@@ -1136,6 +1142,9 @@ class AnalysisDialog(ChannelDialog):
             if freq_on:
                 #freq_filename = splitext(filename)[0] + '_freq.p'
                 xfreq = self.compute_freq()
+                
+                if not xfreq:
+                    return
 
                 #with open(freq_filename, 'wb') as f:
                 #    dump(xfreq, f)
@@ -1155,7 +1164,13 @@ class AnalysisDialog(ChannelDialog):
 
             # PAC
             if pac_on:
-                xpac, fpha, famp = self.compute_pac()
+                pac_output = self.compute_pac()
+                
+                if pac_output is not None:
+                    xpac, fpha, famp = pac_output
+                else:
+                    return
+                    
                 #pac_filename = splitext(filename)[0] + '_pac.p'
 
                 #with open(pac_filename, 'wb') as f:
@@ -1168,7 +1183,12 @@ class AnalysisDialog(ChannelDialog):
                 self.export_pac(xpac, fpha, famp, desc)
                 
             # Events
-            glob, loc = self.compute_evt_params()
+            evt_output = self.compute_evt_params()
+            
+            if evt_output is not None:
+                glob, loc = evt_output
+            else:
+                return
             
             self.export_evt_params(glob, loc)
 
@@ -1177,9 +1197,8 @@ class AnalysisDialog(ChannelDialog):
         if button is self.idx_cancel:
             self.reject()
 
-    def make_bundles(self):
-        """Make bundles for analysis. Creates list of dict, containing 'times',
-        'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""
+    def get_segments(self):
+        """Get segments for analysis. Creates instance of trans.Segments."""
         # Chunking
         chunk = {k: v.isChecked() for k, v in self.chunk.items()}
         lock_to_staging = self.lock_to_staging.get_value()
@@ -1233,121 +1252,119 @@ class AnalysisDialog(ChannelDialog):
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
         
-        bundles = get_bundles(self.parent.notes.annot, cat=cat, 
+        segments = fetch_segments(self.parent.info.dataset, 
+                              self.parent.notes.annot, cat=cat, 
                               evt_type=evt_type, stage=stage, cycle=cycle, 
                               chan_full=chan_full, epoch_dur=epoch_dur, 
                               min_dur=min_dur, epoch=epoch,
                               reject_epoch=reject_epoch, 
                               reject_artf=reject_artf)
         
-        return bundles
+        return segments
 
-    def read_data(self, bundles, evt_chan_only=False, concat_chan=False):
-        """Read data for analysis. Creates list of dict, containing 'data'
-        (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""        
-        if not bundles:
-            self.parent.statusBar().showMessage('No valid signal found.')
-            self.reject()
-            return
-        
-        dataset = self.parent.info.dataset
-        chan_grp = self.one_grp
-        chan_to_read = self.chan + chan_grp['ref_chan']
-        active_chan = self.chan
-        output = []
-        
-        # Set up Progress Bar
-        n_subseg = sum([len(x['times']) for x in bundles])
-        progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
-                                   self)
-        progress.setWindowModality(Qt.ApplicationModal)
-        counter = 0
-        
-        # Begin bundle loop; will yield one segment per loop
-        for i, seg in enumerate(bundles):  
-            
-            one_segment = ChanTime()                    
-            one_segment.axis['chan'] = empty(1, dtype='O')
-            one_segment.axis['time'] = empty(1, dtype='O')
-            one_segment.data = empty(1, dtype='O')
-            subseg = []
-            
-            # Subsegment loop; subsegments will be concatenated
-            for t0, t1 in seg['times']:
-                progress.setValue(counter)
-                counter += 1
-
-                if evt_chan_only: # for events
-                    active_chan = [seg['chan'].split(' (')[0]]
-                    chan_to_read = active_chan + chan_grp['ref_chan']
-                
-                data = dataset.read_data(chan=chan_to_read, begtime=t0, 
-                                         endtime=t1)
-
-                # Downsample if necessary
-                max_s_freq = self.parent.value('max_s_freq')
-                if data.s_freq > max_s_freq:
-                    q = int(data.s_freq / max_s_freq)
-                    lg.debug('Decimate (no low-pass filter) at ' + str(q))
-        
-                    data.data[0] = data.data[0][:, slice(None, None, q)]
-                    data.axis['time'][0] = data.axis['time'][0][slice(
-                            None, None, q)]
-                    data.s_freq = int(data.s_freq / q)
-            
-                # read data from disk
-                subseg.append(_create_data_to_analyze(data, active_chan, 
-                                                      chan_grp))
-
-            one_segment.s_freq = s_freq = data.s_freq
-            one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
-            one_segment.axis['time'][0] = timeline = hstack(
-                    [x.axis['time'][0] for x in subseg])
-            one_segment.data[0] = empty((len(active_chan), len(timeline)), 
-                                        dtype='f')
-            n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
-
-            # For channel concatenation
-            if concat_chan and chs > 1:
-                one_segment.data[0] = ravel(one_segment.data[0])
-                one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
-                                dtype='U')
-                # axis['time'] should not be used in this case
-                
-            else:
-            
-                for i, chan in enumerate(subseg[0].axis['chan'][0]):                
-                    one_segment.data[0][i, :] = hstack(
-                            [x(chan=chan)[0] for x in subseg])
-
-            output.append({'data': one_segment,
-                           'chan': active_chan,
-                           'stage': seg['stage'],
-                           'cycle': seg['cycle'],
-                           'name': seg['name'],
-                           'n_stitch': n_stitch
-                           })
-                
-            if progress.wasCanceled():
-                return
-
-        progress.setValue(counter)
-
-        return output            
-
+#==============================================================================
+#     def read_data(self, bundles, evt_chan_only=False, concat_chan=False):
+#         """Read data for analysis. Creates list of dict, containing 'data'
+#         (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""                
+#         dataset = self.parent.info.dataset
+#         chan_grp = self.one_grp
+#         chan_to_read = self.chan + chan_grp['ref_chan']
+#         active_chan = self.chan
+#         output = []
+#         
+#         # Set up Progress Bar
+#         n_subseg = sum([len(x['times']) for x in bundles])
+#         progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
+#                                    self)
+#         progress.setWindowModality(Qt.ApplicationModal)
+#         counter = 0
+#         
+#         # Begin bundle loop; will yield one segment per loop
+#         for i, seg in enumerate(bundles):  
+#             
+#             one_segment = ChanTime()                    
+#             one_segment.axis['chan'] = empty(1, dtype='O')
+#             one_segment.axis['time'] = empty(1, dtype='O')
+#             one_segment.data = empty(1, dtype='O')
+#             subseg = []
+#             
+#             # Subsegment loop; subsegments will be concatenated
+#             for t0, t1 in seg['times']:
+#                 progress.setValue(counter)
+#                 counter += 1
+# 
+#                 if evt_chan_only: # for events
+#                     active_chan = [seg['chan'].split(' (')[0]]
+#                     chan_to_read = active_chan + chan_grp['ref_chan']
+#                 
+#                 data = dataset.read_data(chan=chan_to_read, begtime=t0, 
+#                                          endtime=t1)
+# 
+#                 # Downsample if necessary
+#                 max_s_freq = self.parent.value('max_s_freq')
+#                 if data.s_freq > max_s_freq:
+#                     q = int(data.s_freq / max_s_freq)
+#                     lg.debug('Decimate (no low-pass filter) at ' + str(q))
+#         
+#                     data.data[0] = data.data[0][:, slice(None, None, q)]
+#                     data.axis['time'][0] = data.axis['time'][0][slice(
+#                             None, None, q)]
+#                     data.s_freq = int(data.s_freq / q)
+#             
+#                 # read data from disk
+#                 subseg.append(_create_data_to_analyze(data, active_chan, 
+#                                                       chan_grp))
+# 
+#             one_segment.s_freq = s_freq = data.s_freq
+#             one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
+#             one_segment.axis['time'][0] = timeline = hstack(
+#                     [x.axis['time'][0] for x in subseg])
+#             one_segment.data[0] = empty((len(active_chan), len(timeline)), 
+#                                         dtype='f')
+#             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
+# 
+#             # For channel concatenation
+#             if concat_chan and chs > 1:
+#                 one_segment.data[0] = ravel(one_segment.data[0])
+#                 one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
+#                                 dtype='U')
+#                 # axis['time'] should not be used in this case
+#                 
+#             else:
+#             
+#                 for i, chan in enumerate(subseg[0].axis['chan'][0]):                
+#                     one_segment.data[0][i, :] = hstack(
+#                             [x(chan=chan)[0] for x in subseg])
+# 
+#             output.append({'data': one_segment,
+#                            'chan': active_chan,
+#                            'stage': seg['stage'],
+#                            'cycle': seg['cycle'],
+#                            'name': seg['name'],
+#                            'n_stitch': n_stitch
+#                            })
+#                 
+#             if progress.wasCanceled():
+#                 return
+# 
+#         progress.setValue(counter)
+# 
+#         return output            
+# 
+#==============================================================================
     def transform_data(self, data):
         """Apply pre-processing transformation to data, and add it to data 
         dict.
         
         Parmeters
         ---------
-        data : list of dict
-            bundles including 'data' (ChanTime)
+        data : instance of Segments
+            segments including 'data' (ChanTime)
             
         Returns
         -------
-        list of dict
-            same dict with transformed data as 'trans_data' (ChanTime)
+        instance of Segments
+            same object with transformed data as 'trans_data' (ChanTime)
         """
         trans = self.trans
         whiten = trans['whiten'].get_value()
@@ -1490,19 +1507,27 @@ class AnalysisDialog(ChannelDialog):
             if norm_concat:
                 ncat = (1, 1, 1, 1)    
                         
-            lg.info(' '.join(['Getting bundles for norm. cat: ', str(ncat), 
+            lg.info(' '.join(['Getting segments for norm. cat: ', str(ncat), 
                               'evt_type', str(norm_evt_type), 'stage', 
                               str(norm_stage), 'chan', str(norm_chan)]))
-            norm_bund = get_bundles(self.parent.notes.annot, ncat, 
+            norm_seg = fetch_segments(self.parent.info.dataset, 
+                                    self.parent.notes.annot, ncat, 
                                     evt_type=norm_evt_type, stage=norm_stage,
                                     chan_full=norm_chan)
-            norm_signal = self.read_data(norm_bund)
+            
+            if not norm_seg.segments:
+                self.parent.statusBar().showMessage('No valid normalization '
+                                                  'signal found.')
+                return
+            
+            norm_seg.read_data(self.chan, ref_chan=self.one_grp['ref_chan'],
+                               grp_name=self.one_grp['name'], parent=None)
                 
             if prep:                
-                norm_signal = self.transform_data(norm_signal)
+                norm_seg = self.transform_data(norm_seg)
                 
             all_Sxx = []
-            for seg in norm_signal:
+            for seg in norm_seg:
                 dat = seg['data']
                 if prep:
                     dat = seg['trans_data']
@@ -1562,6 +1587,8 @@ class AnalysisDialog(ChannelDialog):
             
             progress.setValue(i)
             if progress.wasCanceled():
+                self.parent.statusBar().showMessage('Analysis canceled '
+                                     'by user.')
                 return
 
         return xfreq
@@ -1658,8 +1685,9 @@ class AnalysisDialog(ChannelDialog):
 
     def compute_pac(self):
         """Compute phase-amplitude coupling values from data."""
+        n_segments = sum([len(x['data'].axis['chan'][0]) for x in self.data])
         progress = QProgressDialog('Computing PAC', 'Abort',
-                                   0, len(self.data), self)
+                                   0, n_segments - 1, self)
         progress.setWindowModality(Qt.ApplicationModal)
 
         pac = self.pac
@@ -1697,7 +1725,6 @@ class AnalysisDialog(ChannelDialog):
         nperm = self.pac['surro']['nperm'][1].get_value()
         optimize = self.pac['optimize'].get_value()
         get_pval = self.pac['surro']['pval'][0].get_value()
-        lg.info('get_pval is ' + str(get_pval is True))
         get_surro = self.pac['surro']['save_surro'][0].get_value()
         njobs = self.pac['njobs'].get_value()
 
@@ -1765,8 +1792,8 @@ class AnalysisDialog(ChannelDialog):
 
                 timeline = data.axis['time'][0]
                 xpac[chan]['times'].append((timeline[0], timeline[-1]))
-                lg.info('Compute PAC on ' + chan + ' ' + str((timeline[0],
-                                                              timeline[-1])))
+                #lg.info('Compute PAC on ' + chan + ' ' + str((timeline[0],
+                #                                              timeline[-1])))
                 duration = len(timeline) / sf
                 xpac[chan]['duration'].append(duration)
                 xpac[chan]['stage'].append(j['stage'])
@@ -1806,9 +1833,11 @@ class AnalysisDialog(ChannelDialog):
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
                     
                 if progress.wasCanceled():
+                    self.parent.statusBar().showMessage('Analysis canceled '
+                                     'by user.')
                     return
 
-        progress.setValue(counter)
+        #progress.setValue(counter)
 
         return xpac, fpha, famp
 
@@ -1909,7 +1938,7 @@ class AnalysisDialog(ChannelDialog):
             epoch_dur = glob['density_per']
             # get period of interest based on stage and cycle selection
             poi = get_times(self.parent.notes.annot, stage=self.stage, 
-                            cycle=self.cycle)
+                            cycle=self.cycle, exclude=True)
             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
             glob_out['density'] = self.nseg / (total_dur / epoch_dur)
         
@@ -1984,12 +2013,14 @@ class AnalysisDialog(ChannelDialog):
                 
                 for chan in dat1.axis['chan'][0]:
                     d = dat1(chan=chan)[0]                
-                    out['slope'][chan] = get_slopes(d, dat.s_freq, level=level)
+                    out['slope'][chan] = slopes(d, dat.s_freq, level=level)
             
             loc_out.append(out)
             
             progress.setValue(i)
             if progress.wasCanceled():
+                self.parent.statusBar().showMessage('Analysis canceled '
+                                     'by user.')
                 return
             
         return glob_out, loc_out
@@ -2138,207 +2169,6 @@ class AnalysisDialog(ChannelDialog):
         return ', '.join(title)
 
 
-def get_descriptives(data):
-    """Get mean, SD, and mean and SD of log values.
-    
-    Parameters
-    ----------
-    data : ndarray
-        Data with segment as first dimension
-        and all other dimensions raveled into second dimension.
-        
-    Returns
-    -------
-    dict of ndarray
-        each entry is a 1-D vector of descriptives over segment dimension        
-    """
-    output = {}
-    dat_log = log(abs(data))
-    output['mean'] = nanmean(data, axis=0)
-    output['sd'] = nanstd(data, axis=0)
-    output['mean_log'] = nanmean(dat_log, axis=0)
-    output['sd_log'] = nanstd(dat_log, axis=0)
-    
-    return output
-
-def get_power(data, freq, scaling='power'):
-    """Compute power or energy acoss a frequency band, and its peak frequency.
-    
-    Parameters
-    ----------
-    data : instance of ChanTime
-        data to be analyzed
-    freq : tuple of float
-        Frequencies for band of interest. Power will be summed across this 
-        band, and peak frequency determined within it.
-    scaling : str
-        'power' or 'energy'.
-        
-    Returns
-    -------
-    dict of float
-        keys are channels, values are power or energy
-    dict of float
-        keys are channels, values are respective peak frequency
-    """
-    power = {}
-    peakf = {}
-    detrend = 'linear'
-    if 'energy' == scaling:
-        detrend = None
-    
-    Sxx = frequency(data, scaling=scaling, detrend=detrend)
-    sf = Sxx.axis['freq'][0]
-    idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
-    idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
-    
-    for chan in Sxx.axis['chan'][0]:
-        s = Sxx(chan=chan)[0]
-        power[chan] = sum(s[idx_f1:idx_f2]) # integrating over f
-        
-        idx_peak = s[idx_f1:idx_f2].argmax()
-        peakf[chan] = sf[idx_f1:idx_f2][idx_peak]
-        
-    return power, peakf
-
-def get_slopes(data, s_freq, level='all', smooth=0.05):
-    """Get the slopes (average and/or maximum) for each quadrant of a slow
-    wave, as well as the combination of quadrants 2 and 3.
-    
-    Parameters
-    ----------
-    data : ndarray
-        raw data as vector
-    s_freq : int
-        sampling frequency
-    level : str
-        if 'average', returns average slopes (uV / s). if 'maximum', returns 
-        the maximum of the slope derivative (uV / s**2). if 'all', returns all.
-    smooth : float or None
-        if not None, signal will be smoothed by moving average, with a window 
-        of this duration
-        
-    Returns
-    -------
-    tuple of ndarray
-        each array is len 5, with q1, q2, q3, q4 and q23. First array is 
-        average slopes and second is maximum slopes.
-        
-    Notes
-    -----
-    This function is made to take automatically detected start and end 
-    times AS WELL AS manually delimited ones. In the latter case, the first
-    and last zero has to be detected within this function.
-    """
-    nan_array = empty((5,))
-    nan_array[:] = nan
-    idx_trough = data.argmin()
-    idx_peak = data.argmax()    
-    if idx_trough >= idx_peak:
-        return nan_array, nan_array
-    
-    zero_crossings_0 = where(diff(sign(data[:idx_trough])))[0]
-    zero_crossings_1 = where(diff(sign(data[idx_trough:idx_peak])))[0]
-    zero_crossings_2 = where(diff(sign(data[idx_peak:])))[0]
-    if zero_crossings_1.any():
-        idx_zero_1 = idx_trough + zero_crossings_1[0]
-    else:
-        return nan_array, nan_array
-    
-    if zero_crossings_0.any():
-        idx_zero_0 = zero_crossings_0[-1]
-    else:
-        idx_zero_0 = 0
-        
-    if zero_crossings_2.any():
-        idx_zero_2 = idx_peak + zero_crossings_2[0]
-    else:
-        idx_zero_2 = len(data) - 1
-        
-    avgsl = nan_array
-    if level in ['average', 'all']:
-        q1 = data[idx_trough] / ((idx_trough - idx_zero_0) / s_freq)
-        q2 = data[idx_trough] / ((idx_zero_1 - idx_trough) / s_freq)
-        q3 = data[idx_peak] / ((idx_peak - idx_zero_1) / s_freq)
-        q4 = data[idx_peak] / ((idx_zero_2 - idx_peak) / s_freq)
-        q23 = (data[idx_peak] - data[idx_trough]) \
-                / ((idx_peak - idx_trough) / s_freq)
-        avgsl = asarray([q1, q2, q3, q4, q23])
-        avgsl[isinf(avgsl)] = nan
-    
-    maxsl = nan_array
-    if level in ['maximum', 'all']:
-        
-        if smooth is not None:
-            win = int(smooth * s_freq)
-            flat = ones(win)
-            data = fftconvolve(data, flat / sum(flat), mode='same')
-                
-        if idx_trough - idx_zero_0 >= win:
-            maxsl[0] = min(gradient(data[idx_zero_0:idx_trough]))
-            
-        if idx_zero_1 - idx_trough >= win:
-            maxsl[1] = max(gradient(data[idx_trough:idx_zero_1]))
-            
-        if idx_peak - idx_zero_1 >= win:
-            maxsl[2] = max(gradient(data[idx_zero_1:idx_peak]))
-            
-        if idx_zero_2 - idx_peak >= win:
-            maxsl[3] = min(gradient(data[idx_peak:idx_zero_2]))
-            
-        if idx_peak - idx_trough >= win:
-            maxsl[4] = max(gradient(data[idx_trough:idx_peak]))
-            
-        maxsl[isinf(maxsl)] = nan
-        
-    return avgsl, maxsl
-    
-
-def _create_data_to_analyze(data, active_chan, chan_grp):
-    """Create data after montage.
-
-    Parameters
-    ----------
-    data : instance of ChanTime
-        the raw data
-    active_chan : list of str
-        the channel(s) of interest, without reference or group
-    chan_grp : dict
-        information about channels to plot, to use as reference and about
-        filtering etc.
-
-    Returns
-    -------
-    instance of ChanTime
-        the re-referenced data
-    """
-    output = ChanTime()
-    output.s_freq = data.s_freq
-    output.start_time = data.start_time
-    output.axis['time'] = data.axis['time']
-    output.axis['chan'] = empty(1, dtype='O')
-    output.data = empty(1, dtype='O')
-    output.data[0] = empty((len(active_chan), data.number_of('time')[0]),
-                           dtype='f')
-
-    sel_data = _select_channels(data, active_chan + chan_grp['ref_chan'])
-    data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
-    data1.data[0] = nan_to_num(data1.data[0])
-    
-    all_chan_grp_name = []
-
-    for i, chan in enumerate(active_chan):
-        chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
-        all_chan_grp_name.append(chan_grp_name)
-
-        dat = data1(chan=chan, trial=0)
-        output.data[0][i, :] = dat
-
-    output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-
-    return output
-
-
 def _amax(x, axis, keepdims=None):
     return amax(x, axis=axis)
 
@@ -2367,7 +2197,7 @@ class PlotCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
   
-    def plot(self, x, y, title, ylabel, log='log y-axis', idx_lim=(1, -1)):
+    def plot(self, x, y, title, ylabel, log_ax='log y-axis', idx_lim=(1, -1)):
         """Plot the data.
 
         Parameters
@@ -2380,7 +2210,7 @@ class PlotCanvas(FigureCanvas):
             title of the plot, to appear above it
         ylabel : str
             label for the y-axis
-        log : str
+        log_ax : str
             'log y-axis', 'log both axes' or 'linear', to set axis scaling
         idx_lim : tuple of (int or None)
             indices of the data to plot. by default, the first value is left
@@ -2393,11 +2223,11 @@ class PlotCanvas(FigureCanvas):
         ax.set_xlabel('Frequency (Hz)')
         ax.set_ylabel(ylabel)
 
-        if 'log y-axis' == log:
+        if 'log y-axis' == log_ax:
             ax.semilogy(x, y, 'r-')
-        elif 'log both axes' == log:
+        elif 'log both axes' == log_ax:
             ax.loglog(x, y, 'r-')
-        elif 'linear' == log:
+        elif 'linear' == log_ax:
             ax.plot(x, y, 'r-')
 
 
