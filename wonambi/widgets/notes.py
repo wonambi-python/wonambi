@@ -1812,7 +1812,6 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
                                 analysis_chans +
                                 chan_grp['ref_chan'])
     data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
-    lg.info('Montage with reference ' + str(chan_grp['ref_chan']))
 
     data1.data[0] = nan_to_num(data1.data[0])
 

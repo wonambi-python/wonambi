@@ -171,7 +171,6 @@ class SpindleDialog(ChannelDialog):
                 stage = None
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
-            lg.info('chans= '+str(chans)+' stage= '+str(stage)+' grp= '+str(self.one_grp))
 
             self.parent.notes.read_data(chans, self.one_grp, period=cycle,
                                         stage=stage, qual='Good',

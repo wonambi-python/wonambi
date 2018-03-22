@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Dialogs for analyses, such as power spectra, PAC, event parameters
 """
 from logging import getLogger
 
-from numpy import (amax, amin, asarray, concatenate, diff, empty, 
-                   gradient, hstack, in1d, isinf, log, logical_and, 
-                   logical_or, mean, nan, nan_to_num, nanmean, nanstd, 
-                   negative, ones, ptp, ravel, reshape, sign, sqrt, square, 
-                   stack, where, zeros)
-from scipy.signal import fftconvolve
+from numpy import (amax, amin, asarray, concatenate, diff, empty, in1d, 
+                   logical_and, logical_or, mean, negative, ptp, ravel, 
+                   reshape, sqrt, square, stack, zeros)
 from itertools import compress
 from csv import writer
 from os.path import basename, splitext
-from pickle import dump
 
 try:
     from matplotlib.backends.backend_qt5agg \
@@ -80,17 +74,10 @@ class AnalysisDialog(ChannelDialog):
 
         self.setWindowTitle('Analysis console')
         self.filename = None
-        self.chunk = {}
-        self.label = {}
-        self.cat = {}
-        self.trans = {}
         self.event_types = None
-        self.event = {}
-        self.psd = {}
-        self.pac = {}
         self.one_grp = None
         self.nseg = 0
-
+        
         self.create_dialog()
 
     def create_dialog(self):
@@ -118,6 +105,8 @@ class AnalysisDialog(ChannelDialog):
 
         box0 = QGroupBox('Chunking')
 
+        self.chunk = {}
+        self.label = {}
         self.chunk['event'] = FormRadio('by e&vent')
         self.chunk['epoch'] = FormRadio('by e&poch')
         self.chunk['segment'] = FormRadio('by longest &run')
@@ -183,6 +172,7 @@ class AnalysisDialog(ChannelDialog):
 
         box_c = QGroupBox('Concatenation')
 
+        self.cat = {}
         self.cat['chan'] = FormBool('Concatenate channels')
         self.cat['cycle'] = FormBool('Concatenate cycles')
         self.cat['stage'] = FormBool('Concatenate between stages')
@@ -205,6 +195,7 @@ class AnalysisDialog(ChannelDialog):
 
         box2 = QGroupBox('Pre-processing')
 
+        self.trans = {}
         self.trans['whiten'] = FormBool('Whiten')
         
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
@@ -261,24 +252,6 @@ class AnalysisDialog(ChannelDialog):
         filt['bandpass_l'] = QLabel('Bandpass'), None
         filt['notch1_l'] = QLabel('Notch 1'), None
         filt['notch2_l'] = QLabel('Notch 2'), None
-
-#==============================================================================
-#         flayout = QFormLayout()
-#         box2.setLayout(flayout)
-#         flayout.addRow(tb['none'])
-#         flayout.addRow(tb['butter'])
-#         flayout.addRow(tb['cheby'])
-#         flayout.addRow(*filt['order'])
-#         flayout.addRow(filt['bandpass_l'][0])
-#         flayout.addRow(*filt['f1'])
-#         flayout.addRow(*filt['f2'])
-#         flayout.addRow(filt['notch1_l'][0])
-#         flayout.addRow(*filt['notch1_centre'])
-#         flayout.addRow(*filt['notch1_bandw'])        
-#         flayout.addRow(filt['notch2_l'][0])
-#         flayout.addRow(*filt['notch2_centre'])
-#         flayout.addRow(*filt['notch2_bandw'])
-#==============================================================================
         
         """ ------ N_SEG ------ """
         
@@ -293,9 +266,8 @@ class AnalysisDialog(ChannelDialog):
 
         tab_freq = QWidget()
 
-        self.frequency = {}
-        freq = self.frequency
-
+        self.frequency = freq = {}
+        
         freq['freq_on'] = FormBool('Compute frequency domain')
         freq['prep'] = FormBool('Pre-process')
         freq['plot_on'] = FormBool('Plot mean spectrum')
@@ -407,16 +379,6 @@ class AnalysisDialog(ChannelDialog):
         flayout.addRow(freq['plot_on'])
         flayout.addRow('Title:',
                        freq['title'])
-#==============================================================================
-#         flayout.addRow('Axis scaling',
-#                        freq['axis_scale'])
-#==============================================================================
-#==============================================================================
-#         flayout.addRow('Lower limit (Hz)',
-#                        freq['min_x_axis'])
-#         flayout.addRow('Upper limit (Hz)',
-#                        freq['max_x_axis'])
-#==============================================================================
 
         glayout = QGridLayout()
         glayout.addWidget(freq['box_param'], 0, 0)
@@ -425,7 +387,6 @@ class AnalysisDialog(ChannelDialog):
         glayout.addWidget(freq['box_mtap'], 1, 1)
         glayout.addWidget(freq['box_output'], 2, 0)
         glayout.addWidget(freq['box_norm'], 2, 1, 3, 1)
-        # glayout.addWidget(freq['box_plot'], 2, 1)
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
@@ -445,13 +406,12 @@ class AnalysisDialog(ChannelDialog):
             pac_surro = [pacstr((1, x, 0))[1] for x in range(5)]
             pac_norm = [pacstr((1, 0, x))[2] for x in range(5)]
 
-            pac = self.pac
+            self.pac = pac = {}
 
             pac['box_complex'] = QGroupBox('Complex definition')
 
             pac['hilbert_on'] = FormRadio('Hilbert transform')
-            pac['hilbert'] = {}
-            hilb = pac['hilbert']
+            pac['hilbert'] = hilb = {}
             hilb['filt'] = QLabel('Filter'), FormMenu(['fir1', 'butter',
                 'bessel'])
             hilb['cycle_pha'] = QLabel('Cycles, phase'), FormInt(default=3)
@@ -497,8 +457,7 @@ class AnalysisDialog(ChannelDialog):
 
             pac['surro_method'] = FormMenu(pac_surro)
             pac['surro_norm'] = FormMenu(pac_norm)
-            pac['surro'] = {}
-            sur = pac['surro']
+            pac['surro'] = sur = {}
             sur['nperm'] = QLabel('Number of surrogates'), FormInt(default=200)
             sur['nblocks'] = (QLabel('Number of amplitude blocks'),
                               FormInt(default=2))
@@ -537,17 +496,15 @@ class AnalysisDialog(ChannelDialog):
 
         tab_evt = QWidget()
 
-        ev = self.event
-        ev['global'] = {}
-        eg = ev['global']
+        self.event = ev = {}
+        ev['global'] = eg = {}
         eg['count'] = FormBool('Count')
         eg['density'] = FormBool('Density, per (sec)')
         eg['density_per'] = FormFloat(30.0)
         eg['all_local'] = FormBool('All')
         eg['all_local_prep'] = FormBool('')
 
-        ev['local'] = {}
-        el = ev['local']
+        ev['local'] = el = {}
         el['dur'] = FormBool('Duration (sec)'), FormBool('')
         el['minamp'] = FormBool('Min. amplitude (uV)'), FormBool('')
         el['maxamp'] = FormBool('Max. amplitude (uV)'), FormBool('')
@@ -566,9 +523,6 @@ class AnalysisDialog(ChannelDialog):
         ev['sw']['prep'] = FormBool('Pre-process')
         ev['sw']['avg_slope'] = FormBool('Average slopes (uV/s)')
         ev['sw']['max_slope'] = FormBool('Max. slopes (uV/s**2)')
-        #ev['slope'] = []
-        #for i in range(10):
-        #    ev['slope'].append(FormBool(''))
 
         box_global = QGroupBox('Global')
 
@@ -616,24 +570,6 @@ class AnalysisDialog(ChannelDialog):
         form.addRow(ev['sw']['max_slope'])
         form.addRow(ev['sw']['prep'])
         form.addRow(ev['sw']['invert'])
-        
-#==============================================================================
-#         grid3 = QGridLayout(box_sw)
-#         grid3.addWidget(ev['sw']['invert'], 0, 0, 1, 2)
-#         grid3.addWidget(ev['sw']['prep'], 1, 0, 1, 2)
-#         grid3.addWidget(ev['sw']['all_slope'], 2, 0, 1, 2)
-#         grid3.addWidget(QLabel('Quadrant'), 3, 0)
-#         grid3.addWidget(QLabel('Average\nslope (uV/s)'), 3, 1)
-#         grid3.addWidget(QLabel('Maximum\nslope (uV/s)'), 3, 2)
-#         grid3.addWidget(QLabel('1'), 4, 0)
-#         grid3.addWidget(QLabel('2'), 5, 0)
-#         grid3.addWidget(QLabel('3'), 6, 0)
-#         grid3.addWidget(QLabel('4'), 7, 0)
-#         grid3.addWidget(QLabel('2 & 3'), 8, 0)
-#         for i,w in enumerate(ev['slope']):
-#             x = floor(i/5)
-#             grid3.addWidget(w, i - 5 * x + 4, x + 1)
-#==============================================================================
 
         grid = QGridLayout()
         grid.addWidget(box_global, 0, 0)
@@ -643,10 +579,6 @@ class AnalysisDialog(ChannelDialog):
         
         vlayout = QVBoxLayout(tab_evt)
         vlayout.addLayout(grid)
-        #vlayout.addWidget(box_global)
-        #vlayout.addWidget(box_local)
-        #vlayout.addWidget(ev['band_box'])
-        #vlayout.addWidget(box_sw)
         vlayout.addStretch(1)
 
         """ ------ TRIGGERS ------ """
@@ -738,9 +670,6 @@ class AnalysisDialog(ChannelDialog):
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
         freq['hbw'].setChecked(True)
-
-        # TODO: remove this
-        #freq['norm'].setEnabled(False) # Temp
 
         if Pac is not None:
             pac['prep'].setEnabled(False)
@@ -841,14 +770,6 @@ class AnalysisDialog(ChannelDialog):
                 i.setChecked(False)
                 i.setEnabled(False)            
         self.cat['discontinuous'].setEnabled(not epoch_on)
-
-#==============================================================================
-#         filter_on = not self.trans['button']['none'].isChecked()
-#         for button in self.trans['filt'].values():
-#             button[0].setEnabled(filter_on)
-#             if button[1] is not None:
-#                 button[1].setEnabled(filter_on)
-#==============================================================================
 
         bandpass_on = self.trans['bandpass'].get_value() != 'none'
         for w in self.trans['bp'].values():
@@ -1262,96 +1183,6 @@ class AnalysisDialog(ChannelDialog):
         
         return segments
 
-#==============================================================================
-#     def read_data(self, bundles, evt_chan_only=False, concat_chan=False):
-#         """Read data for analysis. Creates list of dict, containing 'data'
-#         (ChanTime), 'chan', 'stage', 'cycle', event 'name' and 'n_stitch'"""                
-#         dataset = self.parent.info.dataset
-#         chan_grp = self.one_grp
-#         chan_to_read = self.chan + chan_grp['ref_chan']
-#         active_chan = self.chan
-#         output = []
-#         
-#         # Set up Progress Bar
-#         n_subseg = sum([len(x['times']) for x in bundles])
-#         progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
-#                                    self)
-#         progress.setWindowModality(Qt.ApplicationModal)
-#         counter = 0
-#         
-#         # Begin bundle loop; will yield one segment per loop
-#         for i, seg in enumerate(bundles):  
-#             
-#             one_segment = ChanTime()                    
-#             one_segment.axis['chan'] = empty(1, dtype='O')
-#             one_segment.axis['time'] = empty(1, dtype='O')
-#             one_segment.data = empty(1, dtype='O')
-#             subseg = []
-#             
-#             # Subsegment loop; subsegments will be concatenated
-#             for t0, t1 in seg['times']:
-#                 progress.setValue(counter)
-#                 counter += 1
-# 
-#                 if evt_chan_only: # for events
-#                     active_chan = [seg['chan'].split(' (')[0]]
-#                     chan_to_read = active_chan + chan_grp['ref_chan']
-#                 
-#                 data = dataset.read_data(chan=chan_to_read, begtime=t0, 
-#                                          endtime=t1)
-# 
-#                 # Downsample if necessary
-#                 max_s_freq = self.parent.value('max_s_freq')
-#                 if data.s_freq > max_s_freq:
-#                     q = int(data.s_freq / max_s_freq)
-#                     lg.debug('Decimate (no low-pass filter) at ' + str(q))
-#         
-#                     data.data[0] = data.data[0][:, slice(None, None, q)]
-#                     data.axis['time'][0] = data.axis['time'][0][slice(
-#                             None, None, q)]
-#                     data.s_freq = int(data.s_freq / q)
-#             
-#                 # read data from disk
-#                 subseg.append(_create_data_to_analyze(data, active_chan, 
-#                                                       chan_grp))
-# 
-#             one_segment.s_freq = s_freq = data.s_freq
-#             one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
-#             one_segment.axis['time'][0] = timeline = hstack(
-#                     [x.axis['time'][0] for x in subseg])
-#             one_segment.data[0] = empty((len(active_chan), len(timeline)), 
-#                                         dtype='f')
-#             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
-# 
-#             # For channel concatenation
-#             if concat_chan and chs > 1:
-#                 one_segment.data[0] = ravel(one_segment.data[0])
-#                 one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
-#                                 dtype='U')
-#                 # axis['time'] should not be used in this case
-#                 
-#             else:
-#             
-#                 for i, chan in enumerate(subseg[0].axis['chan'][0]):                
-#                     one_segment.data[0][i, :] = hstack(
-#                             [x(chan=chan)[0] for x in subseg])
-# 
-#             output.append({'data': one_segment,
-#                            'chan': active_chan,
-#                            'stage': seg['stage'],
-#                            'cycle': seg['cycle'],
-#                            'name': seg['name'],
-#                            'n_stitch': n_stitch
-#                            })
-#                 
-#             if progress.wasCanceled():
-#                 return
-# 
-#         progress.setValue(counter)
-# 
-#         return output            
-# 
-#==============================================================================
     def transform_data(self, data):
         """Apply pre-processing transformation to data, and add it to data 
         dict.
@@ -1573,13 +1404,16 @@ class AnalysisDialog(ChannelDialog):
                             detrend=detrend, n_smp=n_smp)
             
             if norm != 'none':
+                
                 for j, chan in enumerate(Sxx.axis['chan']):
+                    
                     dat = Sxx.data[0][j,:]
+                    
                     if norm == 'by integral of each segment':
                         norm_dat = sum(dat)
                     else:
                         norm_dat = nSxx(chan=chan)[0]
-                    lg.info('Normalizing with ' + str(mean(norm_dat)))
+                        
                     Sxx.data[0][j,:] = dat / norm_dat
             
             new_seg['data'] = Sxx
@@ -1587,8 +1421,8 @@ class AnalysisDialog(ChannelDialog):
             
             progress.setValue(i)
             if progress.wasCanceled():
-                self.parent.statusBar().showMessage('Analysis canceled '
-                                     'by user.')
+                msg = 'Analysis canceled by user.'
+                self.parent.statusBar().showMessage(msg)
                 return
 
         return xfreq
@@ -1654,21 +1488,6 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
         scaling = freq['scaling'].get_value()
         
-#==============================================================================
-#         title = freq['title'].get_value()
-#         log = freq['axis_scale'].get_value()
-#         xlim = freq['min_x_axis'].get_value(), freq['max_x_axis'].get_value()
-#
-#         idx_low = (abs(x - xlim[0])).argmin()
-#
-#         if xlim[1] == 0:
-#             idx_high = None
-#         else:
-#             idx_high = (abs(x - xlim[1])).argmin()
-#
-#         lg.info('limits: ' + str(idx_low) + ' ' + str(idx_high))
-#==============================================================================
-
         if freq['complex'].get_value():
             ylabel = 'Amplitude (uV)'
         elif 'power' == scaling:
@@ -1677,10 +1496,7 @@ class AnalysisDialog(ChannelDialog):
             ylabel = 'Energy spectral density (uV ** 2)'
 
         self.parent.plot_dialog = PlotDialog(self.parent)
-        self.parent.plot_dialog.canvas.plot(x, y, title, ylabel,
-                                            #log=log,
-                                            #idx_lim=(idx_low, idx_high)
-                                            )
+        self.parent.plot_dialog.canvas.plot(x, y, title, ylabel)
         self.parent.show_plot_dialog()
 
     def compute_pac(self):
@@ -1792,8 +1608,6 @@ class AnalysisDialog(ChannelDialog):
 
                 timeline = data.axis['time'][0]
                 xpac[chan]['times'].append((timeline[0], timeline[-1]))
-                #lg.info('Compute PAC on ' + chan + ' ' + str((timeline[0],
-                #                                              timeline[-1])))
                 duration = len(timeline) / sf
                 xpac[chan]['duration'].append(duration)
                 xpac[chan]['stage'].append(j['stage'])
@@ -1801,12 +1615,6 @@ class AnalysisDialog(ChannelDialog):
                 xpac[chan]['name'].append(j['name'])
                 xpac[chan]['n_stitch'].append(j['n_stitch'])
 
-#==============================================================================
-#                 lg.info(' '.join([str(x) for x in ['Computing PAC', 'sf:', sf,
-#                                   'nperm:', nperm, 'optimize:',
-#                                   optimize, 'get_pval:', get_pval,
-#                                  'get_surro:', get_surro, 'njobs:', njobs]]))
-#==============================================================================
                 out = p.filterfit(sf=sf, xpha=dat, xamp=None, axis=1, traxis=0,
                                   nperm=nperm, optimize=optimize,
                                   get_pval=get_pval, get_surro=get_surro,
@@ -1833,8 +1641,8 @@ class AnalysisDialog(ChannelDialog):
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
                     
                 if progress.wasCanceled():
-                    self.parent.statusBar().showMessage('Analysis canceled '
-                                     'by user.')
+                    msg = 'Analysis canceled by user.'
+                    self.parent.statusBar().showMessage(msg)
                     return
 
         #progress.setValue(counter)
@@ -2019,8 +1827,8 @@ class AnalysisDialog(ChannelDialog):
             
             progress.setValue(i)
             if progress.wasCanceled():
-                self.parent.statusBar().showMessage('Analysis canceled '
-                                     'by user.')
+                msg = 'Analysis canceled by user.'
+                self.parent.statusBar().showMessage(msg)
                 return
             
         return glob_out, loc_out
