@@ -116,7 +116,7 @@ class Segments():
             
                 # read data from disk
                 subseg.append(_create_data(
-                        data, active_chan, ref_chan=ref_chan, grp_name=grp_name))
+                    data, active_chan, ref_chan=ref_chan, grp_name=grp_name))
     
             one_segment.s_freq = s_freq = data.s_freq
             one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
@@ -125,19 +125,17 @@ class Segments():
             one_segment.data[0] = empty((len(active_chan), len(timeline)), 
                                         dtype='f')
             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
+            
+            for i, chan in enumerate(subseg[0].axis['chan'][0]):                
+                    one_segment.data[0][i, :] = hstack(
+                            [x(chan=chan)[0] for x in subseg])
     
             # For channel concatenation
-            if concat_chan and chs > 1:
+            if concat_chan and len(chs) > 1:
                 one_segment.data[0] = ravel(one_segment.data[0])
                 one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
                                 dtype='U')
                 # axis['time'] should not be used in this case
-                
-            else:
-            
-                for i, chan in enumerate(subseg[0].axis['chan'][0]):                
-                    one_segment.data[0][i, :] = hstack(
-                            [x(chan=chan)[0] for x in subseg])
     
             output.append({'data': one_segment,
                            'chan': active_chan,

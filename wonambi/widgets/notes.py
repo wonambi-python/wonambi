@@ -849,7 +849,7 @@ class Notes(QTabWidget):
             self.annot.set_cycle_mrkr(window_start, end=end)
 
         except KeyError:
-            msg = ('The start of the window does not correspond to any epoch ' +
+            msg = ('The start of the window does not correspond to any epoch '
                    'in sleep scoring file')
             self.parent.statusBar().showMessage(msg)
             lg.debug(msg)
@@ -872,7 +872,7 @@ class Notes(QTabWidget):
             self.annot.remove_cycle_mrkr(window_start)
 
         except KeyError:
-            msg = ('The start of the window does not correspond to any cycle ' +
+            msg = ('The start of the window does not correspond to any cycle '
                    'marker in sleep scoring file')
             self.parent.statusBar().showMessage(msg)
             lg.debug(msg)

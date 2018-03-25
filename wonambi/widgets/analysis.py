@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QDialog,
                              QDialogButtonBox,
                              QDoubleSpinBox,
+                             QErrorMessage,
                              QFileDialog,
                              QFormLayout,
                              QGridLayout,
@@ -66,8 +67,6 @@ class AnalysisDialog(ChannelDialog):
         the main window
     nseg : int
         number of segments in current selection        
-    idx_evt_type : QListWidget
-        List of all event types from Annotations
     """
     def __init__(self, parent):
         ChannelDialog.__init__(self, parent)
@@ -827,6 +826,7 @@ class AnalysisDialog(ChannelDialog):
 
         if not self.cat['discontinuous'].get_value():
             self.cat['chan'].setEnabled(False)
+            self.cat['chan'].setChecked(False)
                         
         self.update_nseg()
 
@@ -997,19 +997,26 @@ class AnalysisDialog(ChannelDialog):
 
             # File location
             if not self.filename:
-                self.parent.statusBar().showMessage('Select file location.')
+                msg = 'Select location for data export file.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('File path error')
+                error_dialog.showMessage(msg)
                 return
             
             # Check for signal
             self.update_nseg
             if self.nseg <= 0:
-                self.parent.statusBar().showMessage('No valid signal found.')
+                msg = 'No valid signal found.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error fetching data')
+                error_dialog.showMessage(msg)
                 return
             
             # Which analyses?
-            freq_on = self.frequency['freq_on'].get_value()
-            freq_plot_on = self.frequency['plot_on'].get_value()
-            freq_prep = self.frequency['prep'].get_value()
+            freq = self.frequency
+            freq_on = freq['freq_on'].get_value()
+            freq_plot_on = freq['plot_on'].get_value()
+            freq_prep = freq['prep'].get_value()
             
             if Pac is not None:
                 pac_on = self.pac['pac_on'].get_value()
@@ -1031,15 +1038,35 @@ class AnalysisDialog(ChannelDialog):
             
             if not (freq_on or pac_on or glob or loc or avg_sl or max_sl):
                 return
+            
+            if (freq['norm'].get_value() == 'by mean of event type(s)' and 
+                not freq['norm_evt_type'].selectedItems()):
+                msg = 'Select event type(s) for normalization.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error fetching data')
+                error_dialog.showMessage(msg)
+                return
+            
+            if (freq['norm'].get_value() == 'by mean of stage(s)' and 
+                not freq['norm_stage'].selectedItems()):
+                msg = 'Select stage(s) for normalization.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error fetching data')
+                error_dialog.showMessage(msg)
+                return
 
             # Fetch signal
-            evt_chan_only = self.evt_chan_only.get_value()
+            eco = self.evt_chan_only
+            evt_chan_only = eco.get_value() if eco.isEnabled() else None
             concat_chan = self.cat['chan'].get_value()
             
             self.data = self.get_segments()
             
             if not self.data.segments:
-                self.parent.statusBar().showMessage('No valid signal found.')
+                msg = 'No valid signal found.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error fetching data')
+                error_dialog.showMessage(msg)
                 return
             
             ding = self.data.read_data(self.chan, 
@@ -1061,12 +1088,12 @@ class AnalysisDialog(ChannelDialog):
 
             # Frequency domain
             if freq_on:
-                #freq_filename = splitext(filename)[0] + '_freq.p'
                 xfreq = self.compute_freq()
                 
                 if not xfreq:
                     return
-
+                
+                #freq_filename = splitext(filename)[0] + '_freq.p'
                 #with open(freq_filename, 'wb') as f:
                 #    dump(xfreq, f)
                     
@@ -1076,6 +1103,7 @@ class AnalysisDialog(ChannelDialog):
                     as_matrix = asarray(
                             [y for x in xfreq for y in x['data']()[0]])
                     desc = get_descriptives(as_matrix)
+                    lg.info('exporting to csv')
                     self.export_freq(xfreq, desc)
                     
                     if freq_plot_on:
@@ -1132,23 +1160,26 @@ class AnalysisDialog(ChannelDialog):
             else:
                 epoch = 'unlocked'
         
-        # Which event type(s)
-        if chunk['event']:
-            evt_type = self.idx_evt_type.selectedItems()
-            if not evt_type:
-                return
-            else:
-                evt_type = [x.text() for x in evt_type]
-        else:
-            evt_type = None
-        
         # Which channel(s)
         self.chan = self.get_channels() # chan name without group
         if not self.chan:
             return
-        chan_full = [i + ' (' + self.idx_group.currentText() + ''
+        
+        # Which event type(s)
+        if chunk['event']:
+            chan_full = [i + ' (' + self.idx_group.currentText() + ''
                        ')' for i in self.chan]
+            evt_type = self.idx_evt_type.selectedItems()
             
+            if not evt_type:
+                return
+            else:
+                evt_type = [x.text() for x in evt_type]
+            
+        else:
+            evt_type = None
+            chan_full = None
+           
         # Which cycle(s)
         cycle = self.cycle = self.get_cycles()
         
@@ -1207,7 +1238,6 @@ class AnalysisDialog(ChannelDialog):
             dat = seg['data']
         
             if whiten:
-                lg.info('Whitening signal')
                 dat = math(dat, operator=diff, axis='time')
             
             if bandpass != 'none':
@@ -1321,6 +1351,7 @@ class AnalysisDialog(ChannelDialog):
         elif freq['nfft_seg'].isChecked():
             n_smp = None
             
+        # Normalization data preparation
         if norm not in ['none', 'by integral of each segment']:
             norm_evt_type = None
             norm_stage = None
@@ -1328,13 +1359,15 @@ class AnalysisDialog(ChannelDialog):
             ncat = (0, 0, 0, 0)
             
             if norm == 'by mean of event type(s)':
-                norm_evt_type = [x.text() for x in \
-                                 freq['norm_evt_type'].selectedItems()]
                 norm_chan = [x + ' (' + self.idx_group.currentText() + ''
                                     ')'for x in self.one_grp['chan_to_plot']]
+                norm_evt_type = [x.text() for x in \
+                                 freq['norm_evt_type'].selectedItems()]             
+                    
             if norm == 'by mean of stage(s)':
                 norm_stage = [x.text() for x in \
                               freq['norm_stage'].selectedItems()]
+                
             if norm_concat:
                 ncat = (1, 1, 1, 1)    
                         
@@ -1347,8 +1380,11 @@ class AnalysisDialog(ChannelDialog):
                                     chan_full=norm_chan)
             
             if not norm_seg.segments:
-                self.parent.statusBar().showMessage('No valid normalization '
-                                                  'signal found.')
+                msg = 'No valid normalization signal found.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error fetching data')
+                error_dialog.showMessage(msg)
+                progress.cancel()
                 return
             
             norm_seg.read_data(self.chan, ref_chan=self.one_grp['ref_chan'],
@@ -1362,11 +1398,25 @@ class AnalysisDialog(ChannelDialog):
                 dat = seg['data']
                 if prep:
                     dat = seg['trans_data']
-                Sxx = frequency(dat, output=output, scaling=scaling, 
-                            sides=sides, taper=taper, 
-                            halfbandwidth=halfbandwidth, NW=NW,
-                            duration=duration, overlap=overlap, step=step,
-                            detrend=detrend, n_smp=n_smp)
+                
+                try:
+                    Sxx = frequency(dat, output=output, scaling=scaling, 
+                                sides=sides, taper=taper, 
+                                halfbandwidth=halfbandwidth, NW=NW,
+                                duration=duration, overlap=overlap, step=step,
+                                detrend=detrend, n_smp=n_smp)
+                except ValueError:
+                    msg = ('Value error encountered in frequency '
+                           'transformation for normalization reference data.'
+                           '\nIf using time-averaging, make sure the '
+                           'normalization data segments are at least as long '
+                           'as the time window.')
+                    error_dialog = QErrorMessage(self)
+                    error_dialog.setWindowTitle('Error transforming data')
+                    error_dialog.showMessage(msg)
+                    progress.cancel()
+                    return
+                    
                 all_Sxx.append(Sxx)
                 
             nSxx = ChanFreq()
@@ -1378,6 +1428,8 @@ class AnalysisDialog(ChannelDialog):
                      Sxx.number_of('freq')[0]), dtype='f')
             nSxx.data[0] = mean(
                     stack([x()[0] for x in all_Sxx], axis=2), axis=2)
+            
+            # end of normalization data prep
 
         lg.info(' '.join(['Freq settings:', output, scaling, 'sides:',
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
@@ -1386,6 +1438,7 @@ class AnalysisDialog(ChannelDialog):
                          str(detrend), 'n_smp:', str(n_smp), 'norm', 
                          str(norm)]))
 
+        # Main frequency analysis
         xfreq = []
         for i, seg in enumerate(self.data):            
             new_seg = dict(seg)
@@ -1398,14 +1451,23 @@ class AnalysisDialog(ChannelDialog):
             new_seg['times'] = timeline[0], timeline[-1]
             new_seg['duration'] = len(timeline) / data.s_freq
 
-            Sxx = frequency(data, output=output, scaling=scaling, sides=sides,
-                            taper=taper, halfbandwidth=halfbandwidth, NW=NW,
-                            duration=duration, overlap=overlap, step=step,
-                            detrend=detrend, n_smp=n_smp)
+            try:
+                Sxx = frequency(data, output=output, scaling=scaling, 
+                                sides=sides, taper=taper, 
+                                halfbandwidth=halfbandwidth, NW=NW,
+                                duration=duration, overlap=overlap, step=step,
+                                detrend=detrend, n_smp=n_smp)
+            except ValueError:
+                msg = 'Value error encountered in frequency transformation.'
+                error_dialog = QErrorMessage(self)
+                error_dialog.setWindowTitle('Error transforming data')
+                error_dialog.showMessage(msg)
+                progress.cancel()
+                return
             
             if norm != 'none':
                 
-                for j, chan in enumerate(Sxx.axis['chan']):
+                for j, chan in enumerate(Sxx.axis['chan'][0]):
                     
                     dat = Sxx.data[0][j,:]
                     

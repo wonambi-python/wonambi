@@ -53,7 +53,7 @@ class ChannelDialog(QDialog):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
 
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowModality(Qt.WindowModal)
         self.groups = self.parent.channels.groups
         self.index = {}
         self.cycles = None

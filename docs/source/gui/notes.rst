@@ -163,3 +163,28 @@ In addition, you need to specify at what time the lights went off (``Lights OUT`
 
 .. WARNING::
    If any epochs are scored as sleep before ``Lights OUT`` or after ``Lights ON``, sleep efficiency may exceed 1.
+
+Merge events
+------------
+
+You may want to merge events outside of the automatic detection process.
+For instance, you may want to merge spindles detected by different algorithms, or you my want to merge manually marked events with automatically detected ones.
+
+To do this, click on ``Annotations`` -> ``Event`` -> ``Merge Events...`` to open the **merge events dialog**:
+
+.. image:: images/notes_19_mergedialog.png
+
+You may choose to merge events from one or several event types using the ``Event type(s)`` box. 
+If you select several, you will be prompted to provide a label for the new event type created by the merger.
+**Note that the selected event types will be deleted and replaced with the new event type.**
+
+Events marked within a same channel will be merged if they are separated by up to a certain interval.
+This interval is set with ``Minimum interval``.
+
+In addition to merging events from within a same channel, you may choose to merge events marked on different channels.
+To do so, check the ``Merge across channels`` box.
+With this option checked, events on any channel separated by ``Minimum interval`` or less will be merged.
+
+When events are merged across channels, only one channel keeps the event. 
+That channel can either be the one that had the earliest onset event, or the longest event.
+You can choose the channel selection rule with the ``Merge to...`` drop-down menu.
