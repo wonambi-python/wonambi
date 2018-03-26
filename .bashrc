@@ -4,13 +4,13 @@ source ~/.bashrc_secrets
 
 export R_LIBS_USER=~/tools/Rlib
 
-export PATH=$PATH:~/tools/dcm2nii
+export PATH=~/tools/dcm2nii:$PATH
 
 # common folder
 export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
-export PATH=~/tools/miniconda3/bin:$PATH
+export PATH=~/tools/miniconda/bin:$PATH
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
