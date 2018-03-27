@@ -31,6 +31,7 @@ def test_widget_analysis_dialog(qtbot):
     ad.update_evt_types()
     ad.update_groups()
     ad.grab().save(str(GUI_PATH / 'analysis_01_dialog.png'))
+    ad.tab_evt.grab().save(str(GUI_PATH / 'analysis_03_event.png'))
     
     ad.filename = analysis_export_path
     ad.chunk['epoch'].setChecked(True)
@@ -40,6 +41,7 @@ def test_widget_analysis_dialog(qtbot):
     ad.trans['whiten'].set_value(True)
     freq = ad.frequency
     freq['freq_on'].set_value(True)
+    ad.tab_freq.grab().save(str(GUI_PATH / 'analysis_02_freq.png'))
     freq['prep'].set_value(True)
     freq['norm'].set_value('by integral of each segment')
     assert ad.nseg == 127

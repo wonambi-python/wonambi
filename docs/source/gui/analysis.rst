@@ -2,9 +2,11 @@ Analysis console
 ================
 
 Wonambi's analysis console allows the flexible selection of signal for a variety of analyses, including frequency domain analyses and phase-amplitude coupling (PAC).
+
 The console is read from left to right.
 On the left-hand half of the console is the signal selection pane.
 Signal can be selected by event, epoch or longest run, and by channel, cycle and stage, with flexible concatenation options, and with artefacted signal exclusion.
+
 On the right-hand half is the analysis pane, arranged into 3 tabs: Frequency, PAC and Events.
 You may apply any or all of these analyses at once by activating them in each tab.
 
@@ -15,7 +17,12 @@ To open the dialog, click on ``Analysis`` -> ``Analysis console``.
 File location
 -------------
 
-Select the base name and location of the data files. The analysis console creates CSV files containing the raw analysis data.
+Select the base name and location of the data files. 
+The analysis console creates CSV files containing the raw analysis data, with suffixes for each analysis type:
+
+* _freq: Frequency
+* _pac: PAC
+* _evtdat: Events
 
 .. NOTE::
    These data files can become quite large depending on the analysis.
@@ -28,7 +35,7 @@ Different analyses require different lengths of signal, hence the chunking optio
 Chunking ``by event`` gathers all events of the type(s) selected as individual segments.
 If you wish to gather only the signal for the channel on which an event was marked, keep the ``Channel-specific`` box checked.
 Alternatively, you may wish to gather signal concurrent to an event on all selected channels (channel selection is below).
-In this case uncheck ``Channel-specific''.
+In this case uncheck ``Channel-specific``.
 
 Chunking ``by epoch`` gathers all relevant signal cut up into segments of equal duration.
 To obtain the epochs as segmented by the Annotation file for sleep scoring, check ``Lock to staging epochs``.
@@ -37,17 +44,18 @@ In this case, all relevant signal, after the specified concatenation, will be se
 Any remainder is discarded.
 
 Chunking ``by longest run`` gathers all relevant signal cut up into the longest continuous (uninterrupted) segments.
-For instance, if in the sleep cycle selected there is a run of 10 minutes of REM, with another isolated 30s epoch of REM cut off from the rest, this option will return two segments, one 10 minutes long and one 30s long.
+For example, if in the sleep cycle selected there is a run of 10 minutes of REM, with another isolated 30s epoch of REM cut off from the rest, this option will return two segments, one 10 minutes long and one 30s long.
 
 Location
 --------
 
 Next, you will see ``Channel group`` and ``Channel(s)``. You may select signal from several channels within a same group. 
 
-If you have delimited cycles (see notes_), the cycle indices will appear under ``Cycle(s)``. You may select one or several cycles.
+If you have delimited cycles (see :ref:`notes`), the cycle indices will appear under ``Cycle(s)``. 
+You may select one or several cycles in which to find epochs or events.
 If no cycle is selected, data selection will ignore cycles.
 
-Under ``Stage(s)``, select in which stage or stages to find spindles. 
+You may also select one or several ``Stage(s)`` in which to find epochs or events.
 If no stage is selected, data selection will ignore stages.
 
 Rejection
@@ -58,7 +66,8 @@ Rejection
 ``Exclude Poor signal epochs`` removes epochs marked as ``Poor`` signal.
 
 ``Exclude Artefact events`` removes signal concurrent with ``Artefact`` events *on all channels*.
-For ``Artefact`` event marking, see notes_.
+
+For ``Poor`` signal and ``Artefact`` event marking, see :ref:`notes`.
 
 Concatenation
 -------------
@@ -66,60 +75,58 @@ Concatenation
 You can concatenate different stages, cycles, event types or channels.
 Discontinuous signal will only be concatenated if the ``Concatenate discontinuous signal`` box is checked.
 This holds for signal discontinuities introduced by artefact rejection.
+
 Channel concatenation is only available if discontinuous signal is concatenated.
 Concatenation is not available when the ``Lock to staging epochs`` option is selected.
-Discontinuous signal concatenation is not available for ``by epoch`` chunking; if you would like this option to be implemented, please contact the authors.
+Discontinuous signal concatenation is not available for ``by epoch`` chunking.
 
 Info
 ----
 
 This box dynamically displays the number of segments relevant to your data selection.
+
 A segment is a slice of signal in time. It may contain data from one or several channels.
-Each chanel in a segment will be analyzed independently, and will be represented by one row in the CSV output.
-For example, if you have 300 segments over 3 channels, the CSV output will have 900 rows.
+Each channel in a segment is analyzed independently, and is represented by one row in the CSV output.
+For example, if you have 30 segments over 3 channels, the CSV output will have 90 rows.
 
 Pre-processing
 --------------
 
-You may apply any or all of the following transformations to the signal before running the analyses on the right-hand side of the console: signal whitening, bandpass filtering and notch filtering.
+You may apply any or all of the following transformations to the signal before running the analyses on the right-hand side of the console.
 The selected transformations are applied in the order displayed.
 
-*Whitening*: Signal whitening removes the signal's 1/f background activity, leaving it with a flat, white noise-like frequency spectrum.
-Signal whitening can help bring out spectral peaks in the signal, above and beyond background activity. 
-In Wonambi's implementation, whitening is achieved by subtracting each signal sample by the previous sample.
-To whiten the signal, check the ``Whiten`` checkbox in the Pre-processing box.
+* ``Remove 1/f``: Removes the signal's 1/f background activity, which can help bring out spectral peaks in the signal, above and beyond background activity.  In Wonambi's implementation, this is achieved by subtracting each signal sample from the next sample, effectively resulting in a 'change' signal.
 
-*Bandpass*: You may apply a variety of bandpass filter types with the drop-down menu, with options below for filter ``Order``, ``Lowcut`` and ``Highcut``.
-You may instead choose to only apply a lowpass or highpass filter; in this case, only include the ``Highcut`` or ``Lowcut``, respectively.
+* ``Bandpass``: You may apply a variety of bandpass filter types with the drop-down menu, with options for filter ``Order``, ``Lowcut`` and ``Highcut``. You may instead choose to only apply a lowpass or highpass filter; in this case, only include the ``Highcut`` or ``Lowcut``, respectively.
 
-*Notch*: You may apply up to two notch filters (a.k.a. powerline filters). 
-To do so, select a filter-type in the drop-down menu, enter the ``Order``, ``Centre frequency`` and ``Bandwidth``. 
-Frequencies between (centre frequency +/- (bandwidth / 2)) will be attenuated.
+* ``Notch``: You may apply up to two notch filters (a.k.a. powerline filters).  To do so, select a filter-type in the drop-down menu, enter the ``Order``, ``Centre frequency`` and ``Bandwidth``.  Frequencies between (centre frequency +/- (bandwidth / 2)) will be attenuated.
 
 Frequency
 ---------
 
 Wonambi offers a highly-customizable range of frequency domain transformations. 
-For an in-depth discussion of the tools, see spectrum_.
+For an in-depth discussion of the tools, see Analysis/Frequency Domain.
+
+.. image:: images/analysis_02_freq.png
 
 To activate frequency domain analysis, check ``Compute frequency domain``.
 To apply the selected pre-processing before the frequency domain analysis, check ``Pre-process``.
 To obtain a summary spectral plot, averaging all segments and channels, check ``Plot mean spectrum``.
 
-.. NOTE ABOUT FREQUENCY RESOLUTION::
-   The mean spectrum can only be obtained if each transformed segment has the same frequency resolution.
-   The frequency resolution is set by the FFT length, which in a simple periodogram is set by the segment length.
-   As a consequence, it is not possible to obtain the mean of a simple periodogram if the input segments vary in length as would likely be the case if analyzing events or longest runs.
+.. NOTE::
+   The mean spectrum can only be obtained if each transformed segment has the same frequency granularity.
+   The frequency granularity is set by the FFT length, which in a simple periodogram is set by the segment length.
+   As a consequence, it is not possible to obtain the mean of a simple periodogram if the input segments vary in length, as would likely be the case if analyzing events or longest runs.
    There are a few workarounds:
-      1) Use time-averaging, a.k.a. Welch's method; in this case, FFT length is set by the time window.
-      2) Set a fixed FFT length; however, this may result in some segments being clipped.
+      1) Use ``Time-averaged``, a.k.a. Welch's method; in this case, FFT length is set by the time window.
+      2) Set a ``Fixed`` FFT length; however, this may result in some segments being truncated.
       3) Use ``Zero-pad to longest segment`` to set FFT length to the longest segment and zero-pad all shorter ones.
 
 *Parameters*
 
 ``Scaling`` sets the type of frequency domain transformation. 
 To obtain the power spectral density (PSD), set ``Scaling`` to 'power'.
-For the energy spectral density (ESD), set it to 'energy'.
+For the energy spectral density (ESD), set it to 'energy'. 
 'fieldtrip' and 'chronux' type transformations are also provided, but note that these may violate Parseval's theorem.
 
 ``Taper`` sets the type of tapering function (a.k.a. windowing function) to use.
@@ -135,25 +142,28 @@ Time averaging is used in Bartlett's method and the closely related Welch's meth
 This box is activated by the ``Time-averaged`` checkbox in the *Parameters* box.
 It controls the length and spacing of the time windows.
 
-You must set a ``Duration``, in seconds, and either ``Overlap`` or ``Step``.
+You must set a ``Duration``, in seconds, and either an ``Overlap`` or ``Step``.
 ``Overlap`` is expressed as a ratio of Duration, between 0 and 1.
 An ``Overlap`` greater than 0 is equivalent to Welch's method; at 0 it is equivalent to Bartlett's method.
 Alternatively, you may use ``Step`` to set the distance in seconds between each consecutive window.
 
 *FFT length*
 
-This box sets the window length for the discrete fourier transform.
+This box sets the window length for the Fourier transform.
 An FFT length that is ``Same as segment`` is best for most purposes.
+
 But in cases where you want to, for instance, average the spectra of data segments of varying lengths, you may want to set a fixed FFT length.
 To do this, you may either set it manually with ``Fixed`` or automatically with ``Zero-pad to longest segment``.
 In the latter case, the FFT length is set to the length of the longest segment N, and zeros are added to the end of all shorter segments until they reach length N.
-Zero-padding is a computationally efficient way to effectively interpolate a low-resolution frequency spectrum to a higher resolution.
+Zero-padding is a computationally efficient way to effectively interpolate a coarse-grained frequency spectrum to a finer grain.
 
-* Multitaper (DPSS) smoothing*
+*Multitaper (DPSS) smoothing*
 
 This box is activated if 'dpss' is selected as ``Taper`` in the *Parameters* box.
 Here you can set the smoothing parameters for the DPSS/Multitaper method.
+
 ``Half bandwidth`` sets the frequency smoothing from - half bandwidth to + half bandwidth.
+
 You may normalize the halfbandwidth with ``Normalized`` (NW = halfbandwidth * duration).
 The number of DPSS tapers is then 2 * NW - 1.
 
@@ -165,22 +175,23 @@ For a complex output, you may select 1 or 2 ``Sides``.
 *Normalization*
 
 You may normalize the resulting spectral data, either with respect to its own integral or with respect to a normalization period.
-To normalize a signal to its integral, select ``by integral of each segment`` in the Normalization box drop-down menu.
-Each power value will then be divided by the sum of all power values for that segment.
-To normalize with respect to a normalization period, you must first demarcate this period, either using an Event Type(s) or Stage(s).
 
+To normalize a signal to its integral, select ``by integral of each segment`` in the drop-down menu.
+Each power value will then be divided by the sum of all power values for that segment.
+
+To normalize with respect to a normalization period, you must first demarcate this period, either using an Event Type(s) or Stage(s).
 For example, you may have recorded a quiet wakefulness period at the start of the recording.
-In this case, you may create a new Event Type and call it something lke 'qwak' and mark the entire period as an event on the trace.
-You may need to increase the Window Length in View or on the toolbar in order to mark the entire period in one window.
+In this case, you may create a new Event Type and call it something like 'qwak' and mark the entire period as an event on the trace.
+You may need to increase the Window Length (in View or on the toolbar) in order to mark the entire period within one window.
 
 .. NOTE::
-   In Wonambi, Events are channel-specific by default, but for the purposes of demarcating a normalization period, you may mark events on any channel in the Channel Group.
-   Just make sure the channel is still in the Channel Group at the moment of analysis.
+   In Wonambi, events are channel-specific by default, but for the purposes of demarcating a normalization period, you may mark events on any channel in the channel group.
+   Just make sure the channel is still in the channel group at the moment of analysis.
 
 Once the normalization period is marked as one or several 'qwak' events, select ``by mean of event type(s)`` in the drop-down menu and select 'qwak' in the ``Event type(s)`` list.
 The power values for each segment will then be divided by the mean power values of all 'qwak' events.
 
-Alternatively, you may want to normalize with respect to a Stage mean. 
+Alternatively, you may want to normalize with respect to a stage mean. 
 In this case, select ``by mean of stage(s)`` and select the desired stage(s) in the ``Stage(s)`` list.
 The power values for each segment will then be divided by the mean power values for all 30-s epochs of the selected stage(s).
 Note that this option may extend processing time considerably.
@@ -189,8 +200,8 @@ For event type and stage normalization, you may choose to concatenate all releva
 To do this, check ``Concatenate``.
 
 .. NOTE::
-   Like the mean spectral plot, normalization is only available if each segment has the same frequency resolution.
-   See the "Note about frequency resolution" above.
+   Like the mean spectral plot, normalization is only available if each segment has the same frequency granularity.
+   See the note about frequency granularity above.
    
 Phase-amplitude coupling (PAC)
 ------------------------------
@@ -211,12 +222,12 @@ Events
 The console's Events tab allows the extraction of a suite of commonly studied parameters.
 Event parameters are divided into global parameters, local parameters and slow wave parameters.
 
+.. image:: images/analysis_03_event.png
+
 *Global*
 
-``Count`` simply returns the number of segments.
-``Density, per`` returns the number of segments divided by the number of epochs of relevant signal.
-The relevant signal is all epochs corresponding to the cycle(s) and stage(s) selected in the Location box.
-You may set the epoch length in seconds with the text box.
+* ``Count`` simply returns the number of segments.
+* ``Density, per`` returns the number of segments divided by the number of epochs of relevant signal. The relevant signal is all epochs corresponding to the cycle(s) and stage(s) selected in the Location box. You may set the epoch length in seconds with the text box.
 
 *Band of interest*
 
@@ -225,33 +236,46 @@ These analyses will then be carried out only over that spectral band; otherwise,
 
 *Local*
 
-For each parameter, check the box next to it to extract it, and select the corresponding box in the ``Pre-process`` column, sin order to apply the selected pre-processing before analysis.
-Note that for all parameters but `Duration``, the output will contain one value per channel per segment.
+For each parameter, check the box next to it to extract it, and select the corresponding box in the ``Pre-process`` column in order to apply the selected pre-processing before analysis.
+Note that for all parameters except ``Duration``, the output will contain one value per channel per segment.
 
-``Duration``: The segment duration, in seconds.
-``Min. amplitude``: The lowest amplitude value in the signal.
-``Max. amplitude``: The highest amplitude value in the signal.
-``Peak-to-peak amplitude``: The absolute difference between the lowest and highest amplitude values in the signal.
-``RMS``: The square root of the mean of the squares of each amplitude value in the signal.
-``Power``: The integral of the power spectral density (simple periodogram) of the signal over the band of interest.
-``Energy``: The integral of the energy spectral density (simple periodogram) of the signal over the band of interest.
-``Peak power frequency``: The frequency corresponding to the highest power value in the band of interest.
-``Peak energy frequency``: The frequency corresponding to the highest energy value in the band of interest.
+* ``Duration``: The segment duration, in seconds.
+
+* ``Min. amplitude``: The lowest amplitude value in the signal.
+
+* ``Max. amplitude``: The highest amplitude value in the signal.
+
+* ``Peak-to-peak amplitude``: The absolute difference between the lowest and highest amplitude values in the signal.
+
+* ``RMS``: The square root of the mean of the squares of each amplitude value in the signal.
+
+* ``Power``: The integral of the power spectral density (simple periodogram) of the signal over the band of interest. Best used for stationary signals.
+
+* ``Energy``: The integral of the energy spectral density (simple periodogram) of the signal over the band of interest. Best used for signals with a clear beginning and end, i.e. events.
+
+* ``Peak power frequency``: The frequency corresponding to the highest power value in the band of interest.
+
+* ``Peak energy frequency``: The frequency corresponding to the highest energy value in the band of interest.
 
 *Slow wave*
 
 These are local parameters that apply only to slow waves. 
-You may nonetheless apply these analyses to any signal.
-Note that if the input signal does not have the morphological characteristics of a slow wave, the output will be nan (not a number).
+You may still apply these analyses to any signal, but if the signal does not have the morphological characteristics of a slow wave, the output will be nan (not a number).
 
 ``Average slopes`` and ``Max. slopes`` each return 5 values: one per slow wave quadrant and a fifth for the combination of quadrants 2 and 3:
-Q1: First zero-crossing to negative trough
-Q2: Negative trough to second zero-crossing
-Q3: Second zero-crossing to positive peak
-Q4: Positive peak to third zero-crossing
-Q23: Negative trough to positive peak.
 
-``Average slopes``: The amplitude difference between the quadrant start and end divided by the quadrant duration.
-``Max. slopes``: The maximum value of the derivative of the smoothed signal (smoothed with 50-ms moving average).
+* Q1: First zero-crossing to negative trough
+
+* Q2: Negative trough to second zero-crossing
+
+* Q3: Second zero-crossing to positive peak
+
+* Q4: Positive peak to third zero-crossing
+
+* Q23: Negative trough to positive peak.
+
+``Average slopes`` is the amplitude difference between the quadrant start and end divided by the quadrant duration, in μV/s.
+
+``Max. slopes`` is the maximum value of the derivative of the smoothed signal (smoothed with 50-ms moving average) of the quadrant, in μV/s\ :sup:`2`.
 
 

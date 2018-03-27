@@ -21,7 +21,7 @@ lg = getLogger(__name__)
 
 def frequency(data, output='spectraldensity', scaling='power', sides='one',
               taper=None, halfbandwidth=3, NW=None, duration=None, 
-              overlap=0.5, step=None, detrend='linear', n_smp=None):
+              overlap=0.5, step=None, detrend='linear', n_fft=None):
     """Compute the
     power spectral density (PSD, output='spectraldensity', scaling='power'), or
     energy spectral density (ESD, output='spectraldensity', scaling='energy') or
@@ -58,7 +58,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         overlap).
     step : float, in s
         step in seconds between epochs (alternative to overlap)
-    n_smp: int
+    n_fft: int
         Length of FFT, in samples. If less than input axis, input is cropped.
         If longer than input axis, input is padded with zeros. If None, FFT
         length set to axis length.
@@ -125,7 +125,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
                       scaling=scaling,
                       halfbandwidth=halfbandwidth,
                       NW=NW,
-                      n_smp=n_smp)
+                      n_fft=n_fft)
 
         if duration is not None:
             Sxx = Sxx.mean(axis=-2)
@@ -457,7 +457,7 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
 
 
 def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
-         sides='one', scaling='power', halfbandwidth=4, NW=None, n_smp=None):
+         sides='one', scaling='power', halfbandwidth=4, NW=None, n_fft=None):
     """
     Core function taking care of computing the power spectrum / power spectral
     density or the complex representation.
@@ -489,7 +489,7 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         (only if taper='dpss') Normalized half bandwidth
         (NW = halfbandwidth * dur). Number of DPSS tapers is 2 * NW - 1.
         If specified, NW takes precedence over halfbandwidth
-    n_smp: int
+    n_fft: int
         Length of FFT, in samples. If less than input axis, input is cropped.
         If longer than input axis, input is padded with zeros. If None, FFT
         length set to axis length.
@@ -549,14 +549,15 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         sides = 'two'
 
     axis = x.ndim - 1
+    n_smp = x.shape[axis]
     
-    if n_smp is None:
-        n_smp = x.shape[axis]
+    if n_fft is None:
+        n_fft = n_smp
 
     if sides == 'one':
-        freqs = np_fft.rfftfreq(n_smp, 1 / s_freq)
+        freqs = np_fft.rfftfreq(n_fft, 1 / s_freq)
     elif sides == 'two':
-        freqs = fftpack.fftfreq(n_smp, 1 / s_freq)
+        freqs = fftpack.fftfreq(n_fft, 1 / s_freq)
 
     if taper is None:
         taper = 'boxcar'
@@ -587,9 +588,9 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     tapered = tapers * x[..., None, :]
 
     if sides == 'one':
-        result = np_fft.rfft(tapered, n=n_smp)
+        result = np_fft.rfft(tapered, n=n_fft)
     elif sides == 'two':
-        result = fftpack.fft(tapered, n=n_smp)
+        result = fftpack.fft(tapered, n=n_fft)
 
     if scaling == 'chronux':
         result /= s_freq
@@ -600,7 +601,7 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         result = (result.conj() * result)
 
     if sides == 'one' and output == 'spectraldensity' and scaling != 'chronux':
-        if n_smp % 2:
+        if n_fft % 2:
             result[..., 1:] *= 2
         else:
             # Last point is unpaired Nyquist freq point, don't double

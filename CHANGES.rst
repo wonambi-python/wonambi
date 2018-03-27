@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 5
+----------
+- **5.01**: Analysis Console
+
 Version 4
 ----------
 - **4.27**: hotfix: spindle frequency

@@ -1,9 +1,6 @@
 Event detection
 ===============
 
-Detect Events
--------------
-
 Wonambi can automatically detect sleep spindles and slow waves in the signal.
 
 To detect events, make sure you have first loaded a Montage and an Annotations File.
@@ -14,7 +11,8 @@ Let us begin with the **spindle detection dialog**:
 
 .. image:: images/notes_16_spindledialog.png
 
-*Info*
+Info
+----
 
 Under ``Label``, enter the name of this event type, which will appear on the trace. You may choose an existing event type or create a new one. 
 If you choose an existing event type, existing events of this type will be preserved.
@@ -31,7 +29,8 @@ If no stage is selected, detection will ignore stages.
 .. WARNING::
    If you select neither a cycle nor a stage, detection will be carried out over the entire record, even wake!
 
-*Parameters*
+Parameters
+----------
 
 You may select among a number of spindle detection algorithms in the ``Method`` drop-down menu.
 The parameter values will be updated to the values reported in the source literature.
@@ -40,7 +39,8 @@ Note that not all method parameters are applicable to each method.
 In these cases, the method parameter is grayed out and marked ``N/A``.
 For details about the implemented algorithms, consult the ``Help`` box, accessible at the bottom of the dialog.
 
-*Options*
+Options
+-------
 
 If you have marked events with event type "Artefact", you may check the ``Exclude Artefact events`` box to remove them from the detection signal.
 Signal on all selected channels that is concurrent with an "Artefact" event on any channel will be excluded from detection, and the resulting signal segments will be concatenated.

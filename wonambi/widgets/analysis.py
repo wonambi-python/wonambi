@@ -75,6 +75,9 @@ class AnalysisDialog(ChannelDialog):
         self.filename = None
         self.event_types = None
         self.one_grp = None
+        self.tab_freq = None
+        self.tab_pac = None
+        self.tab_evt = None
         self.nseg = 0
         
         self.create_dialog()
@@ -195,7 +198,7 @@ class AnalysisDialog(ChannelDialog):
         box2 = QGroupBox('Pre-processing')
 
         self.trans = {}
-        self.trans['whiten'] = FormBool('Whiten')
+        self.trans['whiten'] = FormBool('Remove 1/f')
         
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
                   'diff']
@@ -263,7 +266,7 @@ class AnalysisDialog(ChannelDialog):
 
         """ ------ FREQUENCY ------ """
 
-        tab_freq = QWidget()
+        self.tab_freq = tab_freq = QWidget()
 
         self.frequency = freq = {}
         
@@ -380,11 +383,11 @@ class AnalysisDialog(ChannelDialog):
 
         glayout = QGridLayout()
         glayout.addWidget(freq['box_param'], 0, 0)
-        glayout.addWidget(freq['box_welch'], 0, 1)
-        glayout.addWidget(freq['box_nfft'], 1, 0)
-        glayout.addWidget(freq['box_mtap'], 1, 1)
-        glayout.addWidget(freq['box_output'], 2, 0)
-        glayout.addWidget(freq['box_norm'], 2, 1, 3, 1)
+        glayout.addWidget(freq['box_output'], 0, 1)
+        glayout.addWidget(freq['box_welch'], 1, 0)
+        glayout.addWidget(freq['box_norm'], 1, 1, 3, 1)
+        glayout.addWidget(freq['box_nfft'], 2, 0)
+        glayout.addWidget(freq['box_mtap'], 3, 0)
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addWidget(freq['freq_on'])
@@ -396,7 +399,7 @@ class AnalysisDialog(ChannelDialog):
         """ ------ PAC ------ """
         if Pac is not None:
 
-            tab_pac = QWidget()
+            self.tab_pac = tab_pac = QWidget()
 
             pac_metrics = [pacstr((x, 0, 0))[0] for x in range(1,6)]
             pac_metrics = [x[:x.index('(') - 1] for x in pac_metrics]
@@ -492,7 +495,7 @@ class AnalysisDialog(ChannelDialog):
 
         """ ------ EVENTS ------ """
 
-        tab_evt = QWidget()
+        self.tab_evt = tab_evt = QWidget()
 
         self.event = ev = {}
         ev['global'] = eg = {}
@@ -862,7 +865,8 @@ class AnalysisDialog(ChannelDialog):
         if not freq_on:
             freq['prep'].set_value(False)
         freq['plot_on'].setEnabled(freq_on and rectangular)
-        freq['box_norm'].setEnabled(freq_on and (welch_on or nfft_fixed_on))
+        freq['box_norm'].setEnabled(freq_on and \
+            (welch_on or nfft_fixed_on or zeropad_on))
         if not freq['plot_on'].isEnabled():
             freq['plot_on'].set_value(False) 
         if not freq['box_norm'].isEnabled():
@@ -1343,11 +1347,12 @@ class AnalysisDialog(ChannelDialog):
             detrend = None
         
         if freq['nfft_fixed'].isChecked():
-            n_smp = int(freq['nfft_fixed_val'].get_value())
+            n_fft = int(freq['nfft_fixed_val'].get_value())
         elif freq['nfft_zeropad'].isChecked():
-            n_smp = max([x['data'].number_of('time') for x in self.data])
+            n_fft = max([x['data'].number_of('time')[0] for x in self.data])
+            lg.info('n_fft is zero-padded to: ' + str(n_fft))
         elif freq['nfft_seg'].isChecked():
-            n_smp = None
+            n_fft = None
             
         # Normalization data preparation
         if norm not in ['none', 'by integral of each segment']:
@@ -1402,7 +1407,7 @@ class AnalysisDialog(ChannelDialog):
                                 sides=sides, taper=taper, 
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
-                                detrend=detrend, n_smp=n_smp)
+                                detrend=detrend, n_fft=n_fft)
                 except ValueError:
                     msg = ('Value error encountered in frequency '
                            'transformation for normalization reference data.'
@@ -1433,7 +1438,7 @@ class AnalysisDialog(ChannelDialog):
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
                          str(NW), 'dur:', str(duration), 'overlap:',
                          str(overlap), 'step:', str(step), 'detrend:',
-                         str(detrend), 'n_smp:', str(n_smp), 'norm', 
+                         str(detrend), 'n_fft:', str(n_fft), 'norm', 
                          str(norm)]))
 
         # Main frequency analysis
@@ -1454,8 +1459,8 @@ class AnalysisDialog(ChannelDialog):
                                 sides=sides, taper=taper, 
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
-                                detrend=detrend, n_smp=n_smp)
-            except ValueError:
+                                detrend=detrend, n_fft=n_fft)
+            except SyntaxError:
                 msg = 'Value error encountered in frequency transformation.'
                 error_dialog = QErrorMessage(self)
                 error_dialog.setWindowTitle('Error transforming data')
