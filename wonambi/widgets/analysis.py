@@ -307,16 +307,15 @@ class AnalysisDialog(ChannelDialog):
 
         freq['box_mtap'] = QGroupBox('Multitaper method (DPSS) smoothing')
 
-        freq['hbw'] = FormRadio('Half bandwidth (Hz)')
-        freq['nhbw'] = FormRadio('Normalized \nhalf bandwidth')
-        freq['hbw_val'] = FormSpin(3, 0)
+        freq['nhbw'] = FormBool('Normalized')
+        freq['hbw'] = FormSpin(3, 0)
         freq['nhbw_val'] = FormSpin(min_val=0)
 
         glayout = QGridLayout()
         freq['box_mtap'].setLayout(glayout)
-        glayout.addWidget(freq['hbw'], 0, 0)
+        glayout.addWidget(QLabel('Half bandwidth (Hz)'), 0, 0)
         glayout.addWidget(freq['nhbw'], 1, 0)
-        glayout.addWidget(freq['hbw_val'], 0, 1)
+        glayout.addWidget(freq['hbw'], 0, 1)
         glayout.addWidget(freq['nhbw_val'], 1, 1)
 
         freq['box_output'] = QGroupBox('Output')
@@ -621,7 +620,7 @@ class AnalysisDialog(ChannelDialog):
         freq['welch_on'].connect(self.toggle_freq)
         freq['complex'].connect(self.toggle_freq)
         freq['overlap'].connect(self.toggle_freq)
-        freq['hbw'].connect(self.toggle_freq)
+        freq['nhbw'].connect(self.toggle_freq)
         freq['norm'].connect(self.toggle_freq)
         freq['nfft_fixed'].connect(self.toggle_freq)
         freq['nfft_zeropad'].connect(self.toggle_freq)
@@ -668,7 +667,6 @@ class AnalysisDialog(ChannelDialog):
         freq['spectrald'].setChecked(True)
         freq['detrend'].set_value('linear')
         freq['overlap'].setChecked(True)
-        freq['hbw'].setChecked(True)
 
         if Pac is not None:
             pac['prep'].setEnabled(False)
@@ -705,8 +703,8 @@ class AnalysisDialog(ChannelDialog):
         vlayout2 = QVBoxLayout()
         vlayout2.addWidget(box_r)
         vlayout2.addWidget(box_c)
-        vlayout2.addWidget(box2)
         vlayout2.addWidget(box_nseg)
+        vlayout2.addWidget(box2)
         vlayout2.addStretch(1)
 
         vlayout3 = QVBoxLayout()
@@ -850,6 +848,7 @@ class AnalysisDialog(ChannelDialog):
             freq['overlap_val'].setEnabled(overlap_on)
             freq['step_val'].setEnabled(not overlap_on)
             freq['box_output'].setEnabled(not welch_on)
+            freq['box_nfft'].setEnabled(not welch_on)
             freq['spectrald'].setChecked(True)
 
         nfft_fixed_on = freq['nfft_fixed'].isChecked()
@@ -873,9 +872,8 @@ class AnalysisDialog(ChannelDialog):
         freq['box_mtap'].setEnabled(dpss_on)
 
         if dpss_on:
-            hbw_on = freq['hbw'].isChecked()
-            freq['hbw_val'].setEnabled(hbw_on)
-            freq['nhbw_val'].setEnabled(not hbw_on)
+            nhbw_on = freq['nhbw'].get_value()
+            freq['nhbw_val'].setEnabled(nhbw_on)
 
         complex_on = freq['complex'].isChecked()
         freq['sides'].setEnabled(complex_on)
@@ -1311,7 +1309,7 @@ class AnalysisDialog(ChannelDialog):
         scaling = freq['scaling'].get_value()
         sides = freq['sides'].get_value()
         taper = freq['taper'].get_value()
-        halfbandwidth = freq['hbw_val'].get_value()
+        halfbandwidth = freq['hbw'].get_value()
         NW = freq['nhbw_val'].get_value()
         duration = freq['duration'].get_value()
         overlap = freq['overlap_val'].value()
@@ -1335,7 +1333,7 @@ class AnalysisDialog(ChannelDialog):
         else:
             overlap = None
 
-        if NW == 0 or freq['hbw'].isChecked():
+        if NW == 0 or not freq['nhbw'].get_value():
             NW = None
         if duration == 0 or not freq['welch_on'].get_value():
             duration = None

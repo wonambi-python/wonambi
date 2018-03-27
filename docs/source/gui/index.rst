@@ -8,5 +8,6 @@ Graphical User Interface
    channels
    traces
    notes
-   screenshot
+   detect
    analysis
+   screenshot
