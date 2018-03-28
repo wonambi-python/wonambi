@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.02**: bugfixes
 - **5.01**: Analysis Console
 
 Version 4

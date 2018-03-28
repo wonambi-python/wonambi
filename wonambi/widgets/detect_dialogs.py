@@ -184,9 +184,6 @@ class SpindleDialog(ChannelDialog):
         if button is self.idx_cancel:
             self.reject()
 
-        if button is self.idx_help:
-            self.parent.show_spindle_help()
-
     def update_values(self):
         """Update form values when detection method is selected."""
         self.method = self.idx_method.currentText()
@@ -384,10 +381,6 @@ class SWDialog(ChannelDialog):
 
         if button is self.idx_cancel:
             self.reject()
-
-        if button is self.idx_help:
-            self.parent.show_slowwave_help()
-            pass
 
     def update_values(self):
         """Update form values when detection method is selected."""

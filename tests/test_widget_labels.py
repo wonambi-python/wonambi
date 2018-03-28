@@ -24,6 +24,7 @@ def test_widget_labels(qtbot):
 
     assert w.labels.isEnabled()
 
+    w.action['dockwidgets'][1].trigger()
     w.labels.table.setStyleSheet("background-color: red;")
     w.grab().save(str(GUI_PATH / 'labels_01_table.png'))
     w.labels.table.setStyleSheet("")

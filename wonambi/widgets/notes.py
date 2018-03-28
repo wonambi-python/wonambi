@@ -15,11 +15,8 @@ TODO:
 """
 from datetime import datetime, timedelta
 from functools import partial
-from itertools import compress
 from logging import getLogger
-from numpy import (asarray, concatenate, diff, empty, floor, in1d, log, mean,
-                   nan_to_num, nanmean, ptp, sqrt, square, std)
-from scipy.signal import periodogram
+from numpy import asarray, concatenate, empty, floor, nan_to_num, nanmean
 from os.path import basename, splitext
 
 from PyQt5.QtCore import Qt
@@ -171,7 +168,6 @@ class Notes(QTabWidget):
         super().__init__()
         self.parent = parent
         self.config = ConfigNotes(self.update_settings)
-        #self.spindle_dialog = SpindleDialog(parent)
 
         self.annot = None
         self.data = None
@@ -401,11 +397,6 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['slow_wave'] = act
 
-        act = QAction('Events...', self)
-        act.triggered.connect(self.parent.show_event_analysis_dialog)
-        act.setEnabled(False)
-        actions['analyze_events'] = act
-
         act = QAction('Analysis console (BETA)', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setShortcut('Ctrl+Shift+a')
@@ -486,13 +477,11 @@ class Notes(QTabWidget):
             self.action['merge_events'].setEnabled(True)
             self.action['spindle'].setEnabled(True)
             self.action['slow_wave'].setEnabled(True)
-            self.action['analyze_events'].setEnabled(True)
             self.action['analyze'].setEnabled(True)
         else:
             self.action['merge_events'].setEnabled(False)
             self.action['spindle'].setEnabled(False)
             self.action['slow_wave'].setEnabled(False)
-            self.action['analyze_events'].setEnabled(False)
             self.action['analyze'].setEnabled(False)
 
     def display_notes(self):
@@ -1320,161 +1309,6 @@ class Notes(QTabWidget):
 
         self.update_annotations()
 
-    def analyze_events(self, event_type, chan, stage, params, frequency,
-                       cycles=None, fsplit=None):
-        """Compute parameters on events. Only supports one trial.
-
-        Parameters
-        ----------
-        event_type : str
-            name of event type to analyze
-        chan : str or tuple of str
-            channel where event data are retrieved
-        stage :
-            stage(s) of interest; events in other stages will be ignored.
-            If None, all events will be analyzed.
-        params : list
-            list of parameters to compute.
-        frequency : tuple of float
-            frequencies for filtering.
-        cycles: list of tuple, optional
-            start and end times of cycles, in seconds from recording start
-        fsplit : float, optional
-            peak frequency at which to split the event dataset
-
-        Returns
-        -------
-        list of dict
-            Parameter name as key with global parameters/avgs as values. If
-            fsplit, there are two dicts, low frequency and high frequency
-            respectively, combined together in a list.
-        list of list of dict
-            One dictionary per event, each containing  individual event
-            parameters. If fsplit, there are two event lists, low frequency
-            and high frequency respectively, combined together in a list.
-            Otherwise, there is a single list within the master list.
-        """
-        events = [self.annot.get_events(
-                    name=event_type, chan=chan, stage=stage, qual='Good')]
-        summary = []
-        f1 = frequency[0]
-        f2 = frequency[1]
-        filtered = None
-        diff_dat = None
-        s_freq = self.data.s_freq
-
-        if 'density' in params:
-            epochs = self.annot.epochs
-
-            if stage is None:
-                n_epochs = len([x for x in epochs])
-            else:
-                n_epochs = len([x for x in epochs if x['stage'] in stage])
-
-        if in1d(['maxamp', 'ptp', 'rms'], params).any():
-            filtered = filter_(self.data,
-                               low_cut=f1, high_cut=f2)(chan=chan)[0]
-
-        if in1d(['peakf', 'power', 'rms'], params).any():
-            diff_dat = diff(self.data(chan=chan)[0])
-
-        per_evt_params = ['dur', 'peakf', 'maxamp', 'ptp', 'rms', 'power']
-        per_evt_cond = in1d(per_evt_params, params)
-        sel_params = list(compress(per_evt_params, per_evt_cond))
-
-        if per_evt_cond.any():
-
-            for ev in events[0]:
-                start = max(int(ev['start'] * s_freq), 0)
-                end = min(int(ev['end'] * s_freq),
-                          len(self.data(chan=chan)[0]))
-
-                if start >= end:
-                    lg.warning('Event at %(start)f - %(end)f is size zero' %
-                            {'start': start, 'end':end})
-                    continue
-
-                if 'dur' in params:
-                    ev['dur'] = ev['end'] - ev['start']
-
-                if filtered is not None:
-                    one_evt = filtered[start:end]
-
-                    if 'maxamp' in params:
-                        ev['maxamp'] = one_evt.max()
-
-                    if 'ptp' in params:
-                        ev['ptp'] = ptp(one_evt)
-
-                    if 'rms' in params:
-                        ev['rms'] = sqrt(mean(square(diff(one_evt))))
-
-                if diff_dat is not None:
-                    one_evt = diff_dat[start:end]
-                    sf, Pxx = periodogram(one_evt, self.data.s_freq)
-                    # find nearest frequency to f1 and f2 in sf
-                    b0 = asarray([abs(x - f1) for x in sf]).argmin()
-                    b1 = asarray([abs(x - f2) for x in sf]).argmin()
-
-                    if 'peakf' in params:
-                        idx_peak = Pxx[b0:b1].argmax()
-                        ev['peakf'] = sf[b0:b1][idx_peak]
-
-                    if 'power' in params:
-                        ev['power'] = mean(Pxx[b0:b1])
-
-                if 'log' in params:
-                    for param in sel_params:
-                        ev[param] = log(ev[param])
-
-            if cycles:
-                all_events = []
-
-                for cyc in cycles:
-                    evts_in_cyc = [ev for ev in events[0] \
-                                   if cyc[0] <= ev['start'] < cyc[1]]
-                    all_events.append(evts_in_cyc)
-
-                events = all_events
-
-            if fsplit:
-                if 'log' in params:
-                    fsplit = log(fsplit)
-                all_events = []
-
-                for evs in events:
-                    events_lo = [ev for ev in evs if ev['peakf'] < fsplit]
-                    events_hi = [ev for ev in evs if ev['peakf'] >= fsplit]
-                    all_events.extend([events_lo, events_hi])
-
-                events = all_events
-
-        for evs in events:
-            summ = {}
-
-            if 'count' in params:
-                summ['count'] = (len(evs),)
-
-            if 'density' in params:
-                summ['density'] = (len(evs) / n_epochs,)
-
-            if 'log' in params:
-                summ = {k: log(v) for (k, v) in summ.items()}
-
-            if per_evt_cond.any():
-                for param in sel_params:
-                    dat = [ev[param] for ev in evs]
-                    summ[param] = mean(dat), std(dat)
-
-            summary.append(summ)
-
-        if per_evt_cond.any():
-            evt_output = events
-        else:
-            evt_output = [None]
-
-        return summary, evt_output
-
     def export(self):
         """action: export annotations to CSV."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1608,9 +1442,8 @@ class MergeDialog(QDialog):
         flayout.addRow('Min. interval (sec)',
                            self.min_interval)
 
-        bbox = QDialogButtonBox(QDialogButtonBox.Help |
+        bbox = QDialogButtonBox(
                 QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.idx_help = bbox.button(QDialogButtonBox.Help)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
         bbox.clicked.connect(self.button_clicked)
@@ -1707,10 +1540,6 @@ class MergeDialog(QDialog):
 
         if button is self.idx_cancel:
             self.reject()
-
-        if button is self.idx_help:
-            #self.parent.show_merge_help()
-            pass
 
     def update_event_types(self):
         """Update event types in event type box."""
@@ -1847,6 +1676,3 @@ def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
         progress.setValue(i + 1)
 
     return output
-
-
-

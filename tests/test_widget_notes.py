@@ -113,7 +113,7 @@ def test_widget_notes_cycle(qtbot):
     w.notes.update_notes(annot_psg_path)
     w.traces.Y_wider()
     w.traces.Y_wider()
-    w.traces.go_to_epoch(test_text_str='22:28')
+    w.traces.go_to_epoch(test_text_str='22:28') 
 
     menubar = w.menuBar()
 
@@ -142,6 +142,7 @@ def test_widget_notes_cycle(qtbot):
 
     w.overview.grab().save(str(GUI_PATH / 'notes_13_all_cycle_markers.png'))
     w.notes.clear_cycle_mrkrs(test=True)
+    
     w.close()
 
 
@@ -179,6 +180,7 @@ def test_widget_notes_mark_event(qtbot):
     screenshot(w, 'notes_15_highlight_event.png')
 
     w.notes.delete_eventtype(test_type_str='spindle')
+    
     w.close()
 
 
@@ -203,12 +205,6 @@ def test_widget_notes_dialogs(qtbot):
     swd.grab().save(str(GUI_PATH / 'notes_17_slowwavedialog.png'))
 
     swd.button_clicked(swd.idx_cancel)
-
-    w.notes.action['analyze_events']
-    ead = w.event_analysis_dialog
-    ead.grab().save(str(GUI_PATH / 'notes_18_eventanalysisdialog.png'))
-
-    ead.button_clicked(ead.idx_cancel)
 
     w.notes.action['merge_events']
     md = w.merge_dialog

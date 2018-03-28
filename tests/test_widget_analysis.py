@@ -66,7 +66,7 @@ def test_widget_notes_export_csv(qtbot):
 
     menubar = w.menuBar()
 
-    act_annot = find_in_qt(menubar, QAction, 'Analysis')
+    act_annot = find_in_qt(menubar, QAction, 'Annotations')
     menubar.setActiveAction(act_annot)
     act_annot.menu().setActiveAction(w.notes.action['export_sleepstats'])
 

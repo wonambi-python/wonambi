@@ -5,9 +5,9 @@ Annotations
 
 Wonambi allows you to add annotations to your signal, such as sleep staging and signal quality (epochwise), highlighted events, cycle markers and bookmarks.
 
-You must first create an Annotations File, by clicking on ``New Annotations``.
+You must first create an Annotation File, by clicking on ``New Annotations``.
 
-You will be asked to provide a rater name. Annotations Files are divided into separate raters. Use the ``Annotations`` -> ``Rater`` menu to create new raters and switch between them.
+You will be asked to provide a rater name. Annotation Files are divided into separate raters. Use the ``Annotations`` -> ``Rater`` menu to create new raters and switch between them.
 
 To load previously created annotations, click on ``Load Annotations``:
 
@@ -24,7 +24,7 @@ To import external sleep staging, click on ``Annotations`` -> ``Import staging``
 
 For Compumedics staging, you will be prompted to provide the staging start time.
 
-For all sources but FASST, you will be asked to provide a rater name, under which to save the staging in the Annotations file. You may create a new rater or overwrite the staging in an existing one.
+For all sources but FASST, you will be asked to provide a rater name, under which to save the staging in the Annotation File. You may create a new rater or overwrite the staging in an existing one.
 
 For FASST staging, you'll first be asked to load the ``.mat`` file containing the FASST sleep scores. Then you'll need to indicate where to save the annotations in ``.xml`` format.
 
@@ -34,7 +34,7 @@ If importation is successful, the converted sleep staging will appear in the ``O
 
 For RemLogic staging, make sure you select the following options when exporting from RemLogic:
 
-..images:: images/notes_21_remlogic_options.png
+.. images:: images/notes_21_remlogic_options.png
 
 Stage sleep
 -----------
@@ -60,9 +60,9 @@ Similarly to the ``Stage Box``, the ``Quality Box`` displays the quality of the 
 
 .. image:: images/notes_10_quality_box.png
 
-Epochs marked as ``Poor`` signal are excluded from ``Analysis``, such as spindle and slow wave detection.
+Epochs marked as ``Poor`` signal are excluded from ``Analysis``, namely event detections and tools in the analysis console.
 
-Epochs staged as ``Artefact`` are automatically flagged as ``Poor`` signal.
+Epochs staged as ``Artefact`` are automatically marked as ``Poor`` signal.
 
 You can view staging and signal quality summary parameters by clicking ``Summary`` in the ``Annotations`` panel.
 
@@ -108,7 +108,7 @@ Now, click and drag along a segment of the signal from the desired channel to cr
 
 .. image:: images/notes_14_mark_event.png
 
-Events belong to the channel on which they were marked, and appear as a darker colour on that channel (this might not show up in the above image). The colours themselves are automatically generated from the event type label text. 
+Events belong to the channel on which they were marked, and appear as a darker colour on that channel. The colours themselves are automatically generated from the event label text. 
 
 By default, the events are also highlighted on all other channels in a lighter colour. You can disable this option by toggling ``View`` -> ``Full-length markers``.
 
@@ -118,7 +118,7 @@ To delete an event, make sure you are in *event edit mode*, and click on it, so 
 
 Now press the ``Delete`` key. Note: The event will be removed from both the trace and the Annotation File.
 
-Events are visible both highlighted on the trace and in table form in the ``Annotations`` panel, under ``Annotations``.
+Events are visible both highlighted on the trace and in table form in the ``Annotations`` tab of the ``Annotations`` panel.
 
 Double-click on an event in the table to jump to its position on the trace.
 
@@ -129,10 +129,11 @@ Mark artefacts
 
 Events marked using the event type ``Artefact`` are used for data exclusion in analysis.
 
-Currently, artefacts marked on any channel will exclude concurrent signal on all channels, when the artefact exclusion option is selected (see analysis_).
+For detections and analysis, if the artefact exclusion option is selected, artefacts marked on any channel will exclude concurrent signal on all channels.
 
-To mark ``Artefact`` events, click on ``Annotations`` -> ``Event`` --> ``New Event Type`` and type in "Artefact".
-Then in ``Event Mode``, mark the artefacts on any channel.
+To mark ``Artefact`` events, click on ``Annotations`` -> ``Event`` --> ``New Event Type`` and type in *Artefact*.
+Then in ``Event Mode``, mark the artefacts on any channel in the channel group.
+This channel must still be in the channel group at the moment of detection or analysis in order for the artefact events to be found.
 
 Export sleep scores as csv
 --------------------------
@@ -148,7 +149,7 @@ Export sleep statistics as csv
 ------------------------------
 
 You can export some sleep statistics (such as Total Sleep Time, WASO, etc)  as ``.csv`` file to disk.
-To do so, click on ``Analysis`` -> ``Sleep statistics``:
+To do so, click on ``Annotations`` -> ``Sleep statistics``:
 
 .. image:: images/analysis_02_statistics.png
 
@@ -168,15 +169,17 @@ Merge events
 ------------
 
 You may want to merge events outside of the automatic detection process.
-For instance, you may want to merge spindles detected by different algorithms, or you my want to merge manually marked events with automatically detected ones.
+For instance, you may want to merge spindles detected by different algorithms, or you may want to merge manually marked events with automatically detected ones.
 
-To do this, click on ``Annotations`` -> ``Event`` -> ``Merge Events...`` to open the **merge events dialog**:
+To do this, click on ``Annotations`` -> ``Event`` -> ``Merge Events...`` to open the *merge events dialog*:
 
 .. image:: images/notes_19_mergedialog.png
 
 You may choose to merge events from one or several event types using the ``Event type(s)`` box. 
 If you select several, you will be prompted to provide a label for the new event type created by the merger.
-**Note that the selected event types will be deleted and replaced with the new event type.**
+
+.. NOTE::
+   The selected event types will be deleted and replaced with the new event type.
 
 Events marked within a same channel will be merged if they are separated by up to a certain interval.
 This interval is set with ``Minimum interval``.

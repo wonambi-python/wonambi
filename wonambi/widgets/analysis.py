@@ -165,10 +165,10 @@ class AnalysisDialog(ChannelDialog):
 
         flayout = QFormLayout()
         box_r.setLayout(flayout)
-        flayout.addRow('Minimum duration (sec)',
-                           self.min_dur)
         flayout.addRow(self.reject_epoch)
         flayout.addRow(self.reject_event)
+        flayout.addRow('Minimum duration (sec)',
+                           self.min_dur)
 
         """ ------ CONCATENATION ------ """
 

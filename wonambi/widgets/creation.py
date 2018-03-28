@@ -11,8 +11,7 @@ from PyQt5.QtWidgets import (QAction,
                              QMessageBox,
                              )
 
-from .settings import (Settings, SlowWaveHelp, SpindleHelp,
-                       EvtAnalysisHelp)  # has to be first
+from .settings import Settings # has to be first
 from .utils import ICON   # has to be second
 from .labels import Labels
 from .channels import Channels
@@ -20,8 +19,7 @@ from .info import Info, ExportDatasetDialog
 from .overview import Overview
 from .notes import Notes, MergeDialog
 from .detect_dialogs import SpindleDialog, SWDialog
-from .modal_widgets import EventAnalysisDialog
-from .analysis import AnalysisDialog, PlotDialog
+from .analysis import AnalysisDialog
 from .spectrum import Spectrum
 from .traces import Traces
 from .video import Video
@@ -43,10 +41,6 @@ def create_widgets(MAIN):
     MAIN.export_dataset_dialog = ExportDatasetDialog(MAIN)
     MAIN.spindle_dialog = SpindleDialog(MAIN)
     MAIN.slow_wave_dialog = SWDialog(MAIN)
-    MAIN.spindle_help = SpindleHelp(MAIN)
-    MAIN.slowwave_help = SlowWaveHelp(MAIN)
-    MAIN.event_analysis_dialog = EventAnalysisDialog(MAIN)
-    MAIN.evt_analysis_help = EvtAnalysisHelp(MAIN)
     MAIN.analysis_dialog = AnalysisDialog(MAIN)
     #MAIN.plot_dialog = PlotDialog(MAIN)
     MAIN.overview = Overview(MAIN)
@@ -269,6 +263,9 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_fasst'])
 
     menu_annot.addAction(actions['export'])
+    menu_annot.addSeparator()
+    
+    menu_annot.addAction(actions['export_sleepstats'])
 
     """ ------ ANALYSIS ------ """
     actions = MAIN.notes.action
@@ -279,9 +276,7 @@ def create_menubar(MAIN):
     submenu_detect.addAction(actions['spindle'])
     submenu_detect.addAction(actions['slow_wave'])
 
-    #menu_analysis.addAction(actions['analyze_events'])
     menu_analysis.addAction(actions['analyze'])
-    menu_analysis.addAction(actions['export_sleepstats'])
 
 
     """ ------ WINDOWS ------ """

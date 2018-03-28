@@ -202,15 +202,6 @@ class MainWindow(QMainWindow):
         """Create the plot frame widget."""
         self.plot_dialog.show()
 
-    def show_spindle_help(self):
-        self.spindle_help.show()
-
-    def show_slowwave_help(self):
-        self.slowwave_help.show()
-
-    def show_evt_analysis_help(self):
-        self.evt_analysis_help.show()
-
     def about(self):
         s = ('<b>WONAMBI Version {version}</b><br />'
              '<p>You can download the latest version at '
