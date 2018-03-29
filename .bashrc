@@ -22,7 +22,7 @@ export PATH=$NODEJS_HOME/bin:$PATH
 source /etc/fsl/fsl.sh
 
 # freesurfer
-export FREESURFER_HOME=/usr/local/freesurfer_5.3
+export FREESURFER_HOME=/usr/local/freesurfer_6.0.1
 export LOCAL_DIR=$FREESURFER_HOME/local
 export SUBJECTS_DIR=$FREESURFER_HOME/subjects
 export FSFAST_HOME=$FREESURFER_HOME/fsfast
