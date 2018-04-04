@@ -106,7 +106,7 @@ Further details on the original methods are provided in italics.
 **Mölle2011** - *Mölle, M. et al. (2011) Sleep 34, 1411-21*
 
 #. *Detection is limited to NREM signal.*
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``. *Wonambi uses a zero-phase 6th order Butterworth filter, while Mölle et al. used a custom Lübeck filter. The authors used sigma bands adapted to each participant.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using an equiripple FIR filter. *Instead of a fixed bandwidth, the authors used sigma bands adapted to each participant.*
 #. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
 #. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
 #. The detection threshold is set at the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.

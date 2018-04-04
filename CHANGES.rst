@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.03**: Moelle2011 spindle detection now uses 'luebeck' filter from article
 - **5.02**: bugfixes
 - **5.01**: Analysis Console
 
