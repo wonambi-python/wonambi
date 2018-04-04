@@ -198,7 +198,7 @@ class AnalysisDialog(ChannelDialog):
         box2 = QGroupBox('Pre-processing')
 
         self.trans = {}
-        self.trans['whiten'] = FormBool('Remove 1/f')
+        self.trans['whiten'] = FormBool('Differentiate')
         
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
                   'diff']

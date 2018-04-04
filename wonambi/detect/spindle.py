@@ -7,7 +7,7 @@ from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
                    square, std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, fftconvolve, 
-                          hilbert, periodogram, tukey)
+                          hilbert, periodogram, remez, tukey)
 try:
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QProgressDialog
@@ -109,8 +109,7 @@ class DetectSpindle:
         elif method == 'Moelle2011':
             if self.frequency is None:
                 self.frequency = (9, 15)
-            self.det_butter = {'order': 3,
-                               'freq': self.frequency,
+            self.det_luebeck = {'freq': self.frequency,
                                }
             self.duration = (0.5, 3)
             self.det_wavelet = {'sd': None}
@@ -346,8 +345,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     s_freq : float
         sampling frequency
     opts : instance of 'DetectSpindle'
-        'det_butter' : dict
-            parameters for 'butter',
+        'det_luebeck' : dict
+            parameters for 'luebeck',
         'moving_rms' : dict
             parameters for 'moving_rms'
         'smooth' : dict
@@ -378,7 +377,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     ----------
     Moelle, M. et al. Sleep 34, 1411-21 (2011).
     """
-    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_orig, s_freq, 'luebeck', opts.det_luebeck)
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
 
@@ -814,6 +813,17 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         Wn = freq[1] / nyquist
         b, a = butter(N, Wn, btype='lowpass')
         dat = filtfilt(b, a, dat)
+    
+    if 'luebeck' == method:
+        N = int(s_freq * 2.36)
+        Fp1, Fp2 = method_opt['freq']
+        Fs1, Fs2 = Fp1 - 2, Fp2 + 2
+        nyquist = s_freq / 2
+        dens = 20
+        
+        bpass = remez(N, [0, Fs1, Fp1, Fp2, Fs2, nyquist], [0, 1, 0], 
+                      grid_density=dens, fs=s_freq)
+        dat = filtfilt(bpass, 1, dat)
     
     if 'morlet' == method:
         f0 = method_opt['f0']

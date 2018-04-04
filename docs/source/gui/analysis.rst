@@ -42,6 +42,7 @@ To obtain the epochs as segmented by the Annotation File for sleep scoring, chec
 Otherwise, you may select a different epoch length with ``Duration (sec)``. 
 In this case, all relevant signal, after the specified concatenation, will be segmented at that duration, starting at the first sample of relevant signal.
 Any remainder is discarded.
+Discontinuous signal concatenation is unavailable with this option.
 
 Chunking ``by longest run`` gathers all relevant signal cut up into the longest continuous (uninterrupted) segments.
 For example, if in the sleep cycle selected there is a run of 10 minutes of REM, with another isolated 30s epoch of REM cut off from the rest, this option will return two segments, one 10 minutes long and one 30s long.

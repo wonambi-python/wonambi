@@ -1226,6 +1226,11 @@ class Notes(QTabWidget):
             times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))
 
         times = [(x['start'], x['end']) for x in times]
+        
+        if not times:
+            self.data = None
+            self.parent.statusBar.showMessage('No valid signal found.')
+            return
 
         if exclude_artf:
             times = remove_artf_evts(times, self.annot)
