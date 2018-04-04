@@ -108,7 +108,7 @@ class DetectSpindle:
 
         elif method == 'Moelle2011':
             if self.frequency is None:
-                self.frequency = (9, 15)
+                self.frequency = (12, 15)
             self.det_luebeck = {'freq': self.frequency,
                                }
             self.duration = (0.5, 3)
