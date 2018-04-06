@@ -69,9 +69,10 @@ QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 
                    'Nir2011', 
                    'Moelle2011', 
-                   #'Ferrarelli2007',
+                   'Ferrarelli2007',
+                   'Concordia',
                    'UCSD', 
-                   'Concordia']
+                   ]
 SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
 
 

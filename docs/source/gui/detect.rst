@@ -80,6 +80,7 @@ Further details on the original methods are provided in italics.
 
 .. NOTE::
    Italicized steps are not automatically implemented in Wonambi's algorithms.
+   They are included only for your information.
 
 *Spindle detection methods*
 
@@ -96,7 +97,7 @@ Further details on the original methods are provided in italics.
 **Nir2011** - *Nir, Y. et al. (2011) Neuron 70, 153-69*
 
 #. *The channels with spindle activity in NREM sleep are chosen for further analysis (significant spectral power increases in spindle range as compared with a 1/f model, p ‹ 0.001, paired t-test across 10 s segments.)*
-#. The EEG signal is bandpass filtered between ``Lowcut`` [10] Hz and ``Highcut`` [16] Hz with a zero-phase 4th order Butterworth filter. 
+#. The EEG signal is bandpass filtered between ``Lowcut`` Hz and ``Highcut`` Hz with a zero-phase 4th order Butterworth filter. Authors specify -3 dB attenuation at 9.2 Hz and 16.8 Hz. To achieve this with a 4th order filter, ``Lowcut`` and ``Highcut`` must be set to 9.2 Hz and 16.8 Hz, respectively.
 #. Instantaneous amplitude in the sigma frequency is extracted via the Hilbert transform.
 #. To avoid excessive multiple crossings of thresholds within the same spindle event, instantaneous amplitude is temporally smoothed using a Gaussian kernel of σ = ``Smoothing`` [0.4] s.
 #. Events with amplitude greater than mean + ``Detection threshold, low`` [3] SD (computed across all artifact-free NREM sleep epochs) are considered putative spindles and detections within ``Min. interval`` [1] s are merged.
@@ -106,11 +107,23 @@ Further details on the original methods are provided in italics.
 **Mölle2011** - *Mölle, M. et al. (2011) Sleep 34, 1411-21*
 
 #. *Detection is limited to NREM signal.*
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using an equiripple FIR filter. *Instead of a fixed bandwidth, the authors used sigma bands adapted to each participant.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase equiripple FIR filter. *Instead of a fixed bandwidth, the authors used sigma bands adapted to each participant.*
 #. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
 #. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
-#. The detection threshold is set at the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
+#. The detection threshold is set to the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
 #. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
+
+**Ferrarelli2007** - *Ferrarelli, F. et al. (2007) Am. J. Psychiatry 164, 483-92*
+
+#. *Detection is limited to all NREM sleep signal.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` with a zero-phase equiripple Chebyshev FIR filter. *Authors used a slightly different and less stable Chebyshev Type II IIR filter. The FIR filter is a more stable approximation.*
+#. The filtered signal is rectified.
+#. A signal envelope is created from the oscillatory peaks in the rectified signal.
+#. The detection threshold is set to the mean of the signal envelope x ``Detection threshold, low`` [8].
+#. For the selection threshold, the signal envelope amplitude values are distributed in a 120-bin histogram, and the amplitude of the highest-count bin x ``Selection threshold`` [2] yields the selection threshold.
+#. Spindles are detected where the signal envelope exceeds the detection threshold, with start and end times where the envelope dips below the selection threshold, before and after the detected peak.
+#. Spindles are merged if within ``Min. interval`` (or overlapping).
+#. Spindles within ``Min. duration`` and ``Max. duration`` are retained.
 
 **Concordia** - *Concordia University, Montreal; unpublished*
 

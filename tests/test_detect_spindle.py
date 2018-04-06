@@ -68,7 +68,7 @@ def test_detect_spindle_to_data():
     assert sp_data(0)[0] == 1
 
     sp_freq = sp.to_data('peak_freq')
-    assert approx(sp_freq(0)[0]) == 13.829787234042552
+    assert approx(sp_freq(0)[0]) == 14.130434782608695
 
     sp_ptp = sp.to_data('ptp')
     assert approx(sp_ptp(0)[0]) == 66.33846153846153
