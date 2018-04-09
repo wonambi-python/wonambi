@@ -68,10 +68,10 @@ QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 
                    'Nir2011', 
-                   'Moelle2011', 
                    'Ferrarelli2007',
-                   'Concordia',
+                   'Moelle2002', 
                    'UCSD', 
+                   'Concordia',
                    ]
 SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
 
@@ -171,7 +171,6 @@ class Notes(QTabWidget):
         self.config = ConfigNotes(self.update_settings)
 
         self.annot = None
-        self.data = None
 
         self.idx_marker = None
 
@@ -1179,71 +1178,13 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
-    def read_data(self, chan, group, period=None, stage=None, qual=None,
-                  exclude_artf=False, demean=False):
-        """Read the data to analyze.
-        # TODO: make times more flexible (see below)
-        Parameters
-        ----------
-        chan : str or list of str
-            Channel(s) to read.
-        group : dict
-            Channel group, for information about referencing, filtering, etc.
-        period : list of tuple
-            each tuple has (start time (sec), end time (sec), ...)
-        stage : tuple of str, optional
-            stage(s) of interest
-        qual : str, optional
-            only include epochs of this signal quality
-        exclude_artf : bool
-            If True, signal concurrent with events marked 'Artefact' will be
-            removed from the returned signal (by correcting times)
-        demean : bool
-            if True, mean of channel will be subtracted from data
-        """
-        if isinstance(chan, str):
-            chan = [chan]
-
-        dataset = self.parent.info.dataset
-
-        chan_to_read = chan + group['ref_chan']
-
-        data = dataset.read_data(chan=chan_to_read)
-
-        max_s_freq = self.parent.value('max_s_freq')
-        if data.s_freq > max_s_freq:
-            q = int(data.s_freq / max_s_freq)
-            lg.debug('Decimate (no low-pass filter) at ' + str(q))
-
-            data.data[0] = data.data[0][:, slice(None, None, q)]
-            data.axis['time'][0] = data.axis['time'][0][slice(None, None, q)]
-            data.s_freq = int(data.s_freq / q)
-
-        if period == None:
-            period = [None]
-
-        times = []
-        for p in period:
-            times.extend(self.annot.get_epochs(time=p, stage=stage, qual=qual))
-
-        times = [(x['start'], x['end']) for x in times]
-        
-        if not times:
-            self.data = None
-            self.parent.statusBar.showMessage('No valid signal found.')
-            return
-
-        if exclude_artf:
-            times = remove_artf_evts(times, self.annot)
-
-        self.data = _create_data_to_analyze(data, chan, group, times=times,
-                                            demean=demean, parent=self)
-
-    def detect_events(self, method, params, label):
+    def detect_events(self, data, method, params, label):
         """Detect events and display on signal.
 
         Parameters
         ----------
+        data : instance of ChanTime
+            one segment with all channels of interest
         method : str
             Method used for detection.
         params : dict
@@ -1298,7 +1239,7 @@ class Notes(QTabWidget):
             lg.info('Method not recognized: ' + method)
             return
 
-        events = detector(self.data, parent=self)
+        events = detector(data, parent=self)
 
         if events:
             progress = QProgressDialog('Saving events', 'Abort',
@@ -1310,6 +1251,11 @@ class Notes(QTabWidget):
                 self.annot.add_event(label,(one_ev['start'],
                                             one_ev['end']),
                                             chan=one_ev['chan'])
+                if progress.wasCanceled():
+                    msg = ('Saving interrupted. Not all events were saved '
+                           'to the Annotations File.')
+                    self.parent.statusBar().showMessage(msg)
+                    return
     
             progress.setValue(i + 1)
 
@@ -1587,98 +1533,3 @@ class NewUserDialog(QDialog):
 
         elif button == self.idx_cancel:
             self.reject()
-
-
-def _create_data_to_analyze(data, analysis_chans, chan_grp, times,
-                            demean=False, parent=None):
-    """Create data after montage and filtering.
-
-    Parameters
-    ----------
-    data : instance of ChanTime
-        the raw data
-    analysis_chans : list of str
-        the channel(s) of interest and their reference(s), if any
-    chan_grp : dict
-        information about channels to plot, to use as reference and about
-        filtering etc.
-    times : list of tuple
-        start and end time(s); several in case of epoch concatenation. times
-        are in seconds from recording start.
-    demean : bool
-        if True, mean of channel will be subtracted from data
-    parent : QWidget, opt
-        For use with GUI, as parent widget for the progress bar
-
-    Returns
-    -------
-    instance of ChanTime
-        data ready to be analyzed. one trial only.
-
-    """
-    if parent is not None:
-        progress = QProgressDialog('Fetching signal', 'Abort',
-                                   0, len(times), parent)
-        progress.setWindowModality(Qt.ApplicationModal)
-
-    s_freq = data.s_freq
-
-    if times is None:
-        times = [(None, None)]
-    else:
-        times = [(int(t0 * s_freq), int(t1 * s_freq)) for (t0, t1) in times]
-
-    output = ChanTime()
-    output.s_freq = s_freq
-    #output.start_time = data.start_time   #not sure what this is used for
-    output.axis['chan'] = empty(1, dtype='O')
-    output.axis['time'] = empty(1, dtype='O')
-    output.data = empty(1, dtype='O')
-
-    all_epoch_data = []
-    timeline = []
-    all_chan_grp_name = []
-
-    for chan in analysis_chans:
-        chan_grp_name = chan + ' (' + chan_grp['name'] + ')'
-        all_chan_grp_name.append(chan_grp_name)
-
-    sel_data = _select_channels(data,
-                                analysis_chans +
-                                chan_grp['ref_chan'])
-    data1 = montage(sel_data, ref_chan=chan_grp['ref_chan'])
-
-    data1.data[0] = nan_to_num(data1.data[0])
-
-    for i, (t0, t1) in enumerate(times):
-        one_interval = data.axis['time'][0][t0: t1]
-        timeline.append(one_interval)
-        epoch_dat = empty((len(analysis_chans), len(one_interval)))
-        i_ch = 0
-
-        for chan in analysis_chans:
-            dat = data1(chan=chan, trial=0)
-
-            if demean:
-                dat = dat - nanmean(dat)
-
-            epoch_dat[i_ch, :] = dat[t0: t1]
-            i_ch += 1
-
-        all_epoch_data.append(epoch_dat)
-        
-        if parent is not None:
-            progress.setValue(i)
-            if progress.wasCanceled():
-                parent.parent.statusBar().showMessage('Detection canceled '
-                                     'by user.')
-                return
-
-    output.axis['chan'][0] = asarray(all_chan_grp_name, dtype='U')
-    output.axis['time'][0] = concatenate(timeline)
-    output.data[0] = concatenate(all_epoch_data, axis=1)
-
-    if parent is not None:
-        progress.setValue(i + 1)
-
-    return output

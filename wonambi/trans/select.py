@@ -69,7 +69,8 @@ class Segments():
         max_s_freq: : int
             maximum sampling frequency
         parent : QWidget
-            for GUI only. Identifies parent widget for display of progress dialog.
+            for GUI only. Identifies parent widget for display of progress 
+            dialog.
         """        
         chan_to_read = chan + ref_chan
         active_chan = chan

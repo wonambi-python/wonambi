@@ -280,7 +280,6 @@ def _add_pos_halfwave(data, events, s_freq, opts):
         max_dur = MAXIMUM_DURATION
     
     window = int(s_freq * max_dur)
-    lg.info('window: ' + str(window))
 
     peak_and_end = zeros((events.shape[0], 2), dtype='int')
     events = concatenate((events, peak_and_end), axis=1)

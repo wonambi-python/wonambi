@@ -48,8 +48,15 @@ For details about the implemented algorithms, see below.
 Options
 -------
 
-If you have marked events with event type *Artefact*, you may check the ``Exclude Artefact events`` box to remove them from the detection signal.
-Signal on all selected channels that is concurrent with an *Artefact* event on any channel will be excluded from detection, and the resulting signal segments will be concatenated.
+If you have marked certain epochs as having *Poor* signal, you may check ``Exclude Poor signal epochs`` to remove them from the detection signal.
+
+Similarly, if you have marked events with event type *Artefact*, you may check the ``Exclude Artefact events`` box to remove them from the detection signal.
+Signal on all selected channels that is concurrent with an *Artefact* event on any channel will be excluded from detection. 
+
+Signal selection and rejection may result in a fragmented signal, especially when excluding *Artefact* events.
+You may set a minimum duration for these fragments with ``Minimum subsegment duration``. 
+Signal fragments shorter than this value will be excluded.
+All remaining fragments are then concatenated (within a same channel) to create the detection signal.
 
 If you selected several channels, you may choose to merge spindles detected in close proximity across channels with ``Merge events across channels``.
 When this option is selected, spindles on different channels that are separated by less than a specified delay will be merged onto the channel with the earliest onset spindle.
@@ -104,19 +111,10 @@ Further details on the original methods are provided in italics.
 #. A threshold of mean + ``Selection threshold`` [1] SD defines start and end times, and events with duration between ``Min. duration`` [0.5] s and ``Max. duration`` [2] s are selected for further analysis.
 #. *Those channels, in which an increase in spectral power within the detected events was restricted to the spindle-frequency range (10-16 Hz) rather than broadband (unpaired t-test (α=0.001) between maximal spectral power in detected vs. random events), and with at least 1 spindle per min of NREM sleep were chosen for further analysis. This highly conservative procedure of including in the analysis only the channels with high spindle SNR, ensured that local occurrence of spindle events does not arise merely as a result of the lack of spindles or poor spindle SNR in some channels.*
 
-**Mölle2011** - *Mölle, M. et al. (2011) Sleep 34, 1411-21*
-
-#. *Detection is limited to NREM signal.*
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase equiripple FIR filter. *Instead of a fixed bandwidth, the authors used sigma bands adapted to each participant.*
-#. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
-#. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
-#. The detection threshold is set to the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
-#. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
-
 **Ferrarelli2007** - *Ferrarelli, F. et al. (2007) Am. J. Psychiatry 164, 483-92*
 
 #. *Detection is limited to all NREM sleep signal.*
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` with a zero-phase equiripple Chebyshev FIR filter. *Authors used a slightly different and less stable Chebyshev Type II IIR filter. The FIR filter is a more stable approximation.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` with a zero-phase equiripple Chebyshev FIR filter. Authors used a slightly different and less stable Chebyshev Type II IIR filter. The FIR filter is a more stable approximation. With ``Lowcut`` at 11 Hz, ``Highcut`` at 15 Hz and ``Roll-off`` at 0.9 Hz, the attenuation is -3 dB at 10.7 Hz and 15.3 Hz.
 #. The filtered signal is rectified.
 #. A signal envelope is created from the oscillatory peaks in the rectified signal.
 #. The detection threshold is set to the mean of the signal envelope x ``Detection threshold, low`` [8].
@@ -124,6 +122,15 @@ Further details on the original methods are provided in italics.
 #. Spindles are detected where the signal envelope exceeds the detection threshold, with start and end times where the envelope dips below the selection threshold, before and after the detected peak.
 #. Spindles are merged if within ``Min. interval`` (or overlapping).
 #. Spindles within ``Min. duration`` and ``Max. duration`` are retained.
+
+**Mölle2002** - *Mölle, M. et al. (2002) J Neurosci 22(24), 10941-7*
+
+#. *Detection is limited to NREM signal.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase equiripple FIR filter. Authors specify -3 dB attenuation at 11.3 and 15.7 Hz. To achieve this, ``Lowcut`` and ``Highcut`` must be set to 12 Hz and 15 Hz, and ``Roll-off`` to 1.7 Hz.
+#. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
+#. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
+#. The detection threshold is set to the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
+#. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
 
 **Concordia** - *Concordia University, Montreal; unpublished*
 

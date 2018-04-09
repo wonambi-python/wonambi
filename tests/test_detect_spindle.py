@@ -9,9 +9,9 @@ d = Dataset(psg_file)
 data = d.read_data(chan=('EEG Fpz-Cz', 'EEG Pz-Oz'), begtime=35790, endtime=35820)
 
 
-def test_detect_spindle_Moelle2011():
+def test_detect_spindle_Moelle2002():
     detsp = DetectSpindle()
-    assert repr(detsp) == 'detsp_Moelle2011_12-15Hz_00.5-03.0s'
+    assert repr(detsp) == 'detsp_Moelle2002_12-15Hz_00.5-03.0s'
 
     sp = detsp(data)
     assert len(sp.events) == 2
@@ -68,7 +68,7 @@ def test_detect_spindle_to_data():
     assert sp_data(0)[0] == 1
 
     sp_freq = sp.to_data('peak_freq')
-    assert approx(sp_freq(0)[0]) == 14.130434782608695
+    assert approx(sp_freq(0)[0]) == 14.285714285714285
 
     sp_ptp = sp.to_data('ptp')
     assert approx(sp_ptp(0)[0]) == 66.33846153846153
