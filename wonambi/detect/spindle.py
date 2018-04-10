@@ -712,7 +712,8 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         sampling frequency
     method : str
         one of 'butter', 'cheby2', 'double_butter', 'morlet', 'morlet_real', 
-        'hilbert', 'abs', 'moving_avg', 'gaussian', 'remez', 'wavelet_real'
+        'hilbert', 'abs', 'moving_avg', 'gaussian', 'remez', 'wavelet_real',
+        'low_butter'
     method_opt : dict
         depends on methods
 
@@ -735,23 +736,29 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         freq : tuple of float
             low and high values for bandpass
         order : int
-            filter order
+            filter order (will be effecively doubled by filtfilt)
 
     cheby2 has parameters:
         freq : tuple of float
             low and high values for bandpass
         order : int
-            filter order
+            filter order (will be effecively doubled by filtfilt)
             
     double_butter has parameters:
         freq : tuple of float
             low and high values for highpass, then lowpass
         order : int
-            filter order
+            filter order (will be effecively doubled by filtfilt)
 
     gaussian has parameters:
         dur : float
             standard deviation of the Gaussian kernel, aka sigma (sec)
+            
+    low_butter has parameters:
+        freq : float
+            Highcut frequency, in Hz
+        order : int
+            filter order (will be effecively doubled by filtfilt)
             
     morlet has parameters:
         f0 : float
@@ -831,6 +838,15 @@ def transform_signal(dat, s_freq, method, method_opt=None):
 
     if 'hilbert' == method:
         dat = hilbert(dat)
+        
+    if 'low_butter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+        nyquist = s_freq / 2
+        
+        Wn = freq / nyquist
+        b, a = butter(N, Wn, btype='lowpass')
+        dat = filtfilt(b, a, dat)
     
     if 'morlet' == method:
         f0 = method_opt['f0']
@@ -1131,13 +1147,13 @@ def within_duration(events, time, limits):
 
 
 def remove_straddlers(events, time, s_freq, toler=0.1):
-    """Reject an event if it straddles a cision point, by comparing its 
-    duration to its timespan
+    """Reject an event if it straddles a stitch, by comparing its 
+    duration to its timespan.
 
     Parameters
     ----------
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples
+        N x M matrix with start, ..., end samples
     time : ndarray (dtype='float')
         vector with time points
     s_freq : float
@@ -1148,10 +1164,10 @@ def remove_straddlers(events, time, s_freq, toler=0.1):
     Returns
     -------
     ndarray (dtype='int')
-        N x 3 matrix with start , peak, end samples
+        N x M matrix with start , ..., end samples
     """
-    duration = (events[:, 2] - 1 - events[:, 0]) / s_freq
-    continuous = time[events[:, 2] - 1] - time[events[:, 0]] - duration < toler
+    dur = (events[:, -1] - 1 - events[:, 0]) / s_freq
+    continuous = time[events[:, -1] - 1] - time[events[:, 0]] - dur < toler
     
     return events[continuous, :]
     

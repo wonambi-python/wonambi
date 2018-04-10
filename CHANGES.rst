@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.06**: slow wave detection fixes
 - **5.05**: faster data fetching in detections; improved filters in spindle detection; new and improved Ferrarelli2007 detection
 - **5.04**: changed Moelle2011 default freqs
 - **5.03**: Moelle2011 spindle detection now uses 'luebeck' filter from article

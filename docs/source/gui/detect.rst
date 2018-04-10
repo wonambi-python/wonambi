@@ -158,7 +158,7 @@ Further details on the original methods are provided in italics.
 #. *256-channel EEG is re-referenced to the average of the signals from the earlobes.*
 #. *EEG signal is locally averaged over 4 non-overlapping regions of the scalp.*
 #. *Detection is limited to NREM signal.*
-#. The signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase 4th order Butterworth filter.
+#. The signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase 4th order Butterworth filter. Wonambi's implementation applies the filter sequentially to avoid numerical instability: first lowpass, the highpass.
 #. Slow waves are detected when the following 3 criteria are met:
    * A negative zero crossing and a subsequent positive zero crossing separated by ``Min. trough duration`` [0.3] and ``Max. trough duration`` [1.0] s.
    * A negative peak between the two zero crossings with voltage less than ``Max. trough amplitude`` [-80] μV

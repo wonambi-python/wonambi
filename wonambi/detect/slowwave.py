@@ -35,7 +35,7 @@ class DetectSlowWave:
         self.method = method
 
         if method == 'Massimini2004':
-            self.det_filt = {'order': 3,
+            self.det_filt = {'order': 2,
                              'freq': (0.1, 4.)}
             self.trough_duration = (0.3, 1.)
             self.max_trough_amp = - 80
@@ -45,7 +45,7 @@ class DetectSlowWave:
             self.invert = False
 
         elif method == 'AASM/Massimini2004':
-            self.det_filt = {'order': 3,
+            self.det_filt = {'order': 2,
                              'freq': (0.1, 4.)}
             self.trough_duration = (0.25, 1.)
             self.max_trough_amp = - 40

@@ -84,9 +84,7 @@ class AnalysisDialog(ChannelDialog):
 
     def create_dialog(self):
         """Create the dialog."""
-        bbox = QDialogButtonBox(QDialogButtonBox.Help | QDialogButtonBox.Ok |
-                QDialogButtonBox.Cancel)
-        self.idx_help = bbox.button(QDialogButtonBox.Help)
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.idx_ok = bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
 
