@@ -3,11 +3,12 @@
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
                    diff, exp, empty, floor, histogram, hstack, insert, invert,
-                   logical_and, mean, median, nan, ones, pi, ptp, real, sqrt, 
-                   square, std, vstack, where, zeros)
+                   logical_and, mean, median, nan, ones, percentile, pi, ptp, 
+                   real, sqrt, square, std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
-                          fftconvolve, hilbert, periodogram, remez, tukey)
+                          fftconvolve, hilbert, periodogram, remez, 
+                          sosfiltfilt, tukey)
 try:
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QProgressDialog
@@ -33,7 +34,7 @@ class DetectSpindle:
     duration : tuple of float
         min and max duration of spindles
     """
-    def __init__(self, method='Moelle2002', frequency=None, duration=None,
+    def __init__(self, method='Moelle2011', frequency=None, duration=None,
                  merge=True):
 
         self.method = method
@@ -44,22 +45,7 @@ class DetectSpindle:
         self.frequency = frequency
         self.rolloff = 0
 
-        if method == 'Moelle2002':
-            if self.frequency is None:
-                self.frequency = (12, 15)
-            self.rolloff = 1.7
-            self.det_remez = {'freq': self.frequency,
-                              'rolloff': self.rolloff,
-                              'dur': 1.18
-                               }
-            self.duration = (0.5, 3)
-            self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 1.5
-            self.sel_thresh = None
-            self.moving_rms = {'dur': .2}
-            self.smooth = {'dur': .2}
-
-        elif method == 'Ferrarelli2007':
+        if method == 'Ferrarelli2007':
             if self.frequency is None:
                 self.frequency = (11, 15)
             self.rolloff = 0.9
@@ -88,6 +74,21 @@ class DetectSpindle:
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .04}  # is in fact sigma
 
+        elif method == 'Moelle2011':
+            if self.frequency is None:
+                self.frequency = (9, 15)
+            self.rolloff = 1.7
+            self.det_remez = {'freq': self.frequency,
+                              'rolloff': self.rolloff,
+                              'dur': 1.18
+                               }
+            self.duration = (0.5, 3)
+            self.det_wavelet = {'sd': None}
+            self.det_thresh_lo = 1.5
+            self.sel_thresh = None
+            self.moving_rms = {'dur': .2}
+            self.smooth = {'dur': .2}
+        
         elif method == 'Wamsley2012':
             if self.frequency is None:
                 self.frequency = (12, 15)
@@ -101,6 +102,19 @@ class DetectSpindle:
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .1}
 
+        elif method == 'FASST':
+            if self.frequency is None:
+                self.frequency = (11, 18)
+            self.det_butter = {'freq': self.frequency,
+                               'order': 4}
+            self.duration = (.4, 1.3)
+            self.det_wavelet = {'sd': None}
+            self.det_thresh_lo = 90
+            self.sel_thresh = None
+            self.moving_rms = {'dur': .1}
+            self.smooth = {'dur': .1}
+            self.min_interval = 1
+        
         elif method == 'UCSD':
             if self.frequency is None:
                 self.frequency = (10, 16)
@@ -201,7 +215,7 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_Nir2011(dat_orig,
                                                              data.s_freq,
                                                              time, self)
-
+            
             elif self.method == 'Wamsley2012':
                 sp_in_chan, values, density = detect_Wamsley2012(dat_orig,
                                                                  data.s_freq,
@@ -211,10 +225,16 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_UCSD(dat_orig,
                                                           data.s_freq, time,
                                                           self)
-            elif self.method == 'Moelle2002':
-                sp_in_chan, values, density = detect_Moelle2002(dat_orig,
+            elif self.method == 'Moelle2011':
+                sp_in_chan, values, density = detect_Moelle2011(dat_orig,
                                                                 data.s_freq,
                                                                 time, self)
+                
+            elif self.method == 'FASST':
+                sp_in_chan, values, density = detect_FASST(dat_orig,
+                                                           data.s_freq,
+                                                           time, self)
+            
             elif self.method == 'Concordia':
                 sp_in_chan, values, density = detect_Concordia(dat_orig,
                                                                data.s_freq,
@@ -239,6 +259,7 @@ class DetectSpindle:
             # end of loop over chan
 
         spindle.events = sorted(all_spindles, key=lambda x: x['start'])
+        lg.info(str(len(spindle.events)) + ' spindles detected.')
 
         if self.merge and len(data.axis['chan'][0]) > 1:
             spindle.events = merge_close(spindle.events, self.min_interval)
@@ -485,7 +506,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     return sp_in_chan, values, density
 
 
-def detect_Moelle2002(dat_orig, s_freq, time, opts):
+def detect_Moelle2011(dat_orig, s_freq, time, opts):
     """Spindle detection based on Moelle et al. 2011
 
     Parameters
@@ -495,8 +516,8 @@ def detect_Moelle2002(dat_orig, s_freq, time, opts):
     s_freq : float
         sampling frequency
     opts : instance of 'DetectSpindle'
-        'det_luebeck' : dict
-            parameters for 'luebeck',
+        'det_remez' : dict
+            parameters for 'remez',
         'moving_rms' : dict
             parameters for 'moving_rms'
         'smooth' : dict
@@ -518,14 +539,9 @@ def detect_Moelle2002(dat_orig, s_freq, time, opts):
     float
         spindle density, per 30-s epoch
 
-    Notes
-    -----
-    The original article does not specify a filter, but butter seems the best
-    to me.
-
     References
     ----------
-    Moelle, M. et al. Sleep 34, 1411-21 (2011).
+    Moelle, M. et al. J. Neurosci. 22(24), 10941-7 (2002).
     """
     dat_det = transform_signal(dat_orig, s_freq, 'remez', opts.det_remez)
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
@@ -556,6 +572,80 @@ def detect_Moelle2002(dat_orig, s_freq, time, opts):
 
     return sp_in_chan, values, density
 
+
+def detect_FASST(dat_orig, s_freq, time, opts):
+    """Spindle detection based on FASST method, itself based on Moelle et al. 
+    (2002).
+    
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    opts : instance of 'DetectSpindle'
+        'det_remez' : dict
+            parameters for 'remez',
+        'moving_rms' : dict
+            parameters for 'moving_rms'
+        'smooth' : dict
+            parameters for 'moving_avg'
+        'det_thresh' : float
+            detection threshold
+        'sel_thresh' : nan
+            not used, but keep it for consistency with the other methods
+        'duration' : tuple of float
+            min and max duration of spindles
+
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value_lo' with detection value, 'det_value_hi' with nan,
+        'sel_value' with nan
+    float
+        spindle density, per 30-s epoch
+
+    References
+    ----------
+    Leclercq, Y. et al. Compu. Intel. and Neurosci. (2011).
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    
+    det_value = percentile(dat_det, opts.det_thresh_lo)
+    
+    # first line is FASST, second line is FASST fix
+    #dat_det = transform_signal(dat_det, s_freq, 'abs')
+    dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+    
+    events = detect_events(dat_det, 'above_thresh', det_value)
+    lg.info('first det: ' + str(len(events)))
+
+    if events is not None:
+        events = within_duration(events, time, opts.duration)
+        lg.info('within dur: ' + str(len(events)))
+        events = _merge_close(dat_det, events, time, opts.min_interval)
+        lg.info('merged: ' + str(len(events)))
+        events = remove_straddlers(events, time, s_freq)
+        lg.info('strad removed: ' + str(len(events)))
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
+    
 
 def detect_UCSD(dat_orig, s_freq, time, opts):
     """Spindle detection based on the UCSD method
@@ -806,6 +896,15 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         b, a = butter(N, Wn, btype='bandpass')
         dat = filtfilt(b, a, dat)
         
+    if 'sosbutter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+
+        nyquist = s_freq / 2
+        Wn = asarray(freq) / nyquist
+        sos = butter(N, Wn, btype='bandpass', output='sos')
+        dat = sosfiltfilt(sos, dat)
+        
     if 'cheby2' == method:
         freq = method_opt['freq']
         N = method_opt['order']
@@ -869,7 +968,8 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         rms = zeros((ldat))
 
         for i in range(ldat):
-            rms[i] = sqrt(mean(square(dat[max(0, i - halfdur):min(ldat, i + halfdur)])))
+            rms[i] = sqrt(mean(square(
+                    dat[max(0, i - halfdur):min(ldat, i + halfdur)])))
         dat = rms
     
     if 'remez' == method:

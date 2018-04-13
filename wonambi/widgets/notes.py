@@ -63,13 +63,14 @@ lg = getLogger(__name__)
 
 MAX_FREQUENCY_OF_INTEREST = 50
 
-STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '']
+STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '7']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Wamsley2012', 
+                   'Moelle2011', 
                    'Nir2011', 
                    'Ferrarelli2007',
-                   'Moelle2002', 
+                   'FASST',
                    'UCSD', 
                    'Concordia',
                    ]
@@ -389,11 +390,13 @@ class Notes(QTabWidget):
 
         act = QAction('Spindle...', self)
         act.triggered.connect(self.parent.show_spindle_dialog)
+        act.setShortcut('Ctrl+Shift+s')
         act.setEnabled(False)
         actions['spindle'] = act
 
         act = QAction('Slow wave...', self)
         act.triggered.connect(self.parent.show_slow_wave_dialog)
+        act.setShortcut('Ctrl+Shift+w')
         act.setEnabled(False)
         actions['slow_wave'] = act
 

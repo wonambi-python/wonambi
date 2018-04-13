@@ -101,6 +101,15 @@ Further details on the original methods are provided in italics.
 #. A spindle event is identified whenever this wavelet signal exceeds a threshold, defined as ``Detection threshold, low`` [4.5] times the mean signal amplitude of all artifact-free epochs, between ``Min. duration`` [0.4] s and ``Max. duration`` s [no maximum]. In this implementation, threshold crossings define the spindle start and end times, but see next point for the original method.
 #. *The duration of each spindle was calculated as the half-height width of wavelet energy within the spindle frequency range.*
 
+**Mölle2011** - *Mölle, M. et al. (2011) Sleep 34(10), 1411-21*
+
+#. *Detection is limited to NREM signal.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase equiripple FIR filter. Authors specify -3 dB attenuation at 11.3 and 15.7 Hz (Mölle et al., J Neurosci, 2002). To achieve this, ``Lowcut`` and ``Highcut`` must be set to 12 Hz and 15 Hz, and ``Roll-off`` to 1.7 Hz.
+#. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
+#. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
+#. The detection threshold is set to the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
+#. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
+
 **Nir2011** - *Nir, Y. et al. (2011) Neuron 70, 153-69*
 
 #. *The channels with spindle activity in NREM sleep are chosen for further analysis (significant spectral power increases in spindle range as compared with a 1/f model, p ‹ 0.001, paired t-test across 10 s segments.)*
@@ -122,15 +131,6 @@ Further details on the original methods are provided in italics.
 #. Spindles are detected where the signal envelope exceeds the detection threshold, with start and end times where the envelope dips below the selection threshold, before and after the detected peak.
 #. Spindles are merged if within ``Min. interval`` (or overlapping).
 #. Spindles within ``Min. duration`` and ``Max. duration`` are retained.
-
-**Mölle2002** - *Mölle, M. et al. (2002) J Neurosci 22(24), 10941-7*
-
-#. *Detection is limited to NREM signal.*
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase equiripple FIR filter. Authors specify -3 dB attenuation at 11.3 and 15.7 Hz. To achieve this, ``Lowcut`` and ``Highcut`` must be set to 12 Hz and 15 Hz, and ``Roll-off`` to 1.7 Hz.
-#. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
-#. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
-#. The detection threshold is set to the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD.
-#. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
 
 **Concordia** - *Concordia University, Montreal; unpublished*
 
