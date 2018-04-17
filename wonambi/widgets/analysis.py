@@ -1641,9 +1641,6 @@ class AnalysisDialog(ChannelDialog):
         fm = FOOOF(peak_width_limits=pk_width, max_n_peaks=max_n_pk, 
                    min_peak_amplitude=min_pk_amp, peak_threshold=pk_thresh, 
                    background_mode=bg_mode)
-        lg.info('x: ' + str(x) + ' ' + str(type(x)))
-        lg.info('y: ' + str(y) + ' ' + str(type(y)))
-        lg.info('freq_range: ' + str(freq_range) + ' ' + str(type(freq_range)))
         fm.fit(x, y, freq_range)
         
         with open(filename, 'w', newline='') as f:
