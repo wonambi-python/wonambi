@@ -2,9 +2,9 @@
 """
 from logging import getLogger
 
-from numpy import (amax, amin, asarray, concatenate, diff, empty, in1d, 
-                   logical_and, logical_or, mean, negative, ptp, ravel, 
-                   reshape, sqrt, square, stack, zeros)
+from numpy import (amax, amin, asarray, ceil, concatenate, diff, empty, floor, 
+                   in1d, inf, logical_and, logical_or, mean, negative, ptp, 
+                   ravel, reshape, sqrt, square, stack, zeros)
 from itertools import compress
 from csv import writer
 from os.path import basename, splitext
@@ -49,6 +49,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 from .. import ChanFreq
 from ..trans import (math, filter_, frequency, get_descriptives, get_power, 
                      fetch_segments, get_times, slopes)
+from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME)
@@ -268,9 +269,18 @@ class AnalysisDialog(ChannelDialog):
 
         self.frequency = freq = {}
         
+        box_freq_main = QGroupBox()
+        
         freq['freq_on'] = FormBool('Compute frequency domain')
         freq['prep'] = FormBool('Pre-process')
         freq['plot_on'] = FormBool('Plot mean spectrum')
+        freq['fooof_on'] = FormBool('Parametrize')
+        
+        form = QFormLayout(box_freq_main)
+        form.addRow(freq['freq_on'])
+        form.addRow(freq['prep'])
+        form.addRow(freq['plot_on'])
+        form.addRow(freq['fooof_on'])
 
         freq['box_param'] = QGroupBox('Parameters')
 
@@ -298,13 +308,13 @@ class AnalysisDialog(ChannelDialog):
         freq['overlap_val'].setValue(0.5)
         freq['step_val'] = FormFloat(0.5)
 
-        glayout = QGridLayout(freq['box_welch'])
-        glayout.addWidget(QLabel('Duration (sec)'), 0, 0)
-        glayout.addWidget(freq['duration'], 0, 1)
-        glayout.addWidget(freq['overlap'], 1, 0)
-        glayout.addWidget(freq['step'], 2, 0)
-        glayout.addWidget(freq['overlap_val'], 1, 1)
-        glayout.addWidget(freq['step_val'], 2, 1)
+        grid = QGridLayout(freq['box_welch'])
+        grid.addWidget(QLabel('Duration (sec)'), 0, 0)
+        grid.addWidget(freq['duration'], 0, 1)
+        grid.addWidget(freq['overlap'], 1, 0)
+        grid.addWidget(freq['step'], 2, 0)
+        grid.addWidget(freq['overlap_val'], 1, 1)
+        grid.addWidget(freq['step_val'], 2, 1)
 
         freq['box_mtap'] = QGroupBox('Multitaper method (DPSS) smoothing')
 
@@ -312,12 +322,11 @@ class AnalysisDialog(ChannelDialog):
         freq['hbw'] = FormSpin(3, 0)
         freq['nhbw_val'] = FormSpin(min_val=0)
 
-        glayout = QGridLayout()
-        freq['box_mtap'].setLayout(glayout)
-        glayout.addWidget(QLabel('Half bandwidth (Hz)'), 0, 0)
-        glayout.addWidget(freq['nhbw'], 1, 0)
-        glayout.addWidget(freq['hbw'], 0, 1)
-        glayout.addWidget(freq['nhbw_val'], 1, 1)
+        grid = QGridLayout(freq['box_mtap'])
+        grid.addWidget(QLabel('Half bandwidth (Hz)'), 0, 0)
+        grid.addWidget(freq['nhbw'], 1, 0)
+        grid.addWidget(freq['hbw'], 0, 1)
+        grid.addWidget(freq['nhbw_val'], 1, 1)
 
         freq['box_output'] = QGroupBox('Output')
 
@@ -325,12 +334,12 @@ class AnalysisDialog(ChannelDialog):
         freq['complex'] = FormRadio('Complex')
         freq['sides'] = FormSpin(min_val=1, max_val=2)
 
-        glayout = QGridLayout(freq['box_output'])
-        glayout.addWidget(freq['spectrald'], 0, 0, 1, 3)
-        glayout.addWidget(freq['complex'], 1, 0, 1, 3)
-        glayout.addWidget(QLabel('      '), 2, 0)
-        glayout.addWidget(QLabel('Side(s)'), 2, 1)
-        glayout.addWidget(freq['sides'], 2, 2)
+        grid = QGridLayout(freq['box_output'])
+        grid.addWidget(freq['spectrald'], 0, 0, 1, 3)
+        grid.addWidget(freq['complex'], 1, 0, 1, 3)
+        grid.addWidget(QLabel('      '), 2, 0)
+        grid.addWidget(QLabel('Side(s)'), 2, 1)
+        grid.addWidget(freq['sides'], 2, 2)
 
         freq['box_nfft'] = QGroupBox('FFT Length')
         
@@ -339,11 +348,11 @@ class AnalysisDialog(ChannelDialog):
         freq['nfft_fixed_val'] = FormInt()
         freq['nfft_zeropad'] = FormRadio('Zero-pad to longest segment')
         
-        glayout = QGridLayout(freq['box_nfft'])
-        glayout.addWidget(freq['nfft_seg'], 0, 0, 1, 2)
-        glayout.addWidget(freq['nfft_fixed'], 1, 0)
-        glayout.addWidget(freq['nfft_fixed_val'], 1, 1)
-        glayout.addWidget(freq['nfft_zeropad'], 2, 0, 1, 2)
+        grid = QGridLayout(freq['box_nfft'])
+        grid.addWidget(freq['nfft_seg'], 0, 0, 1, 2)
+        grid.addWidget(freq['nfft_fixed'], 1, 0)
+        grid.addWidget(freq['nfft_fixed_val'], 1, 1)
+        grid.addWidget(freq['nfft_zeropad'], 2, 0, 1, 2)
 
         freq['box_norm'] = QGroupBox('Normalization')
 
@@ -358,13 +367,42 @@ class AnalysisDialog(ChannelDialog):
         freq['norm_stage'] = stage_box
         freq['norm_concat'] = FormBool('Concatenate')
 
-        glayout = QGridLayout(freq['box_norm'])
-        glayout.addWidget(freq['norm'], 0, 0, 1, 2)
-        glayout.addWidget(QLabel('Event type(s)'), 1, 0)
-        glayout.addWidget(QLabel('Stage(s)'), 1, 1)
-        glayout.addWidget(freq['norm_evt_type'], 2, 0)
-        glayout.addWidget(freq['norm_stage'], 2, 1)
-        glayout.addWidget(freq['norm_concat'], 3, 0, 1, 2)
+        grid = QGridLayout(freq['box_norm'])
+        grid.addWidget(freq['norm'], 0, 0, 1, 2)
+        grid.addWidget(QLabel('Event type(s)'), 1, 0)
+        grid.addWidget(QLabel('Stage(s)'), 1, 1)
+        grid.addWidget(freq['norm_evt_type'], 2, 0)
+        grid.addWidget(freq['norm_stage'], 2, 1)
+        grid.addWidget(freq['norm_concat'], 3, 0, 1, 2)
+        
+        freq['box_fooof'] = QGroupBox('Parametrization')
+        
+        freq['fo_min_freq'] = FormFloat(2.)
+        freq['fo_max_freq'] = FormFloat(30.)
+        freq['fo_pk_thresh'] = FormFloat(2.)
+        freq['fo_pk_width_min'] = FormFloat(.5)
+        freq['fo_pk_width_max'] = FormFloat(12.)
+        freq['fo_max_n_pk'] = FormInt()
+        freq['fo_min_pk_amp'] = FormFloat(0)
+        freq['fo_bg_mode'] = FormMenu(['fixed', 'knee'])
+        
+        form = QFormLayout(freq['box_fooof'])
+        form.addRow('Min. frequency (Hz)',
+                    freq['fo_min_freq'])
+        form.addRow('Max. frequency (Hz)',
+                    freq['fo_max_freq'])
+        form.addRow('Peak threshold (SD)',
+                    freq['fo_pk_thresh'])
+        form.addRow('Max. number of peaks',
+                    freq['fo_max_n_pk'])
+        form.addRow('Min. peak amplitude', 
+                    freq['fo_min_pk_amp'])
+        form.addRow('Min. peak width (Hz)',
+                    freq['fo_pk_width_min'])
+        form.addRow('Max. peak width (Hz)',
+                    freq['fo_pk_width_max'])
+        form.addRow('Background fitting mode',
+                    freq['fo_bg_mode'])
 
         freq['box_plot'] = QGroupBox('Plot')
 
@@ -375,23 +413,25 @@ class AnalysisDialog(ChannelDialog):
         freq['max_x_axis'] = FormFloat()
 
         flayout = QFormLayout(freq['box_plot'])
-        flayout.addRow(freq['plot_on'])
         flayout.addRow('Title:',
                        freq['title'])
 
-        glayout = QGridLayout()
-        glayout.addWidget(freq['box_param'], 0, 0)
-        glayout.addWidget(freq['box_output'], 0, 1)
-        glayout.addWidget(freq['box_welch'], 1, 0)
-        glayout.addWidget(freq['box_norm'], 1, 1, 3, 1)
-        glayout.addWidget(freq['box_nfft'], 2, 0)
-        glayout.addWidget(freq['box_mtap'], 3, 0)
+        grid = QGridLayout()
+        grid.addWidget(box_freq_main, 0, 0)
+        grid.addWidget(freq['box_param'], 1, 0)
+        grid.addWidget(freq['box_welch'], 2, 0)
+        grid.addWidget(freq['box_nfft'], 3, 0)
+        grid.addWidget(freq['box_mtap'], 4, 0)
+        grid.addWidget(freq['box_output'], 0, 1)
+        grid.addWidget(freq['box_norm'], 1, 1, 2, 1)
+        grid.addWidget(freq['box_fooof'], 3, 1, 3, 1)
 
         vlayout = QVBoxLayout(tab_freq)
-        vlayout.addWidget(freq['freq_on'])
-        vlayout.addWidget(freq['prep'])
-        vlayout.addWidget(freq['plot_on'])
-        vlayout.addLayout(glayout)
+        #vlayout.addWidget(freq['freq_on'])
+        #vlayout.addWidget(freq['prep'])
+        #vlayout.addWidget(freq['plot_on'])
+        #vlayout.addWidget(freq['fooof_on'])
+        vlayout.addLayout(grid)
         vlayout.addStretch(1)
 
         """ ------ PAC ------ """
@@ -617,6 +657,7 @@ class AnalysisDialog(ChannelDialog):
         
         freq['freq_on'].connect(self.toggle_freq)
         freq['plot_on'].connect(self.toggle_freq)
+        freq['fooof_on'].connect(self.toggle_freq)
         freq['taper'].connect(self.toggle_freq)
         freq['welch_on'].connect(self.toggle_freq)
         freq['complex'].connect(self.toggle_freq)
@@ -662,6 +703,7 @@ class AnalysisDialog(ChannelDialog):
         freq['box_mtap'].setEnabled(False)
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
+        freq['box_fooof'].setEnabled(False)
         # freq['box_plot'].setEnabled(False)
         freq['welch_on'].set_value(True)
         freq['nfft_seg'].setChecked(True)
@@ -863,6 +905,7 @@ class AnalysisDialog(ChannelDialog):
         if not freq_on:
             freq['prep'].set_value(False)
         freq['plot_on'].setEnabled(freq_on and rectangular)
+        freq['fooof_on'].setEnabled(freq_on and rectangular)
         freq['box_norm'].setEnabled(freq_on and \
             (welch_on or nfft_fixed_on or zeropad_on))
         if not freq['plot_on'].isEnabled():
@@ -890,6 +933,9 @@ class AnalysisDialog(ChannelDialog):
         freq['norm_evt_type'].setEnabled(norm_evt)
         freq['norm_stage'].setEnabled(norm_stage)
         freq['norm_concat'].setEnabled(norm_evt or norm_stage)
+        
+        fooof_on = freq['fooof_on'].get_value()
+        freq['box_fooof'].setEnabled(fooof_on)
 
     def toggle_pac(self):
         """Enable and disable PAC options."""
@@ -1016,6 +1062,7 @@ class AnalysisDialog(ChannelDialog):
             freq = self.frequency
             freq_on = freq['freq_on'].get_value()
             freq_plot_on = freq['plot_on'].get_value()
+            freq_fooof_on = freq['fooof_on'].get_value()
             freq_prep = freq['prep'].get_value()
             
             if Pac is not None:
@@ -1106,10 +1153,14 @@ class AnalysisDialog(ChannelDialog):
                     lg.info('exporting to csv')
                     self.export_freq(xfreq, desc)
                     
-                    if freq_plot_on:
-                        x = list(xfreq[0]['data'].axis['freq'][0])
-                        y = desc['mean']
+                    x = list(xfreq[0]['data'].axis['freq'][0])
+                    y = desc['mean']
+                    
+                    if freq_plot_on:                        
                         self.plot_freq(x, y, title=self.title)
+                        
+                    if freq_fooof_on:
+                        self.report_fooof(asarray(x), y)
 
             # PAC
             if pac_on:
@@ -1543,7 +1594,7 @@ class AnalysisDialog(ChannelDialog):
 
         Parameters
         ----------
-        x : ndarray
+        x : list
             vector with frequencies
         y : ndarray
             vector with amplitudes
@@ -1561,6 +1612,78 @@ class AnalysisDialog(ChannelDialog):
         self.parent.plot_dialog = PlotDialog(self.parent)
         self.parent.plot_dialog.canvas.plot(x, y, title, ylabel)
         self.parent.show_plot_dialog()
+
+    def report_fooof(self, x, y):
+        """Create FOOOF (fitting oscillations and 1/f) report.
+        
+        Parameters
+        ----------
+        x : ndarray
+            vector with frequencies
+        y : ndarray
+            vector with amplitudes
+        """
+        filename = splitext(self.filename)[0] + '_fooof.csv'
+
+        freq = self.frequency  
+        freq_range = [freq['fo_min_freq'].get_value(), 
+                      freq['fo_max_freq'].get_value()]
+        pk_thresh = freq['fo_pk_thresh'].get_value()
+        pk_width = [freq['fo_pk_width_min'].get_value(), 
+                    freq['fo_pk_width_max'].get_value()]
+        max_n_pk = freq['fo_max_n_pk'].get_value()
+        min_pk_amp = freq['fo_min_pk_amp'].get_value()
+        bg_mode = freq['fo_bg_mode'].get_value()
+        
+        if max_n_pk == 0:
+            max_n_pk = inf
+        
+        fm = FOOOF(peak_width_limits=pk_width, max_n_peaks=max_n_pk, 
+                   min_peak_amplitude=min_pk_amp, peak_threshold=pk_thresh, 
+                   background_mode=bg_mode)
+        lg.info('x: ' + str(x) + ' ' + str(type(x)))
+        lg.info('y: ' + str(y) + ' ' + str(type(y)))
+        lg.info('freq_range: ' + str(freq_range) + ' ' + str(type(freq_range)))
+        fm.fit(x, y, freq_range)
+        
+        with open(filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(filename))
+            csv_file = writer(f)
+            csv_file.writerow(['FOOOF - POWER SPECTRUM MODEL']) 
+            csv_file.writerow('')
+            csv_file.writerow(['The model was run on the frequency range '
+                              '{} - {} Hz'.format(int(floor(fm.freq_range[0])), 
+                               int(ceil(fm.freq_range[1])))])
+            csv_file.writerow(['Frequency Resolution is {:1.2f} Hz'.format(
+                    fm.freq_res)])
+            csv_file.writerow('')
+            csv_file.writerow(['Background Parameters (offset, ' + \
+                    ('knee, ' if fm.background_mode == 'knee' else '') + \
+                    'slope): ' + ', '.join(['{:2.4f}'] * \
+                    len(fm.background_params_)).format(
+                            *fm.background_params_)])
+            csv_file.writerow('')
+            csv_file.writerow(['{} peaks were found:'.format(
+                    len(fm.peak_params_))])
+            csv_file.writerow('')
+            csv_file.writerow(['Index', 'CF', 'Amp', 'BW'])
+            
+            for i, op in enumerate(fm.peak_params_):
+                csv_file.writerow([i, op[0], op[1], op[2]])            
+            
+            csv_file.writerow('')
+            csv_file.writerow(['Goodness of fit metrics:'])
+            csv_file.writerow(['R^2 of model fit is {:5.4f}'.format(
+                    fm.r_squared_)])
+            csv_file.writerow(['Root mean squared error is {:5.4f}'.format(
+                    fm.error_)])
+            csv_file.writerow('')
+            csv_file.writerow(['Haller M, Donoghue T, Peterson E, Varma P, '
+                               'Sebastian P, Gao R, Noto T, Knight RT, '
+                               'Shestyuk A, Voytek B (2018) Parameterizing '
+                               'Neural Power Spectra. bioRxiv, 299859. doi: '
+                               'https://doi.org/10.1101/299859'])
+
 
     def compute_pac(self):
         """Compute phase-amplitude coupling values from data."""
