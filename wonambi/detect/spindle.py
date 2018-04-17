@@ -102,7 +102,7 @@ class DetectSpindle:
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .1}
 
-        elif method == 'FASST':
+        elif 'FASST' in method:
             if self.frequency is None:
                 self.frequency = (11, 18)
             self.det_butter = {'freq': self.frequency,
@@ -233,8 +233,14 @@ class DetectSpindle:
             elif self.method == 'FASST':
                 sp_in_chan, values, density = detect_FASST(dat_orig,
                                                            data.s_freq,
-                                                           time, self)
-            
+                                                           time, self,
+                                                           submethod='abs')
+                
+            elif self.method == 'FASST2':
+                sp_in_chan, values, density = detect_FASST(dat_orig,
+                                                           data.s_freq,
+                                                           time, self,
+                                                           submethod='rms')            
             elif self.method == 'Concordia':
                 sp_in_chan, values, density = detect_Concordia(dat_orig,
                                                                data.s_freq,
@@ -515,6 +521,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         vector with the data for one channel
     s_freq : float
         sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
     opts : instance of 'DetectSpindle'
         'det_remez' : dict
             parameters for 'remez',
@@ -573,7 +581,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     return sp_in_chan, values, density
 
 
-def detect_FASST(dat_orig, s_freq, time, opts):
+def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
     """Spindle detection based on FASST method, itself based on Moelle et al. 
     (2002).
     
@@ -583,6 +591,8 @@ def detect_FASST(dat_orig, s_freq, time, opts):
         vector with the data for one channel
     s_freq : float
         sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
     opts : instance of 'DetectSpindle'
         'det_remez' : dict
             parameters for 'remez',
@@ -596,6 +606,8 @@ def detect_FASST(dat_orig, s_freq, time, opts):
             not used, but keep it for consistency with the other methods
         'duration' : tuple of float
             min and max duration of spindles
+    submethod : str
+        'abs' (rectified) or 'rms' (root-mean-square)
 
     Returns
     -------
@@ -615,21 +627,20 @@ def detect_FASST(dat_orig, s_freq, time, opts):
     
     det_value = percentile(dat_det, opts.det_thresh_lo)
     
-    # first line is FASST, second line is FASST fix
-    #dat_det = transform_signal(dat_det, s_freq, 'abs')
-    dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
+    if submethod == 'abs':
+        dat_det = transform_signal(dat_det, s_freq, 'abs')
+    elif submethod == 'rms':
+        dat_det = transform_signal(dat_det, s_freq, 'moving_rms', 
+                                   opts.moving_rms)
+        
     dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
     
     events = detect_events(dat_det, 'above_thresh', det_value)
-    lg.info('first det: ' + str(len(events)))
 
     if events is not None:
         events = within_duration(events, time, opts.duration)
-        lg.info('within dur: ' + str(len(events)))
         events = _merge_close(dat_det, events, time, opts.min_interval)
-        lg.info('merged: ' + str(len(events)))
         events = remove_straddlers(events, time, s_freq)
-        lg.info('strad removed: ' + str(len(events)))
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)

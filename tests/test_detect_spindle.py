@@ -42,8 +42,13 @@ def test_detect_spindle_FASST():
     detsp = DetectSpindle(method='FASST')
 
     sp = detsp(data)
-    assert len(sp.events) == 6
+    assert len(sp.events) == 4
 
+def test_detect_spindle_FASST2():
+    detsp = DetectSpindle(method='FASST2')
+
+    sp = detsp(data)
+    assert len(sp.events) == 6
 
 def test_detect_spindle_UCSD():
     detsp = DetectSpindle(method='UCSD')

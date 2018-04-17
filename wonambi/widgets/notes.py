@@ -71,6 +71,7 @@ SPINDLE_METHODS = ['Wamsley2012',
                    'Nir2011', 
                    'Ferrarelli2007',
                    'FASST',
+                   'FASST2',
                    'UCSD', 
                    'Concordia',
                    ]

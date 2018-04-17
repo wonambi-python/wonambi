@@ -141,6 +141,22 @@ Further details on the original methods are provided in italics.
 #. RMS rises between the low and high detection thresholds are considered putative spindles, and those located within ``Min. interval`` [0.2] s are merged.
 #. A threshold of mean + ``Selection threshold`` [1] SD defines start and end times, and events with duration between ``Min. duration`` [0.5] s and ``Max. duration`` [2] s are selected for further analysis.
 
+**FASST** - *Leclerq, Y. et al. (2011) Compu. Intel. Neurosci. 1-11*
+
+#. Signal is bandpass filtered between ``Lowcut`` [11] and ``Highcut`` [18] using a zero-phase 8th order Butterworth filter.
+#. The detection threshold is set as the ``Detection threshold, low`` th percentile of the filtered signal. *Authors use only N2 signal to set the threshold.*
+#. The filtered signal is rectified, yielding the detection signal.
+#. The detection signal is smoothed with a moving average of window size = ``Smoothing`` [0.1].
+#. Spindles are detected as rises in the detection signal above the detection threshold, lasting between ``Min. duration`` [0.4] and ``Max. duration`` [1.3].
+#. Detected spindles separated by less than ``Min. interval`` [1] are merged.
+#. *Spindles overlapping across channels are merged.*
+
+**FASST2** - *Leclerq, Y. et al. (2011) Compu. Intel. Neurosci. 1-11*
+
+This method is identical to FASST, except step 3 is replaced with the following step:
+
+3. The root-mean-square of the filtered signal is taken, with a moving window of size = ``Detection window`` [0.1] s, yielding the detection signal.
+
 **UCSD** - *University of California, San Diego; unpublished*
 
 #. The raw EEG signal is subjected to a time-frequency transformation using real wavelets with frequencies from ``Lowcut`` to ``Highcut`` at 0.5-Hz intervals, with width = 0.5 s and with window size = ``Detection window`` [1] s.
