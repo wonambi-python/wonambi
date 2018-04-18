@@ -61,7 +61,8 @@ Attributes
 ----------
 background_params : 1d array, len 2 or 3
     Parameters that define the background fit. As [Intercept, (Knee), Slope].
-        The knee parameter is only included if background fit with knee. Otherwise, length is 2.
+    The knee parameter is only included if background fit with knee. 
+    Otherwise, length is 2.
 peak_params : 2d array, shape=[n_peaks, 3]
     Fitted parameter values for the peaks. Each row is a peak, as [CF, Amp, BW].
 r_squared : float

@@ -27,10 +27,10 @@ def get_band_peak_group(peak_params, band_def, n_fits):
     - This function conserves the shape of the array, return a [n_fits, 3] array.
       - Each row reflects a FOOOF model fit, in order, filled with NaN if no peak was present.
     - To do so, this function necessarily extracts and returns one peak per model fit.
-    - For extracting all peaks within a band, per model fit, you can do:
-    $ peaks = np.empty((0, 3))
-    $ for f_res in fg:
-    $     peaks = np.vstack((peaks, get_band_peak(f_res.peak_params, band_def, ret_one=False)))
+    - For extracting all peaks within a band, per model fit, you can do::
+        peaks = np.empty((0, 3))
+        for f_res in fg:
+            peaks = np.vstack((peaks, get_band_peak(f_res.peak_params, band_def, ret_one=False)))
     """
 
     band_peaks = np.zeros(shape=[n_fits, 3])

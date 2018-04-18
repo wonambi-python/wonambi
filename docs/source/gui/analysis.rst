@@ -23,6 +23,7 @@ The analysis console creates CSV files containing the raw analysis data, with su
 * _freq: Frequency
 * _pac: PAC
 * _evtdat: Events
+* _fooof: Spectral parametrization report
 
 .. NOTE::
    These data files can become quite large depending on the analysis.
@@ -113,12 +114,14 @@ For an in-depth discussion of the tools, see Analysis/Frequency Domain.
 To activate frequency domain analysis, check ``Compute frequency domain``.
 To apply the selected pre-processing before the frequency domain analysis, check ``Pre-process``.
 To obtain a summary spectral plot, averaging all segments and channels, check ``Plot mean spectrum``.
+To obtain a parametrization of the periodic components of the signal using the FOOOF algorithm (Haller et al., 2018), check ``Parametrize``.
 
 .. NOTE::
    The mean spectrum can only be obtained if each transformed segment has the same number of frequency bins, i.e. the same frequency granularity.
    Frequency granularity is set by the FFT length, which in a simple periodogram is equal to the segment length.
    As a result, it is not possible to obtain the mean of a simple periodogram if the input segments vary in length, as would likely be the case if analyzing events or longest runs.
    There are a few workarounds:
+   
       1) Use a ``Time-averaged`` periodogram, a.k.a. Welch's method; in this case, FFT length is set by the time window ``Duration``. However, time-averaging is impractical for short data segments such as spindles.
       2) Set a ``Fixed`` FFT length; in this case, shorter segments will be zero-padded to the FFT length, but longer segments will be truncated (not recommended).
       3) Use ``Zero-pad to longest segment`` to set FFT length to the longest segment and zero-pad all shorter ones. This option is recommended for short data segments such as spindles.
@@ -207,6 +210,39 @@ To do this, check ``Concatenate``.
    Like the mean spectral plot, normalization is only available if each segment has the same frequency granularity.
    See the note about frequency granularity above.
    
+**Parametrization**
+
+Wonambi allows parametrization of power spectra using the FOOOF algorithm: 
+
+Haller M, Donoghue T, Peterson E, Varma P, Sebastian P, Gao R, Noto T, Knight RT, Shestyuk A,
+Voytek B (2018) Parameterizing Neural Power Spectra. bioRxiv, 299859.
+doi: https://doi.org/10.1101/299859
+
+From the FOOOF Github page:
+
+   FOOOF is a fast, efficient, physiologically-informed model to parameterize neural power spectra, characterizing both the 1/f background, and overlying peaks (putative oscillations).
+   
+   The model conceives of the neural power spectrum as consisting of two distinct functional processes:
+   
+     * A 1/f background, modeled with an exponential fit, with:
+     * Band-limited peaks rising above this background (modeled as Gaussians).
+     
+   With regards to examing peaks in the frequency domain, as putative oscillations, the benefit of the FOOOF approach is that these peaks are characterized in terms of their specific center frequency, amplitude and bandwidth without requiring predefining specific bands of interest. 
+   In particular, it separates these peaks from a dynamic, and independently interesting 1/f background. 
+
+If selected, the algorithm will create a CSV report:
+
+.. image:: images/analysis_04_fooofreport.png 
+
+You may adjust the following parameters:
+
+* ``Min. frequency`` and ``Max. frequency``: set the frequency range across which to model the spectrum.
+* ``Peak threshold``: sets a threshold above which a peak amplitude must cross to be included in the model. This parameter is in terms of standard deviation above the noise of the flattened spectrum.
+* ``Max. number of peaks``: sets the maximum number of peaks to fit (in decreasing order of amplitude).
+* ``Min. peak amplitude``: sets an absolute limit on the minimum amplitude (above background) for any extracted peak.
+* ``Min. peak width`` and ``Max. peak width``: set the possible lower- and upper-bounds for the fitted peak widths.
+* ``Background fitting mode``: 'knee' allows for modelling bends, or knees, in the aperioic signal that are present in broad frequency ranges, especially in intracranial recordings. 'fixed' models with a zero knee parameter.
+
 Phase-amplitude coupling (PAC)
 ------------------------------
 

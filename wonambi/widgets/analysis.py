@@ -1269,7 +1269,7 @@ class AnalysisDialog(ChannelDialog):
         """Apply pre-processing transformation to data, and add it to data 
         dict.
         
-        Parmeters
+        Parameters
         ---------
         data : instance of Segments
             segments including 'data' (ChanTime)
