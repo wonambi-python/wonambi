@@ -91,10 +91,23 @@ Further details on the original methods are provided in italics.
 
 *Spindle detection methods*
 
+**Ray2015** - *Ray, L. B. et al. (2015) Front. Hum. Neurosci. 9-16*
+
+#. The artefact-free signal is bandpass filtered between 0.3 Hz and 35 Hz, using a zero-phase 8th (4x2) order Butterworth filter.
+#. Complex demodulation is deployed on the data about the frequency of interest, set by the mean of ``Lowcut`` [11] and ``Highcut`` [16] (Hz).
+#. The complex demodulated signal is lowpass filtered below 5 Hz, using a zero-phase 8th (4x2) order Butterworth filter.
+#. The lowpass filtered signal is smoothed using a triangle convolution, with window size set by ``Smoothing`` [2 / frequency of interest] (sec).
+#. The square of the absolute value of the complex, smoothed signal is taken.
+#. The resulting signal is converted into a z-score signal, with a sliding window set by ``Detection window`` [60] (sec).
+#. Spindles are detected where the z-score signal exceeds ``Detection threshold, low`` [2.33].
+#. Spindle start and end times are defined where the z-score signal surrounding a detected spindle drops below ``Selection threshold`` [0.1].
+#. Spindles separated by less than ``Min. interval`` [0.25] sec are merged. *Instead of merging spindles, authors excluded spindles beginning less than 0.25 s after of a detected spindle.*
+#. Spindles within ``Min. duration`` [0.49] sec and ``Max. duration`` [None] are retained.
+
 **Wamsley2012** - *Wamsley, E. J. et al. (2012) Biol. Psychiatry 71, 154-61*
 
 #. *Detection is limited to NREM2 signal, filtered between 0.5-35 Hz.*
-#. The artifact-free EEG signal is subjected to a time-frequency transformation using an 8-parameter complex Morlet wavelet with the average of ``Lowcut`` and ``Highcut`` as the frequency, with σ = ``Wavelet sigma`` [0.5] s and with window size = ``Detection window`` [1] s.
+#. The artefact-free EEG signal is subjected to a time-frequency transformation using an 8-parameter complex Morlet wavelet with the average of ``Lowcut`` and ``Highcut`` as the frequency, with σ = ``Wavelet sigma`` [0.5] s and with window size = ``Detection window`` [1] s.
 #. The resulting complex-valued time series is squared.
 #. The imaginary component of the time-series is discarded, and the remaining real-valued time series is squared again.
 #. The moving average of the real signal is calculated, using a sliding window of size = ``Smoothing`` [0.1] s.
@@ -113,7 +126,7 @@ Further details on the original methods are provided in italics.
 **Nir2011** - *Nir, Y. et al. (2011) Neuron 70, 153-69*
 
 #. *The channels with spindle activity in NREM sleep are chosen for further analysis (significant spectral power increases in spindle range as compared with a 1/f model, p ‹ 0.001, paired t-test across 10 s segments.)*
-#. The EEG signal is bandpass filtered between ``Lowcut`` Hz and ``Highcut`` Hz with a zero-phase 4th order Butterworth filter. Authors specify -3 dB attenuation at 9.2 Hz and 16.8 Hz. To achieve this with a 4th order filter, ``Lowcut`` and ``Highcut`` must be set to 9.2 Hz and 16.8 Hz, respectively.
+#. The EEG signal is bandpass filtered between ``Lowcut`` Hz and ``Highcut`` Hz with a zero-phase 4th (2x2) order Butterworth filter. Authors specify -3 dB attenuation at 9.2 Hz and 16.8 Hz. To achieve this with a 4th order filter, ``Lowcut`` and ``Highcut`` must be set to 9.2 Hz and 16.8 Hz, respectively.
 #. Instantaneous amplitude in the sigma frequency is extracted via the Hilbert transform.
 #. To avoid excessive multiple crossings of thresholds within the same spindle event, instantaneous amplitude is temporally smoothed using a Gaussian kernel of σ = ``Smoothing`` [0.4] s.
 #. Events with amplitude greater than mean + ``Detection threshold, low`` [3] SD (computed across all artifact-free NREM sleep epochs) are considered putative spindles and detections within ``Min. interval`` [1] s are merged.
@@ -134,7 +147,7 @@ Further details on the original methods are provided in italics.
 
 **Concordia** - *Concordia University, Montreal; unpublished*
 
-#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` with a zero-phase 6th order Butterworth filter.
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` with a zero-phase 6th (3x2) order Butterworth filter.
 #. The root-mean-square of the signal is taken, with a moving window of size = ``Detection window`` [0.2] s.
 #. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing`` [0.2] s.
 #. The low and high detection thresholds are set at the mean of the RMS signal + ``Detection threshold, low`` [1.5] x RMS signal SD, and mean + ``Detection threshold, high`` [10] x SD, respectively.
@@ -143,7 +156,7 @@ Further details on the original methods are provided in italics.
 
 **FASST** - *Leclerq, Y. et al. (2011) Compu. Intel. Neurosci. 1-11*
 
-#. Signal is bandpass filtered between ``Lowcut`` [11] and ``Highcut`` [18] using a zero-phase 8th order Butterworth filter.
+#. Signal is bandpass filtered between ``Lowcut`` [11] and ``Highcut`` [18] using a zero-phase 8th (4x2) order Butterworth filter.
 #. The detection threshold is set as the ``Detection threshold, low`` th percentile of the filtered signal. *Authors use only N2 signal to set the threshold.*
 #. The filtered signal is rectified, yielding the detection signal.
 #. The detection signal is smoothed with a moving average of window size = ``Smoothing`` [0.1].
@@ -174,7 +187,7 @@ This method is identical to FASST, except step 3 is replaced with the following 
 #. *256-channel EEG is re-referenced to the average of the signals from the earlobes.*
 #. *EEG signal is locally averaged over 4 non-overlapping regions of the scalp.*
 #. *Detection is limited to NREM signal.*
-#. The signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase 4th order Butterworth filter. Wonambi's implementation applies the filter sequentially to avoid numerical instability: first lowpass, the highpass.
+#. The signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase 4th (2x2) order Butterworth filter. Wonambi's implementation applies the filter sequentially to avoid numerical instability: first lowpass, the highpass.
 #. Slow waves are detected when the following 3 criteria are met:
    * A negative zero crossing and a subsequent positive zero crossing separated by ``Min. trough duration`` [0.3] and ``Max. trough duration`` [1.0] s.
    * A negative peak between the two zero crossings with voltage less than ``Max. trough amplitude`` [-80] μV

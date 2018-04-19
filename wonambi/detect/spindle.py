@@ -336,38 +336,23 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
     """
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
     dat_det = transform_signal(dat_det, s_freq, 'cdemod', opts.cdemod)
-    lg.info('max cd: {}, min cd: {}, mean cd: {}'.format(max(dat_det), 
-            min(dat_det), mean(dat_det)))
     dat_det = transform_signal(dat_det, s_freq, 'low_butter', 
                                opts.det_low_butter)
-    lg.info('max fs: {}, min fs: {}, mean fs: {}'.format(max(dat_det), 
-            min(dat_det), mean(dat_det)))
     dat_det = transform_signal(dat_det, s_freq, 'tri_smooth', opts.smooth)
-    lg.info('max ts: {}, min ts: {}, mean ts: {}'.format(max(dat_det), 
-            min(dat_det), mean(dat_det)))
     dat_det = transform_signal(dat_det, s_freq, 'abs2')
-    lg.info('max as: {}, min as: {}, mean as: {}'.format(max(dat_det), 
-            min(dat_det), mean(dat_det)))
     dat_det = transform_signal(dat_det, s_freq, 'zscore', opts.zwin)
-    lg.info('max z: {}, min z: {}, mean z: {}'.format(max(dat_det), 
-            min(dat_det), mean(dat_det)))
     
     det_value = opts.det_thresh_lo
     sel_value = opts.sel_thresh
     
     events = detect_events(dat_det, 'above_thresh', det_value)
-    lg.info('first det: ' + str(len(events)))
     
     if events is not None:
         events = select_events(dat_det, events, 'above_thresh', sel_value)
-        lg.info('select: ' + str(len(events)))
         
         events = _merge_close(dat_det, events, time, opts.min_interval)
-        lg.info('merged: ' + str(len(events)))
         events = within_duration(events, time, opts.duration)
-        lg.info('within dur: ' + str(len(events)))
         events = remove_straddlers(events, time, s_freq)
-        lg.info('straddle: ' + str(len(events)))
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
