@@ -102,6 +102,22 @@ class DetectSpindle:
             self.moving_rms = {'dur': None}
             self.smooth = {'dur': .1}
 
+        elif method == 'Ray2015':
+            if self.frequency is None:
+                self.frequency = (11, 16)
+            self.cdemod = {'freq': mean(self.frequency)}
+            self.det_butter = {'freq': (0.3, 35),
+                               'order': 4}
+            self.det_low_butter = {'freq': 5,
+                                   'order': 4}
+            self.duration = (.49, None)
+            self.det_wavelet = {'sd': None}
+            self.det_thresh_lo = 2.33
+            self.sel_thresh = 0.1
+            self.smooth = {'dur': 2 / self.cdemod['freq']}
+            self.min_interval = 0.25 # they only start looking again after .25s
+            self.zwin = {'dur': 60}
+        
         elif 'FASST' in method:
             if self.frequency is None:
                 self.frequency = (11, 18)
@@ -230,6 +246,11 @@ class DetectSpindle:
                                                                 data.s_freq,
                                                                 time, self)
                 
+            elif self.method == 'Ray2015':
+                sp_in_chan, values, density = detect_Ray2015(dat_orig,
+                                                            data.s_freq,
+                                                            time, self)
+                
             elif self.method == 'FASST':
                 sp_in_chan, values, density = detect_FASST(dat_orig,
                                                            data.s_freq,
@@ -275,6 +296,93 @@ class DetectSpindle:
         
         return spindle
 
+
+def detect_Ray2015(dat_orig, s_freq, time, opts):
+    """Spindle detection based on Ray et al., 2015
+    
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
+    opts : instance of 'DetectSpindle'
+        'det_wavelet' : dict
+            parameters for 'morlet',
+        'smooth' : dict
+            parameters for 'moving_avg'
+        'det_thresh' : float
+            detection threshold
+        'sel_thresh' : nan
+            not used, but keep it for consistency with the other methods
+        'duration' : tuple of float
+            min and max duration of spindles
+
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value_lo' with detection value, 'det_value_hi' is nan,
+        'sel_value' is nan (for consistency with other methods)
+    float
+        spindle density, per 30-s epoch
+
+    References
+    ----------
+    Ray, L. B. et al. Front. Hum. Neurosci. 9-16 (2015).
+    """
+    dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_det, s_freq, 'cdemod', opts.cdemod)
+    lg.info('max cd: {}, min cd: {}, mean cd: {}'.format(max(dat_det), 
+            min(dat_det), mean(dat_det)))
+    dat_det = transform_signal(dat_det, s_freq, 'low_butter', 
+                               opts.det_low_butter)
+    lg.info('max fs: {}, min fs: {}, mean fs: {}'.format(max(dat_det), 
+            min(dat_det), mean(dat_det)))
+    dat_det = transform_signal(dat_det, s_freq, 'tri_smooth', opts.smooth)
+    lg.info('max ts: {}, min ts: {}, mean ts: {}'.format(max(dat_det), 
+            min(dat_det), mean(dat_det)))
+    dat_det = transform_signal(dat_det, s_freq, 'abs2')
+    lg.info('max as: {}, min as: {}, mean as: {}'.format(max(dat_det), 
+            min(dat_det), mean(dat_det)))
+    dat_det = transform_signal(dat_det, s_freq, 'zscore', opts.zwin)
+    lg.info('max z: {}, min z: {}, mean z: {}'.format(max(dat_det), 
+            min(dat_det), mean(dat_det)))
+    
+    det_value = opts.det_thresh_lo
+    sel_value = opts.sel_thresh
+    
+    events = detect_events(dat_det, 'above_thresh', det_value)
+    lg.info('first det: ' + str(len(events)))
+    
+    if events is not None:
+        events = select_events(dat_det, events, 'above_thresh', sel_value)
+        lg.info('select: ' + str(len(events)))
+        
+        events = _merge_close(dat_det, events, time, opts.min_interval)
+        lg.info('merged: ' + str(len(events)))
+        events = within_duration(events, time, opts.duration)
+        lg.info('within dur: ' + str(len(events)))
+        events = remove_straddlers(events, time, s_freq)
+        lg.info('straddle: ' + str(len(events)))
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
 
 def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     """Spindle detection based on Wamsley et al. 2012
@@ -839,6 +947,10 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         order : int
             filter order (will be effecively doubled by filtfilt)
 
+    cdemod has parameters:
+        freq : float
+            carrier frequency for complex demodulation
+    
     cheby2 has parameters:
         freq : tuple of float
             low and high values for bandpass
@@ -894,9 +1006,20 @@ def transform_signal(dat, s_freq, method, method_opt=None):
             bandwidth, in hertz, between stop and pass frequencies
         dur : float
             dur * s_freq = N, where N is the filter order, a.k.a number of taps
+                
+    tri_smooth has parameters:
+        dur : float
+            length of convolution window, base of isosceles triangle
+    
+    zscore has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
     """
     if 'abs' == method:
         dat = absolute(dat)
+        
+    if 'abs2' == method:
+        dat = dat.real**2 + dat.imag**2
 
     if 'butter' == method:
         freq = method_opt['freq']
@@ -916,6 +1039,12 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         sos = butter(N, Wn, btype='bandpass', output='sos')
         dat = sosfiltfilt(sos, dat)
         
+    if 'cdemod' == method:
+        carr_freq = method_opt['freq']
+        carr_sig = exp(-1j * 2 * pi * carr_freq * arange(0, len(dat)) / s_freq)
+        
+        dat = dat * carr_sig        
+    
     if 'cheby2' == method:
         freq = method_opt['freq']
         N = method_opt['order']
@@ -975,12 +1104,12 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     if 'moving_rms' == method:
         dur = method_opt['dur']
         halfdur = int(floor(s_freq * dur / 2))
-        ldat = len(dat)
-        rms = zeros((ldat))
+        lendat = len(dat)
+        rms = zeros((lendat))
 
-        for i in range(ldat):
+        for i in range(lendat):
             rms[i] = sqrt(mean(square(
-                    dat[max(0, i - halfdur):min(ldat, i + halfdur)])))
+                    dat[max(0, i - halfdur):min(lendat, i + halfdur)])))
         dat = rms
     
     if 'remez' == method:
@@ -1009,6 +1138,29 @@ def transform_signal(dat, s_freq, method, method_opt=None):
             x = abs(fftconvolve(dat, one_wm, mode='same'))
             tfr[:, i] = fftconvolve(x, tukey(win), mode='same')
         dat = mean(tfr, axis=1)
+        
+    if 'tri_smooth' == method:
+        T = int(method_opt['dur'] * s_freq / 2)
+        a = arange(T, 0, -1)
+        
+        H = hstack([a[-1:0:-1], a])
+        H = H / sum(H)
+        
+        dat = fftconvolve(dat, H, mode='same')
+    
+    if 'zscore' == method:
+        dur = int(floor(method_opt['dur'] * s_freq))
+        halfdur = int(floor(dur / 2))
+        lendat = len(dat)
+        stop = lendat - dur
+        zs = zeros((lendat))
+        
+        for i in range(lendat):
+            start = min(max(0, i - halfdur), stop)
+            end = min(start + dur, lendat)
+            windat = dat[start:end]
+            zs[i] = (dat[i] - mean(windat)) / std(windat)
+        dat = zs
 
     return dat
 

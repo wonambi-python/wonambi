@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.08**: Ray2015 spindle detection
 - **5.07**: Parametrization of power spectra (fooof); FASST spindle detection
 - **5.06**: slow wave detection fixes
 - **5.05**: faster data fetching in detections; improved filters in spindle detection; new and improved Ferrarelli2007 detection

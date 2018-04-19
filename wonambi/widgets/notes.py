@@ -49,8 +49,6 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QScrollArea,
                              )
 
-from .. import ChanTime
-from ..trans import montage, filter_, remove_artf_evts, _select_channels
 from ..attr import Annotations, create_empty_annotations
 from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
@@ -66,8 +64,9 @@ MAX_FREQUENCY_OF_INTEREST = 50
 STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '7']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
-SPINDLE_METHODS = ['Wamsley2012', 
-                   'Moelle2011', 
+SPINDLE_METHODS = ['Moelle2011',
+                   'Ray2015',
+                   'Wamsley2012',  
                    'Nir2011', 
                    'Ferrarelli2007',
                    'FASST',
@@ -1218,6 +1217,8 @@ class Notes(QTabWidget):
 
             if method in ['Wamsley2012', 'UCSD']:
                 detector.det_wavelet['dur'] = params['win_sz']
+            elif method == 'Ray2015':
+                detector.zwin['dur'] = params['win_sz']
             else:
                 detector.moving_rms['dur'] = params['win_sz']
 

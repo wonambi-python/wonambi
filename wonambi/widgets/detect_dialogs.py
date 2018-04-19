@@ -221,6 +221,8 @@ class SpindleDialog(ChannelDialog):
 
         if self.method in ['Wamsley2012', 'UCSD']:
             self.index['win_sz'].set_value(spin_det.det_wavelet['dur'])
+        elif self.method == 'Ray2015':
+            self.index['win_sz'].set_value(spin_det.zwin['dur'])
         else:
             self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
 
