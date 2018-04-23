@@ -9,7 +9,7 @@ from pathlib import Path
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip,
+from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip, BrainVision,
                     Moberg, Wonambi, Micromed, BCI2000, Text)
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -91,6 +91,9 @@ def detect_format(filename):
 
         if filename.suffix == '.abf':
             return Abf
+
+        if filename.suffix == '.vhdr' or filename.suffix == '.eeg':
+            return BrainVision
 
         if filename.suffix == '.dat':  # very general
             try:

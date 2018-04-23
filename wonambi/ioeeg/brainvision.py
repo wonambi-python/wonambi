@@ -1,25 +1,26 @@
-from os import SEEK_CUR, SEEK_SET, SEEK_END
-from re import search, finditer, match
 from datetime import datetime
 
-from numpy import (fromfile,
-                   fromstring,
-                   asmatrix,
+from numpy import (iinfo,
+                   memmap,
                    array,
-                   arange,
                    c_,
-                   diff,
                    empty,
-                   hstack,
-                   ndarray,
                    NaN,
-                   vstack,
-                   where,
-                   dtype,
                    float64,
-                   int32,
-                   uint8,
                    )
+
+
+BV_ORIENTATION = {
+    'MULTIPLEXED': 'F',
+    'VECTORIZED': 'C',
+    }
+
+BV_DATATYPE = {
+    'INT_16': 'short',
+    'INT_32': 'int',
+    'IEEE_FLOAT_32': 'single',
+    'IEEE_FLOAT_64': 'double',
+    }
 
 
 class BrainVision:
@@ -29,9 +30,14 @@ class BrainVision:
     ----------
     filename : path to file
         the name of the filename or directory
+
+    Notes
+    -----
+    It should be .vhdr (because that file contains the pointer to the data). If
+    it points to .eeg, we convert to .vhdr in any case.
     """
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = filename.with_suffix('.vhdr')
 
     def return_hdr(self):
         """Return the header for further use.
@@ -50,46 +56,34 @@ class BrainVision:
             number of samples in the dataset
         orig : dict
             additional information taken directly from the header
-
-        Notes
-        -----
-        As far as I can, BCI2000 doesn't have channel labels, so we use dummies
-        starting at chan001 (more consistent with Matlab 1-base indexing...)
         """
-        orig = {}
-        orig = _read_header(self.filename)
+        subj_id = ''  # no subject information in the header
 
-        nchan = int(orig['SourceCh'])
-        chan_name = ['ch{:03d}'.format(i + 1) for i in range(nchan)]
-        chan_dtype = dtype(orig['DataFormat'])
-        self.statevector_len = int(orig['StatevectorLen'])
+        hdr = _parse_ini(self.filename)
 
-        s_freq = int(orig['Parameter']['SamplingRate'])
-        storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
-        try:  # newer version
-            start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
-        except:
-            start_time = datetime.strptime(storagetime, '%Y-%m-%dT%H:%M:%S')
+        self.eeg_file = self.filename.parent / hdr['Common Infos']['DataFile']
+        self.vmrk_file = self.filename.parent / hdr['Common Infos']['MarkerFile']
+        self.mrk = _parse_ini(self.vmrk_file)
 
-        subj_id = orig['Parameter']['SubjectName']
+        start_time = _read_datetime(self.mrk)
+        self.s_freq = 1e6 / float(hdr['Common Infos']['SamplingInterval'])
+        chan_name = [v[0] for v in hdr['Channel Infos'].values()]
+        self.gain = array([float(v[2]) for v in hdr['Channel Infos'].values()])
 
-        self.dtype = dtype([(chan, chan_dtype) for chan in chan_name]
-                            + [('statevector', 'S', self.statevector_len)])
+        # number of samples
+        self.data_type = BV_DATATYPE[hdr['Binary Infos']['BinaryFormat']]
+        N_BYTES = iinfo(self.data_type).dtype.itemsize
+        n_samples = self.eeg_file.stat().st_size / N_BYTES / len(chan_name)
 
-        # compute n_samples based on file size - header
-        with open(self.filename, 'rb') as f:
-            f.seek(0, SEEK_END)
-            EOData = f.tell()
-        n_samples = int((EOData - int(orig['HeaderLen'])) / self.dtype.itemsize)
+        self.dshape = len(chan_name), int(n_samples)
+        self.data_order = BV_ORIENTATION[hdr['Common Infos']['DataOrientation']]
 
-        self.s_freq = s_freq
-        self.header_len = int(orig['HeaderLen'])
-        self.n_samples = n_samples
-        self.statevectors = _prepare_statevectors(orig['StateVector'])
-        # TODO: a better way to parse header
-        self.gain = array([float(x) for x in orig['Parameter']['SourceChGain'].split(' ')[1:]])
+        orig = {
+            'vhdr': hdr,
+            'vmrk': self.mrk,
+            }
 
-        return subj_id, start_time, s_freq, chan_name, n_samples, orig
+        return subj_id, start_time, self.s_freq, chan_name, n_samples, orig
 
     def return_dat(self, chan, begsam, endsam):
         """Return the data as 2D numpy.ndarray.
@@ -108,42 +102,12 @@ class BrainVision:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
-        dat_begsam = max(begsam, 0)
-        dat_endsam = min(endsam, self.n_samples)
-        dur = dat_endsam - dat_begsam
+        dat = _read_memmap(self.eeg_file, self.dshape, begsam, endsam,
+                           self.data_type, self.data_order)
 
-        dtype_onlychan = dtype({k: v for k, v in self.dtype.fields.items() if v[0].kind != 'S'})
+        return dat[chan, :] * self.gain[chan, None]
 
-        # make sure we read some data at least, otherwise segfault
-        if dat_begsam < self.n_samples and dat_endsam > 0:
-
-            with self.filename.open('rb') as f:
-                f.seek(self.header_len, SEEK_SET)  # skip header
-
-                f.seek(self.dtype.itemsize * dat_begsam, SEEK_CUR)
-                dat = fromfile(f, dtype=self.dtype, count=dur)
-
-            dat = ndarray(dat.shape, dtype_onlychan, dat, 0, dat.strides).view((dtype_onlychan[0], len(dtype_onlychan.names))).T
-
-        else:
-            n_chan = len(dtype_onlychan.names)
-            dat = empty((n_chan, 0))
-
-        if begsam < 0:
-
-            pad = empty((dat.shape[0], 0 - begsam))
-            pad.fill(NaN)
-            dat = c_[pad, dat]
-
-        if endsam >= self.n_samples:
-
-            pad = empty((dat.shape[0], endsam - self.n_samples))
-            pad.fill(NaN)
-            dat = c_[dat, pad]
-
-        return dat[chan, :] * self.gain[chan][:, None]  # apply gain
-
-    def return_markers(self, state='MicromedCode'):
+    def return_markers(self):
         """Return all the markers (also called triggers or events).
 
         Returns
@@ -152,70 +116,105 @@ class BrainVision:
             where each dict contains 'name' as str, 'start' and 'end' as float
             in seconds from the start of the recordings, and 'chan' as list of
             str with the channels involved (if not of relevance, it's None).
-
-        Raises
-        ------
-        FileNotFoundError
-            when it cannot read the events for some reason (don't use other
-            exceptions).
         """
         markers = []
-        try:
-            all_states = self._read_states()
-        except ValueError:  # cryptic error when reading states
-            return markers
+        for v in self.mrk['Marker Infos'].values():
+            if v[0] == 'New Segment':
+                continue
 
-        try:
-            x = all_states[state]
-        except KeyError:
-            return markers
-
-        markers = []
-        i_mrk = hstack((0, where(diff(x))[0] + 1, len(x)))
-        for i0, i1 in zip(i_mrk[:-1], i_mrk[1:]):
-            marker = {'name': str(x[i0]),
-                      'start': (i0) / self.s_freq,
-                      'end': i1 / self.s_freq,
-                     }
-            markers.append(marker)
+            markers.append({
+                'name': v[1],
+                'start': float(v[2]) / self.s_freq,
+                'end': (float(v[2]) + float(v[3])) / self.s_freq,
+                })
 
         return markers
 
 
-def _read_header(vhdr_file):
+def _parse_ini(brainvision_file):
     """
 
     TODO
     ----
     Parse section after [Comment]
     """
-    hdr = {}
-    with vhdr_file.open('r') as f:
+    ini = {}
+    with brainvision_file.open('rb') as f:
 
-        line = f.readline().strip()
-        if line == 'Brain Vision Data Exchange Header File Version 1.0':
-            hdr['version'] = 1.0
-        elif line == 'Brain Vision Data Exchange Header File Version 2.0':
-            hdr['version'] = 2.0
+        line = f.readline().decode('ascii').strip()
+        if (line == 'Brain Vision Data Exchange Header File Version 1.0' or
+           line == 'Brain Vision Data Exchange Marker File, Version 1.0'):
+
+            ini['version'] = 1.0
+            encoding = 'latin1'
+
+        elif (line == 'Brain Vision Data Exchange Header File Version 2.0' or
+              line == 'Brain Vision Data Exchange Marker File, Version 2.0'):
+            ini['version'] = 2.0
+            encoding = 'utf-8'
+
         else:
             raise ValueError(f'Unknown version "{line}"')
 
         for line in f:
-            if line.startswith(';') or line == '\n':
+            line = line.decode(encoding).strip()
+            if line.startswith(';') or line == '':
                 continue
 
-            if line == '[Comment]\n':
+            if line == '[Comment]':
+                ini['Comment'] = f.read().decode(encoding)
                 break
 
             if line.startswith('['):
-                group = line.strip()[1:-1]
-                hdr[group] = {}
+                group = line[1:-1]
+                ini[group] = {}
                 continue
 
             if '=' in line:
-                k, v = line.strip().split('=')
+                k, v = line.split('=')
                 if ',' in v:
                     v = v.split(',')
-                hdr[group][k] = v
+                ini[group][k] = v
 
-    return hdr
+                # Use explicit encoding if it's in the header
+                if k == 'Codepage':
+                    encoding = v
+
+    return ini
+
+
+def _read_memmap(filename, dat_shape, begsam, endsam, datatype='double',
+                 data_order='F'):
+
+    n_samples = dat_shape[1]
+
+    if begsam is None:
+        begsam = 0
+    if endsam is None:
+        endsam = n_samples - 1
+
+    data = memmap(str(filename), dtype=datatype, mode='c',
+                  shape=dat_shape, order=data_order)
+    dat = data[:, max((begsam, 0)):min((endsam, n_samples))].astype(float64)
+
+    if begsam < 0:
+
+        pad = empty((dat.shape[0], 0 - begsam))
+        pad.fill(NaN)
+        dat = c_[pad, dat]
+
+    if endsam >= n_samples:
+
+        pad = empty((dat.shape[0], endsam - n_samples))
+        pad.fill(NaN)
+        dat = c_[dat, pad]
+
+    return dat
+
+
+def _read_datetime(mrk):
+    for v in mrk['Marker Infos'].values():
+        if v[0] == 'New Segment':
+            return datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
+    else:
+        datetime.now()  # filler
