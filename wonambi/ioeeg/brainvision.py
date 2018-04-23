@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from numpy import (iinfo,
+from numpy import (dtype,
                    memmap,
                    array,
                    c_,
@@ -16,10 +16,11 @@ BV_ORIENTATION = {
     }
 
 BV_DATATYPE = {
-    'INT_16': 'short',
-    'INT_32': 'int',
-    'IEEE_FLOAT_32': 'single',
-    'IEEE_FLOAT_64': 'double',
+    'INT_16': 'int16',
+    'INT_32': 'int32',
+    'INT_64': 'int64',
+    'IEEE_FLOAT_32': 'float32',
+    'IEEE_FLOAT_64': 'float64',
     }
 
 
@@ -72,8 +73,8 @@ class BrainVision:
 
         # number of samples
         self.data_type = BV_DATATYPE[hdr['Binary Infos']['BinaryFormat']]
-        N_BYTES = iinfo(self.data_type).dtype.itemsize
-        n_samples = self.eeg_file.stat().st_size / N_BYTES / len(chan_name)
+        N_BYTES = dtype(self.data_type).itemsize
+        n_samples = int(self.eeg_file.stat().st_size / N_BYTES / len(chan_name))
 
         self.dshape = len(chan_name), int(n_samples)
         self.data_order = BV_ORIENTATION[hdr['Common Infos']['DataOrientation']]
@@ -188,11 +189,6 @@ def _read_memmap(filename, dat_shape, begsam, endsam, datatype='double',
 
     n_samples = dat_shape[1]
 
-    if begsam is None:
-        begsam = 0
-    if endsam is None:
-        endsam = n_samples - 1
-
     data = memmap(str(filename), dtype=datatype, mode='c',
                   shape=dat_shape, order=data_order)
     dat = data[:, max((begsam, 0)):min((endsam, n_samples))].astype(float64)
@@ -216,5 +212,3 @@ def _read_datetime(mrk):
     for v in mrk['Marker Infos'].values():
         if v[0] == 'New Segment':
             return datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
-    else:
-        datetime.now()  # filler

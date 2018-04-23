@@ -41,6 +41,7 @@ surf_path = fs_path / 'surf' / 'lh.pial'
 SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 
 IO_PATH = SAMPLE_PATH / 'io'
+brainvision_dir = IO_PATH / 'brainvision'
 ktlx_file = IO_PATH / 'xltek'
 mff_file = IO_PATH / 'egi.mff'
 nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
