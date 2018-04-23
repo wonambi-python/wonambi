@@ -357,15 +357,22 @@ class Data:
         filename : path to file
             file to write
         export_format : str, optional
-            supported export format is currently FieldTrip, EDF, FIFF, Wonambi
+            supported export format is currently FieldTrip, EDF, FIFF, Wonambi,
+            BrainVision
 
         Notes
         -----
-        EDF takes an optional argument "physical_max", see write_edf.
+        'edf' takes an optional argument "physical_max", see write_edf.
 
-        wonambi takes an optional argument "subj_id", see write_wonambi.
-        wonambi format creates two files, one .phy with the dataset info as json
+        'wonambi' takes an optional argument "subj_id", see write_wonambi.
+        wonambi format creates two files, one .won with the dataset info as json
         file and one .dat with the memmap recordings.
+
+        'brainvision' takes an additional argument ("markers") which is a list
+        of dictionaries with fields:
+            "name" : str (name of the marker),
+            "start" : float (start time in seconds)
+            "end" : float (end time in seconds)
         """
         export_format = export_format.lower()
         if export_format == 'edf':
@@ -384,6 +391,10 @@ class Data:
         elif export_format == 'wonambi':
             from .ioeeg import write_wonambi
             write_wonambi(self, filename, **options)
+
+        elif export_format == 'brainvision':
+            from .ioeeg import write_brainvision
+            write_brainvision(self, filename, **options)
 
         else:
             raise ValueError('Cannot export to ' + export_format)

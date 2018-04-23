@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.09**: read and write brainvision eeg, vhdr, vmrk
 - **5.08**: Ray2015 spindle detection
 - **5.07**: Parametrization of power spectra (fooof); FASST spindle detection
 - **5.06**: slow wave detection fixes

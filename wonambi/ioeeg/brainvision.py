@@ -1,5 +1,6 @@
 from datetime import datetime
-
+from pathlib import Path
+from textwrap import dedent
 from numpy import (dtype,
                    memmap,
                    array,
@@ -8,6 +9,7 @@ from numpy import (dtype,
                    NaN,
                    float64,
                    )
+import wonambi
 
 
 BV_ORIENTATION = {
@@ -22,6 +24,10 @@ BV_DATATYPE = {
     'IEEE_FLOAT_32': 'float32',
     'IEEE_FLOAT_64': 'float64',
     }
+
+RESOLUTION = 1
+BINARY_FORMAT = 'IEEE_FLOAT_32'
+ORIENTATION = 'MULTIPLEXED'
 
 
 class BrainVision:
@@ -212,3 +218,95 @@ def _read_datetime(mrk):
     for v in mrk['Marker Infos'].values():
         if v[0] == 'New Segment':
             return datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
+
+
+def write_brainvision(data, filename, markers=None):
+    """Export data in BrainVision format
+
+    Parameters
+    ----------
+    data : instance of ChanTime
+        data with only one trial
+    filename : path to file
+        file to export to (use '.vhdr' as extension)
+    """
+    filename = Path(filename).resolve().with_suffix('.vhdr')
+    if markers is None:
+        markers = []
+
+    with filename.open('w') as f:
+        f.write(_write_vhdr(data, filename))
+
+    with filename.with_suffix('.vmrk').open('w') as f:
+        f.write(_write_vmrk(data, filename, markers))
+
+    _write_eeg(data, filename)
+
+
+def _write_vhdr(data, filename):
+    vhdr_txt = f"""\
+    Brain Vision Data Exchange Header File Version 1.0
+    ; Data created by the Wonambi {wonambi.__version__} on {datetime.now()}
+
+    [Common Infos]
+    Codepage=UTF-8
+    DataFile={filename.stem}.eeg
+    MarkerFile={filename.stem}.vmrk
+    DataFormat=BINARY
+    ; Data orientation: MULTIPLEXED=ch1,pt1, ch2,pt1 ...
+    DataOrientation={ORIENTATION}
+    NumberOfChannels={data.number_of('chan')[0]}
+    ; Sampling interval in microseconds
+    SamplingInterval={1e6 / data.s_freq:f}
+
+    [Binary Infos]
+    BinaryFormat={BINARY_FORMAT}
+
+    [Channel Infos]
+    ; Each entry: Ch<Channel number>=<Name>,<Reference channel name>,
+    ; <Resolution in "Unit">,<Unit>, Future extensions..
+    ; Fields are delimited by commas, some fields might be omitted (empty).
+    """
+    # found a way to write \1
+    vhdr_txt += r'; Commas in channel names are coded as "\1".'
+    vhdr_txt += '\n'
+
+    output = []
+    for i, chan in enumerate(data.chan[0]):
+        output.append(f'Ch{i + 1:d}={chan},,{RESOLUTION},µV')
+
+    return dedent(vhdr_txt) + '\n'.join(output)
+
+
+def _write_vmrk(data, filename, markers):
+
+    vmrk_txt = f"""\
+    Brain Vision Data Exchange Marker File, Version 1.0
+
+    [Common Infos]
+    Codepage=UTF-8
+    DataFile={filename.name}
+
+    [Marker Infos]
+    ; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
+    ; <Size in data points>, <Channel number (0 = marker is related to all channels)>
+    ; Fields are delimited by commas, some fields might be omitted (empty).
+    ; Commas in type or description text are coded as "\1".
+    Mk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}
+    """
+
+    output = []
+    for i, mrk in enumerate(markers):
+        output.append(f'Mk{i + 1:d}=Stimulus,{mrk["name"]},{mrk["start"] * data.s_freq:d},{(mrk["end"] - mrk["start"]) * data.s_freq:d},0')
+
+    return dedent(vmrk_txt) + '\n'.join(output)
+
+
+def _write_eeg(data, filename):
+
+    dtype = BV_DATATYPE[BINARY_FORMAT]
+    memshape = data.data[0].shape
+    mem = memmap(str(filename.with_suffix('.eeg')), dtype, mode='w+',
+                 shape=memshape, order=BV_ORIENTATION[ORIENTATION])
+    mem[:, :] = data.data[0]
+    mem.flush()

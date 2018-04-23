@@ -1,11 +1,12 @@
-from numpy import isnan
+from numpy import isnan, dtype
 from numpy.testing import assert_almost_equal
 from pytest import raises
 
 from wonambi import Dataset
+from wonambi.utils import create_data
 from wonambi.ioeeg.brainvision import _parse_ini
 
-from .paths import brainvision_dir
+from .paths import brainvision_dir, brainvision_file
 
 
 def test_brainvision_dataset_01():
@@ -40,3 +41,21 @@ def test_brainvision_parseini():
 
     with raises(ValueError):
         _parse_ini(brainvision_dir / 'wrongheader.ini')
+
+
+def test_brainvision_write():
+    data = create_data()
+    data.export(brainvision_file, 'brainvision')
+
+    assert brainvision_file.stat().st_size == 822
+    assert (data.data[0].size * dtype('float32').itemsize ==
+            brainvision_file.with_suffix('.eeg').stat().st_size)
+
+    markers = [
+        {'name': 'a', 'start': 1, 'end': 2},
+        {'name': 'b', 'start': 4, 'end': 5},
+        {'name': 'c', 'start': 10, 'end': 12},
+        {'name': 'd', 'start': 15, 'end': 17},
+        ]
+    data.export(brainvision_file, 'brainvision', markers=markers)
+    assert brainvision_file.with_suffix('.vmrk').stat().st_size == 560
