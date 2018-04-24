@@ -252,7 +252,19 @@ In order to compute PAC, you must first install tensorpac from the command line 
 
 ``pip install tensorpac``
 
-Select ``Compute PAC`` to enable PAC analysis, and select ``Pre-process`` to apply the selected pre-processing transformations before analysis.
+In the analysis console, select ``Compute PAC`` to enable PAC analysis, and select ``Pre-process`` to apply the selected pre-processing transformations before analysis.
+
+Choose a ``PAC metric`` in the drop-down menu.
+
+You may enter one or several phase and amplitude frequencies. Band limits should be separated by a hyphen '-', and each band enclosed in square brackets '[]', separated by commas ','. The entirte epression should also be enclosed in square brackets. 
+
+For example, to detect coupling between delta (0.5-4 Hz) and theta (4-8 Hz) as phase frequencies, and low gamma (LG; 30-60 Hz) and high gamma (HG; 60-120 Hz) as amplitude frequencies, you would enter:
+
+``[[0.5-4],[4-8]]`` for ``Phase frequencies``, and
+
+``[[30-60],[60-120]]`` for ``Amplitude frequencies``.
+
+This will yield 4 PAC values per segments: delta-LG, delta-HG, theta-LG and theta-HG PAC. 
 
 For more information, see the `Tensorpac documentation <https://etiennecmb.github.io/tensorpac/>`_.
 
