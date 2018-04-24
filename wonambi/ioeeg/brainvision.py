@@ -291,9 +291,10 @@ def _write_vmrk(data, filename, markers):
     ; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
     ; <Size in data points>, <Channel number (0 = marker is related to all channels)>
     ; Fields are delimited by commas, some fields might be omitted (empty).
-    ; Commas in type or description text are coded as "\1".
-    Mk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}
     """
+    # found a way to write \1
+    vmrk_txt += r'; Commas in type or description are coded as "\1".'
+    vmrk_txt += '\nMk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}\n'
 
     output = []
     for i, mrk in enumerate(markers):
