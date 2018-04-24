@@ -6,8 +6,7 @@ from pytest import approx, raises
 from wonambi import Dataset
 from wonambi.attr import Annotations
 from wonambi.utils import create_data
-from wonambi.trans import (select, resample, frequency, get_times, 
-                           fetch)
+from wonambi.trans import select, resample, frequency, get_times, fetch
 from wonambi.trans.select import _create_subepochs
 
 from .paths import (annot_psg_path,
