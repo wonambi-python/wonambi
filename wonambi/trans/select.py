@@ -292,7 +292,7 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
     return output
 
 
-def fetch_segments(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, 
+def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, 
                     cycle=None, chan_full=None, epoch=None, epoch_dur=30, 
                     min_dur=0, reject_epoch=False, reject_artf=False):
     """Create instance of Segments for analysis, complete with info about 
@@ -586,7 +586,7 @@ def _find_intervals(bundles, interval):
         beg, end = bund['times'][0][0], bund['times'][-1][1]
 
         if end - beg >= interval:
-            new_begs = arange(beg, end, interval)[:-1]
+            new_begs = arange(beg, end, interval)
 
             for t in new_begs:
                 seg = bund.copy()

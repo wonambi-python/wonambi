@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QComboBox,
                              )
 
 from ..detect import DetectSpindle, DetectSlowWave
-from ..trans import fetch_segments
+from ..trans import fetch
 from .modal_widgets import ChannelDialog
 from .notes import SPINDLE_METHODS, SLOW_WAVE_METHODS
 from .utils import FormStr, FormFloat, FormBool, FormMenu
@@ -185,7 +185,7 @@ class SpindleDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
-            data = fetch_segments(self.parent.info.dataset, 
+            data = fetch(self.parent.info.dataset, 
                                   self.parent.notes.annot, cat=(1, 1, 1, 0),
                                   stage=stage, cycle=cycle, 
                                   min_dur=params['min_seg_dur'], 
@@ -410,7 +410,7 @@ class SWDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
-            data = fetch_segments(self.parent.info.dataset, 
+            data = fetch(self.parent.info.dataset, 
                                   self.parent.notes.annot, cat=(1, 1, 1, 0),
                                   stage=stage, cycle=cycle, 
                                   min_dur=params['min_seg_dur'], 

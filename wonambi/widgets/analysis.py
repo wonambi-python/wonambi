@@ -48,7 +48,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 from .. import ChanFreq
 from ..trans import (math, filter_, frequency, get_descriptives, get_power, 
-                     fetch_segments, get_times, slopes)
+                     fetch, get_times, slopes)
 from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
@@ -1255,7 +1255,7 @@ class AnalysisDialog(ChannelDialog):
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
         
-        segments = fetch_segments(self.parent.info.dataset, 
+        segments = fetch(self.parent.info.dataset, 
                               self.parent.notes.annot, cat=cat, 
                               evt_type=evt_type, stage=stage, cycle=cycle, 
                               chan_full=chan_full, epoch_dur=epoch_dur, 
@@ -1426,7 +1426,7 @@ class AnalysisDialog(ChannelDialog):
             lg.info(' '.join(['Getting segments for norm. cat: ', str(ncat), 
                               'evt_type', str(norm_evt_type), 'stage', 
                               str(norm_stage), 'chan', str(norm_chan)]))
-            norm_seg = fetch_segments(self.parent.info.dataset, 
+            norm_seg = fetch(self.parent.info.dataset, 
                                     self.parent.notes.annot, ncat, 
                                     evt_type=norm_evt_type, stage=norm_stage,
                                     chan_full=norm_chan)
