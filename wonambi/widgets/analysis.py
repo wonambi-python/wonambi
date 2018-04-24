@@ -1003,6 +1003,8 @@ class AnalysisDialog(ChannelDialog):
             if segments is not None:
                 self.nseg = len(segments)
                 self.show_nseg.setText('Number of segments: ' + str(self.nseg))
+                times = [t for seg in segments for t in seg['times']]
+                self.parent.overview.mark_poi(times)
                 
             else:
                 self.show_nseg.setText('No valid segments')
@@ -1191,10 +1193,12 @@ class AnalysisDialog(ChannelDialog):
                 return
             
             self.export_evt_params(glob, loc)
+            self.parent.overview.mark_poi() # remove poi
 
             self.accept()
 
         if button is self.idx_cancel:
+            self.parent.overview.mark_poi() # remove poi
             self.reject()
 
     def get_segments(self):

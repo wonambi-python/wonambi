@@ -118,6 +118,7 @@ class Overview(QGraphicsView):
         self.idx_current = None
         self.idx_markers = []
         self.idx_annot = []
+        self.idx_poi = []
 
         self.setMinimumHeight(TOTAL_HEIGHT + 30)
 
@@ -465,6 +466,31 @@ class Overview(QGraphicsView):
         self.scene.addItem(kink_lo)
         self.idx_annot.append(kink_lo)
 
+    def mark_poi(self, times=None):
+        """Mark selected signal, from list of start and end times.
+        
+        Parameters
+        ----------
+        times : list of tuple of float
+            start and end times, in sec form rec start
+        """
+        y_pos = BARS['quality']['pos0']
+        height = 5
+        
+        for rect in self.idx_poi:
+            self.scene.removeItem(rect)
+        self.idx_poi = []
+        
+        if not times:
+            return
+        
+        for beg, end in times:
+            rect = QGraphicsRectItem(beg, y_pos, end - beg, height)
+            rect.setPen(NoPen)
+            rect.setBrush(Qt.darkRed)
+            self.scene.addItem(rect)
+            self.idx_poi.append(rect)            
+    
     def mousePressEvent(self, event):
         """Jump to window when user clicks on overview.
 

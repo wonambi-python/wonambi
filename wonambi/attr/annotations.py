@@ -305,8 +305,8 @@ class Annotations():
         self.save()
 
     def import_staging(self, filename, source, rater_name, rec_start,
-                       staging_start=None):
-        """Import staging from a SomnoMedics Domino staging text file.
+                       staging_start=None, poor=['Artefact'], as_qual=False):
+        """Import staging from an external staging text file.
 
         Parameters
         ----------
@@ -324,16 +324,26 @@ class Annotations():
         staging_start : datetime (default: None)
             Date and time of staging start. For use when not provided in
             staging file.
-        """
+        poor : list of str
+            epochs with stage names in this list will be marked as Poor quality
+        as_qual : bool
+            if True, the staging only be used to mark quality, as per poor
+        """            
         if rater_name not in self.raters:
+            
+            if as_qual:
+                self.parent.statusBar.showMessage('Rater not found.')
+                return
+            
             self.add_rater(rater_name, epoch_length=30)
 
         self.get_rater(rater_name)
-        stages = self.rater.find('stages')
-
-        # list is necessary so that it does not remove in place
-        for s in list(stages):
-            stages.remove(s)
+        
+        if not as_qual:
+            stages = self.rater.find('stages')
+            # list is necessary so that it does not remove in place
+            for s in list(stages):
+                stages.remove(s)
 
         if source == 'sandman':
             encoding = 'ISO-8859-1'
@@ -416,36 +426,52 @@ class Annotations():
 
             lg.info('Time offset: ' + str(first_second) + ' sec')
 
-            for i, one_line in enumerate(lines[first_line:]):
-                epoch = SubElement(stages, 'epoch')
-
-                start_time = SubElement(epoch, 'epoch_start')
-                epoch_beg = first_second + (i * 30)
-                start_time.text = str(epoch_beg)
-
-                end_time = SubElement(epoch, 'epoch_end')
-                end_time.text = str(epoch_beg + 30)
-
-                epoch_stage = SubElement(epoch, 'stage')
-
-                try:
-                    key = one_line[idx_stage[0]:idx_stage[1]]
-                    one_stage = stage_key[key]
-
-                except KeyError:
-                    one_stage = 'Unknown'
-                    lg.info('Stage not recognized: ' + key)
-
-                epoch_stage.text = one_stage
-
-                quality = SubElement(epoch, 'quality')
-                if one_stage == 'Artefact':
-                    quality.text = 'Poor'
-                else:
-                    quality.text = 'Good'
+            if as_qual:
+                
+                for i, one_line in enumerate(lines[first_line:]):                     
+                    
+                    if one_line[idx_stage[0]:-1] in poor:
+                        epoch_beg = first_second + (i * 30)
+                        
+                        try:
+                            self.set_stage_for_epoch(epoch_beg, 'Poor', 
+                                                     attr='quality', 
+                                                     save=False)
+                        except KeyError:
+                            return 1
+            
+            else:
+            
+                for i, one_line in enumerate(lines[first_line:]):
+                    epoch = SubElement(stages, 'epoch')
+    
+                    start_time = SubElement(epoch, 'epoch_start')
+                    epoch_beg = first_second + (i * 30)
+                    start_time.text = str(epoch_beg)
+    
+                    end_time = SubElement(epoch, 'epoch_end')
+                    end_time.text = str(epoch_beg + 30)
+    
+                    epoch_stage = SubElement(epoch, 'stage')
+    
+                    try:
+                        key = one_line[idx_stage[0]:idx_stage[1]]
+                        one_stage = stage_key[key]
+    
+                    except KeyError:
+                        one_stage = 'Unknown'
+                        lg.info('Stage not recognized: ' + key)
+    
+                    epoch_stage.text = one_stage
+    
+                    quality = SubElement(epoch, 'quality')
+                    if one_stage in poor:
+                        quality.text = 'Poor'
+                    else:
+                        quality.text = 'Good'
 
         self.save()
-
+    
     def add_bookmark(self, name, time, chan=''):
         """Add a new bookmark
 

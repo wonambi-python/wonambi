@@ -7,7 +7,7 @@ from wonambi import Dataset
 from wonambi.attr import Annotations
 from wonambi.utils import create_data
 from wonambi.trans import (select, resample, frequency, get_times, 
-                           fetch_segments)
+                           fetch)
 from wonambi.trans.select import _create_subepochs
 
 from .paths import (annot_psg_path,
@@ -170,21 +170,21 @@ def test_get_times():
     assert len(bundles[0]['times']) == 229
     assert bundles[0]['stage'] == 'NREM2'
     
-def test_fetch_segments():
+def test_fetch():
     dset = Dataset(str(gui_file))
     annot = Annotations(str(annot_psg_path))
     
-    seg = fetch_segments(dset, annot, stage=['NREM2', 'NREM3'], epoch='locked',
+    seg = fetch(dset, annot, stage=['NREM2', 'NREM3'], epoch='locked',
                          reject_epoch=True, reject_artf=True)
     assert len(seg) == 356
     
-    seg = fetch_segments(dset, annot, cat=(0, 1, 0, 0), 
+    seg = fetch(dset, annot, cat=(0, 1, 0, 0), 
                          stage=['NREM2', 'NREM3'], reject_epoch=True, 
                          reject_artf=True)
     assert len(seg) == 31
     assert seg[14]['times'][0] == (34380, 34410)
     
-    seg = fetch_segments(dset, annot, cat=(0, 0, 1, 0), stage=['NREM1'])
+    seg = fetch(dset, annot, cat=(0, 0, 1, 0), stage=['NREM1'])
     seg.read_data(['EEG Fpz-Cz'], ref_chan=['EEG Pz-Oz'])
     assert seg[0]['data']()[0][0].shape == (297000,)
     assert approx(seg[0]['data']()[0][0][100]) == -4.3201466  

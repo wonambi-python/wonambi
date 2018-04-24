@@ -16,7 +16,7 @@ TODO:
 from datetime import datetime, timedelta
 from functools import partial
 from logging import getLogger
-from numpy import asarray, concatenate, empty, floor, nan_to_num, nanmean
+from numpy import floor
 from os.path import basename, splitext
 
 from PyQt5.QtCore import Qt
@@ -383,6 +383,31 @@ class Notes(QTabWidget):
         act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)
         actions['import_fasst'] = act
+
+        act = QAction('Domino', self)
+        act.triggered.connect(partial(self.import_staging, 'domino', 
+                                      as_qual=True))
+        actions['import_domino_qual'] = act
+
+        act = QAction('Alice', self)
+        act.triggered.connect(partial(self.import_staging, 'alice', 
+                                      as_qual=True))
+        actions['import_alice_qual'] = act
+
+        act = QAction('Sandman', self)
+        act.triggered.connect(partial(self.import_staging, 'sandman', 
+                                      as_qual=True))
+        actions['import_sandman_qual'] = act
+
+        act = QAction('RemLogic', self)
+        act.triggered.connect(partial(self.import_staging, 'remlogic', 
+                                      as_qual=True))
+        actions['import_remlogic_qual'] = act
+
+        act = QAction('Compumedics', self)
+        act.triggered.connect(partial(self.import_staging, 'compumedics', 
+                                      as_qual=True))
+        actions['import_compumedics_qual'] = act
 
         act = QAction('Export staging', self)
         act.triggered.connect(self.export)
@@ -1012,8 +1037,8 @@ class Notes(QTabWidget):
             self.parent.statusBar().showMessage(msg)
             lg.info(msg)
 
-    def import_staging(self, source, staging_start=None, test_filename=None,
-                       test_rater=None):
+    def import_staging(self, source, staging_start=None, as_qual=False,
+                       test_filename=None, test_rater=None):
         """Action: import an external sleep staging file.
 
         Parameters
@@ -1023,6 +1048,8 @@ class Notes(QTabWidget):
             'compumedics', 'domino', 'remlogic', 'sandman'.
         staging_start : datetime, optional
             Absolute time when staging begins.
+        as_qual : bool
+            if True, scores will be imported as quality
         """
         if self.annot is None:  # remove if buttons are disabled
             msg = 'No score file loaded'
@@ -1055,7 +1082,7 @@ class Notes(QTabWidget):
             if not ok:
                 return
 
-            if rater in self.annot.raters:
+            if rater in self.annot.raters and not as_qual:
                 msgBox = QMessageBox(QMessageBox.Question, 'Overwrite staging',
                                      'Rater %s already exists. \n \n'
                                      'Overwrite %s\'s sleep staging '
@@ -1089,12 +1116,28 @@ class Notes(QTabWidget):
                 lg.info(msg)
                 return
 
+        poor = ['Artefact', 'Artifact']
+        if as_qual:
+            query = 'Which epoch label should be read as Poor quality signal?'
+            poor, ok = QInputDialog.getText(self, 'Import quality', query)
+            poor = [poor]
+            
+            if not ok:
+                return
+        
         try:
-            self.annot.import_staging(filename, source, rater,
-                                      record_start,
-                                      staging_start=staging_start)
+            unaligned = self.annot.import_staging(filename, source, rater,
+                                                  record_start,
+                                                  staging_start=staging_start,
+                                                  poor=poor, 
+                                                  as_qual=as_qual)
         except FileNotFoundError:
             msg = 'File not found'
+            self.parent.statusBar().showMessage(msg)
+            lg.info(msg)
+            
+        if unaligned:
+            msg = 'Imported scores are not aligned with existing scores.'
             self.parent.statusBar().showMessage(msg)
             lg.info(msg)
 

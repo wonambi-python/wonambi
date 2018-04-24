@@ -262,6 +262,13 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_sandman'])
     submenu_import.addAction(actions['import_fasst'])
 
+    submenu_import_qual = menu_annot.addMenu('Import signal quality')
+    submenu_import_qual.addAction(actions['import_alice_qual'])
+    submenu_import_qual.addAction(actions['import_compumedics_qual'])
+    submenu_import_qual.addAction(actions['import_domino_qual'])
+    submenu_import_qual.addAction(actions['import_remlogic_qual'])
+    submenu_import_qual.addAction(actions['import_sandman_qual'])
+    
     menu_annot.addAction(actions['export'])
     menu_annot.addSeparator()
     
