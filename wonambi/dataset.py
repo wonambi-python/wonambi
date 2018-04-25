@@ -9,8 +9,20 @@ from pathlib import Path
 
 from numpy import arange, asarray, empty, int64
 
-from .ioeeg import (Abf, Edf, Ktlx, BlackRock, EgiMff, FieldTrip, BrainVision,
-                    Moberg, Wonambi, Micromed, BCI2000, Text)
+from .ioeeg import (Abf,
+                    Edf,
+                    Ktlx,
+                    BlackRock,
+                    EgiMff,
+                    FieldTrip,
+                    BrainVision,
+                    Moberg,
+                    Wonambi,
+                    Micromed,
+                    BCI2000,
+                    OpenEphys,
+                    Text,
+                    )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
 from .utils import UnrecognizedFormat
@@ -74,6 +86,8 @@ def detect_format(filename):
             return Moberg
         elif (filename / 'info.xml').exists():
             return EgiMff
+        elif list(filename.glob('*.openephys')):
+            return OpenEphys
         elif '.txt' in [x[-4:] for x in listdir(filename)]:
             return Text
         else:
