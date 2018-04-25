@@ -8,16 +8,20 @@ Features
 - Can read files of format:
 
   - Axon (.abf, ABF2 only)
-  - Blackrock (.nev, .ns2, .ns3, .ns5)
   - BCI2000 (.dat)
+  - Blackrock (.nev, .ns2, .ns3, .ns5)
+  - Brain Vision (.vhdr, .vmrk, .eeg / .dat)
   - European Data Format (.edf)
   - EGI MFF (.mff)
   - Fieldtrip (.mat)
   - mne FIFF (.fiff)
+  - openephys (.continuous, .openephys)
 
 - Interface for Sleep Scoring
 
-- Computes frequency analysis (spectrogram), time-frequency analysis (Morlet wavelet)
+- Computes frequency analysis (spectrogram), time-frequency analysis (short-time spectrogram, Morlet wavelet)
+
+- Detection of spindles and slow waves
 
 - Pure Python
 

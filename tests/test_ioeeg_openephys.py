@@ -14,6 +14,6 @@ def test_openephys_dataset_01():
     d = Dataset(openephys_dir)
     data = d.read_data(chan=['CH1', ], begsam=10, endsam=1400)
     assert data.data[0][0, 0]  == -132.6
-    
+
     mrk = d.read_markers()
     assert len(mrk) == 0
