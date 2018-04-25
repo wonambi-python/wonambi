@@ -11,19 +11,19 @@ lg = getLogger(__name__)
 
 
 HDR_LENGTH = 1024
-N_SMP_PER_REC = 1024
-BEG_REC = '<qHH'
-FMT = '>' + N_SMP_PER_REC * 'h'  # big-endian
-END_REC = 10 * 'B'
+BLK_LENGTH = 1024
+BEG_BLK = '<qHH'
+DAT_FMT = '>' + BLK_LENGTH * 'h'  # big-endian
+END_BLK = 10 * 'B'
 
-BEG_REC_SIZE = calcsize(BEG_REC)
-FMT_SIZE = calcsize(FMT)
-REC_SIZE = BEG_REC_SIZE + FMT_SIZE + calcsize(END_REC)
+BEG_BLK_SIZE = calcsize(BEG_BLK)
+DAT_FMT_SIZE = calcsize(DAT_FMT)
+BLK_SIZE = BEG_BLK_SIZE + DAT_FMT_SIZE + calcsize(END_BLK)
 
 
 class OpenEphys:
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = filename.resolve()
         self.openephys_file = filename / 'Continuous_Data.openephys'
         self.settings_xml = filename / 'settings.xml'
 
@@ -49,9 +49,9 @@ class OpenEphys:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
 
         self.gain = array(gain)
-        n_records, n_samples = _read_n_samples(self.channels[0])
+        n_blocks, n_samples = _read_n_samples(self.channels[0])
 
-        self.blocks = ones(n_records, dtype='int') * N_SMP_PER_REC
+        self.blocks = ones(n_blocks, dtype='int') * BLK_LENGTH
 
         orig = {}
 
@@ -80,8 +80,8 @@ class OpenEphys:
 
 def _read_record_continuous(f, i_block):
 
-    f.seek(HDR_LENGTH + i_block * REC_SIZE + BEG_REC_SIZE)
-    v = unpack(FMT, f.read(FMT_SIZE))
+    f.seek(HDR_LENGTH + i_block * BLK_SIZE + BEG_BLK_SIZE)
+    v = unpack(DAT_FMT, f.read(DAT_FMT_SIZE))
 
     return array(v)
 
@@ -112,9 +112,9 @@ def _read_date(settings_file):
 
 
 def _read_n_samples(channel_file):
-    n_records = int((channel_file.stat().st_size - HDR_LENGTH) / REC_SIZE)
-    n_samples = n_records * N_SMP_PER_REC
-    return n_records, n_samples
+    n_blocks = int((channel_file.stat().st_size - HDR_LENGTH) / BLK_SIZE)
+    n_samples = n_blocks * BLK_LENGTH
+    return n_blocks, n_samples
 
 
 def _read_header(filename):
@@ -138,7 +138,7 @@ def _check_header(channel_file, s_freq):
     hdr = _read_header(channel_file)
 
     assert int(hdr['header_bytes']) == HDR_LENGTH
-    assert int(hdr['blockLength']) == N_SMP_PER_REC
+    assert int(hdr['blockLength']) == BLK_LENGTH
     assert int(hdr['sampleRate']) == s_freq
 
     return float(hdr['bitVolts'])
