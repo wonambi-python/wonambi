@@ -42,6 +42,7 @@ SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 
 IO_PATH = SAMPLE_PATH / 'io'
 brainvision_dir = IO_PATH / 'brainvision'
+openephys_dir = IO_PATH / 'openephys'
 ktlx_file = IO_PATH / 'xltek'
 mff_file = IO_PATH / 'egi.mff'
 nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
