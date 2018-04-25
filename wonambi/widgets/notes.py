@@ -16,7 +16,7 @@ TODO:
 from datetime import datetime, timedelta
 from functools import partial
 from logging import getLogger
-from numpy import floor
+from numpy import asarray, floor
 from os.path import basename, splitext
 
 from PyQt5.QtCore import Qt
@@ -630,6 +630,11 @@ class Notes(QTabWidget):
         evttype_group = QGroupBox('Event Types')
         layout = QVBoxLayout()
         evttype_group.setLayout(layout)
+        
+        self.check_all_eventtype = check_all = QCheckBox('All event types')
+        check_all.setCheckState(Qt.Checked)
+        check_all.clicked.connect(self.toggle_eventtype)
+        layout.addWidget(check_all)
 
         self.idx_eventtype_list = []
         for one_eventtype in event_types:
@@ -638,10 +643,25 @@ class Notes(QTabWidget):
             layout.addWidget(item)
             item.setCheckState(Qt.Checked)
             item.stateChanged.connect(self.update_annotations)
+            item.stateChanged.connect(self.toggle_check_all_eventtype)
             self.idx_eventtype_list.append(item)
 
         self.idx_eventtype_scroll.setWidget(evttype_group)
 
+    def toggle_eventtype(self):
+        """Check or uncheck all event types in event type scroll.""" 
+        check = self.check_all_eventtype.isChecked()
+        
+        for btn in self.idx_eventtype_list:
+            btn.setChecked(check)
+            
+    def toggle_check_all_eventtype(self):
+        """Check 'All' if all event types are checked in event type scroll."""
+        checklist = asarray([btn.isChecked for btn in self.idx_eventtype_list])
+        
+        if not checklist.all():
+            self.check_all_eventtype.setChecked(False)
+    
     def get_selected_events(self, time_selection=None):
         """Returns which events are present in one time window.
 

@@ -1593,6 +1593,7 @@ class AnalysisDialog(ChannelDialog):
                                        chan,
                                        ] + data_row)
 
+    
     def plot_freq(self, x, y, title=''):
         """Plot mean frequency spectrum and display in dialog.
 
