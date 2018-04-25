@@ -12,8 +12,13 @@ lg = getLogger(__name__)
 
 HDR_LENGTH = 1024
 N_SMP_PER_REC = 1024
-FMT = '<qHH' + N_SMP_PER_REC * 'h' + 10 * 'B'
-REC_SIZE = calcsize(FMT)
+BEG_REC = '<qHH'
+FMT = '>' + N_SMP_PER_REC * 'h'  # big-endian
+END_REC = 10 * 'B'
+
+BEG_REC_SIZE = calcsize(BEG_REC)
+FMT_SIZE = calcsize(FMT)
+REC_SIZE = BEG_REC_SIZE + FMT_SIZE + calcsize(END_REC)
 
 
 class OpenEphys:
@@ -62,7 +67,7 @@ class OpenEphys:
                     dat_in_rec = _read_record_continuous(f, blk)
                     dat[i_chan, i_dat[0]:i_dat[1]] = dat_in_rec[i_blk[0]:i_blk[1]]
 
-        return dat[chan, :] * self.gain[chan, None]
+        return dat * self.gain[chan, None]
 
     def return_markers(self):
         """
@@ -75,10 +80,10 @@ class OpenEphys:
 
 def _read_record_continuous(f, i_block):
 
-    f.seek(HDR_LENGTH + i_block * REC_SIZE)
-    v = unpack(FMT, f.read(REC_SIZE))
+    f.seek(HDR_LENGTH + i_block * REC_SIZE + BEG_REC_SIZE)
+    v = unpack(FMT, f.read(FMT_SIZE))
 
-    return array(v[3:-10])
+    return array(v)
 
 
 def _read_openephys(openephys_file):
