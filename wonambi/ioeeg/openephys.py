@@ -3,7 +3,7 @@ from logging import getLogger
 from struct import unpack, calcsize
 from xml.etree import ElementTree
 
-from numpy import dtype, array, ones, empty, NaN
+from numpy import array, ones, empty, NaN
 
 from .edf import _select_blocks
 
@@ -12,7 +12,7 @@ lg = getLogger(__name__)
 
 HDR_LENGTH = 1024
 N_SMP_PER_REC = 1024
-FMT = '<qHH' + N_SMP_PER_REC  * 'h' + 10 * 'B'
+FMT = '<qHH' + N_SMP_PER_REC * 'h' + 10 * 'B'
 REC_SIZE = calcsize(FMT)
 
 
@@ -48,7 +48,6 @@ class OpenEphys:
 
         self.blocks = ones(n_records, dtype='int') * N_SMP_PER_REC
 
-
         orig = {}
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
@@ -57,8 +56,8 @@ class OpenEphys:
 
         dat = empty((len(chan), endsam - begsam))
         dat.fill(NaN)
-        for i_chan in chan:
-            with self.channels[i_chan].open('rb') as f:
+        for i_chan, sel_chan in enumerate(chan):
+            with self.channels[sel_chan].open('rb') as f:
                 for i_dat, blk, i_blk in _select_blocks(self.blocks, begsam, endsam):
                     dat_in_rec = _read_record_continuous(f, blk)
                     dat[i_chan, i_dat[0]:i_dat[1]] = dat_in_rec[i_blk[0]:i_blk[1]]
@@ -83,7 +82,6 @@ def _read_record_continuous(f, i_block):
 
 
 def _read_openephys(openephys_file):
-
 
     root = ElementTree.parse(openephys_file).getroot()
 
