@@ -146,8 +146,8 @@ def _read_block_continuous(f, i_block):
     i_block : int
         index of the block to read
 
-    Parameters
-    ----------
+    Returns
+    -------
     1D array
         data inside a block for one channel
 

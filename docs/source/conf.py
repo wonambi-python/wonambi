@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from os import chdir
-from os.path import abspath, dirname, join
+from os.path import abspath, dirname
 from datetime import datetime
 now = datetime.now()
 
