@@ -42,7 +42,8 @@ SOURCE_PATH = DOCS_PATH / 'source'
 HTML_PATH = BUILD_PATH / 'html'
 API_PATH = SOURCE_PATH / 'api'
 GUI_PATH = SOURCE_PATH / 'gui' / 'images'
-VIZ_PATH = SOURCE_PATH / 'viz' / 'images'
+ANALYSIS_PATH = SOURCE_PATH / 'analysis' / 'images'
+PLOTLY_PATH = SOURCE_PATH / 'analysis' / 'plotly'
 TEST_PATH = BASE_PATH / 'tests'
 COV_PATH = BASE_PATH / 'htmlcov'
 DATA_PATH = TEST_PATH / 'data'
@@ -307,7 +308,8 @@ def _clean_docs():
     rmtree(BUILD_PATH, ignore_errors=True)
     rmtree(API_PATH, ignore_errors=True)
     rmtree(GUI_PATH, ignore_errors=True)
-    rmtree(VIZ_PATH, ignore_errors=True)
+    rmtree(ANALYSIS_PATH, ignore_errors=True)
+    rmtree(PLOTLY_PATH, ignore_errors=True)
 
     # also remove coverage folder
     rmtree(COV_PATH, ignore_errors=True)

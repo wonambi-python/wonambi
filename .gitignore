@@ -20,7 +20,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
-.cache
+.pytest_cache/
 htmlcov/
 
 # test data
