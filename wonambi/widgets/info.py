@@ -168,10 +168,10 @@ class Info(QWidget):
         act.triggered.connect(self.parent.show_export_dataset_dialog)
         act.setEnabled(False)
         output['export'] = act
-        
+
         self.action = output
 
-    def open_dataset(self, recent=None, debug_filename=None):
+    def open_dataset(self, recent=None, debug_filename=None, bids=False):
         """Open a new dataset.
 
         Parameters
@@ -229,7 +229,7 @@ class Info(QWidget):
 #             if debug_filename is None:
 #                 error_dialog.exec()
 #             return
-# 
+#
 #         except BaseException as err:
 #             self.parent.statusBar().showMessage(str(err))
 #             lg.info('Error ' + str(err))
@@ -286,11 +286,11 @@ class Info(QWidget):
         self.idx_distance.setText('')
         self.idx_length.setText('')
         self.idx_start.setText('')
-        
-    def export(self, new_format, filename=None, chan=None, begtime=None, 
+
+    def export(self, new_format, filename=None, chan=None, begtime=None,
                endtime=None):
         """Export current dataset to wonambi format (.won).
-        
+
         Parameters
         ----------
         new_format : str
@@ -315,19 +315,19 @@ class Info(QWidget):
         subj_id = dataset.header['subj_id']
         if filename is None:
             filename = dataset.filename
-        
+
         data = dataset.read_data(chan=chan, begtime=begtime, endtime=endtime)
-        
+
         if 'wonambi' == new_format:
             write_wonambi(data, filename, subj_id=subj_id)
-            
+
         elif 'edf' == new_format:
             write_edf(data, filename, subj_id=subj_id)
-            
+
         else:
             self.parent.statusBar().showMessage('Format unrecognized.')
 
-        
+
 class ExportDatasetDialog(QDialog):
     """Dialog for choosing export dataset options."""
     def __init__(self, parent):
@@ -336,30 +336,30 @@ class ExportDatasetDialog(QDialog):
         self.setWindowModality(Qt.ApplicationModal)
 
         self.create_dialog()
-    
+
     def create_dialog(self):
         """Create the dialog."""
         self.bbox = QDialogButtonBox(QDialogButtonBox.Help |
                 QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.idx_ok = self.bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = self.bbox.button(QDialogButtonBox.Cancel)
-        
+
         filebutton = QPushButton()
         filebutton.setText('Choose')
         self.idx_filename = filebutton
-        
+
         self.new_format = FormMenu(['EDF', 'Wonambi'])
         self.all_time = FormBool('Entire length of record')
         self.all_chan = FormBool('All channels')
-        
+
         self.times = {}
         self.times['beg'] = FormFloat()
         self.times['end'] = FormFloat()
-        
+
         chan_box = QListWidget()
         chan_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_chan = chan_box
-        
+
         filebutton.clicked.connect(self.save_as)
         self.all_time.connect(self.toggle_buttons)
         self.all_chan.connect(self.toggle_buttons)
@@ -367,13 +367,13 @@ class ExportDatasetDialog(QDialog):
 
         self.all_time.set_value(True)
         self.all_chan.set_value(True)
-        
+
         form = QFormLayout()
         form.addRow('Filename',
                     filebutton)
         #form.addRow('Format', self.new_format)
         form.addRow(self.all_time)
-        form.addRow('Start time (sec)', 
+        form.addRow('Start time (sec)',
                     self.times['beg'])
         form.addRow('End time (sec)',
                     self.times['end'])
@@ -384,14 +384,14 @@ class ExportDatasetDialog(QDialog):
         btnlayout = QHBoxLayout()
         btnlayout.addStretch(1)
         btnlayout.addWidget(self.bbox)
-        
+
         vlayout = QVBoxLayout()
         vlayout.addLayout(form)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
-        
+
         self.setLayout(vlayout)
-        
+
     def button_clicked(self, button):
         """Action when button was clicked.
 
@@ -401,37 +401,37 @@ class ExportDatasetDialog(QDialog):
             which button was pressed
         """
         if button is self.idx_ok:
-            
+
             #new_format = self.new_format.get_value().lower()
             new_format = 'edf'
             chan = None
             beg = None
             end = None
-            
+
             if not self.all_time.get_value():
                 beg = self.times['beg'].get_value()
                 end = self.times['end'].get_value()
-                
+
             if not self.all_chan.get_value():
                 chan = self.get_channels()
-                
-            self.parent.info.export(new_format, filename=self.filename, 
+
+            self.parent.info.export(new_format, filename=self.filename,
                                     chan=chan, begtime=beg, endtime=end)
-            
-            self.accept()                
-        
+
+            self.accept()
+
         if button is self.idx_cancel:
             self.reject()
-    
+
     def toggle_buttons(self):
         """Turn buttons on and off."""
         all_time_on = self.all_time.get_value()
         all_chan_on = self.all_chan.get_value()
-        
+
         self.times['beg'].setEnabled(not all_time_on)
         self.times['end'].setEnabled(not all_time_on)
         self.idx_chan.setEnabled(not all_chan_on)
-        
+
     def save_as(self):
         """Dialog for getting name, location of dataset export."""
         filename = splitext(self.filename)[0] + '.edf'
@@ -445,7 +445,7 @@ class ExportDatasetDialog(QDialog):
         self.filename = filename
         short_filename = short_strings(basename(self.filename))
         self.idx_filename.setText(short_filename)
-        
+
     def get_channels(self):
         """Get the selected channel(s in order). """
         selectedItems = self.idx_chan.selectedItems()
@@ -456,15 +456,15 @@ class ExportDatasetDialog(QDialog):
                 chan_in_order.append(chan)
 
         return chan_in_order
-    
+
     def update(self):
         """Get info from dataset before opening dialog."""
         self.filename = self.parent.info.dataset.filename
-        
+
         self.chan = self.parent.info.dataset.header['chan_name']
         for chan in self.chan:
             self.idx_chan.addItem(chan)
-        
-    
 
-        
+
+
+

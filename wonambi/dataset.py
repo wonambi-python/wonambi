@@ -22,6 +22,7 @@ from .ioeeg import (Abf,
                     BCI2000,
                     OpenEphys,
                     Text,
+                    BIDS,
                     )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -139,6 +140,9 @@ class Dataset:
         name of the file
     IOClass : class
         one of the classes of wonambi.ioeeg
+    bids : bool
+        whether you give precedence to the information stored in the accompanying
+        files which are in the BIDS format
 
     Attributes
     ----------
@@ -173,8 +177,11 @@ class Dataset:
     differences, for example, if the argument points to a file within a
     directory, or if the file is mapped to memory.
     """
-    def __init__(self, filename, IOClass=None):
+    def __init__(self, filename, IOClass=None, bids=False):
         self.filename = Path(filename)
+
+        if bids:
+            IOClass = BIDS
 
         if IOClass is not None:
             self.IOClass = IOClass

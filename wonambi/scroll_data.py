@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
         self.analysis_dialog.update_groups()
         self.analysis_dialog.update_cycles()
         self.analysis_dialog.show()
-        
+
     def show_plot_dialog(self):
         """Create the plot frame widget."""
         self.plot_dialog.show()
@@ -263,6 +263,8 @@ def main():
                         help='Logging level: info (default), debug')
     parser.add_argument('--reset', action='store_true',
                         help='Reset (clear) configuration file')
+    parser.add_argument('--bids', action='store_true',
+                        help='Read the information stored in the BIDS format')
     parser.add_argument('dataset', nargs='?',
                         help='full path to dataset to open')
     parser.add_argument('annot', nargs='?',
@@ -299,11 +301,11 @@ def main():
         q.show()
 
         if args.dataset:
-            q.info.open_dataset(args.dataset)
-            
+            q.info.open_dataset(args.dataset, bids=args.bids)
+
         if args.annot:
             q.notes.update_notes(args.annot)
-            
+
         if args.montage:
             q.channels.load_channels(test_name=args.montage)
 
