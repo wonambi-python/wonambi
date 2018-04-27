@@ -6,6 +6,7 @@ from numpy import (amax, amin, asarray, ceil, concatenate, diff, empty, floor,
                    in1d, inf, logical_and, logical_or, mean, negative, ptp, 
                    ravel, reshape, sqrt, square, stack, zeros)
 from itertools import compress
+from functools import partial
 from csv import writer
 from os.path import basename, splitext
 
@@ -26,7 +27,9 @@ except ImportError:
     Pac = pacstr = None
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAbstractItemView,
+                             QButtonGroup,
                              QDialog,
                              QDialogButtonBox,
                              QDoubleSpinBox,
@@ -38,6 +41,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QHBoxLayout,
                              QLabel,
                              QListWidget,
+                             QMessageBox,
                              QProgressDialog,
                              QPushButton,
                              QSizePolicy,
@@ -52,7 +56,7 @@ from ..trans import (math, filter_, frequency, get_descriptives, get_power,
 from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
-                    FormSpin, freq_from_str, short_strings, STAGE_NAME)
+                    FormSpin, freq_from_str, short_strings, STAGE_NAME, ICON)
 
 lg = getLogger(__name__)
 
@@ -91,68 +95,111 @@ class AnalysisDialog(ChannelDialog):
 
         """ ------ FILE LOCATION ------ """
 
-        box_f = QGroupBox('File location')
+        box_file = QGroupBox('File location')
 
         filebutton = QPushButton('Choose')
         filebutton.clicked.connect(self.save_as)
         self.idx_filename = filebutton
 
         flayout = QFormLayout()
-        box_f.setLayout(flayout)
+        box_file.setLayout(flayout)
         flayout.addRow('Filename',
-                            self.idx_filename)
+                           self.idx_filename)
 
-        """ ------ CHUNKING ------ """
-
-        box0 = QGroupBox('Chunking')
-
-        self.chunk = {}
-        self.label = {}
-        self.chunk['event'] = FormRadio('by e&vent')
-        self.chunk['epoch'] = FormRadio('by e&poch')
-        self.chunk['segment'] = FormRadio('by longest &run')
-        self.label['evt_type'] = QLabel('Event type (s)')
-        self.label['epoch_dur'] = QLabel('Duration (sec)')
-        self.label['min_dur'] = QLabel('Minimum duration (sec)')
-        self.evt_chan_only = FormBool('Channel-specific')
-        self.epoch_dur = FormFloat(30.0)
-        self.lock_to_staging = FormBool('Lock to staging epochs')
-
-        evt_box = QListWidget()
-        evt_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.idx_evt_type = evt_box
-
-        grid = QGridLayout(box0)
-        box0.setLayout(grid)
-        grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
-        grid.addWidget(QLabel('    '), 1, 0)
-        grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
-        grid.addWidget(QLabel('    '), 2, 0)
-        grid.addWidget(self.label['evt_type'], 2, 1, Qt.AlignTop)
-        grid.addWidget(self.idx_evt_type, 2, 2, 1, 2)
-        grid.addWidget(self.chunk['epoch'], 3, 0, 1, 3)
-        grid.addWidget(QLabel('    '), 4, 0)
-        grid.addWidget(self.lock_to_staging, 4, 1, 1, 2)
-        grid.addWidget(QLabel('    '), 4, 0)
-        grid.addWidget(self.label['epoch_dur'], 5, 1)
-        grid.addWidget(self.epoch_dur, 5, 2)
-        grid.addWidget(self.chunk['segment'], 6, 0, 1, 3)
-
+        """ ------ N_SEG ------ """
+        
+        box_nseg = QGroupBox('Info')
+        
+        self.show_nseg = QLabel('')
+        
+        form = QFormLayout(box_nseg)
+        form.addRow(self.show_nseg)
 
         """ ------ LOCATION ------ """
 
-        box1 = QGroupBox('Location')
+        box_loc = QGroupBox('Location')
 
-        flayout = QFormLayout()
-        box1.setLayout(flayout)
-        flayout.addRow('Channel group',
-                            self.idx_group)
-        flayout.addRow('Channel(s)',
-                            self.idx_chan)
-        flayout.addRow('Cycle(s)',
-                            self.idx_cycle)
-        flayout.addRow('Stage(s)',
-                            self.idx_stage)
+        cghl = QHBoxLayout()
+        cghl.addWidget(QLabel('Channel group'))
+        cghl.addWidget(self.idx_group)
+        cghl.addStretch(1)       
+        
+        grid = QGridLayout(box_loc)
+        grid.addLayout(cghl, 0, 0, 1, 3)
+        grid.addWidget(QLabel('Channel(s)'), 1, 0)
+        grid.addWidget(QLabel('Cycle(s)'), 1, 1)
+        grid.addWidget(QLabel('Stage(s)'), 1, 2)
+        grid.addWidget(self.idx_chan, 2, 0)
+        grid.addWidget(self.idx_cycle, 2, 1)
+        grid.addWidget(self.idx_stage, 2, 2)
+
+        """ ------ CHUNKING ------ """
+
+        box_chunk = QGroupBox('Chunking')
+
+        self.chunk = {}
+        self.chunk['event'] = FormRadio('by e&vent')
+        self.evt_chan_only = FormBool('Channel-specific')        
+        self.chunk['epoch'] = FormRadio('by e&poch')
+        self.epoch_param = epop = {}
+        self.lock_to_staging = FormBool('Lock to staging epochs')
+        epop['dur_label'] = QLabel('Duration (sec)')
+        epop['dur'] = FormFloat(30.)
+        epop['overlap'] = FormRadio('Overlap (0-1)')
+        epop['step'] = FormRadio('Step (sec)')
+        epop['overlap_val'] = QDoubleSpinBox()
+        epop['overlap_val'].setRange(0, 0.9)
+        epop['overlap_val'].setSingleStep(0.1)
+        epop['overlap_val'].setValue(0.)
+        epop['step_val'] = FormFloat(30.)        
+        self.chunk['segment'] = FormRadio('by longest &run')
+        
+        evt_box = QListWidget()
+        evt_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.idx_evt_type = evt_box
+        
+        chunk_grp = QButtonGroup(box_chunk)
+        chunk_grp.addButton(self.chunk['event'])
+        chunk_grp.addButton(self.chunk['epoch'])
+        chunk_grp.addButton(self.chunk['segment'])
+        
+        epoch_grp = QButtonGroup(box_chunk)
+        epoch_grp.addButton(epop['overlap'])
+        epoch_grp.addButton(epop['step'])
+
+        grid = QGridLayout(box_chunk)
+        grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
+        grid.addWidget(QLabel('  '), 1, 0)
+        grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
+        grid.addWidget(self.idx_evt_type, 2, 1, 3, 2)        
+        grid.addWidget(self.chunk['epoch'], 0, 3, 1, 3)
+        grid.addWidget(QLabel('  '), 1, 3)        
+        grid.addWidget(self.lock_to_staging, 1, 4, 1, 2)
+        grid.addWidget(epop['dur_label'], 2, 4)
+        grid.addWidget(epop['dur'], 2, 5)
+        grid.addWidget(epop['overlap'], 3, 4)
+        grid.addWidget(epop['overlap_val'], 3, 5)
+        grid.addWidget(epop['step'], 4, 4)
+        grid.addWidget(epop['step_val'], 4, 5)        
+        grid.addWidget(self.chunk['segment'], 0, 6)
+        
+#==============================================================================
+#         grid = QGridLayout(box0)
+#         box0.setLayout(grid)
+#         grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
+#         grid.addWidget(QLabel('    '), 1, 0)
+#         grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
+#         grid.addWidget(QLabel('    '), 2, 0)
+#         grid.addWidget(self.label['evt_type'], 2, 1, Qt.AlignTop)
+#         grid.addWidget(self.idx_evt_type, 2, 2, 1, 2)
+#         grid.addWidget(self.chunk['epoch'], 3, 0, 1, 3)
+#         grid.addWidget(QLabel('    '), 4, 0)
+#         grid.addWidget(self.lock_to_staging, 4, 1, 1, 2)
+#         grid.addWidget(QLabel('    '), 4, 0)
+#         grid.addWidget(self.label['epoch_dur'], 5, 1)
+#         grid.addWidget(self.epoch_dur, 5, 2)
+#         grid.addWidget(self.chunk['segment'], 6, 0, 1, 3)
+#==============================================================================
 
         """ ------ REJECTION ------ """
 
@@ -194,10 +241,10 @@ class AnalysisDialog(ChannelDialog):
 
         """ ------ PRE-PROCESSING ------ """
 
-        box2 = QGroupBox('Pre-processing')
+        box_pp = QGroupBox('Pre-processing')
 
         self.trans = {}
-        self.trans['whiten'] = FormBool('Differentiate')
+        self.trans['diff'] = FormBool('Differentiate')
         
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
                   'diff']
@@ -211,57 +258,38 @@ class AnalysisDialog(ChannelDialog):
         self.trans['n1'] = tn1 = {}
         self.trans['notch1'] = FormMenu(ftypes)
         tn1['order'] = QLabel('Order'), FormSpin(3, 0, 8, 1)
-        tn1['cf'] = QLabel('Centre (Hz)'), FormFloat()
-        tn1['bw'] = QLabel('Bandwidth (Hz)'), FormFloat()
+        tn1['cf'] = QLabel('CF (Hz)'), FormFloat()
+        tn1['bw'] = QLabel('BW (Hz)'), FormFloat()
         
         self.trans['n2'] = tn2 = {}
         self.trans['notch2'] = FormMenu(ftypes)
         tn2['order'] = QLabel('Order'), FormSpin(3, 0, 8, 1)
-        tn2['cf'] = QLabel('Centre (Hz)'), FormFloat()
-        tn2['bw'] = QLabel('Bandwidth (Hz)'), FormFloat()
+        tn2['cf'] = QLabel('CF (Hz)'), FormFloat()
+        tn2['bw'] = QLabel('BW (Hz)'), FormFloat()
         
-        form = QFormLayout(box2)
-        form.addRow(self.trans['whiten'])
-        form.addRow('Bandpass', self.trans['bandpass'])
-        form.addRow(*tbp['order'])
-        form.addRow(*tbp['f1'])
-        form.addRow(*tbp['f2'])
-        form.addRow('Notch 1', self.trans['notch1'])
-        form.addRow(*tn1['order'])
-        form.addRow(*tn1['cf'])
-        form.addRow(*tn1['bw'])
-        form.addRow('Notch 2', self.trans['notch2'])
-        form.addRow(*tn2['order'])
-        form.addRow(*tn2['cf'])
-        form.addRow(*tn2['bw'])
-        
-        self.trans['button'] = {}
-        tb = self.trans['button']
-        tb['none'] = FormRadio('&None')
-        tb['butter'] = FormRadio('&Butterworth filter')
-        tb['cheby'] = FormRadio('&Chebyshev type 2 filter')
+        form1 = QFormLayout()
+        form1.addRow('Bandpass', self.trans['bandpass'])
+        form1.addRow(*tbp['order'])
+        form1.addRow(*tbp['f1'])
+        form1.addRow(*tbp['f2'])        
 
-        self.trans['filt'] = {}
-        filt = self.trans['filt']
-        filt['order'] = QLabel('Order'), FormInt(default=3)
-        filt['f1'] = QLabel('Lowcut (Hz)'), FormFloat()
-        filt['f2'] = QLabel('Highcut (Hz)'), FormFloat()
-        filt['notch1_centre'] = QLabel('Centre (Hz)'), FormFloat()
-        filt['notch1_bandw'] = QLabel('Bandwidth (Hz)'), FormFloat()        
-        filt['notch2_centre'] = QLabel('Centre (Hz)'), FormFloat()
-        filt['notch2_bandw'] = QLabel('Bandwidth (Hz)'), FormFloat()
-        filt['bandpass_l'] = QLabel('Bandpass'), None
-        filt['notch1_l'] = QLabel('Notch 1'), None
-        filt['notch2_l'] = QLabel('Notch 2'), None
+        form2 = QFormLayout()
+        form2.addRow('Notch 1', self.trans['notch1'])
+        form2.addRow(*tn1['order'])
+        form2.addRow(*tn1['cf'])
+        form2.addRow(*tn1['bw'])
         
-        """ ------ N_SEG ------ """
+        form3 = QFormLayout()
+        form3.addRow('Notch 2', self.trans['notch2'])
+        form3.addRow(*tn2['order'])
+        form3.addRow(*tn2['cf'])
+        form3.addRow(*tn2['bw'])
         
-        box_nseg = QGroupBox('Info')
-        
-        self.show_nseg = QLabel('')
-        
-        form = QFormLayout(box_nseg)
-        form.addRow(self.show_nseg)
+        grid = QGridLayout(box_pp)
+        grid.addWidget(self.trans['diff'], 0, 0, 1, 3)
+        grid.addLayout(form1, 1, 0)
+        grid.addLayout(form2, 1, 1)
+        grid.addLayout(form3, 1, 2)
 
         """ ------ FREQUENCY ------ """
 
@@ -269,18 +297,21 @@ class AnalysisDialog(ChannelDialog):
 
         self.frequency = freq = {}
         
-        box_freq_main = QGroupBox()
+        box_freq_main = QGroupBox('Export')
         
-        freq['freq_on'] = FormBool('Compute frequency domain')
-        freq['prep'] = FormBool('Pre-process')
+        #freq['freq_on'] = FormBool('Compute frequency domain')
+        freq['export_full'] = FormBool('Full spectrum')
+        freq['export_band'] = FormBool('Bands of interest')
         freq['plot_on'] = FormBool('Plot mean spectrum')
         freq['fooof_on'] = FormBool('Parametrize')
+        freq['prep'] = FormBool('Pre-process')
         
         form = QFormLayout(box_freq_main)
-        form.addRow(freq['freq_on'])
-        form.addRow(freq['prep'])
+        form.addRow(freq['export_full'])
+        #form.addRow(freq['export_band'])
         form.addRow(freq['plot_on'])
         form.addRow(freq['fooof_on'])
+        form.addRow(freq['prep'])
 
         freq['box_param'] = QGroupBox('Parameters')
 
@@ -341,7 +372,7 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(QLabel('Side(s)'), 2, 1)
         grid.addWidget(freq['sides'], 2, 2)
 
-        freq['box_nfft'] = QGroupBox('FFT Length')
+        freq['box_nfft'] = QGroupBox('FFT length')
         
         freq['nfft_seg'] = FormRadio('Same as segment')
         freq['nfft_fixed'] = FormRadio('Fixed:')
@@ -386,53 +417,68 @@ class AnalysisDialog(ChannelDialog):
         freq['fo_min_pk_amp'] = FormFloat(0)
         freq['fo_bg_mode'] = FormMenu(['fixed', 'knee'])
         
+        freqhbox = QHBoxLayout()
+        freqhbox.addWidget(QLabel('Frequencies:'))
+        freqhbox.addWidget(freq['fo_min_freq'])
+        freqhbox.addWidget(QLabel('-'))
+        freqhbox.addWidget(freq['fo_max_freq'])
+        freqhbox.addWidget(QLabel('Hz'))
+        
+        widhbox = QHBoxLayout()
+        widhbox.addWidget(QLabel('Peak width:'))
+        widhbox.addWidget(freq['fo_pk_width_min'])
+        widhbox.addWidget(QLabel('-'))
+        widhbox.addWidget(freq['fo_pk_width_max'])
+        widhbox.addWidget(QLabel('Hz'))
+        
         form = QFormLayout(freq['box_fooof'])
-        form.addRow('Min. frequency (Hz)',
-                    freq['fo_min_freq'])
-        form.addRow('Max. frequency (Hz)',
-                    freq['fo_max_freq'])
+        form.addRow(freqhbox)
+        form.addRow(widhbox)
         form.addRow('Peak threshold (SD)',
                     freq['fo_pk_thresh'])
         form.addRow('Max. number of peaks',
                     freq['fo_max_n_pk'])
         form.addRow('Min. peak amplitude', 
                     freq['fo_min_pk_amp'])
-        form.addRow('Min. peak width (Hz)',
-                    freq['fo_pk_width_min'])
-        form.addRow('Max. peak width (Hz)',
-                    freq['fo_pk_width_max'])
         form.addRow('Background fitting mode',
                     freq['fo_bg_mode'])
 
-        freq['box_plot'] = QGroupBox('Plot')
+        freq['box_band'] = QGroupBox('Define bands')
+        
+        freq['band'] = FormStr()
+        freq['band_help'] = QPushButton(QIcon(ICON['help-about']), '', self)
+        freq['band_scale'] = FormMenu(['average', 'sum'])        
 
-        freq['title'] = FormStr()
-        freq['axis_scale'] = FormMenu(['log y-axis', 'log both axes',
-                                        'linear'])
-        freq['min_x_axis'] = FormFloat(0.5)
-        freq['max_x_axis'] = FormFloat()
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(freq['band'])
+        hlayout.addWidget(freq['band_help'])
+        
+        vlayout = QVBoxLayout(freq['box_band'])
+        vlayout.addLayout(hlayout)
+        vlayout.addWidget(freq['band_scale'])
 
-        flayout = QFormLayout(freq['box_plot'])
-        flayout.addRow('Title:',
-                       freq['title'])
-
-        grid = QGridLayout()
-        grid.addWidget(box_freq_main, 0, 0)
-        grid.addWidget(freq['box_param'], 1, 0)
-        grid.addWidget(freq['box_welch'], 2, 0)
-        grid.addWidget(freq['box_nfft'], 3, 0)
-        grid.addWidget(freq['box_mtap'], 4, 0)
-        grid.addWidget(freq['box_output'], 0, 1)
-        grid.addWidget(freq['box_norm'], 1, 1, 2, 1)
-        grid.addWidget(freq['box_fooof'], 3, 1, 3, 1)
+        vlayout1 = QVBoxLayout()
+        vlayout1.addWidget(box_freq_main)
+        vlayout1.addWidget(freq['box_param'])
+        vlayout1.addWidget(freq['box_welch'])
+        vlayout1.addWidget(freq['box_nfft'])
+        vlayout1.addWidget(freq['box_mtap'])
+        vlayout1.addStretch(1)
+        
+        vlayout2 = QVBoxLayout()
+        vlayout2.addWidget(freq['box_band'])
+        vlayout2.addWidget(freq['box_output'])
+        vlayout2.addWidget(freq['box_norm'])
+        vlayout2.addWidget(freq['box_fooof'])
+        vlayout2.addStretch(1)
+        
+        hlayout = QHBoxLayout()
+        hlayout.addLayout(vlayout1)
+        hlayout.addLayout(vlayout2)
 
         vlayout = QVBoxLayout(tab_freq)
-        #vlayout.addWidget(freq['freq_on'])
-        #vlayout.addWidget(freq['prep'])
-        #vlayout.addWidget(freq['plot_on'])
-        #vlayout.addWidget(freq['fooof_on'])
-        vlayout.addLayout(grid)
-        vlayout.addStretch(1)
+        vlayout.addLayout(hlayout)
+        #vlayout.addStretch(1)
 
         """ ------ PAC ------ """
         if Pac is not None:
@@ -480,16 +526,28 @@ class AnalysisDialog(ChannelDialog):
             pac['metric'] = FormMenu(pac_metrics)
             pac['fpha'] = FormStr()
             pac['famp'] = FormStr()
+            pac['band_help_p'] = QPushButton(QIcon(ICON['help-about']), '', 
+               self)
+            pac['band_help_a'] = QPushButton(QIcon(ICON['help-about']), '', 
+               self)
             pac['nbin'] = QLabel('Number of bins'), FormInt(default=18)
 
+            hlayoutp = QHBoxLayout()
+            hlayoutp.addWidget(pac['fpha'])
+            hlayoutp.addWidget(pac['band_help_p'])
+            
+            hlayouta = QHBoxLayout()
+            hlayouta.addWidget(pac['famp'])
+            hlayouta.addWidget(pac['band_help_a'])
+            
             flayout = QFormLayout(pac['box_metric'])
             flayout.addRow(pac['pac_on'])
             flayout.addRow('PAC metric',
                                pac['metric'])
             flayout.addRow('Phase frequencies (Hz)',
-                               pac['fpha'])
+                               hlayoutp)
             flayout.addRow('Amplitude frequencies (Hz)',
-                               pac['famp'])
+                               hlayouta)
             flayout.addRow(*pac['nbin'])
 
             pac['box_surro'] = QGroupBox('Surrogate data')
@@ -522,14 +580,18 @@ class AnalysisDialog(ChannelDialog):
             flayout.addRow('Number of jobs',
                                pac['njobs'])
 
+            hlayout = QHBoxLayout()
+            hlayout.addWidget(pac['pac_on'])
+            hlayout.addWidget(pac['prep'])
+            
             vlayout = QVBoxLayout(tab_pac)
-            vlayout.addWidget(pac['pac_on'])
-            vlayout.addWidget(pac['prep'])
-            vlayout.addWidget(QLabel(''))
+            vlayout.addLayout(hlayout)
+            #vlayout.addWidget(QLabel(''))
             vlayout.addWidget(pac['box_metric'])
             vlayout.addWidget(pac['box_complex'])
             vlayout.addWidget(pac['box_surro'])
             vlayout.addWidget(pac['box_opts'])
+            vlayout.addStretch(1)
 
         """ ------ EVENTS ------ """
 
@@ -630,9 +692,6 @@ class AnalysisDialog(ChannelDialog):
                    self.idx_evt_type]:
             lw.itemSelectionChanged.connect(self.toggle_concatenate)
 
-        for button in self.trans['button'].values():
-            button.toggled.connect(self.toggle_buttons)
-
         for button in [x[0] for x in self.event['local'].values()]:
             button.connect(self.toggle_buttons)
 
@@ -643,8 +702,12 @@ class AnalysisDialog(ChannelDialog):
         self.lock_to_staging.connect(self.toggle_concatenate)
         self.cat['discontinuous'].connect(self.toggle_concatenate)
         
-        self.epoch_dur.editingFinished.connect(self.update_nseg)
-        self.min_dur.editingFinished.connect(self.update_nseg)
+        epop['dur'].editingFinished.connect(self.update_nseg)
+        epop['overlap_val'].valueChanged.connect(self.update_nseg)
+        epop['step_val'].editingFinished.connect(self.update_nseg)
+        epop['overlap'].connect(self.update_nseg)
+        epop['overlap'].connect(self.toggle_buttons)
+        self.min_dur.textChanged.connect(self.update_nseg)
         self.reject_epoch.connect(self.update_nseg)
         self.reject_event.connect(self.update_nseg)
         
@@ -655,7 +718,8 @@ class AnalysisDialog(ChannelDialog):
         self.trans['notch1'].connect(self.toggle_buttons)
         self.trans['notch2'].connect(self.toggle_buttons)
         
-        freq['freq_on'].connect(self.toggle_freq)
+        freq['export_full'].connect(self.toggle_freq)
+        freq['export_band'].connect(self.toggle_freq)
         freq['plot_on'].connect(self.toggle_freq)
         freq['fooof_on'].connect(self.toggle_freq)
         freq['taper'].connect(self.toggle_freq)
@@ -666,6 +730,8 @@ class AnalysisDialog(ChannelDialog):
         freq['norm'].connect(self.toggle_freq)
         freq['nfft_fixed'].connect(self.toggle_freq)
         freq['nfft_zeropad'].connect(self.toggle_freq)
+        freq['band_help'].clicked.connect(self.band_help)
+
 
         if Pac is not None:
             pac['pac_on'].connect(self.toggle_pac)
@@ -674,6 +740,8 @@ class AnalysisDialog(ChannelDialog):
             pac['metric'].connect(self.toggle_pac)
             pac['surro_method'].connect(self.toggle_pac)
             pac['surro_norm'].connect(self.toggle_pac)
+            pac['band_help_p'].clicked.connect(self.band_help)
+            pac['band_help_a'].clicked.connect(partial(self.band_help, 'amp'))
 
         eg['density'].connect(self.toggle_buttons)
         eg['all_local'].clicked.connect(self.check_all_local)
@@ -693,7 +761,7 @@ class AnalysisDialog(ChannelDialog):
         self.lock_to_staging.setChecked(True)
         self.chunk['epoch'].setChecked(True)
         self.reject_epoch.setChecked(True)
-        self.trans['button']['none'].setChecked(True)
+        epop['overlap'].setChecked(True)
 
         freq['prep'].setEnabled(False)
         freq['plot_on'].setEnabled(False)
@@ -704,7 +772,6 @@ class AnalysisDialog(ChannelDialog):
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
         freq['box_fooof'].setEnabled(False)
-        # freq['box_plot'].setEnabled(False)
         freq['welch_on'].set_value(True)
         freq['nfft_seg'].setChecked(True)
         freq['spectrald'].setChecked(True)
@@ -737,31 +804,60 @@ class AnalysisDialog(ChannelDialog):
         btnlayout.addStretch(1)
         btnlayout.addWidget(bbox)
 
+        hlayout1 = QHBoxLayout()
+        hlayout1.addWidget(box_file)
+        hlayout1.addWidget(box_nseg)
+        
+        hlayout2 = QHBoxLayout()
+        hlayout2.addWidget(box_r)
+        hlayout2.addWidget(box_c)
+        
         vlayout1 = QVBoxLayout()
-        vlayout1.addWidget(box_f)
-        vlayout1.addWidget(box0)
-        vlayout1.addWidget(box1)
+        vlayout1.addLayout(hlayout1)
+        vlayout1.addWidget(box_loc)
+        vlayout1.addWidget(box_chunk)
+        vlayout1.addLayout(hlayout2)
+        vlayout1.addWidget(box_pp)
         vlayout1.addStretch(1)
-
+        
         vlayout2 = QVBoxLayout()
-        vlayout2.addWidget(box_r)
-        vlayout2.addWidget(box_c)
-        vlayout2.addWidget(box_nseg)
-        vlayout2.addWidget(box2)
-        vlayout2.addStretch(1)
+        vlayout2.addWidget(box3)
+        #vlayout2.addStretch(1)
+        vlayout2.addLayout(btnlayout)        
+        
+        mhlayout = QHBoxLayout()
+        mhlayout.addLayout(vlayout1)
+        mhlayout.addLayout(vlayout2)
+        mhlayout.addStretch(1)
 
-        vlayout3 = QVBoxLayout()
-        vlayout3.addWidget(box3)
-        vlayout3.addStretch(1)
-        vlayout3.addLayout(btnlayout)
-
-        hlayout = QHBoxLayout()
-        hlayout.addLayout(vlayout1)
-        hlayout.addLayout(vlayout2)
-        hlayout.addLayout(vlayout3)
-        hlayout.addStretch(1)
-
-        self.setLayout(hlayout)
+        self.setLayout(mhlayout)       
+        
+#==============================================================================
+#         
+#         vlayout1.addWidget(box_chunk)
+#         vlayout1.addWidget(box_loc)
+#         vlayout1.addStretch(1)
+# 
+#         vlayout2 = QVBoxLayout()
+#         vlayout2.addWidget(box_r)
+#         vlayout2.addWidget(box_c)
+#         vlayout2.addWidget(box_nseg)
+#         vlayout2.addWidget(box2)
+#         vlayout2.addStretch(1)
+# 
+#         vlayout3 = QVBoxLayout()
+#         vlayout3.addWidget(box3)
+#         vlayout3.addStretch(1)
+#         vlayout3.addLayout(btnlayout)
+# 
+#         hlayout = QHBoxLayout()
+#         hlayout.addLayout(vlayout1)
+#         hlayout.addLayout(vlayout2)
+#         hlayout.addLayout(vlayout3)
+#         hlayout.addStretch(1)
+# 
+#         self.setLayout(hlayout)
+#==============================================================================
 
     def update_evt_types(self):
         """Update the event types list when dialog is opened."""
@@ -777,20 +873,26 @@ class AnalysisDialog(ChannelDialog):
         event_on = self.chunk['event'].isChecked()
         epoch_on = self.chunk['epoch'].isChecked()
         #segment_on = self.chunk['segment'].isChecked()
+        self.lock_to_staging.setEnabled(epoch_on)
         lock_on = self.lock_to_staging.get_value()
         lock_enabled = self.lock_to_staging.isEnabled()
 
         self.evt_chan_only.setEnabled(event_on)
-        self.label['evt_type'].setEnabled(event_on)
         self.idx_evt_type.setEnabled(event_on)
-        self.label['epoch_dur'].setEnabled(epoch_on)
-        self.epoch_dur.setEnabled(epoch_on)
-        self.lock_to_staging.setEnabled(epoch_on)
         self.reject_epoch.setEnabled(not event_on)
         self.reject_event.setEnabled(logical_or((lock_enabled and not lock_on),
                                                 not lock_enabled))
         self.cat['evt_type'].setEnabled(event_on)
+        
+        epop = self.epoch_param
+        for wgt in epop.values():
+            wgt.setEnabled(epoch_on and not lock_on)
 
+        if epoch_on and not lock_on:
+            overlap_on = epop['overlap'].isChecked()
+            epop['overlap_val'].setEnabled(overlap_on)
+            epop['step_val'].setEnabled(not overlap_on)
+        
         if Pac is not None:
             surro = self.pac['surro_method']
             surro.model().item(1).setEnabled(epoch_on)
@@ -804,7 +906,7 @@ class AnalysisDialog(ChannelDialog):
         elif self.cat['evt_type'].get_value():
             self.cat['evt_type'].setChecked(False)
 
-        if epoch_on and lock_on:
+        if epoch_on and not lock_on:
             self.reject_event.setChecked(False)
             for i in self.cat.values():
                 i.setChecked(False)
@@ -875,16 +977,19 @@ class AnalysisDialog(ChannelDialog):
         """Enable and disable frequency domain options."""
         freq = self.frequency
 
-        freq_on = freq['freq_on'].get_value()
+        export_full_on = freq['export_full'].get_value()
+        export_band_on = freq['export_band'].get_value()
+        freq_on = asarray([export_full_on,
+                           export_band_on,
+                           freq['plot_on'].get_value(),
+                           freq['fooof_on'].get_value()]).any()
         freq['box_param'].setEnabled(freq_on)
         freq['box_output'].setEnabled(freq_on)
         freq['box_nfft'].setEnabled(freq_on)
+        freq['box_band'].setEnabled(export_band_on)
 
         welch_on = freq['welch_on'].get_value() and freq_on
         freq['box_welch'].setEnabled(welch_on)
-
-        # plot_on = freq['plot_on'].get_value()
-        # freq['box_plot'].setEnabled(plot_on)
 
         if welch_on:
             overlap_on = freq['overlap'].isChecked()
@@ -904,10 +1009,11 @@ class AnalysisDialog(ChannelDialog):
         freq['prep'].setEnabled(freq_on)
         if not freq_on:
             freq['prep'].set_value(False)
-        freq['plot_on'].setEnabled(freq_on and rectangular)
-        freq['fooof_on'].setEnabled(freq_on and rectangular)
+        freq['plot_on'].setEnabled(rectangular)
+        freq['fooof_on'].setEnabled(rectangular)
         freq['box_norm'].setEnabled(freq_on and \
-            (welch_on or nfft_fixed_on or zeropad_on))
+            ((welch_on or nfft_fixed_on or zeropad_on) or \
+             (export_band_on and not export_full_on)))
         if not freq['plot_on'].isEnabled():
             freq['plot_on'].set_value(False) 
         if not freq['box_norm'].isEnabled():
@@ -994,6 +1100,20 @@ class AnalysisDialog(ChannelDialog):
                 pac['surro_method'].set_value('No surrogates')
                 pac['surro']['pval'][0].setEnabled(True)
 
+    def band_help(self, opt=None):
+        msg1 = 'Use the following format: [[f1-f2],[f3-f4],[f5-f6]] \n\n'
+        msg2 = ('For example, for delta (0.5-4 Hz), theta (4-8 Hz) and sigma '
+                '(10-16 Hz), write: [[0.5-4],[4-8],[10-16]]')
+        msg3 = ('For example, for low gamma (30-60 Hz) and high gamma '
+                '(60-120 Hz), write: [[30-60],[60-120]]')
+        
+        if 'amp' == opt:
+            msg = msg1 + msg3
+        else:
+            msg = msg1 + msg2            
+        
+        QMessageBox.about(self, 'Entering frequency bands', msg)       
+    
     def update_nseg(self):
         """Update the number of segments, displayed in the dialog."""
         self.nseg = 0
@@ -1206,7 +1326,9 @@ class AnalysisDialog(ChannelDialog):
         # Chunking
         chunk = {k: v.isChecked() for k, v in self.chunk.items()}
         lock_to_staging = self.lock_to_staging.get_value()
-        epoch_dur = self.epoch_dur.get_value()
+        epoch_dur = self.epoch_param['dur'].get_value()
+        epoch_overlap = self.epoch_param['overlap_val'].value()
+        epoch_step = None
         epoch = None
         
         if chunk['epoch']:
@@ -1214,6 +1336,12 @@ class AnalysisDialog(ChannelDialog):
                 epoch = 'locked'
             else:
                 epoch = 'unlocked'
+                
+                if self.epoch_param['step'].isChecked():
+                    epoch_step = self.epoch_param['step_val'].get_value()
+                    
+                    if epoch_step <= 0:
+                        epoch_step = 0.1
         
         # Which channel(s)
         self.chan = self.get_channels() # chan name without group
@@ -1260,12 +1388,12 @@ class AnalysisDialog(ChannelDialog):
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
         
         segments = fetch(self.parent.info.dataset, 
-                              self.parent.notes.annot, cat=cat, 
-                              evt_type=evt_type, stage=stage, cycle=cycle, 
-                              chan_full=chan_full, epoch_dur=epoch_dur, 
-                              min_dur=min_dur, epoch=epoch,
-                              reject_epoch=reject_epoch, 
-                              reject_artf=reject_artf)
+                         self.parent.notes.annot, cat=cat, 
+                         evt_type=evt_type, stage=stage, cycle=cycle, 
+                         chan_full=chan_full, epoch=epoch, 
+                         epoch_dur=epoch_dur, epoch_overlap=epoch_overlap, 
+                         epoch_step=epoch_step, reject_epoch=reject_epoch, 
+                         reject_artf=reject_artf, min_dur=min_dur)
         
         return segments
 
@@ -1593,6 +1721,55 @@ class AnalysisDialog(ChannelDialog):
                                        chan,
                                        ] + data_row)
 
+#==============================================================================
+#     def export_freq_band(self, xfreq):
+#         """Write frequency analysis data to CSV by pre-defined band."""
+#         filename = splitext(self.filename)[0] + '_band.csv'
+# 
+#         heading_row_1 = ['Segment index',
+#                        'Start time',
+#                        'End time',
+#                        'Duration',
+#                        'Stitches',
+#                        'Stage',
+#                        'Cycle',
+#                        'Event type',
+#                        'Channel',
+#                        ]
+#         spacer = [''] * (len(heading_row_1) - 1)
+#         freq = list(xfreq[0]['data'].axis['freq'][0])
+# 
+#         with open(filename, 'w', newline='') as f:
+#             lg.info('Writing to' + str(filename))
+#             csv_file = writer(f)
+#             csv_file.writerow(heading_row_1 + freq)
+#             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+#             csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+#             csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
+#             csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+#             idx = 0
+# 
+#             for seg in xfreq:
+# 
+#                 for chan in seg['data'].axis['chan'][0]:
+#                     idx += 1
+#                     
+#                     cyc = None
+#                     if seg['cycle'] is not None:
+#                         cyc = seg['cycle'][2]
+#                     
+#                     data_row = list(seg['data'](chan=chan)[0])
+#                     csv_file.writerow([idx,
+#                                        seg['times'][0],
+#                                        seg['times'][1],
+#                                        seg['duration'],
+#                                        seg['n_stitch'],
+#                                        seg['stage'],
+#                                        cyc,
+#                                        seg['name'],
+#                                        chan,
+#                                        ] + data_row)
+#==============================================================================
     
     def plot_freq(self, x, y, title=''):
         """Plot mean frequency spectrum and display in dialog.

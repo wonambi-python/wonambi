@@ -67,6 +67,7 @@ ICON = {'application': join(icon_path, 'wonambi.jpg'),
         'event': join(oxy_path, 'edit-table-cell-merge.png'),
         'new_eventtype': join(oxy_path, 'edit-table-insert-column-right.png'),
         'del_eventtype': join(oxy_path, 'edit-table-delete-column.png'),
+        'help-about': join(oxy_path, 'help-about.png')
         }
 
 settings = QSettings("wonambi", "wonambi")
