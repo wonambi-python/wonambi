@@ -1,5 +1,4 @@
-from datetime import datetime
-from pathlib import Path
+from numpy import array
 try:
     from bidso import iEEG
 except ImportError:
@@ -41,13 +40,13 @@ class BIDS:
         """
         subj_id = self.task.subject
 
-        sampling_freq = set(self.task.channels.get(map_lambda=lambda x:x['sampling_frequency']))
+        sampling_freq = set(self.task.channels.get(map_lambda=lambda x: x['sampling_frequency']))
         if len(sampling_freq) > 1:
             raise ValueError('Multiple sampling frequencies not supported')
 
         s_freq = float(next(iter(sampling_freq)))
         chan_name = self.task.channels.get(map_lambda=lambda x: x['name'])
-
+        self.chan_name = array(chan_name)
 
         # read these values directly from dataset
         orig = self.baseformat.header
@@ -73,7 +72,7 @@ class BIDS:
         numpy.ndarray
             A 2d matrix, with dimension chan X samples
         """
-        return self.baseformat.read_data(chan, begsam, endsam)
+        return self.baseformat.dataset.return_dat(chan, begsam, endsam)
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
@@ -86,14 +85,11 @@ class BIDS:
             str with the channels involved (if not of relevance, it's None).
         """
         markers = []
-        for v in self.mrk['Marker Infos'].values():
-            if v[0] == 'New Segment':
-                continue
-
+        for mrk in self.task.events.tsv:
             markers.append({
-                'name': v[1],
-                'start': float(v[2]) / self.s_freq,
-                'end': (float(v[2]) + float(v[3])) / self.s_freq,
-                })
+                'start': float(mrk['onset']),
+                'end': float(mrk['onset']) + float(mrk['duration']),
+                'name': mrk['trial_type']
+            })
 
         return markers
