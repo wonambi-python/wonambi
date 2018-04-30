@@ -267,6 +267,7 @@ def _write_vhdr(data, filename):
     ; <Resolution in "Unit">,<Unit>, Future extensions..
     ; Fields are delimited by commas, some fields might be omitted (empty).
     """
+    vhdr_txt = dedent(vhdr_txt)
     # found a way to write \1
     vhdr_txt += r'; Commas in channel names are coded as "\1".'
     vhdr_txt += '\n'
@@ -275,7 +276,7 @@ def _write_vhdr(data, filename):
     for i, chan in enumerate(data.chan[0]):
         output.append(f'Ch{i + 1:d}={chan},,{RESOLUTION},µV')
 
-    return dedent(vhdr_txt) + '\n'.join(output)
+    return vhdr_txt + '\n'.join(output)
 
 
 def _write_vmrk(data, filename, markers):
@@ -292,15 +293,16 @@ def _write_vmrk(data, filename, markers):
     ; <Size in data points>, <Channel number (0 = marker is related to all channels)>
     ; Fields are delimited by commas, some fields might be omitted (empty).
     """
+    vmrk_txt = dedent(vmrk_txt)
     # found a way to write \1
     vmrk_txt += r'; Commas in type or description are coded as "\1".'
-    vmrk_txt += '\nMk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}\n'
+    vmrk_txt += f'\nMk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}\n'
 
     output = []
     for i, mrk in enumerate(markers):
         output.append(f'Mk{i + 1:d}=Stimulus,{mrk["name"]},{mrk["start"] * data.s_freq:.0f},{(mrk["end"] - mrk["start"]) * data.s_freq:.0f},0')
 
-    return dedent(vmrk_txt) + '\n'.join(output)
+    return vmrk_txt + '\n'.join(output)
 
 
 def _write_eeg(data, filename):
