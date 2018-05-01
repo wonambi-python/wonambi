@@ -38,9 +38,9 @@ def test_widget_analysis_dialog(qtbot):
     ad.lock_to_staging.set_value(True)
     ad.idx_chan.setCurrentRow(0)
     ad.idx_stage.setCurrentRow(2)
-    ad.trans['whiten'].set_value(True)
+    ad.trans['diff'].set_value(True)
     freq = ad.frequency
-    freq['freq_on'].set_value(True)
+    freq['export_full'].set_value(True)
     ad.tab_freq.grab().save(str(GUI_PATH / 'analysis_02_freq.png'))
     freq['prep'].set_value(True)
     freq['norm'].set_value('by integral of each segment')

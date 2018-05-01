@@ -51,7 +51,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import ChanFreq
-from ..trans import (math, filter_, frequency, get_descriptives, get_power, 
+from ..trans import (math, filter_, frequency, get_descriptives, band_power, 
                      fetch, get_times, slopes)
 from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
@@ -301,14 +301,14 @@ class AnalysisDialog(ChannelDialog):
         
         #freq['freq_on'] = FormBool('Compute frequency domain')
         freq['export_full'] = FormBool('Full spectrum')
-        freq['export_band'] = FormBool('Bands of interest')
+        freq['export_band'] = FormBool('Band-limited')
         freq['plot_on'] = FormBool('Plot mean spectrum')
         freq['fooof_on'] = FormBool('Parametrize')
         freq['prep'] = FormBool('Pre-process')
         
         form = QFormLayout(box_freq_main)
         form.addRow(freq['export_full'])
-        #form.addRow(freq['export_band'])
+        form.addRow(freq['export_band'])
         form.addRow(freq['plot_on'])
         form.addRow(freq['fooof_on'])
         form.addRow(freq['prep'])
@@ -447,7 +447,7 @@ class AnalysisDialog(ChannelDialog):
         
         freq['band'] = FormStr()
         freq['band_help'] = QPushButton(QIcon(ICON['help-about']), '', self)
-        freq['band_scale'] = FormMenu(['average', 'sum'])        
+        freq['band_perhz'] = FormBool('Bandwidth-normalized (/Hz)')        
 
         hlayout = QHBoxLayout()
         hlayout.addWidget(freq['band'])
@@ -455,7 +455,7 @@ class AnalysisDialog(ChannelDialog):
         
         vlayout = QVBoxLayout(freq['box_band'])
         vlayout.addLayout(hlayout)
-        vlayout.addWidget(freq['band_scale'])
+        #vlayout.addWidget(freq['band_perhz'])
 
         vlayout1 = QVBoxLayout()
         vlayout1.addWidget(box_freq_main)
@@ -1106,11 +1106,16 @@ class AnalysisDialog(ChannelDialog):
                 '(10-16 Hz), write: [[0.5-4],[4-8],[10-16]]')
         msg3 = ('For example, for low gamma (30-60 Hz) and high gamma '
                 '(60-120 Hz), write: [[30-60],[60-120]]')
+        msg4 = ('\n\nAlternatively, you may use dynamic notation in this '
+                'format: (start, stop, width, step).\n\n'
+                'For example, to get the range of amplitude bands between '
+                '30 Hz and 130 Hz in non-overlapping 20-Hz bands, write: '
+                '(40,140,20,20).')
         
         if 'amp' == opt:
-            msg = msg1 + msg3
+            msg = msg1 + msg3 + msg4
         else:
-            msg = msg1 + msg2            
+            msg = msg1 + msg2 + msg4            
         
         QMessageBox.about(self, 'Entering frequency bands', msg)       
     
@@ -1182,10 +1187,12 @@ class AnalysisDialog(ChannelDialog):
             
             # Which analyses?
             freq = self.frequency
-            freq_on = freq['freq_on'].get_value()
-            freq_plot_on = freq['plot_on'].get_value()
-            freq_fooof_on = freq['fooof_on'].get_value()
+            freq_full = freq['export_full'].get_value()
+            freq_band = freq['export_band'].get_value()
+            freq_plot = freq['plot_on'].get_value()
+            freq_fooof = freq['fooof_on'].get_value()
             freq_prep = freq['prep'].get_value()
+            freq_on = freq_full or freq_band or freq_plot or freq_fooof
             
             if Pac is not None:
                 pac_on = self.pac['pac_on'].get_value()
@@ -1262,27 +1269,31 @@ class AnalysisDialog(ChannelDialog):
                 if not xfreq:
                     return
                 
-                #freq_filename = splitext(filename)[0] + '_freq.p'
-                #with open(freq_filename, 'wb') as f:
-                #    dump(xfreq, f)
+                if freq_band:
+                    bands = freq_from_str(freq['band'].get_value())
+                    perhz = freq['band_perhz'].get_value()
+                    self.export_freq_band(xfreq, bands, perhz)
                     
-                n_freq_bins = [x['data']()[0].shape for x in xfreq]
-                
-                if all(x == n_freq_bins[0] for x in n_freq_bins):
-                    as_matrix = asarray(
-                            [y for x in xfreq for y in x['data']()[0]])
-                    desc = get_descriptives(as_matrix)
-                    lg.info('exporting to csv')
-                    self.export_freq(xfreq, desc)
+                if freq_full or freq_plot or freq_fooof:                
+                    n_freq_bins = [x['data']()[0].shape for x in xfreq]
                     
-                    x = list(xfreq[0]['data'].axis['freq'][0])
-                    y = desc['mean']
-                    
-                    if freq_plot_on:                        
-                        self.plot_freq(x, y, title=self.title)
+                    if all(x == n_freq_bins[0] for x in n_freq_bins):
+                        as_matrix = asarray(
+                                [y for x in xfreq for y in x['data']()[0]])
+                        desc = get_descriptives(as_matrix)
                         
-                    if freq_fooof_on:
-                        self.report_fooof(asarray(x), y)
+                        if freq_full:
+                            self.export_freq(xfreq, desc)
+                        
+                        if freq_plot or freq_fooof:
+                            x = list(xfreq[0]['data'].axis['freq'][0])
+                            y = desc['mean']
+                        
+                        if freq_plot:                        
+                            self.plot_freq(x, y, title=self.title)
+                            
+                        if freq_fooof:
+                            self.report_fooof(asarray(x), y)
 
             # PAC
             if pac_on:
@@ -1292,11 +1303,6 @@ class AnalysisDialog(ChannelDialog):
                     xpac, fpha, famp = pac_output
                 else:
                     return
-                    
-                #pac_filename = splitext(filename)[0] + '_pac.p'
-
-                #with open(pac_filename, 'wb') as f:
-                #    dump(xpac, f)
 
                 as_matrix = asarray(
                         [ravel(chan['data'][x,:,:]) for chan in xpac.values() \
@@ -1412,7 +1418,7 @@ class AnalysisDialog(ChannelDialog):
             same object with transformed data as 'trans_data' (ChanTime)
         """
         trans = self.trans
-        whiten = trans['whiten'].get_value()
+        differ = trans['diff'].get_value()
         bandpass = trans['bandpass'].get_value()
         notch1 = trans['notch1'].get_value()
         notch2 = trans['notch2'].get_value()
@@ -1420,7 +1426,7 @@ class AnalysisDialog(ChannelDialog):
         for seg in data:
             dat = seg['data']
         
-            if whiten:
+            if differ:
                 dat = math(dat, operator=diff, axis='time')
             
             if bandpass != 'none':
@@ -1719,57 +1725,74 @@ class AnalysisDialog(ChannelDialog):
                                        cyc,
                                        seg['name'],
                                        chan,
+                                       ] + data_row)        
+
+
+    def export_freq_band(self, xfreq, bands, perhz):
+        """Write frequency analysis data to CSV by pre-defined band."""
+        filename = splitext(self.filename)[0] + '_band.csv'
+
+        heading_row_1 = ['Segment index',
+                       'Start time',
+                       'End time',
+                       'Duration',
+                       'Stitches',
+                       'Stage',
+                       'Cycle',
+                       'Event type',
+                       'Channel',
+                       ]
+        spacer = [''] * (len(heading_row_1) - 1)
+        band_hdr = [str(b1) + '-' + str(b2) for b1, b2 in bands]        
+        xband = xfreq.copy()
+        
+        for seg in xband:
+            bandlist = []
+             
+            for i, b in enumerate(bands):
+                pwr, _ = band_power(seg['data'], b, perhz=perhz)
+                bandlist.append(pwr)
+            
+            seg['band'] = bandlist
+                
+        as_matrix = asarray([
+                [x['band'][y][chan] for y in range(len(x['band']))] \
+                for x in xband for chan in x['band'][0].keys()])
+        desc = get_descriptives(as_matrix)
+
+        with open(filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(filename))
+            csv_file = writer(f)
+            csv_file.writerow(heading_row_1 + band_hdr)
+            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
+            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+            idx = 0
+
+            for seg in xband:
+
+                for chan in seg['band'][0].keys():
+                    idx += 1
+                    
+                    cyc = None
+                    if seg['cycle'] is not None:
+                        cyc = seg['cycle'][2]
+                    
+                    data_row = list(
+                            [seg['band'][x][chan] for x in range(
+                                    len(seg['band']))])
+                    csv_file.writerow([idx,
+                                       seg['times'][0],
+                                       seg['times'][1],
+                                       seg['duration'],
+                                       seg['n_stitch'],
+                                       seg['stage'],
+                                       cyc,
+                                       seg['name'],
+                                       chan,
                                        ] + data_row)
 
-#==============================================================================
-#     def export_freq_band(self, xfreq):
-#         """Write frequency analysis data to CSV by pre-defined band."""
-#         filename = splitext(self.filename)[0] + '_band.csv'
-# 
-#         heading_row_1 = ['Segment index',
-#                        'Start time',
-#                        'End time',
-#                        'Duration',
-#                        'Stitches',
-#                        'Stage',
-#                        'Cycle',
-#                        'Event type',
-#                        'Channel',
-#                        ]
-#         spacer = [''] * (len(heading_row_1) - 1)
-#         freq = list(xfreq[0]['data'].axis['freq'][0])
-# 
-#         with open(filename, 'w', newline='') as f:
-#             lg.info('Writing to' + str(filename))
-#             csv_file = writer(f)
-#             csv_file.writerow(heading_row_1 + freq)
-#             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-#             csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-#             csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-#             csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
-#             idx = 0
-# 
-#             for seg in xfreq:
-# 
-#                 for chan in seg['data'].axis['chan'][0]:
-#                     idx += 1
-#                     
-#                     cyc = None
-#                     if seg['cycle'] is not None:
-#                         cyc = seg['cycle'][2]
-#                     
-#                     data_row = list(seg['data'](chan=chan)[0])
-#                     csv_file.writerow([idx,
-#                                        seg['times'][0],
-#                                        seg['times'][1],
-#                                        seg['duration'],
-#                                        seg['n_stitch'],
-#                                        seg['stage'],
-#                                        cyc,
-#                                        seg['name'],
-#                                        chan,
-#                                        ] + data_row)
-#==============================================================================
     
     def plot_freq(self, x, y, title=''):
         """Plot mean frequency spectrum and display in dialog.
@@ -2154,10 +2177,12 @@ class AnalysisDialog(ChannelDialog):
                 if loc[pw] or loc[pk]:
                     
                     if loc_prep[pw] or loc_prep[pk]:
-                        prep_pw, prep_pk = get_power(seg['trans_data'], freq, 
-                                                     scaling=pw)
+                        prep_pw, prep_pk = band_power(seg['trans_data'], freq, 
+                                                     seg['trans_data'].s_freq, 
+                                                     scaling=pw, perhz=False)
                     if not (loc_prep[pw] and loc_prep[pk]):
-                        raw_pw, raw_pk = get_power(dat, freq, scaling=pw)
+                        raw_pw, raw_pk = band_power(dat, freq, dat.s_freq, 
+                                                    scaling=pw, perhz=False)
                         
                     if loc_prep[pw]:
                         out[pw] = prep_pw

@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.12**: band-limited power; overlapping epochs in console
 - **5.11**: read openephys continuous data
 - **5.10**: poi on overview; import signal quality; bugfixes
 - **5.09**: read and write brainvision eeg, vhdr, vmrk

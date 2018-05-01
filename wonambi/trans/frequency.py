@@ -13,7 +13,7 @@ from scipy.signal import windows, get_window, fftconvolve
 from scipy.signal import detrend as detrend_func
 
 from .extern.dpss import dpss_windows  # this will be in scipy v1.1
-from ..datatype import ChanFreq, ChanTimeFreq
+from ..datatype import ChanFreq, ChanTimeFreq, ChanTime
 from .select import _create_subepochs
 
 lg = getLogger(__name__)
@@ -309,18 +309,23 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     return timefreq
 
 
-def get_power(data, freq, scaling='power'):
+def band_power(data, freq, scaling='power', perhz=False):
     """Compute power or energy acoss a frequency band, and its peak frequency.
+    Input can be ChanTime or ChanFreq.
     
     Parameters
     ----------
-    data : instance of ChanTime
+    data : instance of ChanTime or ChanFreq
         data to be analyzed
     freq : tuple of float
         Frequencies for band of interest. Power will be summed across this 
         band, and peak frequency determined within it.
+    input_type : str
+        'time' or 'spectrum'
     scaling : str
-        'power' or 'energy'.
+        'power' or 'energy', only used if data is ChanTime
+    perhz : bool
+        if True, power is expressed per Hz
         
     Returns
     -------
@@ -331,18 +336,33 @@ def get_power(data, freq, scaling='power'):
     """
     power = {}
     peakf = {}
-    detrend = 'linear'
-    if 'energy' == scaling:
+
+    if 'power' == scaling:
+        detrend = 'linear'    
+    elif 'energy' == scaling:
         detrend = None
+    else:
+        raise ValueError("scaling must be 'power' or 'energy'")
     
-    Sxx = frequency(data, scaling=scaling, detrend=detrend)
+    if isinstance(data, ChanFreq):
+        Sxx = data
+    elif isinstance(data, ChanTime):
+        Sxx = frequency(data, scaling=scaling, detrend=detrend)
+    else:
+        raise ValueError('Invalid data type')
+    
     sf = Sxx.axis['freq'][0]
     idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
     idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
     
+    scale = idx_f2 - idx_f1
+    
+    if perhz:
+        scale *= sf[idx_f2] - sf[idx_f1]
+    
     for chan in Sxx.axis['chan'][0]:
         s = Sxx(chan=chan)[0]
-        power[chan] = sum(s[idx_f1:idx_f2]) # integrating over f
+        power[chan] = sum(s[idx_f1:idx_f2]) / scale
         
         idx_peak = s[idx_f1:idx_f2].argmax()
         peakf[chan] = sf[idx_f1:idx_f2][idx_peak]

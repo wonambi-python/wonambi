@@ -266,6 +266,14 @@ For example, to detect coupling between delta (0.5-4 Hz) and theta (4-8 Hz) as p
 
 This will yield 4 PAC values per segments: delta-LG, delta-HG, theta-LG and theta-HG PAC. 
 
+Alternatively, you may use dynamic notation in this format: (start, stop, width, step).
+
+For example, to get the range of amplitude bands between 30 Hz and 130 Hz in non-overlapping 20-Hz bands, you would enter:
+
+``(40,140,20,20)``.
+
+Notice that start and stop are centre frequencies. Notice also that start is inclusive but stop is exclusive, so in order to capture 110-130 Hz, stop must be set after the centre frequency, i.e. 121-140.
+
 For more information, see the `Tensorpac documentation <https://etiennecmb.github.io/tensorpac/>`_.
 
 Events
@@ -302,9 +310,9 @@ Note that for all parameters except ``Duration``, the output will contain one va
 
 * ``RMS``: The square root of the mean of the squares of each amplitude value in the signal.
 
-* ``Power``: The integral of the power spectral density (simple periodogram) of the signal over the band of interest. Best used for stationary signals.
+* ``Power``: The average power (from a simple periodogram) of the signal over the band of interest. Best used for stationary signals.
 
-* ``Energy``: The integral of the energy spectral density (simple periodogram) of the signal over the band of interest. Best used for signals with a clear beginning and end, i.e. events.
+* ``Energy``: The average energy (from a simple periodogram) of the signal over the band of interest. Best used for signals with a clear beginning and end, i.e. events.
 
 * ``Peak power frequency``: The frequency corresponding to the highest power value in the band of interest.
 
