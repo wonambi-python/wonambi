@@ -297,7 +297,7 @@ class AnalysisDialog(ChannelDialog):
 
         self.frequency = freq = {}
         
-        box_freq_main = QGroupBox('Export')
+        box_freq_main = QGroupBox('Options')
         
         #freq['freq_on'] = FormBool('Compute frequency domain')
         freq['export_full'] = FormBool('Full spectrum')
@@ -307,11 +307,11 @@ class AnalysisDialog(ChannelDialog):
         freq['prep'] = FormBool('Pre-process')
         
         form = QFormLayout(box_freq_main)
+        form.addRow(freq['prep'])
         form.addRow(freq['export_full'])
         form.addRow(freq['export_band'])
         form.addRow(freq['plot_on'])
         form.addRow(freq['fooof_on'])
-        form.addRow(freq['prep'])
 
         freq['box_param'] = QGroupBox('Parameters')
 

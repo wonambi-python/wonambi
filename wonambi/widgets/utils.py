@@ -244,9 +244,9 @@ class FormRadio(QRadioButton):
 
         """
         if value:
-            self.setCheckState(Qt.Checked)
+            self.setChecked(Qt.Checked)
         else:
-            self.setCheckState(Qt.Unchecked)
+            self.setChecked(Qt.Unchecked)
 
     def connect(self, funct):
         """Call funct when user ticks the box.

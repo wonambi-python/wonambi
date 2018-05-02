@@ -40,10 +40,13 @@ In this case uncheck ``Channel-specific``.
 
 Chunking ``by epoch`` gathers all relevant signal cut up into segments of equal duration.
 To obtain the epochs as segmented by the Annotation File for sleep scoring, check ``Lock to staging epochs``.
-Otherwise, you may select a different epoch length with ``Duration (sec)``. 
+Alternatively, you may select a different epoch length with ``Duration (sec)``. 
 In this case, all relevant signal, after the specified concatenation, will be segmented at that duration, starting at the first sample of relevant signal.
 Any remainder is discarded.
 Discontinuous signal concatenation is unavailable with this option.
+You may also set an overlap between consecutive segments, using ``Overlap`` or ``Step``.
+``Overlap`` is expressed as a ratio of duration, between 0 and 1.
+``Step`` sets the distance in seconds between each consecutive segment.
 
 Chunking ``by longest run`` gathers all relevant signal cut up into the longest continuous (uninterrupted) segments.
 For example, if in the sleep cycle selected there is a run of 10 minutes of REM, with another isolated 30s epoch of REM cut off from the rest, this option will return two segments, one 10 minutes long and one 30s long.
@@ -116,8 +119,22 @@ To apply the selected pre-processing before the frequency domain analysis, check
 To obtain a summary spectral plot, averaging all segments and channels, check ``Plot mean spectrum``.
 To obtain a parametrization of the periodic components of the signal using the FOOOF algorithm (Haller et al., 2018), check ``Parametrize``.
 
+**Options**
+
+This box controls the data export options, as well as pre-processing.
+
+``Pre-process``: if checked, the raw data will be processed according to the options selected in the Pre-processing box, before frequency analyses are applied.
+
+``Full-spectrum``: if checked, the full frequency spectrum will be exported in CSV format, with the suffix '_freq.csv'. Rows are segments and columns are sample frequencies from 0 to the Nyquist frequency.
+
+``Band-limited``: if checked, band-limited power will be computed for the bands specified in the Define bands box. results will be exported in CSV format, with the suffix '_band.csv'. Rows are segments and columns are bands.
+
+``Plot mean spectrum``: if checked, a summary spectral plot will be displayed, averaging all segments.
+
+``Parametrize``: if checked, the resulting spectrum will be analyzed using the FOOOF algorithm (Haller et al., 2018). Results will be exported to CSV format, with the suffix '_fooof.csv'.
+
 .. NOTE::
-   The mean spectrum can only be obtained if each transformed segment has the same number of frequency bins, i.e. the same frequency granularity.
+   The full spectrum, mean spectrum plot and FOOOF parametrization can only be obtained if each transformed segment has the same number of frequency bins, i.e. the same frequency granularity.
    Frequency granularity is set by the FFT length, which in a simple periodogram is equal to the segment length.
    As a result, it is not possible to obtain the mean of a simple periodogram if the input segments vary in length, as would likely be the case if analyzing events or longest runs.
    There are a few workarounds:
@@ -125,6 +142,7 @@ To obtain a parametrization of the periodic components of the signal using the F
       1) Use a ``Time-averaged`` periodogram, a.k.a. Welch's method; in this case, FFT length is set by the time window ``Duration``. However, time-averaging is impractical for short data segments such as spindles.
       2) Set a ``Fixed`` FFT length; in this case, shorter segments will be zero-padded to the FFT length, but longer segments will be truncated (not recommended).
       3) Use ``Zero-pad to longest segment`` to set FFT length to the longest segment and zero-pad all shorter ones. This option is recommended for short data segments such as spindles.
+
 
 **Parameters**
 
@@ -170,6 +188,22 @@ Here you can set the smoothing parameters for the DPSS/Multitaper method.
 
 You may normalize the halfbandwidth with ``Normalized`` (NW = halfbandwidth * duration).
 The number of DPSS tapers is then 2 * NW - 1.
+
+**Define bands**
+
+This box is activated by the ``Band-limited`` checkbox in Options.
+
+You may enter bands of interest in either list or dynamic notation.
+
+List notation: [[f1,f2],[f3,f4],[f5,f6],...,[fn,fm]]
+
+e.g. [[0.5-4],[4-8],[10-16],[50-100]]
+
+Dynamic notation: (start, stop, width, step)
+
+e.g. (35, 56, 10, 5), equivalent to [[30-40],[35-45],[40-50],[45-55],[50-60]] in list notation.
+
+Note that 'start' and 'stop' are centre frequencies. Also note that 'start' is inclusive, while 'stop' is exclusive.
 
 **Output**
 
