@@ -425,7 +425,7 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['slow_wave'] = act
 
-        act = QAction('Analysis console (BETA)', self)
+        act = QAction('Analysis console', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setShortcut('Ctrl+Shift+a')
         act.setEnabled(False)

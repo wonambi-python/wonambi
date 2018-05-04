@@ -182,24 +182,6 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(epop['step'], 4, 4)
         grid.addWidget(epop['step_val'], 4, 5)        
         grid.addWidget(self.chunk['segment'], 0, 6)
-        
-#==============================================================================
-#         grid = QGridLayout(box0)
-#         box0.setLayout(grid)
-#         grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
-#         grid.addWidget(QLabel('    '), 1, 0)
-#         grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
-#         grid.addWidget(QLabel('    '), 2, 0)
-#         grid.addWidget(self.label['evt_type'], 2, 1, Qt.AlignTop)
-#         grid.addWidget(self.idx_evt_type, 2, 2, 1, 2)
-#         grid.addWidget(self.chunk['epoch'], 3, 0, 1, 3)
-#         grid.addWidget(QLabel('    '), 4, 0)
-#         grid.addWidget(self.lock_to_staging, 4, 1, 1, 2)
-#         grid.addWidget(QLabel('    '), 4, 0)
-#         grid.addWidget(self.label['epoch_dur'], 5, 1)
-#         grid.addWidget(self.epoch_dur, 5, 2)
-#         grid.addWidget(self.chunk['segment'], 6, 0, 1, 3)
-#==============================================================================
 
         """ ------ REJECTION ------ """
 
@@ -368,9 +350,9 @@ class AnalysisDialog(ChannelDialog):
         grid = QGridLayout(freq['box_output'])
         grid.addWidget(freq['spectrald'], 0, 0, 1, 3)
         grid.addWidget(freq['complex'], 1, 0, 1, 3)
-        grid.addWidget(QLabel('      '), 2, 0)
-        grid.addWidget(QLabel('Side(s)'), 2, 1)
-        grid.addWidget(freq['sides'], 2, 2)
+        #grid.addWidget(QLabel('      '), 2, 0)
+        #grid.addWidget(QLabel('Side(s)'), 2, 1)
+        #grid.addWidget(freq['sides'], 2, 2)
 
         freq['box_nfft'] = QGroupBox('FFT length')
         
@@ -405,6 +387,19 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(freq['norm_evt_type'], 2, 0)
         grid.addWidget(freq['norm_stage'], 2, 1)
         grid.addWidget(freq['norm_concat'], 3, 0, 1, 2)
+        
+        freq['box_cross'] = QGroupBox('Cross-spectrum')
+        
+        freq['cross'] = FormBool('Cross-spectrum')
+        freq['gain'] = FormBool('Gain')
+        freq['phaseshift'] = FormBool('Phase shift')
+        freq['coherence'] = FormBool('Coherence')
+        
+        form = QFormLayout(freq['box_cross'])
+        form.addRow(freq['cross'])
+        form.addRow(freq['gain'])
+        form.addRow(freq['phaseshift'])
+        form.addRow(freq['coherence'])
         
         freq['box_fooof'] = QGroupBox('Parametrization')
         
@@ -463,12 +458,13 @@ class AnalysisDialog(ChannelDialog):
         vlayout1.addWidget(freq['box_welch'])
         vlayout1.addWidget(freq['box_nfft'])
         vlayout1.addWidget(freq['box_mtap'])
+        vlayout1.addWidget(freq['box_output'])
         vlayout1.addStretch(1)
         
         vlayout2 = QVBoxLayout()
         vlayout2.addWidget(freq['box_band'])
-        vlayout2.addWidget(freq['box_output'])
         vlayout2.addWidget(freq['box_norm'])
+        vlayout2.addWidget(freq['box_cross'])
         vlayout2.addWidget(freq['box_fooof'])
         vlayout2.addStretch(1)
         
@@ -771,6 +767,7 @@ class AnalysisDialog(ChannelDialog):
         freq['box_mtap'].setEnabled(False)
         freq['box_output'].setEnabled(False)
         freq['box_norm'].setEnabled(False)
+        freq['box_cross'].setEnabled(False)
         freq['box_fooof'].setEnabled(False)
         freq['welch_on'].set_value(True)
         freq['nfft_seg'].setChecked(True)
@@ -822,7 +819,6 @@ class AnalysisDialog(ChannelDialog):
         
         vlayout2 = QVBoxLayout()
         vlayout2.addWidget(box3)
-        #vlayout2.addStretch(1)
         vlayout2.addLayout(btnlayout)        
         
         mhlayout = QHBoxLayout()
@@ -831,33 +827,6 @@ class AnalysisDialog(ChannelDialog):
         mhlayout.addStretch(1)
 
         self.setLayout(mhlayout)       
-        
-#==============================================================================
-#         
-#         vlayout1.addWidget(box_chunk)
-#         vlayout1.addWidget(box_loc)
-#         vlayout1.addStretch(1)
-# 
-#         vlayout2 = QVBoxLayout()
-#         vlayout2.addWidget(box_r)
-#         vlayout2.addWidget(box_c)
-#         vlayout2.addWidget(box_nseg)
-#         vlayout2.addWidget(box2)
-#         vlayout2.addStretch(1)
-# 
-#         vlayout3 = QVBoxLayout()
-#         vlayout3.addWidget(box3)
-#         vlayout3.addStretch(1)
-#         vlayout3.addLayout(btnlayout)
-# 
-#         hlayout = QHBoxLayout()
-#         hlayout.addLayout(vlayout1)
-#         hlayout.addLayout(vlayout2)
-#         hlayout.addLayout(vlayout3)
-#         hlayout.addStretch(1)
-# 
-#         self.setLayout(hlayout)
-#==============================================================================
 
     def update_evt_types(self):
         """Update the event types list when dialog is opened."""
@@ -1009,6 +978,7 @@ class AnalysisDialog(ChannelDialog):
         freq['prep'].setEnabled(freq_on)
         if not freq_on:
             freq['prep'].set_value(False)
+        freq['export_full'].setEnabled(rectangular)
         freq['plot_on'].setEnabled(rectangular)
         freq['fooof_on'].setEnabled(rectangular)
         freq['box_norm'].setEnabled(freq_on and \
@@ -1039,6 +1009,14 @@ class AnalysisDialog(ChannelDialog):
         freq['norm_evt_type'].setEnabled(norm_evt)
         freq['norm_stage'].setEnabled(norm_stage)
         freq['norm_concat'].setEnabled(norm_evt or norm_stage)
+        
+        nchan = len(self.idx_chan.selectedItems())
+        s2 = (self.nseg == 1 and nchan == 2) or (self.nseg == 2 and nchan == 1)
+        #freq['box_cross'].setEnabled(s2 and freq_on)
+        if not s2:
+            freq['cross'].set_value(False)
+            freq['gain'].set_value(False)
+            freq['phaseshift'].set_value(False)
         
         fooof_on = freq['fooof_on'].get_value()
         freq['box_fooof'].setEnabled(fooof_on)
@@ -1498,7 +1476,7 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
         prep = freq['prep'].get_value()
         scaling = freq['scaling'].get_value()
-        sides = freq['sides'].get_value()
+        #sides = freq['sides'].get_value()
         taper = freq['taper'].get_value()
         halfbandwidth = freq['hbw'].get_value()
         NW = freq['nhbw_val'].get_value()
@@ -1514,10 +1492,11 @@ class AnalysisDialog(ChannelDialog):
         else:
             output = 'complex'
 
-        if sides == 1:
-            sides = 'one'
-        elif sides == 2:
-            sides = 'two'
+        sides = 'one'
+        #if sides == 1:
+        #    sides = 'one'
+        #elif sides == 2:
+        #    sides = 'two'
 
         if freq['overlap'].isChecked():
             step = None
