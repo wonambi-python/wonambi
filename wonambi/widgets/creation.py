@@ -241,6 +241,7 @@ def create_menubar(MAIN):
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])
     submenu_event.addAction(actions['del_eventtype'])
+    submenu_event.addAction(actions['markers_to_events'])
     submenu_event.addAction(actions['merge_events'])
 
     # these are the real QActions attached to notes
@@ -268,8 +269,13 @@ def create_menubar(MAIN):
     submenu_import_qual.addAction(actions['import_domino_qual'])
     submenu_import_qual.addAction(actions['import_remlogic_qual'])
     submenu_import_qual.addAction(actions['import_sandman_qual'])
+    menu_annot.addSeparator()
     
     menu_annot.addAction(actions['export'])
+    
+    submenu_exp_evt = menu_annot.addMenu('Export events')
+    submenu_exp_evt.addAction(actions['exp_evt_brainvision'])
+    
     menu_annot.addSeparator()
     
     menu_annot.addAction(actions['export_sleepstats'])

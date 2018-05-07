@@ -298,7 +298,7 @@ def _write_vmrk(data, filename, markers):
 
     output = []
     for i, mrk in enumerate(markers):
-        output.append(f'Mk{i + 1:d}=Stimulus,{mrk["name"]},{mrk["start"] * data.s_freq:d},{(mrk["end"] - mrk["start"]) * data.s_freq:d},0')
+        output.append(f'Mk{i + 1:d}=Stimulus,{mrk["name"]},{mrk["start"] * data.s_freq:.0f},{(mrk["end"] - mrk["start"]) * data.s_freq:.0f},0')
 
     return dedent(vmrk_txt) + '\n'.join(output)
 

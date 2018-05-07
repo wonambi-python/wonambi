@@ -18,6 +18,7 @@ from functools import partial
 from logging import getLogger
 from numpy import asarray, floor
 from os.path import basename, splitext
+from pathlib import Path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
@@ -49,9 +50,11 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QScrollArea,
                              )
 
+from .. import ChanTime
 from ..attr import Annotations, create_empty_annotations
 from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
+from ..ioeeg import _write_vmrk
 from .settings import Config
 from .utils import (convert_name_to_color, FormStr, FormInt, FormFloat, 
                     FormBool, FormMenu, short_strings, ICON, STAGE_NAME)
@@ -306,6 +309,10 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
 
+        act = QAction('Markers into events', self)
+        act.triggered.connect(self.markers_to_events)
+        actions['markers_to_events'] = act
+        
         act = QAction('Merge Events...', self)
         act.triggered.connect(self.parent.show_merge_dialog)
         act.setEnabled(False)
@@ -412,6 +419,10 @@ class Notes(QTabWidget):
         act = QAction('Export staging', self)
         act.triggered.connect(self.export)
         actions['export'] = act
+
+        act = QAction('Brain Vision', self)
+        act.triggered.connect(partial(self.export_events, 'brainvision'))
+        actions['exp_evt_brainvision'] = act
 
         act = QAction('Spindle...', self)
         act.triggered.connect(self.parent.show_spindle_dialog)
@@ -1222,6 +1233,8 @@ class Notes(QTabWidget):
             self.display_eventtype()
             n_eventtype = self.idx_eventtype.count()
             self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
+            
+        return answer
 
     def delete_eventtype(self, test_type_str=None):
         """Action: create dialog to delete event type."""
@@ -1244,6 +1257,22 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
+    def markers_to_events(self):
+        """Copy all markers in dataset to event type. """
+        name, ok = self.new_eventtype()
+        
+        if not ok:
+            return
+        
+        markers = []
+        if self.parent.info.markers is not None:
+            markers = self.parent.info.markers
+
+        for i, mrk in enumerate(markers):
+            self.annot.add_event(name, (mrk['start'], mrk['end']), chan='')
+            
+        self.update_annotations()
+    
     def detect_events(self, data, method, params, label):
         """Detect events and display on signal.
 
@@ -1344,6 +1373,44 @@ class Notes(QTabWidget):
 
         self.annot.export(filename)
 
+    def export_events(self, source):
+        """Export events to external file of desired format."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+        
+        name, ok = QInputDialog.getText(self, 'Choose Event Type',
+                                          'Enter event type to export')
+        
+        if not ok:
+            return
+        
+        if name not in self.annot.event_types:
+            self.parent.statusBar.showMessage('No such event type.')
+            return
+        
+        events = self.annot.get_events(name=name)
+        
+        if events is None:
+            self.parent.statusBar.showMessage('No events found.')
+            return
+        
+        fn, _ = QFileDialog.getSaveFileName(self, 'Export events', name)
+        
+        if fn == '':
+            return
+        
+        fn = Path(fn).resolve()
+        
+        if 'brainvision' == source:
+            dataset = self.parent.info.dataset
+            data = ChanTime()
+            data.start_time = dataset.header['start_time']
+            data.s_freq = int(dataset.header['s_freq'])
+            
+            with fn.with_suffix('.vmrk').open('w') as f:
+                f.write(_write_vmrk(data, fn, events))
+        
     def export_sleeps_stats(self):
         """action: export sleep statistics CSV."""
         if self.annot is None:  # remove if buttons are disabled
