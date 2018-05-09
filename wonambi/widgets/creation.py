@@ -241,7 +241,9 @@ def create_menubar(MAIN):
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])
     submenu_event.addAction(actions['del_eventtype'])
-    submenu_event.addAction(actions['markers_to_events'])
+    submenu_mrk2evt = submenu_event.addMenu('Markers into events')
+    submenu_mrk2evt.addAction(actions['m2e_newname'])
+    submenu_mrk2evt.addAction(actions['m2e_keepname'])
     submenu_event.addAction(actions['merge_events'])
 
     # these are the real QActions attached to notes

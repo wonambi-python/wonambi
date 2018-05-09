@@ -309,9 +309,13 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
 
-        act = QAction('Markers into events', self)
+        act = QAction('New name', self)
         act.triggered.connect(self.markers_to_events)
-        actions['markers_to_events'] = act
+        actions['m2e_newname'] = act
+        
+        act = QAction('Keep marker names', self)
+        act.triggered.connect(partial(self.markers_to_events, True))
+        actions['m2e_keepname'] = act
         
         act = QAction('Merge Events...', self)
         act.triggered.connect(self.parent.show_merge_dialog)
@@ -1257,20 +1261,45 @@ class Notes(QTabWidget):
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
 
-    def markers_to_events(self):
+    def markers_to_events(self, keep_name=False):
         """Copy all markers in dataset to event type. """
-        name, ok = self.new_eventtype()
+        markers = self.parent.info.markers
         
-        if not ok:
+        if markers is None:
+            self.parent.statusBar.showMessage('No markers in dataset.')
             return
         
-        markers = []
-        if self.parent.info.markers is not None:
-            markers = self.parent.info.markers
+        if not keep_name:
+            name, ok = self.new_eventtype()
+            
+            if not ok:
+                return
 
+        progress = QProgressDialog('Saving events', 'Abort',
+                                       0, len(markers), self)
+        progress.setWindowModality(Qt.ApplicationModal)
+        
         for i, mrk in enumerate(markers):
+            progress.setValue(i)
+            
+            if keep_name:
+                name = mrk['name']
+                
             self.annot.add_event(name, (mrk['start'], mrk['end']), chan='')
             
+            if progress.wasCanceled():
+                msg = ('Conversion interrupted. Not all events were saved '
+                       'to the Annotations File.')
+                self.parent.statusBar().showMessage(msg)
+                return
+            
+        progress.setValue(i + 1)
+        
+        if keep_name:
+            self.display_eventtype()
+            n_eventtype = self.idx_eventtype.count()
+            self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
+        
         self.update_annotations()
     
     def detect_events(self, data, method, params, label):
