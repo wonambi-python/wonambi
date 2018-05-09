@@ -50,7 +50,7 @@ def test_widget_analysis_frequency(qtbot):
     
     ad.button_clicked(ad.idx_ok)
     freq_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] + 
-                                 '_freq.csv')    
+                                 '_freq_full.csv')    
     with open(freq_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
@@ -58,7 +58,7 @@ def test_widget_analysis_frequency(qtbot):
     assert approx(float(rows[3][16])) == -4.28072153938
     
     band_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] + 
-                                 '_band.csv')    
+                                 '_freq_band.csv')    
     with open(band_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
@@ -95,7 +95,7 @@ def test_widget_analysis_fooof(qtbot):
     
     ad.button_clicked(ad.idx_ok)
     fooof_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] + 
-                                  '_fooof.csv')    
+                                  '_freq_fooof.csv')    
     with open(fooof_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
