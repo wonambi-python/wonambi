@@ -2,9 +2,9 @@
 """
 from logging import getLogger
 
-from numpy import (amax, amin, asarray, ceil, concatenate, diff, empty, floor, 
-                   in1d, inf, logical_and, logical_or, mean, negative, ptp, 
-                   ravel, reshape, sqrt, square, stack, zeros)
+from numpy import (amax, amin, angle, array, asarray, ceil, concatenate, diff, 
+                   empty, floor, in1d, inf, logical_and, logical_or, mean, 
+                   negative, ptp, ravel, reshape, sqrt, square, stack, zeros)
 from itertools import compress
 from functools import partial
 from csv import writer
@@ -52,7 +52,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 from .. import ChanFreq
 from ..trans import (math, filter_, frequency, get_descriptives, band_power, 
-                     fetch, get_times, slopes)
+                     fetch, get_times, slopes, _merge_metadata)
 from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
@@ -390,16 +390,16 @@ class AnalysisDialog(ChannelDialog):
         
         freq['box_cross'] = QGroupBox('Cross-spectrum')
         
-        freq['cross'] = FormBool('Cross-spectrum')
+        freq['csd'] = FormBool('Cross-spectrum')
         freq['gain'] = FormBool('Gain')
         freq['phaseshift'] = FormBool('Phase shift')
-        freq['coherence'] = FormBool('Coherence')
+        freq['coh'] = FormBool('Coherence')
         
         form = QFormLayout(freq['box_cross'])
-        form.addRow(freq['cross'])
+        form.addRow(freq['csd'])
         form.addRow(freq['gain'])
         form.addRow(freq['phaseshift'])
-        form.addRow(freq['coherence'])
+        form.addRow(freq['coh'])
         
         freq['box_fooof'] = QGroupBox('Parametrization')
         
@@ -474,7 +474,6 @@ class AnalysisDialog(ChannelDialog):
 
         vlayout = QVBoxLayout(tab_freq)
         vlayout.addLayout(hlayout)
-        #vlayout.addStretch(1)
 
         """ ------ PAC ------ """
         if Pac is not None:
@@ -720,14 +719,17 @@ class AnalysisDialog(ChannelDialog):
         freq['fooof_on'].connect(self.toggle_freq)
         freq['taper'].connect(self.toggle_freq)
         freq['welch_on'].connect(self.toggle_freq)
-        freq['complex'].connect(self.toggle_freq)
+        freq['complex'].clicked.connect(self.toggle_freq)
         freq['overlap'].connect(self.toggle_freq)
         freq['nhbw'].connect(self.toggle_freq)
-        freq['norm'].connect(self.toggle_freq)
+        freq['norm'].activated.connect(self.toggle_freq)
         freq['nfft_fixed'].connect(self.toggle_freq)
         freq['nfft_zeropad'].connect(self.toggle_freq)
+        freq['csd'].connect(self.toggle_freq)
+        freq['gain'].connect(self.toggle_freq)
+        freq['phaseshift'].connect(self.toggle_freq)
+        freq['coh'].connect(self.toggle_freq)
         freq['band_help'].clicked.connect(self.band_help)
-
 
         if Pac is not None:
             pac['pac_on'].connect(self.toggle_pac)
@@ -1014,9 +1016,17 @@ class AnalysisDialog(ChannelDialog):
         s2 = (self.nseg == 1 and nchan == 2) or (self.nseg == 2 and nchan == 1)
         #freq['box_cross'].setEnabled(s2 and freq_on)
         if not s2:
-            freq['cross'].set_value(False)
+            freq['csd'].set_value(False)
             freq['gain'].set_value(False)
             freq['phaseshift'].set_value(False)
+            freq['coh'].set_value(False)
+        
+        if True in [freq[x].get_value() for x in ['csd', 'gain', 
+                    'phaseshift', 'coh']]:
+            freq['complex'].setChecked(True)
+            freq['box_output'].setEnabled(False)
+            freq['norm'].set_value('none')
+            freq['box_norm'].setEnabled(False)
         
         fooof_on = freq['fooof_on'].get_value()
         freq['box_fooof'].setEnabled(fooof_on)
@@ -1240,40 +1250,63 @@ class AnalysisDialog(ChannelDialog):
                 lg.info('Pre-processing data')
                 self.data = self.transform_data(self.data)
 
-            # Frequency domain
+            """ ------ FREQUENCY ------ """
+            
             if freq_on:
                 xfreq = self.compute_freq()
                 
                 if not xfreq:
                     return
                 
-                if freq_band:
-                    bands = freq_from_str(freq['band'].get_value())
-                    perhz = freq['band_perhz'].get_value()
-                    self.export_freq_band(xfreq, bands, perhz)
+                if True in [freq[x].get_value() for x in ['csd', 'gain',
+                            'phaseshift', 'coh']]:
                     
-                if freq_full or freq_plot or freq_fooof:                
-                    n_freq_bins = [x['data']()[0].shape for x in xfreq]
+                    if len(xfreq) == 2:
+                        x, y = tuple(xfreq)
+                    elif len(xfreq) == 1: # assumes two channels
+                        x = xfreq[0]
+                        y = None
+                    else:
+                        msg = ('Can only compute cross-spectrum between '
+                               'exactly two signals')
+                        self.parent.statusBar.showMessage(msg)
                     
-                    if all(x == n_freq_bins[0] for x in n_freq_bins):
-                        as_matrix = asarray(
-                                [y for x in xfreq for y in x['data']()[0]])
-                        desc = get_descriptives(as_matrix)
+                    xf_dict = self.compute_freq_cross(x, y)
+                    xf_list = [([v], k) for k, v in xf_dict.items()] 
+                     
+                else:
+                    xf_list = [(xfreq, 'freq')]
+                
+                for one_xf, suffix in xf_list:
+                    
+                    if freq_band:
+                        bands = freq_from_str(freq['band'].get_value())
+                        perhz = freq['band_perhz'].get_value()
+                        self.export_freq_band(one_xf, bands, suffix, perhz)
                         
-                        if freq_full:
-                            self.export_freq(xfreq, desc)
+                    if freq_full or freq_plot or freq_fooof:                
+                        n_freq_bins = [x['data']()[0].shape for x in one_xf]
                         
-                        if freq_plot or freq_fooof:
-                            x = list(xfreq[0]['data'].axis['freq'][0])
-                            y = desc['mean']
-                        
-                        if freq_plot:                        
-                            self.plot_freq(x, y, title=self.title)
+                        if all(x == n_freq_bins[0] for x in n_freq_bins):
+                            as_matrix = asarray(
+                                    [y for x in one_xf for y in x['data']()[0]])
+                            desc = get_descriptives(as_matrix)
                             
-                        if freq_fooof:
-                            self.report_fooof(asarray(x), y)
+                            if freq_full:
+                                self.export_freq(one_xf, suffix, desc=desc)
+                            
+                            if freq_plot or freq_fooof:
+                                x = list(one_xf[0]['data'].axis['freq'][0])
+                                y = desc['mean']
+                            
+                            if freq_plot:                        
+                                self.plot_freq(x, y, title=self.title)
+                                
+                            if freq_fooof:
+                                self.report_fooof(asarray(x), y, suffix)
 
-            # PAC
+            """ ------ PAC ------ """
+            
             if pac_on:
                 pac_output = self.compute_pac()
                 
@@ -1288,7 +1321,8 @@ class AnalysisDialog(ChannelDialog):
                 desc = get_descriptives(as_matrix)
                 self.export_pac(xpac, fpha, famp, desc)
                 
-            # Events
+            """ ------ EVENTS ------ """
+            
             evt_output = self.compute_evt_params()
             
             if evt_output is not None:
@@ -1658,9 +1692,98 @@ class AnalysisDialog(ChannelDialog):
 
         return xfreq
 
-    def export_freq(self, xfreq, desc):
-        """Write frequency analysis data to CSV."""
-        filename = splitext(self.filename)[0] + '_freq.csv'
+    def compute_freq_cross(self, x, y):
+        """Compute cross-spectrum, gain, phase shift and/or coherence.
+        
+        Parameters
+        ----------
+        x : dict
+            complex FFT of first signal
+        y : dict
+            complex FFT of second signal, should be same length as x
+            if None, second channel of x is taken as second signal
+            
+        Returns
+        -------
+        dict of ndarray
+            cross-spectral density, gains and phase shifts in both directions,
+            and/or coherence
+        """
+        freq = self.frequency
+        csd = freq['csd'].get_value()
+        gain = freq['gain'].get_value()
+        shift = freq['phaseshift'].get_value()
+        coherence = freq['coh'].get_value()
+        output = {}
+        
+        Fx = x['data']()[0][0][:, 0] # complex FFT of x
+        lg.info('Fx ' + str(Fx.shape))
+        
+        if y is None:
+            y = x['data'].axis['chan'][0][1]
+            Fy = x['data'](chan=y)[0][:, 0] # complex FFT of y, from second channel
+        else:
+            Fy = y['data'].data[0][0][:, 0] # complex FFT of y, from second segment
+        lg.info('Fy ' + str(Fy.shape))
+                    
+        newdict = _merge_metadata(x, y, link='_&_')
+        
+        if gain or shift:
+            xdict = _merge_metadata(x, y, link='-->')
+            ydict = _merge_metadata(x, y, link='-->', reverse=True)
+        
+        Pxy = Fx.conj() * Fy # complex cross-spectral density
+        lg.info('Pxy ' + str(Pxy.shape))
+        
+        if gain or shift or coherence:
+            Pxx = Fx.conj() * Fx    # autospectrum of x
+            Pxx = Pxx.real          # imaginary is always zero
+            
+            Pyy = Fy.conj() * Fy    # autospectrum of y
+            Pyy = Pyy.real
+            
+        if gain or shift:
+            Hfx = Pxy / Pxx # transfer function with y as output
+            Hfy = Pxy / Pyy # ... with x as output
+        
+        if csd:
+            newdict['data'].data[0][0] = Pxy
+            output['csd'] = newdict
+            
+        if gain:
+            xdict['data'].data[0][0] = abs(Hfx) # modulus
+            ydict['data'].data[0][0] = abs(Hfy)
+            
+            output['xgain'] = xdict            
+            output['ygain'] = ydict
+            
+        if shift:
+            xdict['data'].data[0][0] = angle(Hfx, deg=True) # complex argument
+            ydict['data'].data[0][0] = angle(Hfy, deg=True)
+            
+            output['xshift'] = xdict
+            output['yshift'] = ydict
+        
+        if coherence:
+            newdict['data'].data[0][0] = square(abs(Pxy)) / (Pxx * Pyy)
+            output['coh'] = newdict
+        
+        lg.info('cross output: ' + str(output.keys()))
+        return output
+    
+    def export_freq(self, xfreq, suffix, desc=None):
+        """Write frequency analysis data to CSV.
+        
+        Parameters
+        ----------
+        xfreq : list of dict
+            spectral data, one dict per segment, where 'data' is ChanFreq
+        suffix : str
+            suffix for filename: 'name_suffix.csv
+        desc : dict of ndarray
+            descriptives
+        '"""
+        filename = splitext(self.filename)[0] + '_' + suffix + '_full.csv'
 
         heading_row_1 = ['Segment index',
                        'Start time',
@@ -1679,12 +1802,15 @@ class AnalysisDialog(ChannelDialog):
             lg.info('Writing to' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(heading_row_1 + freq)
-            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+            
+            if desc:
+                csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+                csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+                csv_file.writerow(['Mean of ln'] + spacer + list(
+                        desc['mean_log']))
+                csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+            
             idx = 0
-
             for seg in xfreq:
 
                 for chan in seg['data'].axis['chan'][0]:
@@ -1707,9 +1833,9 @@ class AnalysisDialog(ChannelDialog):
                                        ] + data_row)        
 
 
-    def export_freq_band(self, xfreq, bands, perhz):
+    def export_freq_band(self, xfreq, bands, suffix, perhz):
         """Write frequency analysis data to CSV by pre-defined band."""
-        filename = splitext(self.filename)[0] + '_band.csv'
+        filename = splitext(self.filename)[0] + '_' + suffix + '_band.csv'
 
         heading_row_1 = ['Segment index',
                        'Start time',
@@ -1797,7 +1923,7 @@ class AnalysisDialog(ChannelDialog):
         self.parent.plot_dialog.canvas.plot(x, y, title, ylabel)
         self.parent.show_plot_dialog()
 
-    def report_fooof(self, x, y):
+    def report_fooof(self, x, y, suffix):
         """Create FOOOF (fitting oscillations and 1/f) report.
         
         Parameters
@@ -1807,7 +1933,7 @@ class AnalysisDialog(ChannelDialog):
         y : ndarray
             vector with amplitudes
         """
-        filename = splitext(self.filename)[0] + '_fooof.csv'
+        filename = splitext(self.filename)[0] + '_' + suffix + '_fooof.csv'
 
         freq = self.frequency  
         freq_range = [freq['fo_min_freq'].get_value(), 
