@@ -696,6 +696,7 @@ class AnalysisDialog(ChannelDialog):
         self.lock_to_staging.connect(self.toggle_buttons)
         self.lock_to_staging.connect(self.toggle_concatenate)
         self.cat['discontinuous'].connect(self.toggle_concatenate)
+        self.evt_chan_only.connect(self.update_nseg)
         
         epop['dur'].editingFinished.connect(self.update_nseg)
         epop['overlap_val'].valueChanged.connect(self.update_nseg)
@@ -1367,19 +1368,20 @@ class AnalysisDialog(ChannelDialog):
             return
         
         # Which event type(s)
+        chan_full = None
+        evt_type = None
+        
         if chunk['event']:
-            chan_full = [i + ' (' + self.idx_group.currentText() + ''
-                       ')' for i in self.chan]
-            evt_type = self.idx_evt_type.selectedItems()
             
+            if self.evt_chan_only.get_value():
+                chan_full = [i + ' (' + self.idx_group.currentText() + ''
+                           ')' for i in self.chan]
+                    
+            evt_type = self.idx_evt_type.selectedItems()            
             if not evt_type:
                 return
             else:
                 evt_type = [x.text() for x in evt_type]
-            
-        else:
-            evt_type = None
-            chan_full = None
            
         # Which cycle(s)
         cycle = self.cycle = self.get_cycles()

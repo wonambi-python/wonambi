@@ -742,7 +742,10 @@ class Annotations():
 
         if chan is not None:
             if isinstance(chan, (tuple, list)):
-                chan = ', '.join(chan)
+                if chan[0] is not None:
+                    chan = ', '.join(chan)
+                else:
+                    chan = None
 
         if stage or qual:
             ep_starts = [x['start'] for x in self.epochs]

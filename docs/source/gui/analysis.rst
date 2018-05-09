@@ -38,6 +38,12 @@ If you wish to gather only the signal for the channel on which an event was mark
 Alternatively, you may wish to gather signal concurrent to an event on all selected channels.
 In this case uncheck ``Channel-specific``.
 
+.. NOTE::
+   ``Channel-specific`` will only gather events marked on the specified channels.
+   If unchecked, all events of the specified types will be gathered, including those
+   marked on channels other than those specified, and including "orphan" events
+   with no associated channel.
+
 Chunking ``by epoch`` gathers all relevant signal cut up into segments of equal duration.
 To obtain the epochs as segmented by the Annotation File for sleep scoring, check ``Lock to staging epochs``.
 Alternatively, you may select a different epoch length with ``Duration (sec)``. 
