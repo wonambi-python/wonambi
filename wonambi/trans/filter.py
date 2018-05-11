@@ -4,30 +4,39 @@ from logging import getLogger
 
 from itertools import product
 
-from numpy import empty, ix_, expand_dims, squeeze
-from scipy.signal import iirfilter, filtfilt, get_window, fftconvolve
+from numpy import arange, empty, ix_, expand_dims, squeeze
+from scipy.signal import (iirfilter,
+                          iirnotch,
+                          filtfilt,
+                          get_window,
+                          fftconvolve,
+                          )
 
 lg = getLogger(__name__)
 
 
 def filter_(data, axis='time', low_cut=None, high_cut=None, order=4,
-            ftype='butter', Rs=None):
+            ftype='butter', Rs=None, notchfreq=50, notchquality=25):
     """Design filter and apply it.
 
     Parameters
     ----------
     ftype : str
-        'butter', 'cheby1', 'cheby2', 'ellip', 'bessel' or 'diff'
-    low_cut : float, optional
-        low cutoff for high-pass filter
-    high_cut : float, optional
-        high cutoff for low-pass filter
-    order : int, optional
-        filter order
-    data : instance of Data
-        the data to filter.
+        'butter', 'cheby1', 'cheby2', 'ellip', 'bessel', 'diff', or 'notch'
     axis : str, optional
         axis to apply the filter on.
+    low_cut : float, optional
+        (not for notch) low cutoff for high-pass filter
+    high_cut : float, optional
+        (not for notch) high cutoff for low-pass filter
+    order : int, optional
+        (not for notch) filter order
+    data : instance of Data
+        (not for notch) the data to filter.
+    notchfreq : float
+        (only for notch) frequency to apply notch filter to (+ harmonics)
+    notchquality : int
+        (only for notch) Quality factor (see scipy.signal.iirnotch)
 
     Returns
     -------
@@ -75,21 +84,27 @@ def filter_(data, axis='time', low_cut=None, high_cut=None, order=4,
         btype = 'lowpass'
         Wn = high_cut / nyquist
 
-    if not btype:
+    if btype is None and ftype != 'notch':
         raise TypeError('You should specify at least low_cut or high_cut')
 
     if Rs is None:
         Rs = 40
 
-    lg.debug('order {0: 2}, Wn {1}, btype {2}, ftype {3}'
-             ''.format(order, str(Wn), btype, ftype))
-    b, a = iirfilter(order, Wn, btype=btype, ftype=ftype, rs=Rs)
+    if ftype == 'notch':
+        b_a = [iirnotch(w0 / nyquist, notchquality) for w0 in arange(notchfreq, nyquist, notchfreq)]
+
+    else:
+        lg.debug('order {0: 2}, Wn {1}, btype {2}, ftype {3}'
+                 ''.format(order, str(Wn), btype, ftype))
+        b_a = [iirfilter(order, Wn, btype=btype, ftype=ftype, rs=Rs), ]
 
     fdata = data._copy()
     for i in range(data.number_of('trial')):
-        fdata.data[i] = filtfilt(b, a,
-                                 data.data[i],
-                                 axis=data.index_of(axis))
+        x = data.data[i]
+        for b, a in b_a:
+            x = filtfilt(b, a, x, axis=data.index_of(axis))
+        fdata.data[i] = x
+
     return fdata
 
 
@@ -125,7 +140,7 @@ def convolve(data, window, axis='time', length=1):
     --------
     scipy.signal.get_window : function used to create windows
     """
-    taper = get_window(window, length * data.s_freq)
+    taper = get_window(window, int(length * data.s_freq))
     taper = taper / sum(taper)
 
     fdata = data._copy()
