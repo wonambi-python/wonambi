@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.16**: add notch filter
 - **5.15**: keep marker names when converting to events
 - **5.14**: fixes for Brain Vision, event selection in console
 - **5.13**: export events to Brain Vision

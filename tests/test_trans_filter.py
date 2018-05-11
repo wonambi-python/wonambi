@@ -24,8 +24,9 @@ def test_filter_errors():
 
 
 def test_filter():
-        filter_(data, high_cut=100)
-        filter_(data, low_cut=100)
+    filter_(data, low_cut=10, high_cut=100)
+    filter_(data, high_cut=100)
+    filter_(data, low_cut=100)
 
 
 def test_filter_notch():
