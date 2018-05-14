@@ -1338,9 +1338,11 @@ class AnalysisDialog(ChannelDialog):
             """ ------ EVENTS ------ """
             
             evt_output = self.compute_evt_params()
+            lg.info('evtoutput ' + str(type(evt_output)))
             
             if evt_output is not None:
                 glob, loc = evt_output
+                lg.info('export evt params; glob: ' + str(glob))
                 self.export_evt_params(glob, loc)
                 self.parent.overview.mark_poi() # remove poi
 
@@ -2396,7 +2398,7 @@ class AnalysisDialog(ChannelDialog):
             
         return glob_out, loc_out
         
-    def export_evt_params(self, glob, loc, desc=None):
+    def export_evt_params(self, glob, loc):
         """Write event analysis data to CSV."""
         basename = splitext(self.filename)[0]
         #pickle_filename = basename + 'evtdat.p'
@@ -2472,13 +2474,10 @@ class AnalysisDialog(ChannelDialog):
             one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-            
-        if not dat:
-            return
         
-        dat = concatenate(dat, axis=1)
-        
-        desc = get_descriptives(dat)
+        if dat:
+            dat = concatenate(dat, axis=1)        
+            desc = get_descriptives(dat)
     
         #with open(pickle_filename, 'wb') as f:
         #    dump(dat, f)
@@ -2491,6 +2490,9 @@ class AnalysisDialog(ChannelDialog):
                 csv_file.writerow(['Count'] + [glob['count']])
             if 'density' in glob.keys():
                 csv_file.writerow(['Density'] + [glob['density']])
+                
+            if not dat:
+                return
 
             csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
                               + heading_row_4)            
