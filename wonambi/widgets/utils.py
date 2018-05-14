@@ -806,26 +806,29 @@ def freq_from_str(freq_str):
     freq = []
     as_list = freq_str[1:-1].replace(' ', '').split(',')
 
-    if freq_str[0] == '[' and freq_str[-1] == ']':
-        for i in as_list:
-            one_band = i[1:-1].split('-')
-            one_band = float(one_band[0]), float(one_band[1])
-            freq.append(one_band)
-
-    elif freq_str[0] == '(' and freq_str[-1] == ')':
-
-        if len(as_list) == 4:
-            start = float(as_list[0])
-            stop = float(as_list[1])
-            halfwidth = float(as_list[2]) / 2
-            step = float(as_list[3])
-            centres = arange(start, stop, step)
-            for i in centres:
-                freq.append((i - halfwidth, i + halfwidth))
+    try:
+        if freq_str[0] == '[' and freq_str[-1] == ']':
+            for i in as_list:
+                one_band = i[1:-1].split('-')
+                one_band = float(one_band[0]), float(one_band[1])
+                freq.append(one_band)
+    
+        elif freq_str[0] == '(' and freq_str[-1] == ')':
+    
+            if len(as_list) == 4:
+                start = float(as_list[0])
+                stop = float(as_list[1])
+                halfwidth = float(as_list[2]) / 2
+                step = float(as_list[3])
+                centres = arange(start, stop, step)
+                for i in centres:
+                    freq.append((i - halfwidth, i + halfwidth))
+            else:
+                return None
+    
         else:
-            return None
-
-    else:
+            return None           
+    except:
         return None
 
     return freq

@@ -165,6 +165,19 @@ In addition, you need to specify at what time the lights went off (``Lights OUT`
 .. WARNING::
    If any epochs are scored as sleep before ``Lights OUT`` or after ``Lights ON``, sleep efficiency may exceed 1.
 
+Import markers as events
+------------------------
+
+Some EEG file formats such as Brain Vision come with timeline markers, and these are automatically displayed in Wonambi.
+Markers are immutable, so if you would like to modify them in Wonambi, you'll need to convert them to events, which are saved in the Annotations File.
+
+To do this, make sure you have an Annotations File loaded. Now click ``Annotations`` -> ``Event`` -> ``Markers to events`` and choose among the options.
+
+To convert all markers into a single event type, select ``New name``, and enter the event type name when prompted.
+
+To convert markers into new event types named from the marker labels, select ``Keep marker names``. 
+A new event type will be created for each unique marker label.
+
 Merge events
 ------------
 

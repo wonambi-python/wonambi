@@ -2,9 +2,10 @@
 """
 from logging import getLogger
 
-from numpy import (amax, amin, angle, array, asarray, ceil, concatenate, diff, 
-                   empty, floor, in1d, inf, logical_and, logical_or, mean, 
-                   negative, ptp, ravel, reshape, sqrt, square, stack, zeros)
+from numpy import (abs, amax, amin, angle, array, asarray, ceil, concatenate, 
+                   diff, empty, floor, in1d, inf, logical_and, logical_or, 
+                   mean, negative, ptp, ravel, reshape, sqrt, square, stack, 
+                   zeros)
 from itertools import compress
 from functools import partial
 from csv import writer
@@ -1204,6 +1205,16 @@ class AnalysisDialog(ChannelDialog):
             if not (freq_on or pac_on or glob or loc or avg_sl or max_sl):
                 return
             
+            if freq['export_band'].get_value():
+                bands = freq_from_str(freq['band'].get_value())
+                if bands is None:
+                    msg = ('Invalid input for Define bands. Click the '
+                    "'i' button for instructions.")
+                    error_dialog = QErrorMessage(self)
+                    error_dialog.setWindowTitle('Error reading bands')
+                    error_dialog.showMessage(msg)
+                    return
+            
             if (freq['norm'].get_value() == 'by mean of event type(s)' and 
                 not freq['norm_evt_type'].selectedItems()):
                 msg = 'Select event type(s) for normalization.'
@@ -1281,7 +1292,6 @@ class AnalysisDialog(ChannelDialog):
                 for one_xf, suffix in xf_list:
                     
                     if freq_band:
-                        bands = freq_from_str(freq['band'].get_value())
                         perhz = freq['band_perhz'].get_value()
                         self.export_freq_band(one_xf, bands, suffix, perhz)
                         
@@ -1289,17 +1299,20 @@ class AnalysisDialog(ChannelDialog):
                         n_freq_bins = [x['data']()[0].shape for x in one_xf]
                         
                         if all(x == n_freq_bins[0] for x in n_freq_bins):
-                            as_matrix = asarray(
-                                    [y for x in one_xf for y in x['data']()[0]])
-                            desc = get_descriptives(as_matrix)
+                            x = list(one_xf[0]['data'].axis['freq'][0])
+                            
+                            if len(one_xf) == 1:
+                                desc = None
+                                y = abs(one_xf[0]['data'].data[0][0])
+                            else:
+                                as_matrix = asarray(
+                                   [y for x in one_xf for y in x['data']()[0]])
+                                desc = get_descriptives(as_matrix)
+                                y = desc['mean']
                             
                             if freq_full:
                                 self.export_freq(one_xf, suffix, desc=desc)
-                            
-                            if freq_plot or freq_fooof:
-                                x = list(one_xf[0]['data'].axis['freq'][0])
-                                y = desc['mean']
-                            
+
                             if freq_plot:                        
                                 self.plot_freq(x, y, title=self.title)
                                 
@@ -1328,11 +1341,9 @@ class AnalysisDialog(ChannelDialog):
             
             if evt_output is not None:
                 glob, loc = evt_output
-            else:
-                return
-            
-            self.export_evt_params(glob, loc)
-            self.parent.overview.mark_poi() # remove poi
+                self.export_evt_params(glob, loc)
+                self.parent.overview.mark_poi() # remove poi
+
 
             self.accept()
 
@@ -1692,6 +1703,8 @@ class AnalysisDialog(ChannelDialog):
                 self.parent.statusBar().showMessage(msg)
                 return
 
+        progress.close()
+        
         return xfreq
 
     def compute_freq_cross(self, x, y):
@@ -1718,15 +1731,14 @@ class AnalysisDialog(ChannelDialog):
         coherence = freq['coh'].get_value()
         output = {}
         
-        Fx = x['data']()[0][0][:, 0] # complex FFT of x
+        Fx = x['data'].data[0][0] # complex FFT of x
         lg.info('Fx ' + str(Fx.shape))
         
         if y is None:
             y = x['data'].axis['chan'][0][1]
-            Fy = x['data'](chan=y)[0][:, 0] # complex FFT of y, from second channel
+            Fy = x['data'].data[0][1] # complex FFT of y, from second channel
         else:
-            Fy = y['data'].data[0][0][:, 0] # complex FFT of y, from second segment
-        lg.info('Fy ' + str(Fy.shape))
+            Fy = y['data'].data[0][0] # complex FFT of y, from second segment
                     
         newdict = _merge_metadata(x, y, link='_&_')
         
@@ -1749,28 +1761,81 @@ class AnalysisDialog(ChannelDialog):
             Hfy = Pxy / Pyy # ... with x as output
         
         if csd:
-            newdict['data'].data[0][0] = Pxy
-            output['csd'] = newdict
+            dat = ChanFreq()
+            dat.axis['freq'] = newdict['data'].axis['freq']
+            dat.axis['chan'] = newdict['data'].axis['chan']
+            dat.data = empty(1, dtype='O')
+            dat.data[0] = empty((1, len(Pxy)), dtype='cfloat')
+            
+            dat.data[0][0, :] = Pxy
+            
+            csd_dict = dict(newdict)
+            csd_dict['data'] = dat
+            output['csd'] = csd_dict
             
         if gain:
-            xdict['data'].data[0][0] = abs(Hfx) # modulus
-            ydict['data'].data[0][0] = abs(Hfy)
+            datx = ChanFreq()
+            datx.axis['freq'] = xdict['data'].axis['freq']
+            datx.axis['chan'] = xdict['data'].axis['chan']
+            datx.data = empty(1, dtype='O')
+            datx.data[0] = empty((1, len(Hfx)), dtype='f')
             
-            output['xgain'] = xdict            
-            output['ygain'] = ydict
+            datx.data[0][0, :] = abs(Hfx) # modulus
+            
+            daty = ChanFreq()
+            daty.axis['freq'] = ydict['data'].axis['freq']
+            daty.axis['chan'] = ydict['data'].axis['chan']
+            daty.data = empty(1, dtype='O')
+            daty.data[0] = empty((1, len(Hfy)), dtype='f')
+            
+            daty.data[0][0, :] = abs(Hfy) # modulus
+            
+            xgain_dict = dict(xdict)
+            xgain_dict['data'] = datx
+            output['xgain'] = xgain_dict   
+            
+            ygain_dict = dict(ydict)
+            ygain_dict['data'] = daty
+            output['ygain'] = ygain_dict
             
         if shift:
-            xdict['data'].data[0][0] = angle(Hfx, deg=True) # complex argument
-            ydict['data'].data[0][0] = angle(Hfy, deg=True)
+            datx = ChanFreq()
+            datx.axis['freq'] = xdict['data'].axis['freq']
+            datx.axis['chan'] = xdict['data'].axis['chan']
+            datx.data = empty(1, dtype='O')
+            datx.data[0] = empty((1, len(Hfx)), dtype='f')
+
+            datx.data[0][0, :] = angle(Hfx, deg=True) # complex argument
             
-            output['xshift'] = xdict
-            output['yshift'] = ydict
+            daty = ChanFreq()
+            daty.axis['freq'] = ydict['data'].axis['freq']
+            daty.axis['chan'] = ydict['data'].axis['chan']
+            daty.data = empty(1, dtype='O')
+            daty.data[0] = empty((1, len(Hfy)), dtype='f')
+
+            daty.data[0][0, :] = angle(Hfy, deg=True) # complex argument
+            
+            xshift_dict = dict(xdict)
+            xshift_dict['data'] = datx
+            output['xshift'] = xshift_dict   
+            
+            yshift_dict = dict(ydict)
+            yshift_dict['data'] = daty
+            output['yshift'] = yshift_dict
         
         if coherence:
-            newdict['data'].data[0][0] = square(abs(Pxy)) / (Pxx * Pyy)
-            output['coh'] = newdict
+            dat = ChanFreq()
+            dat.axis['freq'] = newdict['data'].axis['freq']
+            dat.axis['chan'] = newdict['data'].axis['chan']
+            dat.data = empty(1, dtype='O')
+            dat.data[0] = empty((1, len(Pxy)), dtype='f')
+
+            dat.data[0][0, :] = abs(Pxy)**2 / Pxx / Pyy # ms coherence
+            
+            coh_dict = dict(newdict)
+            coh_dict['data'] = dat
+            output['coh'] = coh_dict
         
-        lg.info('cross output: ' + str(output.keys()))
         return output
     
     def export_freq(self, xfreq, suffix, desc=None):
@@ -2210,7 +2275,7 @@ class AnalysisDialog(ChannelDialog):
             
     def compute_evt_params(self):
         """Compute event parameters."""
-        progress = QProgressDialog('Computing PAC', 'Abort',
+        progress = QProgressDialog('Computing parameters', 'Abort',
                                    0, len(self.data) - 1, self)
         progress.setWindowModality(Qt.ApplicationModal)
         
@@ -2285,11 +2350,10 @@ class AnalysisDialog(ChannelDialog):
                     
                     if loc_prep[pw] or loc_prep[pk]:
                         prep_pw, prep_pk = band_power(seg['trans_data'], freq, 
-                                                     seg['trans_data'].s_freq, 
                                                      scaling=pw, perhz=False)
                     if not (loc_prep[pw] and loc_prep[pk]):
-                        raw_pw, raw_pk = band_power(dat, freq, dat.s_freq, 
-                                                    scaling=pw, perhz=False)
+                        raw_pw, raw_pk = band_power(dat, freq, scaling=pw, 
+                                                    perhz=False)
                         
                     if loc_prep[pw]:
                         out[pw] = prep_pw
@@ -2327,6 +2391,8 @@ class AnalysisDialog(ChannelDialog):
                 msg = 'Analysis canceled by user.'
                 self.parent.statusBar().showMessage(msg)
                 return
+            
+        progress.close()
             
         return glob_out, loc_out
         
