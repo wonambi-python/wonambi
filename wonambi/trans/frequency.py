@@ -4,8 +4,8 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, empty, exp, iscomplex, max, mean, 
-                   pi, real, sqrt, swapaxes)
+from numpy import (arange, array, asarray, empty, exp, max, mean, pi, real, 
+                   sqrt, swapaxes)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -573,8 +573,8 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     Scipy v1.1 can generate dpss tapers. Once scipy v1.1 is available, use
     that instead of the extern folder.
     """
-    if iscomplex(x).any() and sides == 'one':
-        print('complex input always returns both sides (non-Hermitian)')
+    if output == 'complex' and sides == 'one':
+        print('complex always returns both sides')
         sides = 'two'
 
     axis = x.ndim - 1
