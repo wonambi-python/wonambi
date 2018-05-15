@@ -1,8 +1,1 @@
-{
-  "tests/test_trans_frequency.py::test_fft_spectrum_05": true,
-  "tests/test_trans_frequency.py::test_fft_spectrum_06": true,
-  "tests/test_trans_frequency.py::test_fft_spectrum_fieldtrip_03": true,
-  "tests/test_trans_frequency.py::test_fft_spectrum_parseval_01": true,
-  "tests/test_trans_frequency.py::test_trans_frequency_complex": true,
-  "tests/test_trans_frequency.py::test_trans_timefrequency_stft": true
-}
+{}

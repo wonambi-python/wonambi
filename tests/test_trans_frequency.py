@@ -50,7 +50,7 @@ def test_trans_frequency_complex():
     seed(0)
     data = create_data(n_trial=1, n_chan=2, s_freq=s_freq, time=(0, dur))
     NW = 3
-    freq = frequency(data, output='complex', taper='dpss', NW=NW)
+    freq = frequency(data, output='complex', taper='dpss', NW=NW, sides='two')
     assert freq.list_of_axes == ('chan', 'freq', 'taper')
     assert freq.data[0].shape == (data.number_of('chan')[0], dur * s_freq, NW * 2 - 1)
 
@@ -75,7 +75,7 @@ def test_trans_timefrequency_stft():
     seed(0)
     data = create_data(n_trial=1, n_chan=2, s_freq=s_freq, time=(0, dur))
     NW = 3
-    timefreq = timefrequency(data, method='stft', taper='dpss', NW=NW)
+    timefreq = timefrequency(data, method='stft', taper='dpss', NW=NW, sides='two')
     assert timefreq.list_of_axes == ('chan', 'time', 'freq', 'taper')
     assert timefreq.data[0].shape == (data.number_of('chan')[0], 3, s_freq, NW * 2 - 1)
 

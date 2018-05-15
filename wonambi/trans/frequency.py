@@ -4,8 +4,8 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, empty, exp, max, mean, pi, real,
-                   sqrt, swapaxes)
+from numpy import (arange, array, asarray, empty, exp, iscomplex, max, mean, 
+                   pi, real, sqrt, swapaxes)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -35,7 +35,11 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         None (no detrending), 'constant' (remove mean), 'linear' (remove linear
         trend)
     output : str
-        'spectraldensity' or 'complex'
+        'spectraldensity' or 'csd' or 'complex'
+        'spectraldensity' meaning the autospectrum or auto-spectral density,
+        a special case of 'csd' (cross-spectral density), where the signal is
+        cross-correlated with itself
+        if 'csd', both channels in data are used as input
     sides : str
         'one' or 'two', where 'two' implies negative frequencies
     scaling : str
@@ -86,7 +90,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
     It uses sampling frequency as specified in s_freq, it does not
     recompute the sampling frequency based on the time axis.
     """
-    if output not in ('spectraldensity', 'complex'):
+    if output not in ('spectraldensity', 'complex', 'csd'):
         raise TypeError(f'output can be "spectraldensity" or "complex", not "{output}"')
     if 'time' not in data.list_of_axes:
         raise TypeError('\'time\' is not in the axis ' +
@@ -96,6 +100,9 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
 
     if duration is not None and output == 'complex':
         raise ValueError('cannot average the complex spectrum over multiple epochs')
+        
+    if output == 'csd' and data.number_of('chan') != 2:
+        raise ValueError('CSD can only be computed between two channels')
 
     if duration is not None:
         nperseg = int(duration * data.s_freq)
@@ -566,8 +573,8 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     Scipy v1.1 can generate dpss tapers. Once scipy v1.1 is available, use
     that instead of the extern folder.
     """
-    if output == 'complex' and sides == 'one':
-        print('complex always returns both sides')
+    if iscomplex(x).any() and sides == 'one':
+        print('complex input always returns both sides (non-Hermitian)')
         sides = 'two'
 
     axis = x.ndim - 1
@@ -621,8 +628,11 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
 
     if output == 'spectraldensity':
         result = (result.conj() * result)
+    elif output == 'csd':
+        result = (result[None, 0, ...].conj() * result[None, 1, ...])
 
-    if sides == 'one' and output == 'spectraldensity' and scaling != 'chronux':
+    if (sides == 'one' and output in ('spectraldensity', 'csd') and \
+        scaling != 'chronux'):
         if n_fft % 2:
             result[..., 1:] *= 2
         else:
@@ -639,12 +649,13 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         scale = sqrt(scale)
     result *= scale
 
-    if scaling == 'fieldtrip' and output == 'spectraldensity':
+    if scaling == 'fieldtrip' and output in ('spectraldensity', 'csd'):
         # fieldtrip uses only one side
         result /= 2
 
-    if output == 'spectraldensity':
-        result = result.real
+    if output in ('spectraldensity', 'csd'):
+        if output == 'spectraldensity':
+            result = result.real
         result = mean(result, axis=axis)
     elif output == 'complex':
         # dpss should be last dimension in complex, no mean
