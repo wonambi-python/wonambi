@@ -214,7 +214,6 @@ Note that 'start' and 'stop' are centre frequencies. Also note that 'start' is i
 **Output**
 
 Use this box to select a ``Spectral density`` output or a ``Complex`` output.
-For a complex output, you may select 1 or 2 ``Sides``.
 
 **Normalization**
 
@@ -222,7 +221,7 @@ You may normalize the resulting spectral data, either with respect to its own in
 When normalizing with respect to a normalization period, the selected frequency analyses are applied directly to the normalization period signal.
 
 To normalize a signal to its integral, select ``by integral of each segment`` in the drop-down menu.
-Each power value will then be divided by the sum of all power values for that segment.
+Each power value will then be divided by the average of all power values for that segment.
 
 To normalize with respect to a normalization period, you must first demarcate this period, either using Event Type(s) or Stage(s).
 For example, you may have recorded a quiet wakefulness period at the start of the recording.

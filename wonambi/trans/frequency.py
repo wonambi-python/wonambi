@@ -142,6 +142,10 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         freq.axis['freq'][i] = f
         if output == 'complex':
             freq.axis['taper'][i] = arange(Sxx.shape[-1])
+        if output == 'csd':
+            newchan = '*'.join(freq.axis['chan'][i])
+            freq.axis['chan'][i] = empty(1, dtype='O')
+            freq.axis['chan'][i][0] = asarray([newchan], dtype='U')
         freq.data[i] = Sxx
 
     return freq
@@ -325,7 +329,7 @@ def band_power(data, freq, scaling='power', perhz=False):
     Parameters
     ----------
     data : instance of ChanTime or ChanFreq
-        data to be analyzed
+        data to be analyzed, one trial only
     freq : tuple of float
         Frequencies for band of interest. Power will be summed across this
         band, and peak frequency determined within it.
