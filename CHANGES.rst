@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.18**: bugfix for event data export
 - **5.17**: fixes for event parameter export
 - **5.16**: add notch filter
 - **5.15**: keep marker names when converting to events

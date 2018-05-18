@@ -54,16 +54,16 @@ def test_widget_analysis_frequency(qtbot):
     with open(freq_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
-    assert approx(float(rows[1][44])) == 0.0186294464902
-    assert approx(float(rows[3][16])) == -4.28072153938
+    assert approx(float(rows[1][44])) == 0.9501017730604996
+    assert approx(float(rows[3][16])) == -0.348895908193285
     
     band_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] + 
                                  '_freq_band.csv')    
     with open(band_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
-    assert approx(float(rows[1][10])) == 0.019888064040867178
-    assert approx(float(rows[11][11])) == 0.008681717779629288
+    assert approx(float(rows[1][10])) == 1.014291266084226
+    assert approx(float(rows[11][11])) == 0.44276760658862413
 
 
 def test_widget_analysis_fooof(qtbot):
