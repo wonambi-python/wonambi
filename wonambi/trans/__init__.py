@@ -10,7 +10,7 @@ from .filter import filter_, convolve
 from .select import (select, resample, get_times, _select_channels, fetch, 
                      Segments)
 from .frequency import frequency, timefrequency, band_power
-from .merge import concatenate, _merge_metadata
+from .merge import concatenate
 from .math import math, get_descriptives, slopes
 from .montage import montage
 from .peaks import peaks

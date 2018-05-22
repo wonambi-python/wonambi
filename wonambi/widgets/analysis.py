@@ -53,7 +53,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 from .. import ChanFreq
 from ..trans import (math, filter_, frequency, get_descriptives, band_power, 
-                     fetch, get_times, slopes, _merge_metadata)
+                     fetch, get_times, slopes)
 from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
@@ -1016,7 +1016,7 @@ class AnalysisDialog(ChannelDialog):
         
         nchan = len(self.idx_chan.selectedItems())
         #s2 = (self.nseg == 1 and nchan == 2) or (self.nseg == 2 and nchan == 1)
-        #freq['box_cross'].setEnabled(nchan == 2 and freq_on)
+        freq['box_cross'].setEnabled(nchan == 2 and freq_on)
         if not nchan == 2:
             freq['csd'].set_value(False)
             freq['gainphase'].set_value(False)
@@ -1277,28 +1277,41 @@ class AnalysisDialog(ChannelDialog):
                 
                 if csd_on or gainphase_on or coh_on:
                     csd = self.compute_freq(csd=True) # cross-spectral density
+                    chancombo = str(csd[0]['data'].axis['chan'][0][0])
                     freq_out = []
                     
                     if csd_on:
-                        freq_out.append((csd, 'csd'))
+                        freq_out.append((csd, 'csd', 
+                                         ('Cross-spectral density, ' 
+                                          + chancombo + ', '), 
+                                          None, 'semilogy'))
                         
                     if gainphase_on:
-                        xg, yg, xp, yp = self.compute_freq_cross(csd, asd, 
+                        xg, yg, ph = self.compute_freq_cross(csd, asd, 
                                                             output='gainphase')
-                        freq_out.append((xg, 'xgain'))
-                        freq_out.append((yg, 'ygain'))
-                        freq_out.append((xp, 'xphase'))
-                        freq_out.append((yp, 'yphase'))
+                        xchancombo = str(xg[0]['data'].axis['chan'][0][0])
+                        ychancombo = str(yg[0]['data'].axis['chan'][0][0])
+                        freq_out.append((xg, 'xgain', 
+                                         ('Gain, ' + xchancombo + ', '),
+                                         'Gain', 'linear'))
+                        freq_out.append((yg, 'ygain',
+                                         ('Gain, ' + ychancombo + ', '),
+                                         'Gain', 'linear'))
+                        freq_out.append((ph, 'phase', 
+                                         ('Phase shift, ' + xchancombo + ', '),
+                                         'Phase shift (degrees)', 'linear'))
                     
                     if coh_on:
                         coh, = self.compute_freq_cross(csd, asd, 
                                                        output='coherence')
-                        freq_out.append((coh, 'coh'))
+                        freq_out.append((coh, 'coh', 
+                                         ('Coherence, ' + chancombo + ', '), 
+                                         'Coherence', 'linear'))
                     
                 else:
-                    freq_out = [(asd, 'freq')]
+                    freq_out = [(asd, 'freq', '', None, 'semilogy')]
                 
-                for one_xf, suffix in freq_out:
+                for one_xf, suffix, prefix, ylabel, scale in freq_out:
                     
                     if freq_band:
                         perhz = freq['band_perhz'].get_value()
@@ -1323,7 +1336,9 @@ class AnalysisDialog(ChannelDialog):
                                 self.export_freq(one_xf, suffix, desc=desc)
 
                             if freq_plot:                        
-                                self.plot_freq(x, y, title=self.title)
+                                self.plot_freq(x, y, 
+                                               title=(prefix + self.title), 
+                                               ylabel=ylabel, scale=scale)
                                 
                             if freq_fooof:
                                 self.report_fooof(asarray(x), y, suffix)
@@ -1736,7 +1751,7 @@ class AnalysisDialog(ChannelDialog):
         -------
         tuple of list of dict with 'data' key as instance of ChanFreq
             if coherence, tuple contains one dict
-            if gainphase, tuple contains: xgain, ygain, xphase, yphase
+            if gainphase, tuple contains: xgain, ygain, phase
                 where xgain is gain with x as input and y as output
         """        
         if output == 'coherence':
@@ -1768,8 +1783,7 @@ class AnalysisDialog(ChannelDialog):
         elif output == 'gainphase':
             xg_list = []
             yg_list = []
-            xp_list = []
-            yp_list = []
+            ph_list = []
            
             for i in range(len(csd)):
                 xgain = ChanFreq()
@@ -1788,31 +1802,21 @@ class AnalysisDialog(ChannelDialog):
                 ygain.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
                 ygain.axis['chan'] = empty(1, dtype='O')
                 
-                xphase = ChanFreq()
-                xphase.data = empty(1, dtype='O')
-                xphase.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
+                phase = ChanFreq()
+                phase.data = empty(1, dtype='O')
+                phase.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
                         dtype='f')
-                xphase.axis['freq'] = empty(1, dtype='O')
-                xphase.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
-                xphase.axis['chan'] = empty(1, dtype='O')
-                
-                yphase = ChanFreq()
-                yphase.data = empty(1, dtype='O')
-                yphase.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
-                        dtype='f')
-                yphase.axis['freq'] = empty(1, dtype='O')
-                yphase.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
-                yphase.axis['chan'] = empty(1, dtype='O')
+                phase.axis['freq'] = empty(1, dtype='O')
+                phase.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
+                phase.axis['chan'] = empty(1, dtype='O')
                 
                 xchan = asd[i]['data'].axis['chan'][0][0]
                 ychan = asd[i]['data'].axis['chan'][0][1]
-                xgain.axis['chan'][0] = asarray(['->'.join((xchan, ychan))], 
+                xgain.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))], 
                           dtype='U')
-                ygain.axis['chan'][0] = asarray(['->'.join((ychan, xchan))], 
+                ygain.axis['chan'][0] = asarray(['-->'.join((ychan, xchan))], 
                           dtype='U')
-                xphase.axis['chan'][0] = asarray(['->'.join((xchan, ychan))], 
-                          dtype='U')
-                yphase.axis['chan'][0] = asarray(['->'.join((ychan, xchan))], 
+                phase.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))], 
                           dtype='U')
                 
                 Pxy = csd[i]['data'].data[0][0]
@@ -1825,8 +1829,8 @@ class AnalysisDialog(ChannelDialog):
                 xgain.data[0][0, :] = abs(Hx)
                 ygain.data[0][0, :] = abs(Hy)
                 
-                xphase.data[0][0, :] = angle(Hx, deg=True)
-                yphase.data[0][0, :] = angle(Hy, deg=True)
+                phase.data[0][0, :] = angle(Hx, deg=True)
+                # phase is same in both directions, since Pxx and Pyy are real
                 
                 xg_dict = dict(csd[i])
                 xg_dict['data'] = xgain
@@ -1836,147 +1840,13 @@ class AnalysisDialog(ChannelDialog):
                 yg_dict['data'] = ygain
                 yg_list.append(yg_dict)
                 
-                xp_dict = dict(csd[i])
-                xp_dict['data'] = xphase
-                xp_list.append(xp_dict)
+                ph_dict = dict(csd[i])
+                ph_dict['data'] = phase
+                ph_list.append(ph_dict)
                 
-                yp_dict = dict(csd[i])
-                yp_dict['data'] = yphase
-                yp_list.append(yp_dict)
-                
-            out = (xg_list, yg_list, xp_list, yp_list)
+            out = (xg_list, yg_list, ph_list)
         
         return out
-    
-#==============================================================================
-#     def compute_freq_cross_old(self, x, y):
-#         """Compute cross-spectrum, gain, phase shift and/or coherence.
-#         
-#         Parameters
-#         ----------
-#         x : instance of ChanFreq
-#             signal with two channels
-#             
-#         Returns
-#         -------
-#         dict of ChanFreq
-#             cross-spectral density, gains and phase shifts in both directions,
-#             and/or coherence
-#         """
-#         freq = self.frequency
-#         csd = freq['csd'].get_value()
-#         gain = freq['gain'].get_value()
-#         shift = freq['phaseshift'].get_value()
-#         coherence = freq['coh'].get_value()
-#         output = {}
-#         
-#         Fx = x['data'].data[0][0] # complex FFT of x
-#         lg.info('Fx ' + str(Fx.shape))
-#         
-#         if y is None:
-#             y = x['data'].axis['chan'][0][1]
-#             Fy = x['data'].data[0][1] # complex FFT of y, from second channel
-#         else:
-#             Fy = y['data'].data[0][0] # complex FFT of y, from second segment
-#                     
-#         newdict = _merge_metadata(x, y, link='_&_')
-#         
-#         if gain or shift:
-#             xdict = _merge_metadata(x, y, link='-->')
-#             ydict = _merge_metadata(x, y, link='-->', reverse=True)
-#         
-#         Pxy = Fx.conj() * Fy # complex cross-spectral density
-#         lg.info('Pxy ' + str(Pxy.shape))
-#         
-#         if gain or shift or coherence:
-#             Pxx = Fx.conj() * Fx    # autospectrum of x
-#             Pxx = Pxx.real          # imaginary is always zero
-#             
-#             Pyy = Fy.conj() * Fy    # autospectrum of y
-#             Pyy = Pyy.real
-#             
-#         if gain or shift:
-#             Hfx = Pxy / Pxx # transfer function with y as output
-#             Hfy = Pxy / Pyy # ... with x as output
-#         
-#         if csd:
-#             dat = ChanFreq()
-#             dat.axis['freq'] = newdict['data'].axis['freq']
-#             dat.axis['chan'] = newdict['data'].axis['chan']
-#             dat.data = empty(1, dtype='O')
-#             dat.data[0] = empty((1, len(Pxy)), dtype='cfloat')
-#             
-#             dat.data[0][0, :] = Pxy
-#             
-#             csd_dict = dict(newdict)
-#             csd_dict['data'] = dat
-#             output['csd'] = csd_dict
-#             
-#         if gain:
-#             datx = ChanFreq()
-#             datx.axis['freq'] = xdict['data'].axis['freq']
-#             datx.axis['chan'] = xdict['data'].axis['chan']
-#             datx.data = empty(1, dtype='O')
-#             datx.data[0] = empty((1, len(Hfx)), dtype='f')
-#             
-#             datx.data[0][0, :] = abs(Hfx) # modulus
-#             
-#             daty = ChanFreq()
-#             daty.axis['freq'] = ydict['data'].axis['freq']
-#             daty.axis['chan'] = ydict['data'].axis['chan']
-#             daty.data = empty(1, dtype='O')
-#             daty.data[0] = empty((1, len(Hfy)), dtype='f')
-#             
-#             daty.data[0][0, :] = abs(Hfy) # modulus
-#             
-#             xgain_dict = dict(xdict)
-#             xgain_dict['data'] = datx
-#             output['xgain'] = xgain_dict   
-#             
-#             ygain_dict = dict(ydict)
-#             ygain_dict['data'] = daty
-#             output['ygain'] = ygain_dict
-#             
-#         if shift:
-#             datx = ChanFreq()
-#             datx.axis['freq'] = xdict['data'].axis['freq']
-#             datx.axis['chan'] = xdict['data'].axis['chan']
-#             datx.data = empty(1, dtype='O')
-#             datx.data[0] = empty((1, len(Hfx)), dtype='f')
-# 
-#             datx.data[0][0, :] = angle(Hfx, deg=True) # complex argument
-#             
-#             daty = ChanFreq()
-#             daty.axis['freq'] = ydict['data'].axis['freq']
-#             daty.axis['chan'] = ydict['data'].axis['chan']
-#             daty.data = empty(1, dtype='O')
-#             daty.data[0] = empty((1, len(Hfy)), dtype='f')
-# 
-#             daty.data[0][0, :] = angle(Hfy, deg=True) # complex argument
-#             
-#             xshift_dict = dict(xdict)
-#             xshift_dict['data'] = datx
-#             output['xshift'] = xshift_dict   
-#             
-#             yshift_dict = dict(ydict)
-#             yshift_dict['data'] = daty
-#             output['yshift'] = yshift_dict
-#         
-#         if coherence:
-#             dat = ChanFreq()
-#             dat.axis['freq'] = newdict['data'].axis['freq']
-#             dat.axis['chan'] = newdict['data'].axis['chan']
-#             dat.data = empty(1, dtype='O')
-#             dat.data[0] = empty((1, len(Pxy)), dtype='f')
-# 
-#             dat.data[0][0, :] = abs(Pxy)**2 / Pxx / Pyy # ms coherence
-#             
-#             coh_dict = dict(newdict)
-#             coh_dict['data'] = dat
-#             output['coh'] = coh_dict
-#         
-#         return output
-#==============================================================================
     
     def export_freq(self, xfreq, suffix, desc=None):
         """Write frequency analysis data to CSV.
@@ -2106,7 +1976,7 @@ class AnalysisDialog(ChannelDialog):
                                        ] + data_row)
 
     
-    def plot_freq(self, x, y, title=''):
+    def plot_freq(self, x, y, title='', ylabel=None, scale='semilogy'):
         """Plot mean frequency spectrum and display in dialog.
 
         Parameters
@@ -2115,19 +1985,26 @@ class AnalysisDialog(ChannelDialog):
             vector with frequencies
         y : ndarray
             vector with amplitudes
+        title : str
+            plot title
+        ylabel : str
+            plot y label
+        scale : str
+            semilogy, loglog or linear
         """
         freq = self.frequency
         scaling = freq['scaling'].get_value()
         
-        if freq['complex'].get_value():
-            ylabel = 'Amplitude (uV)'
-        elif 'power' == scaling:
-            ylabel = 'Power spectral density (uV ** 2 / Hz)'
-        elif 'energy' == scaling:
-            ylabel = 'Energy spectral density (uV ** 2)'
+        if ylabel is None:
+            if freq['complex'].get_value():
+                ylabel = 'Amplitude (uV)'
+            elif 'power' == scaling:
+                ylabel = 'Power spectral density (uV ** 2 / Hz)'
+            elif 'energy' == scaling:
+                ylabel = 'Energy spectral density (uV ** 2)'
 
         self.parent.plot_dialog = PlotDialog(self.parent)
-        self.parent.plot_dialog.canvas.plot(x, y, title, ylabel)
+        self.parent.plot_dialog.canvas.plot(x, y, title, ylabel, scale=scale)
         self.parent.show_plot_dialog()
 
     def report_fooof(self, x, y, suffix):
@@ -2708,7 +2585,7 @@ class PlotCanvas(FigureCanvas):
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
   
-    def plot(self, x, y, title, ylabel, log_ax='log y-axis', idx_lim=(1, -1)):
+    def plot(self, x, y, title, ylabel, scale='semilogy', idx_lim=(1, -1)):
         """Plot the data.
 
         Parameters
@@ -2721,7 +2598,7 @@ class PlotCanvas(FigureCanvas):
             title of the plot, to appear above it
         ylabel : str
             label for the y-axis
-        log_ax : str
+        scale : str
             'log y-axis', 'log both axes' or 'linear', to set axis scaling
         idx_lim : tuple of (int or None)
             indices of the data to plot. by default, the first value is left
@@ -2734,11 +2611,11 @@ class PlotCanvas(FigureCanvas):
         ax.set_xlabel('Frequency (Hz)')
         ax.set_ylabel(ylabel)
 
-        if 'log y-axis' == log_ax:
+        if 'semilogy' == scale:
             ax.semilogy(x, y, 'r-')
-        elif 'log both axes' == log_ax:
+        elif 'loglog' == scale:
             ax.loglog(x, y, 'r-')
-        elif 'linear' == log_ax:
+        elif 'linear' == scale:
             ax.plot(x, y, 'r-')
 
 

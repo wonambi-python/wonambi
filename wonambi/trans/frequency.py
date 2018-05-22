@@ -4,8 +4,8 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, empty, exp, max, mean, pi, real, 
-                   sqrt, swapaxes)
+from numpy import (arange, array, asarray, copy, empty, exp, max, mean, pi, 
+                   real, sqrt, swapaxes)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -114,7 +114,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
     freq = ChanFreq()
     freq.s_freq = data.s_freq
     freq.start_time = data.start_time
-    freq.axis['chan'] = data.axis['chan']
+    freq.axis['chan'] = copy(data.axis['chan'])
     freq.axis['freq'] = empty(data.number_of('trial'), dtype='O')
     if output == 'complex':
         freq.axis['taper'] = empty(data.number_of('trial'), dtype='O')
@@ -143,9 +143,8 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         if output == 'complex':
             freq.axis['taper'][i] = arange(Sxx.shape[-1])
         if output == 'csd':
-            newchan = '*'.join(freq.axis['chan'][i])
-            freq.axis['chan'][i] = empty(1, dtype='O')
-            freq.axis['chan'][i][0] = asarray([newchan], dtype='U')
+            newchan = ' * '.join(freq.axis['chan'][i])
+            freq.axis['chan'][i] = asarray([newchan], dtype='U')
         freq.data[i] = Sxx
 
     return freq
