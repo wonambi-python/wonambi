@@ -208,7 +208,7 @@ Then, in the documentation (in the ``wonambi/docs/source/analysis/`` folder), fi
 
     .. raw:: html
     
-        <script src="https://cdn.plot.ly/plotly-latest.min.js">
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 In the same doc file, to insert the interactive image, you can use::
 
