@@ -28,7 +28,7 @@ You can add a colorbar at the back of the head (you might need to zoom out to se
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
    :lines: 45-48
 
-.. image:: images/viz3_04_surf_values.png
+.. image:: images/viz3_04_surf_colorbar.png
 
 You can then add channel positions, such ECoG on the surface:
 
