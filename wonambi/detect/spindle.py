@@ -355,8 +355,8 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -420,8 +420,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -504,8 +504,8 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -588,8 +588,8 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
         lg.info('Spindles in chan: ' + str(len(sp_in_chan)))
 
@@ -659,8 +659,8 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -736,8 +736,8 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -809,8 +809,8 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                          opts.ratio_thresh)
 
     power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-    power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-    sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+    powers = band_power(events, dat_orig, s_freq, opts.frequency)
+    sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                dat_orig, time, s_freq)
 
     values = {'det_value_lo': det_value, 'det_value_hi': nan,
@@ -879,8 +879,8 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        power_avgs = avg_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, power_avgs, dat_det,
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
     else:
@@ -1518,8 +1518,8 @@ def peak_in_power(events, dat, s_freq, method, value=None):
     return peak
 
 
-def avg_power(events, dat, s_freq, frequency):
-    """Define average power of the signal within frequency band.
+def band_power(events, dat, s_freq, frequency):
+    """Define power of the signal within frequency band.
 
     Parameters
     ----------
@@ -1535,12 +1535,12 @@ def avg_power(events, dat, s_freq, frequency):
     Returns
     -------
     ndarray (dtype='float')
-        vector with avg power
+        vector with power
     """
     dat = diff(dat)  # remove 1/f
 
-    avg = empty(events.shape[0])
-    avg.fill(nan)
+    pw = empty(events.shape[0])
+    pw.fill(nan)
 
     for i, one_event in enumerate(events):
 
@@ -1548,18 +1548,18 @@ def avg_power(events, dat, s_freq, frequency):
         x1 = one_event[2]
 
         if x0 < 0 or x1 >= len(dat):
-            avg[i] = nan
+            pw[i] = nan
         else:
             sf, Pxx = periodogram(dat[x0:x1], s_freq)
             # find nearest frequencies in sf
             b0 = asarray([abs(x - frequency[0]) for x in sf]).argmin()
             b1 = asarray([abs(x - frequency[1]) for x in sf]).argmin()
-            avg[i] = mean(Pxx[b0:b1])
+            pw[i] = mean(Pxx[b0:b1])
 
-    return avg
+    return pw
 
 
-def make_spindles(events, power_peaks, power_avgs, dat_det, dat_orig, time,
+def make_spindles(events, power_peaks, powers, dat_det, dat_orig, time,
                   s_freq):
     """Create dict for each spindle, based on events of time points.
 
@@ -1569,7 +1569,7 @@ def make_spindles(events, power_peaks, power_avgs, dat_det, dat_orig, time,
         N x 3 matrix with start, peak, end samples, and peak frequency
     power_peaks : ndarray (dtype='float')
         peak in power spectrum for each event
-    power_avgs : ndarray (dtype='float')
+    powers : ndarray (dtype='float')
         average power in power spectrum for each event
     dat_det : ndarray (dtype='float')
         vector with the data after detection-transformation (to compute peak)
@@ -1591,18 +1591,21 @@ def make_spindles(events, power_peaks, power_avgs, dat_det, dat_orig, time,
     power_peaks = power_peaks[i]
 
     spindles = []
-    for i, one_peak, one_pwr in zip(events, power_peaks, power_avgs):
+    for i, one_peak, one_pwr in zip(events, power_peaks, powers):
         one_spindle = {'start': time[i[0]],
                        'end': time[i[2] - 1],
                        'peak_time': time[i[1]],
-                       'peak_val': dat_det[i[1]],
+                       'peak_val_det': dat_det[i[1]],
                        'peak_val_orig': dat_orig[i[1]],
                        'dur': (i[2] - i[0]) / s_freq,
-                       'area_under_curve': sum(dat_det[i[0]:i[2]]) / s_freq,
-                       'rms': sqrt(mean(square(dat_orig[i[0]:i[2]]))),
-                       'power': one_pwr,
+                       'auc_det': sum(dat_det[i[0]:i[2]]) / s_freq,
+                       'auc_orig': sum(dat_orig[i[0]:i[2]]) / s_freq,
+                       'rms_det': sqrt(mean(square(dat_det[i[0]:i[2]]))),
+                       'rms_orig': sqrt(mean(square(dat_orig[i[0]:i[2]]))),
+                       'power_orig': one_pwr,
                        'peak_freq': one_peak,
-                       'ptp': ptp(dat_orig[i[0]:i[2]])
+                       'ptp_det': ptp(dat_det[i[0]:i[2]]),
+                       'ptp_orig': ptp(dat_orig[i[0]:i[2]])
                        }
         spindles.append(one_spindle)
 

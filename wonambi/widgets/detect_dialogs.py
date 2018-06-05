@@ -186,11 +186,11 @@ class SpindleDialog(ChannelDialog):
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
             data = fetch(self.parent.info.dataset, 
-                                  self.parent.notes.annot, cat=(1, 1, 1, 0),
-                                  stage=stage, cycle=cycle, 
-                                  min_dur=params['min_seg_dur'], 
-                                  reject_epoch=params['excl_epoch'], 
-                                  reject_artf=params['excl_event'])
+                          self.parent.notes.annot, cat=(1, 1, 1, 0),
+                          stage=stage, cycle=cycle, 
+                          min_dur=params['min_seg_dur'], 
+                          reject_epoch=params['excl_epoch'], 
+                          reject_artf=params['excl_event'])
             
             if not data.segments:
                 msg = 'No valid signal found.'

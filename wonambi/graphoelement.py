@@ -29,6 +29,9 @@ class Graphoelement:
             
     def __len__(self):
         return len(self.events)
+    
+    def __getitem__(self, index):
+        return self.events[index]
 
     def __call__(self, func=None):
 

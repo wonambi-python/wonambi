@@ -347,7 +347,12 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         If True, excludes events marked as 'Artefact' (and signal is segmented
         in consequence).
     min_dur : float
-        Minimum duration of segments returned, in seconds.        
+        Minimum duration of segments returned, in seconds. 
+        
+    Returns
+    -------
+    instance of Segments
+        metadata for all analysis segments
     """
     bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle, 
                         chan=chan_full, exclude=reject_epoch)
