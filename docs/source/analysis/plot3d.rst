@@ -23,12 +23,19 @@ You can specify the min and max limits with ``limits_c``.
 
 .. image:: images/viz3_03_surf_values.png
 
+You can add a colorbar at the back of the head (you might need to zoom out to see it):
+
+.. literalinclude:: ../../../tests/test_viz_plot3d.py
+   :lines: 45-48
+
+.. image:: images/viz3_04_surf_values.png
+
 You can then add channel positions, such ECoG on the surface:
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 45-50
+   :lines: 56-61
 
-.. image:: images/viz3_04_surf_chan.png
+.. image:: images/viz3_05_surf_chan.png
 
 .. NOTE::
    Note how the channel groups had different colors.
@@ -37,27 +44,27 @@ You can then add channel positions, such ECoG on the surface:
 You can also specify one color (in RGB, values between 0 and 1) to use the same color for all the channels:
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 58-63
+   :lines: 69-74
 
-.. image:: images/viz3_05_surf_chan_color_one.png
+.. image:: images/viz3_06_surf_chan_color_one.png
 
 To specify the transparency, enter the keyword ``alpha`` (0: transparent, 1: opaque).
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 71-76
+   :lines: 82-87
 
-.. image:: images/viz3_06_surf_chan_color_one_alpha.png
+.. image:: images/viz3_07_surf_chan_color_one_alpha.png
 
 You can also specify the color for each channel (in this example, we alternate red and blue channels).
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 84-93
+   :lines: 95-104
 
-.. image:: images/viz3_07_surf_chan_color_everyother.png
+.. image:: images/viz3_08_surf_chan_color_everyother.png
 
-Finally, you can specify the values for each channels.
+Finally, you can specify the values for each channels (and add a colorbar).
 
 .. literalinclude:: ../../../tests/test_viz_plot3d.py
-   :lines: 101-108
+   :lines: 112-119
 
-.. image:: images/viz3_08_surf_chan_values.png
+.. image:: images/viz3_09_surf_chan_values.png

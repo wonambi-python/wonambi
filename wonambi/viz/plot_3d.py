@@ -10,7 +10,8 @@ from numpy import (linspace,
 from vispy.color import get_colormap, ColorArray
 from vispy.geometry import MeshData
 from vispy.scene import TurntableCamera
-from vispy.scene.visuals import Markers
+from vispy.scene.visuals import Markers, ColorBar
+from vispy.visuals.transforms import MatrixTransform
 
 from .base import COLORMAP, normalize, Viz
 from .visuals import SurfaceMesh
@@ -39,7 +40,8 @@ class Viz3(Viz):
                                             scale_factor=SCALE_FACTOR)
 
     def add_surf(self, surf, color=SKIN_COLOR, vertex_colors=None,
-                 values=None, limits_c=None, colormap=COLORMAP, alpha=1):
+                 values=None, limits_c=None, colormap=COLORMAP, alpha=1,
+                 colorbar=False):
         """Add surfaces to the visualization.
 
         Parameters
@@ -58,6 +60,8 @@ class Viz3(Viz):
             one of the colormaps in vispy
         alpha : float
             transparency (1 = opaque)
+        colorbar : bool
+            add a colorbar at the back of the surface
         """
         colors, limits = _prepare_colors(color=color, values=values,
                                          limits_c=limits_c, colormap=colormap,
@@ -85,7 +89,11 @@ class Viz3(Viz):
 
         self._surf.append(mesh)
 
-    def add_chan(self, chan, color=None, values=None, limits_c=None, colormap=CHAN_COLORMAP, alpha=None):
+        if colorbar:
+            self._view.add(_colorbar_for_surf(colormap, limits))
+
+    def add_chan(self, chan, color=None, values=None, limits_c=None,
+                 colormap=CHAN_COLORMAP, alpha=None, colorbar=False):
         """Add channels to visualization
 
         Parameters
@@ -102,6 +110,8 @@ class Viz3(Viz):
             one of the colormaps in vispy
         alpha : float
             transparency (0 = transparent, 1 = opaque)
+        colorbar : bool
+            add a colorbar at the back of the surface
         """
         # reuse previous limits
         if limits_c is None and self._chan_limits is not None:
@@ -118,6 +128,19 @@ class Viz3(Viz):
         marker = Markers()
         marker.set_data(pos=xyz, size=CHAN_SIZE, face_color=chan_colors)
         self._add_mesh(marker)
+
+        if colorbar:
+            self._view.add(_colorbar_for_surf(colormap, limits))
+
+
+def _colorbar_for_surf(colormap, limits):
+    colorbar = ColorBar(colormap, 'top', (50, 10), clim=limits)
+    tr = MatrixTransform()
+    tr.rotate(-90, (0, 1, 0))
+    tr.translate((0, -100, 50))
+    colorbar.transform = tr
+
+    return colorbar
 
 
 def _prepare_colors(color, values, limits_c, colormap, alpha, chan=None):
