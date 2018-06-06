@@ -256,7 +256,6 @@ def _tests():
     CMD = ['pytest',
            '--cov=wonambi',
            '--ignore=tests/test_import.py',
-           '-vv',
            'tests',
            ]
 
