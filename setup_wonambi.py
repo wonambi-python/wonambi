@@ -60,7 +60,7 @@ CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
 
 REMOTE_FILES = [
     {'filename': 'axon_abf.abf',
-     'url': 'https://portal.g-node.org/neo/axon/File_axon_1.abf',
+     'url': 'https://web.gin.g-node.org/NeuralEnsemble/ephy_testing_data/raw/master/axon/File_axon_1.abf',
      'cached': 'File_axon_1.abf',
      'zipped': None,
      },
@@ -75,7 +75,7 @@ REMOTE_FILES = [
      'zipped': 'test_generator_2.edf',
      },
     {'filename': 'micromed.TRC',
-     'url': 'https://portal.g-node.org/neo/micromed/File_micromed_1.TRC',
+     'url': 'https://web.gin.g-node.org/NeuralEnsemble/ephy_testing_data/raw/master/micromed/File_micromed_1.TRC',
      'cached': 'File_micromed_1.TRC',
      'zipped': None,
      },
