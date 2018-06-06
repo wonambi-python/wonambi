@@ -53,6 +53,7 @@ if environ.get('CI', False):
 else:
     DOWNLOADS_PATH = TEST_PATH / 'downloads'  # local
 DOWNLOADS_PATH.mkdir(exist_ok=True)
+EXPORTED_PATH = TEST_PATH / 'exported'
 
 VER_PATH = PKG_PATH / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
@@ -255,6 +256,7 @@ def _tests():
     CMD = ['pytest',
            '--cov=wonambi',
            '--ignore=tests/test_import.py',
+           '-vv',
            'tests',
            ]
 
@@ -318,6 +320,7 @@ def _clean_docs():
 def _clean_download():
     rmtree(DATA_PATH, ignore_errors=True)
     rmtree(DOWNLOADS_PATH, ignore_errors=True)
+    rmtree(EXPORTED_PATH, ignore_errors=True)
 
 
 def _urlretrieve(url, filename):

@@ -14,23 +14,23 @@ def test_micromed_header():
 
     orig = d.header['orig']
     assert orig['dvideo_begin'] == iinfo('u4').max
-    
+
     markers = d.read_markers()
     assert len(markers) == 444
     assert markers[0]['name'] == '1'
-    assert  markers[0]['start'] == markers[0]['end'] 
-    
+    assert markers[0]['start'] == markers[0]['end']
+
     data = d.read_data(chan=('FP1', 'AFz'), begsam=10, endsam=20)
     assert data.data[0][1, 5] == -334.27734375
-    
+
     data = d.read_data(chan=('FP1', 'AFz'), begsam=-10, endsam=20)
     assert all(isnan(data.data[0][1, :10]))
-    
+
     data = d.read_data(chan=('FP1', 'AFz'), begsam=900, endsam=1010)
     assert all(isnan(data.data[0][1, -10:]))
-    
+
     data = d.read_data(chan=('FP1', 'AFz'), begsam=-10, endsam=-2)
     assert all(isnan(data.data[0][1, :]))
-    
+
     with raises(OSError):
         d.read_videos(10, 20)
