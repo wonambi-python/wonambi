@@ -84,7 +84,7 @@ class Moberg:
 
         if dig_max == -dig_min and anl_max == -anl_min:
             self.convertion = lambda dat: dat / dig_max * anl_max
-        else:
+        else:  # pragma: no cover
             self.convertion = lambda dat: ((dat + dig_min) /
                                            (dig_max - dig_min) *
                                            (anl_max - anl_min) + anl_min)

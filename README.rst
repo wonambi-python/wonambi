@@ -15,6 +15,7 @@ Features
   - EGI MFF (.mff)
   - Fieldtrip (.mat)
   - mne FIFF (.fiff)
+  - Moberg ("EEG,Composite,SampleSeries,Composite,MRIAmp,data")
   - openephys (.continuous, .openephys)
 
 - Interface for Sleep Scoring
