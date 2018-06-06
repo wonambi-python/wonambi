@@ -11,6 +11,7 @@ Features
   - BCI2000 (.dat)
   - Blackrock (.nev, .ns2, .ns3, .ns5)
   - Brain Vision (.vhdr, .vmrk, .eeg / .dat)
+  - EEGLAB (.set, .set / .fdt)
   - European Data Format (.edf)
   - EGI MFF (.mff)
   - Fieldtrip (.mat)
