@@ -40,7 +40,7 @@ def test_detect_spindle_Ferrarelli2007():
 
 def test_detect_Ray2015():
     detsp = DetectSpindle(method='Ray2015')
-    
+
     sp = detsp(data)
     assert len(sp.events) == 3
 
@@ -88,7 +88,3 @@ def test_detect_spindle_to_data():
 
     sp_freq = sp.to_data('peak_freq')
     assert approx(sp_freq(0)[0]) == 13.793103448275861
-
-    sp_ptp = sp.to_data('ptp')
-    assert approx(sp_ptp(0)[0]) == 66.33846153846153
-
