@@ -11,7 +11,7 @@ from .utils import (read_hdf5_str,
 
 class EEGLAB:
     def __init__(self, filename):
-        self.filename = Path(filename)
+        self.filename = Path(filename).resolve()
 
     def return_hdr(self):
         """
@@ -63,7 +63,7 @@ class EEGLAB:
                 EEG = f['EEG']
                 self.s_freq = EEG['srate'].value.item()
                 chan_name = read_hdf5_chan_name(f, EEG['chanlocs']['labels'])
-                n_samples = EEG['pnts'].value.item()
+                n_samples = int(EEG['pnts'].value.item())
 
                 subj_id = read_hdf5_str(EEG['subject'])
                 try:
@@ -73,13 +73,20 @@ class EEGLAB:
 
                 datfile = read_hdf5_str(EEG['datfile'])
                 if datfile == '':
-                    self.data = EEG['data'].value
+                    self.data = EEG['data'].value.T  # for some reason, you need to transpose this
                 else:
                     self.fdtfile = datfile
 
         if self.fdtfile is not None:
             memshape = (len(chan_name), int(n_samples))
             memmap_file = self.filename.parent / self.fdtfile
+            if not memmap_file.exists():
+                renamed_memmap_file = self.filename.with_suffix('.fdt')
+                if not renamed_memmap_file.exists():
+                    raise FileNotFoundError(f'No file {memmap_file} or {renamed_memmap_file}')
+                else:
+                    memmap_file = renamed_memmap_file
+
             self.data = memmap(str(memmap_file), 'float32', mode='c', shape=memshape, order='F')
 
         return subj_id, start_time, self.s_freq, chan_name, n_samples, {}
