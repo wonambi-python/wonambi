@@ -57,3 +57,20 @@ def _select_blocks(blocks, begsam, endsam):
         end_in_dat = end_in_blk - begsam + intervals[blk]
 
         yield (beg_in_dat, end_in_dat), blk, (beg_in_blk, end_in_blk)
+
+
+def read_hdf5_chan_name(f, hdf5_labels):
+    # some hdf5 magic
+    # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
+    chan_name = []
+    for l in hdf5_labels.value.flat:
+        chan_name.append(read_hdf5_str(f[l]))
+    return chan_name
+
+
+def read_hdf5_str(value):
+    datfile = ''.join([chr(x) for x in value.value])
+    if datfile == '\x00\x00':
+        return ''
+    else:
+        return datfile

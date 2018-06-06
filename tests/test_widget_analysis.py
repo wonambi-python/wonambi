@@ -16,7 +16,7 @@ from .paths import (annot_psg_path,
                     EXPORTED_PATH,
                     )
 
-def notest_widget_analysis_frequency(qtbot):
+def test_widget_analysis_frequency(qtbot):
 
     w = MainWindow()
     qtbot.addWidget(w)
@@ -66,7 +66,7 @@ def notest_widget_analysis_frequency(qtbot):
     assert approx(float(rows[11][11])) == 0.44276760658862413
 
 
-def notest_widget_analysis_fooof(qtbot):
+def test_widget_analysis_fooof(qtbot):
 
     w = MainWindow()
     qtbot.addWidget(w)
@@ -103,7 +103,7 @@ def notest_widget_analysis_fooof(qtbot):
     assert approx(float(rows[10][2])) == 0.24356640365481338
 
 
-def notest_widget_notes_export_csv(qtbot):
+def test_widget_notes_export_csv(qtbot):
 
     w = MainWindow()
     qtbot.addWidget(w)

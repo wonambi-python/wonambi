@@ -3,6 +3,7 @@
 """
 from .abf import Abf
 from .brainvision import BrainVision, write_brainvision, _write_vmrk
+from .eeglab import EEGLAB
 from .edf import Edf, write_edf
 from .ktlx import Ktlx
 from .blackrock import BlackRock

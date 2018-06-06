@@ -14,6 +14,7 @@ from .ioeeg import (Abf,
                     Ktlx,
                     BlackRock,
                     EgiMff,
+                    EEGLAB,
                     FieldTrip,
                     BrainVision,
                     Moberg,
@@ -100,6 +101,9 @@ def detect_format(filename):
 
         if filename.suffix.lower() == '.trc':
             return Micromed
+
+        if filename.suffix == '.set':
+            return EEGLAB
 
         if filename.suffix == '.edf':
             return Edf

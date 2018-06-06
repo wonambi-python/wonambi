@@ -3,6 +3,8 @@ from logging import getLogger
 from numpy import around, empty
 from scipy.io import loadmat, savemat
 
+from .utils import read_hdf5_chan_name
+
 lg = getLogger(__name__)
 VAR = 'data'
 
@@ -71,12 +73,7 @@ class FieldTrip:
                                    ''.format(VAR))
 
                 s_freq = int(f[VAR]['fsample'].value.squeeze())
-
-                # some hdf5 magic
-                # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
-                chan_name = []
-                for l in f[VAR]['label'].value.flat:  # convert to np for flat
-                    chan_name.append(''.join([chr(x) for x in f[l].value]))
+                chan_name = read_hdf5_chan_name(f, f[VAR]['label'])
 
                 n_samples = int(around(f[f[VAR]['trial'][0].item()].shape[0]))
 
