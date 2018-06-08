@@ -2,6 +2,7 @@ from numpy import isnan
 
 from wonambi import Dataset
 from wonambi.ioeeg import write_edf
+from wonambi.ioeeg.edf import remove_datetime
 from wonambi.utils import create_data
 
 from .paths import (psg_file,
@@ -11,7 +12,6 @@ from .paths import (psg_file,
 
 
 psg = Dataset(psg_file)
-generated = Dataset(generated_file)
 
 
 def test_edf_read():
@@ -37,6 +37,9 @@ def test_edf_after_end():
 
 
 def test_edf_annot():
+    remove_datetime(generated_file)
+
+    generated = Dataset(generated_file)
     markers = generated.read_markers()
     assert len(markers) == 2
 

@@ -2,7 +2,7 @@
 """
 from logging import getLogger
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, date
 from pathlib import Path
 from re import findall, finditer
 from struct import pack
@@ -19,7 +19,7 @@ from numpy import (abs,
                    repeat,
                    )
 
-from .utils import decode, _select_blocks
+from .utils import decode, _select_blocks, DEFAULT_DATETIME
 
 lg = getLogger(__name__)
 
@@ -66,17 +66,28 @@ class Edf:
             hdr['recording_id'] = decode(f.read(80)).strip()
 
             # parse timestamp
-            (day, month, year) = [int(x) for x in findall('(\d+)',
-                                  decode(f.read(8)))]
-            (hour, minute, sec) = [int(x) for x in findall('(\d+)',
-                                   decode(f.read(8)))]
+            date_str = decode(f.read(8)).strip()
 
-            # Y2K: cutoff is 1985
-            if year >= 85:
-                year += 1900
+            if date_str == '':
+                edf_date = DEFAULT_DATETIME.date()
             else:
-                year += 2000
-            hdr['start_time'] = datetime(year, month, day, hour, minute, sec)
+                (day, month, year) = [int(x) for x in findall('(\d+)', date_str)]
+                # Y2K: cutoff is 1985
+                if year >= 85:
+                    year += 1900
+                else:
+                    year += 2000
+                edf_date = date(year, month, day)
+
+            time_str = decode(f.read(8)).strip()
+            if time_str == '':
+                edf_time = DEFAULT_DATETIME.time()
+            else:
+                (hour, minute, day) = [int(x) for x in findall('(\d+)', time_str)]
+
+                edf_time = time(hour, minute, day)
+
+            hdr['start_time'] = datetime.combine(edf_date, edf_time)
 
             # misc
             hdr['header_n_bytes'] = int(f.read(8))
@@ -376,3 +387,24 @@ def _read_tal(rawbytes):
             annotations.append(annot)
 
     return annotations
+
+
+def remove_datetime(filename):
+    """Remove datetime from filename by overwriting the date / time info.
+
+    Parameters
+    ----------
+    filename : Path
+        path to edf file
+
+    Notes
+    -----
+    It modifies the file.
+
+    TODO
+    ----
+    This function might be part of a large anonymization procedure for edf
+    """
+    with Path(filename).open('r+b') as f:
+        f.seek(168)
+        f.write(16 * b' ')
