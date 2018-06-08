@@ -562,22 +562,17 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     
     idx_env = peaks_in_time(dat_det)
     idx_peak = idx_env[peaks_in_time(dat_det[idx_env])]
-    #idx_trough = idx_env[peaks_in_time(dat_det[idx_env], troughs=True)]
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
     sel_value = define_threshold(dat_det[idx_peak], s_freq, 'histmax', 
                                  opts.sel_thresh, nbins=120)
-    #lg.info('det_value: ' + str(det_value))
-    #lg.info('sel_value: ' + str(sel_value))
     
     events_env = detect_events(dat_det[idx_env], 'above_thresh', det_value)
     
     if events_env is not None:
         
-        #lg.info('Peaks above threshold: ' + str(len(events_env)))
         events_env = select_events(dat_det[idx_env], events_env, 
                                    'above_thresh', sel_value)  
-        #lg.info('Selected events: ' + str(len(events_env)))
         events = idx_env[events_env]
 
         # merging is necessary, because detected spindles may overlap if the
@@ -1218,9 +1213,7 @@ def peaks_in_time(dat, troughs=False):
     increasing[diff_dat > 0] = 1 # mask for all points where dat is increasing
     flipping = diff(increasing) # peaks are -1, troughs are 1, the rest is zero
     
-    target = -1
-    if troughs:
-        target = 1
+    target = -1 if not troughs else 1
         
     return where(flipping == target)[0]
 
@@ -1678,7 +1671,9 @@ def _detect_start_end(true_values):
         N x 2 matrix with starting and ending times.
     """
     neg = zeros((1), dtype='bool')
-    int_values = asarray(concatenate((neg, true_values, neg)), dtype='int')
+    int_values = asarray(concatenate((neg, true_values[:-1], neg)), 
+                         dtype='int')
+    # must discard last value to avoid axis out of bounds
     cross_threshold = diff(int_values)
 
     event_starts = where(cross_threshold == 1)[0]

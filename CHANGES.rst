@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.20**: fixes for cycles, ferrarelli spindle detection, EDF handling
 - **5.19**: support to read eeglab files
 - **5.18**: bugfix for event data export
 - **5.17**: fixes for event parameter export
