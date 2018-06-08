@@ -2,9 +2,9 @@
 """
 from logging import getLogger
 
-from numpy import (abs, amax, amin, angle, array, asarray, ceil, concatenate, 
-                   diff, empty, floor, in1d, inf, logical_and, logical_or, 
-                   mean, negative, ptp, ravel, reshape, sqrt, square, stack, 
+from numpy import (abs, amax, amin, angle, asarray, ceil, concatenate,
+                   diff, empty, floor, in1d, inf, logical_and, logical_or,
+                   mean, negative, ptp, ravel, reshape, sqrt, square, stack,
                    zeros)
 from itertools import compress
 from functools import partial
@@ -26,6 +26,11 @@ try:
     from tensorpac.pacstr import pacstr
 except ImportError:
     Pac = pacstr = None
+
+try:
+    from fooof import FOOOF
+except ImportError:
+    FOOOF = None
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
@@ -52,9 +57,8 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import ChanFreq
-from ..trans import (math, filter_, frequency, get_descriptives, band_power, 
+from ..trans import (math, filter_, frequency, get_descriptives, band_power,
                      fetch, get_times, slopes)
-from ..utils import FOOOF
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME, ICON)
@@ -72,7 +76,7 @@ class AnalysisDialog(ChannelDialog):
     parent : instance of QMainWindow
         the main window
     nseg : int
-        number of segments in current selection        
+        number of segments in current selection
     """
     def __init__(self, parent):
         ChannelDialog.__init__(self, parent)
@@ -85,7 +89,7 @@ class AnalysisDialog(ChannelDialog):
         self.tab_pac = None
         self.tab_evt = None
         self.nseg = 0
-        
+
         self.create_dialog()
 
     def create_dialog(self):
@@ -108,11 +112,11 @@ class AnalysisDialog(ChannelDialog):
                            self.idx_filename)
 
         """ ------ N_SEG ------ """
-        
+
         box_nseg = QGroupBox('Info')
-        
+
         self.show_nseg = QLabel('')
-        
+
         form = QFormLayout(box_nseg)
         form.addRow(self.show_nseg)
 
@@ -123,8 +127,8 @@ class AnalysisDialog(ChannelDialog):
         cghl = QHBoxLayout()
         cghl.addWidget(QLabel('Channel group'))
         cghl.addWidget(self.idx_group)
-        cghl.addStretch(1)       
-        
+        cghl.addStretch(1)
+
         grid = QGridLayout(box_loc)
         grid.addLayout(cghl, 0, 0, 1, 3)
         grid.addWidget(QLabel('Channel(s)'), 1, 0)
@@ -140,7 +144,7 @@ class AnalysisDialog(ChannelDialog):
 
         self.chunk = {}
         self.chunk['event'] = FormRadio('by e&vent')
-        self.evt_chan_only = FormBool('Channel-specific')        
+        self.evt_chan_only = FormBool('Channel-specific')
         self.chunk['epoch'] = FormRadio('by e&poch')
         self.epoch_param = epop = {}
         self.lock_to_staging = FormBool('Lock to staging epochs')
@@ -152,18 +156,18 @@ class AnalysisDialog(ChannelDialog):
         epop['overlap_val'].setRange(0, 0.9)
         epop['overlap_val'].setSingleStep(0.1)
         epop['overlap_val'].setValue(0.)
-        epop['step_val'] = FormFloat(30.)        
+        epop['step_val'] = FormFloat(30.)
         self.chunk['segment'] = FormRadio('by longest &run')
-        
+
         evt_box = QListWidget()
         evt_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_evt_type = evt_box
-        
+
         chunk_grp = QButtonGroup(box_chunk)
         chunk_grp.addButton(self.chunk['event'])
         chunk_grp.addButton(self.chunk['epoch'])
         chunk_grp.addButton(self.chunk['segment'])
-        
+
         epoch_grp = QButtonGroup(box_chunk)
         epoch_grp.addButton(epop['overlap'])
         epoch_grp.addButton(epop['step'])
@@ -172,16 +176,16 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(self.chunk['event'], 0, 0, 1, 3)
         grid.addWidget(QLabel('  '), 1, 0)
         grid.addWidget(self.evt_chan_only, 1, 1, 1, 2)
-        grid.addWidget(self.idx_evt_type, 2, 1, 3, 2)        
+        grid.addWidget(self.idx_evt_type, 2, 1, 3, 2)
         grid.addWidget(self.chunk['epoch'], 0, 3, 1, 3)
-        grid.addWidget(QLabel('  '), 1, 3)        
+        grid.addWidget(QLabel('  '), 1, 3)
         grid.addWidget(self.lock_to_staging, 1, 4, 1, 2)
         grid.addWidget(epop['dur_label'], 2, 4)
         grid.addWidget(epop['dur'], 2, 5)
         grid.addWidget(epop['overlap'], 3, 4)
         grid.addWidget(epop['overlap_val'], 3, 5)
         grid.addWidget(epop['step'], 4, 4)
-        grid.addWidget(epop['step_val'], 4, 5)        
+        grid.addWidget(epop['step_val'], 4, 5)
         grid.addWidget(self.chunk['segment'], 0, 6)
 
         """ ------ REJECTION ------ """
@@ -228,46 +232,46 @@ class AnalysisDialog(ChannelDialog):
 
         self.trans = {}
         self.trans['diff'] = FormBool('Differentiate')
-        
+
         ftypes = ['none', 'butter', 'cheby1', 'cheby2', 'ellip', 'bessel',
                   'diff']
-        
+
         self.trans['bp'] = tbp = {}
         self.trans['bandpass'] = FormMenu(ftypes)
         tbp['order'] = QLabel('Order'), FormSpin(3, 0, 8, 1)
         tbp['f1'] = QLabel('Lowcut (Hz)'), FormFloat()
         tbp['f2'] = QLabel('Highcut (Hz)'), FormFloat()
-        
+
         self.trans['n1'] = tn1 = {}
         self.trans['notch1'] = FormMenu(ftypes)
         tn1['order'] = QLabel('Order'), FormSpin(3, 0, 8, 1)
         tn1['cf'] = QLabel('CF (Hz)'), FormFloat()
         tn1['bw'] = QLabel('BW (Hz)'), FormFloat()
-        
+
         self.trans['n2'] = tn2 = {}
         self.trans['notch2'] = FormMenu(ftypes)
         tn2['order'] = QLabel('Order'), FormSpin(3, 0, 8, 1)
         tn2['cf'] = QLabel('CF (Hz)'), FormFloat()
         tn2['bw'] = QLabel('BW (Hz)'), FormFloat()
-        
+
         form1 = QFormLayout()
         form1.addRow('Bandpass', self.trans['bandpass'])
         form1.addRow(*tbp['order'])
         form1.addRow(*tbp['f1'])
-        form1.addRow(*tbp['f2'])        
+        form1.addRow(*tbp['f2'])
 
         form2 = QFormLayout()
         form2.addRow('Notch 1', self.trans['notch1'])
         form2.addRow(*tn1['order'])
         form2.addRow(*tn1['cf'])
         form2.addRow(*tn1['bw'])
-        
+
         form3 = QFormLayout()
         form3.addRow('Notch 2', self.trans['notch2'])
         form3.addRow(*tn2['order'])
         form3.addRow(*tn2['cf'])
         form3.addRow(*tn2['bw'])
-        
+
         grid = QGridLayout(box_pp)
         grid.addWidget(self.trans['diff'], 0, 0, 1, 3)
         grid.addLayout(form1, 1, 0)
@@ -279,16 +283,16 @@ class AnalysisDialog(ChannelDialog):
         self.tab_freq = tab_freq = QWidget()
 
         self.frequency = freq = {}
-        
+
         box_freq_main = QGroupBox('Options')
-        
+
         #freq['freq_on'] = FormBool('Compute frequency domain')
         freq['export_full'] = FormBool('Full spectrum')
         freq['export_band'] = FormBool('Band-limited')
         freq['plot_on'] = FormBool('Plot mean spectrum')
         freq['fooof_on'] = FormBool('Parametrize')
         freq['prep'] = FormBool('Pre-process')
-        
+
         form = QFormLayout(box_freq_main)
         form.addRow(freq['prep'])
         form.addRow(freq['export_full'])
@@ -356,12 +360,12 @@ class AnalysisDialog(ChannelDialog):
         #grid.addWidget(freq['sides'], 2, 2)
 
         freq['box_nfft'] = QGroupBox('FFT length')
-        
+
         freq['nfft_seg'] = FormRadio('Same as segment')
         freq['nfft_fixed'] = FormRadio('Fixed:')
         freq['nfft_fixed_val'] = FormInt()
         freq['nfft_zeropad'] = FormRadio('Zero-pad to longest segment')
-        
+
         grid = QGridLayout(freq['box_nfft'])
         grid.addWidget(freq['nfft_seg'], 0, 0, 1, 2)
         grid.addWidget(freq['nfft_fixed'], 1, 0)
@@ -388,22 +392,22 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(freq['norm_evt_type'], 2, 0)
         grid.addWidget(freq['norm_stage'], 2, 1)
         grid.addWidget(freq['norm_concat'], 3, 0, 1, 2)
-        
+
         freq['box_cross'] = QGroupBox('Cross-spectrum')
-        
+
         freq['csd'] = FormBool('Cross-spectrum')
         freq['gainphase'] = FormBool('Gain and phase shift')
         #freq['phaseshift'] = FormBool('Phase shift')
         freq['coh'] = FormBool('Coherence')
-        
+
         form = QFormLayout(freq['box_cross'])
         form.addRow(freq['csd'])
         form.addRow(freq['gainphase'])
         #form.addRow(freq['phaseshift'])
         form.addRow(freq['coh'])
-        
+
         freq['box_fooof'] = QGroupBox('Parametrization')
-        
+
         freq['fo_min_freq'] = FormFloat(2.)
         freq['fo_max_freq'] = FormFloat(30.)
         freq['fo_pk_thresh'] = FormFloat(2.)
@@ -412,21 +416,21 @@ class AnalysisDialog(ChannelDialog):
         freq['fo_max_n_pk'] = FormInt()
         freq['fo_min_pk_amp'] = FormFloat(0)
         freq['fo_bg_mode'] = FormMenu(['fixed', 'knee'])
-        
+
         freqhbox = QHBoxLayout()
         freqhbox.addWidget(QLabel('Frequencies:'))
         freqhbox.addWidget(freq['fo_min_freq'])
         freqhbox.addWidget(QLabel('-'))
         freqhbox.addWidget(freq['fo_max_freq'])
         freqhbox.addWidget(QLabel('Hz'))
-        
+
         widhbox = QHBoxLayout()
         widhbox.addWidget(QLabel('Peak width:'))
         widhbox.addWidget(freq['fo_pk_width_min'])
         widhbox.addWidget(QLabel('-'))
         widhbox.addWidget(freq['fo_pk_width_max'])
         widhbox.addWidget(QLabel('Hz'))
-        
+
         form = QFormLayout(freq['box_fooof'])
         form.addRow(freqhbox)
         form.addRow(widhbox)
@@ -434,21 +438,21 @@ class AnalysisDialog(ChannelDialog):
                     freq['fo_pk_thresh'])
         form.addRow('Max. number of peaks',
                     freq['fo_max_n_pk'])
-        form.addRow('Min. peak amplitude', 
+        form.addRow('Min. peak amplitude',
                     freq['fo_min_pk_amp'])
         form.addRow('Background fitting mode',
                     freq['fo_bg_mode'])
 
         freq['box_band'] = QGroupBox('Define bands')
-        
+
         freq['band'] = FormStr()
         freq['band_help'] = QPushButton(QIcon(ICON['help-about']), '', self)
-        freq['band_perhz'] = FormBool('Bandwidth-normalized (/Hz)')        
+        freq['band_perhz'] = FormBool('Bandwidth-normalized (/Hz)')
 
         hlayout = QHBoxLayout()
         hlayout.addWidget(freq['band'])
         hlayout.addWidget(freq['band_help'])
-        
+
         vlayout = QVBoxLayout(freq['box_band'])
         vlayout.addLayout(hlayout)
         #vlayout.addWidget(freq['band_perhz'])
@@ -461,14 +465,14 @@ class AnalysisDialog(ChannelDialog):
         vlayout1.addWidget(freq['box_mtap'])
         vlayout1.addWidget(freq['box_output'])
         vlayout1.addStretch(1)
-        
+
         vlayout2 = QVBoxLayout()
         vlayout2.addWidget(freq['box_band'])
         vlayout2.addWidget(freq['box_norm'])
         vlayout2.addWidget(freq['box_cross'])
         vlayout2.addWidget(freq['box_fooof'])
         vlayout2.addStretch(1)
-        
+
         hlayout = QHBoxLayout()
         hlayout.addLayout(vlayout1)
         hlayout.addLayout(vlayout2)
@@ -522,20 +526,20 @@ class AnalysisDialog(ChannelDialog):
             pac['metric'] = FormMenu(pac_metrics)
             pac['fpha'] = FormStr()
             pac['famp'] = FormStr()
-            pac['band_help_p'] = QPushButton(QIcon(ICON['help-about']), '', 
+            pac['band_help_p'] = QPushButton(QIcon(ICON['help-about']), '',
                self)
-            pac['band_help_a'] = QPushButton(QIcon(ICON['help-about']), '', 
+            pac['band_help_a'] = QPushButton(QIcon(ICON['help-about']), '',
                self)
             pac['nbin'] = QLabel('Number of bins'), FormInt(default=18)
 
             hlayoutp = QHBoxLayout()
             hlayoutp.addWidget(pac['fpha'])
             hlayoutp.addWidget(pac['band_help_p'])
-            
+
             hlayouta = QHBoxLayout()
             hlayouta.addWidget(pac['famp'])
             hlayouta.addWidget(pac['band_help_a'])
-            
+
             flayout = QFormLayout(pac['box_metric'])
             flayout.addRow(pac['pac_on'])
             flayout.addRow('PAC metric',
@@ -579,7 +583,7 @@ class AnalysisDialog(ChannelDialog):
             hlayout = QHBoxLayout()
             hlayout.addWidget(pac['pac_on'])
             hlayout.addWidget(pac['prep'])
-            
+
             vlayout = QVBoxLayout(tab_pac)
             vlayout.addLayout(hlayout)
             #vlayout.addWidget(QLabel(''))
@@ -614,7 +618,7 @@ class AnalysisDialog(ChannelDialog):
 
         ev['f1'] = FormFloat()
         ev['f2'] = FormFloat()
-        
+
         ev['sw'] = {}
         ev['sw']['invert'] = FormBool('Inverted (peak-then-trough)')
         ev['sw']['prep'] = FormBool('Pre-process')
@@ -655,11 +659,11 @@ class AnalysisDialog(ChannelDialog):
         grid2.addWidget(el['peakef'][1], 10, 2)
 
         ev['band_box'] = QGroupBox('Band of interest')
-        
+
         form = QFormLayout(ev['band_box'])
         form.addRow('Lowcut (Hz)', ev['f1'])
         form.addRow('Highcut (Hz)', ev['f2'])
-        
+
         box_sw = QGroupBox('Slow wave')
 
         form = QFormLayout(box_sw)
@@ -673,7 +677,7 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(ev['band_box'], 0, 1)
         grid.addWidget(box_local, 1, 0, 1, 2)
         grid.addWidget(box_sw, 2, 0, 1, 2)
-        
+
         vlayout = QVBoxLayout(tab_evt)
         vlayout.addLayout(grid)
         vlayout.addStretch(1)
@@ -698,7 +702,7 @@ class AnalysisDialog(ChannelDialog):
         self.lock_to_staging.connect(self.toggle_concatenate)
         self.cat['discontinuous'].connect(self.toggle_concatenate)
         self.evt_chan_only.connect(self.update_nseg)
-        
+
         epop['dur'].editingFinished.connect(self.update_nseg)
         epop['overlap_val'].valueChanged.connect(self.update_nseg)
         epop['step_val'].editingFinished.connect(self.update_nseg)
@@ -707,14 +711,14 @@ class AnalysisDialog(ChannelDialog):
         self.min_dur.textChanged.connect(self.update_nseg)
         self.reject_epoch.connect(self.update_nseg)
         self.reject_event.connect(self.update_nseg)
-        
+
         for box in self.cat.values():
             box.connect(self.update_nseg)
 
         self.trans['bandpass'].connect(self.toggle_buttons)
         self.trans['notch1'].connect(self.toggle_buttons)
         self.trans['notch2'].connect(self.toggle_buttons)
-        
+
         freq['export_full'].connect(self.toggle_freq)
         freq['export_band'].connect(self.toggle_freq)
         freq['plot_on'].connect(self.toggle_freq)
@@ -808,11 +812,11 @@ class AnalysisDialog(ChannelDialog):
         hlayout1 = QHBoxLayout()
         hlayout1.addWidget(box_file)
         hlayout1.addWidget(box_nseg)
-        
+
         hlayout2 = QHBoxLayout()
         hlayout2.addWidget(box_r)
         hlayout2.addWidget(box_c)
-        
+
         vlayout1 = QVBoxLayout()
         vlayout1.addLayout(hlayout1)
         vlayout1.addWidget(box_loc)
@@ -820,17 +824,17 @@ class AnalysisDialog(ChannelDialog):
         vlayout1.addLayout(hlayout2)
         vlayout1.addWidget(box_pp)
         vlayout1.addStretch(1)
-        
+
         vlayout2 = QVBoxLayout()
         vlayout2.addWidget(box3)
-        vlayout2.addLayout(btnlayout)        
-        
+        vlayout2.addLayout(btnlayout)
+
         mhlayout = QHBoxLayout()
         mhlayout.addLayout(vlayout1)
         mhlayout.addLayout(vlayout2)
         mhlayout.addStretch(1)
 
-        self.setLayout(mhlayout)       
+        self.setLayout(mhlayout)
 
     def update_evt_types(self):
         """Update the event types list when dialog is opened."""
@@ -856,7 +860,7 @@ class AnalysisDialog(ChannelDialog):
         self.reject_event.setEnabled(logical_or((lock_enabled and not lock_on),
                                                 not lock_enabled))
         self.cat['evt_type'].setEnabled(event_on)
-        
+
         epop = self.epoch_param
         for wgt in epop.values():
             wgt.setEnabled(epoch_on and not lock_on)
@@ -865,7 +869,7 @@ class AnalysisDialog(ChannelDialog):
             overlap_on = epop['overlap'].isChecked()
             epop['overlap_val'].setEnabled(overlap_on)
             epop['step_val'].setEnabled(not overlap_on)
-        
+
         if Pac is not None:
             surro = self.pac['surro_method']
             surro.model().item(1).setEnabled(epoch_on)
@@ -883,14 +887,14 @@ class AnalysisDialog(ChannelDialog):
             self.reject_event.setChecked(False)
             for i in self.cat.values():
                 i.setChecked(False)
-                i.setEnabled(False)            
+                i.setEnabled(False)
         self.cat['discontinuous'].setEnabled(not epoch_on)
 
         bandpass_on = self.trans['bandpass'].get_value() != 'none'
         for w in self.trans['bp'].values():
             w[0].setEnabled(bandpass_on)
             w[1].setEnabled(bandpass_on)
-            
+
         notch1_on = self.trans['notch1'].get_value() != 'none'
         for w in self.trans['n1'].values():
             w[0].setEnabled(notch1_on)
@@ -909,23 +913,23 @@ class AnalysisDialog(ChannelDialog):
             buttons[1].setEnabled(checked)
             if not checked:
                 buttons[1].setChecked(False)
-        
+
         el = self.event['local']
-        ev_psd_on = asarray([x.get_value() for x in [el['power'][0], 
-                             el['energy'][0], el['peakpf'][0], 
+        ev_psd_on = asarray([x.get_value() for x in [el['power'][0],
+                             el['energy'][0], el['peakpf'][0],
                              el['peakef'][0]]]).any()
         self.event['band_box'].setEnabled(ev_psd_on)
-        
+
         sw = self.event['sw']
         slope_on = sw['avg_slope'].get_value() or sw['max_slope'].get_value()
         sw['prep'].setEnabled(slope_on)
         sw['invert'].setEnabled(slope_on)
-                
+
         self.update_nseg()
 
     def toggle_concatenate(self):
         """Enable and disable concatenation options."""
-        if not (self.chunk['epoch'].isChecked() and 
+        if not (self.chunk['epoch'].isChecked() and
                 self.lock_to_staging.get_value()):
             for i,j in zip([self.idx_chan, self.idx_cycle, self.idx_stage,
                             self.idx_evt_type],
@@ -943,7 +947,7 @@ class AnalysisDialog(ChannelDialog):
         if not self.cat['discontinuous'].get_value():
             self.cat['chan'].setEnabled(False)
             self.cat['chan'].setChecked(False)
-                        
+
         self.update_nseg()
 
     def toggle_freq(self):
@@ -989,10 +993,10 @@ class AnalysisDialog(ChannelDialog):
             ((welch_on or nfft_fixed_on or zeropad_on) or \
              (export_band_on and not export_full_on)))
         if not freq['plot_on'].isEnabled():
-            freq['plot_on'].set_value(False) 
+            freq['plot_on'].set_value(False)
         if not freq['box_norm'].isEnabled():
             freq['norm'].set_value('none')
-        
+
         dpss_on = freq['taper'].get_value() == 'dpss'
         freq['box_mtap'].setEnabled(dpss_on)
 
@@ -1013,7 +1017,7 @@ class AnalysisDialog(ChannelDialog):
         freq['norm_evt_type'].setEnabled(norm_evt)
         freq['norm_stage'].setEnabled(norm_stage)
         freq['norm_concat'].setEnabled(norm_evt or norm_stage)
-        
+
         nchan = len(self.idx_chan.selectedItems())
         #s2 = (self.nseg == 1 and nchan == 2) or (self.nseg == 2 and nchan == 1)
         freq['box_cross'].setEnabled(nchan == 2 and freq_on)
@@ -1022,13 +1026,13 @@ class AnalysisDialog(ChannelDialog):
             freq['gainphase'].set_value(False)
             #freq['phaseshift'].set_value(False)
             freq['coh'].set_value(False)
-        
+
         if True in [freq[x].get_value() for x in ['csd', 'gainphase', 'coh']]:
             freq['spectrald'].setChecked(True)
             freq['box_output'].setEnabled(False)
             #freq['norm'].set_value('none')
             #freq['box_norm'].setEnabled(False)
-        
+
         fooof_on = freq['fooof_on'].get_value()
         freq['box_fooof'].setEnabled(fooof_on)
 
@@ -1041,7 +1045,7 @@ class AnalysisDialog(ChannelDialog):
             self.pac['box_complex'].setEnabled(pac_on)
             self.pac['box_surro'].setEnabled(pac_on)
             self.pac['box_opts'].setEnabled(pac_on)
-            
+
             if not pac_on:
                 self.pac['prep'].set_value(False)
 
@@ -1100,31 +1104,31 @@ class AnalysisDialog(ChannelDialog):
                 'For example, to get the range of amplitude bands between '
                 '30 Hz and 130 Hz in non-overlapping 20-Hz bands, write: '
                 '(40,140,20,20).')
-        
+
         if 'amp' == opt:
             msg = msg1 + msg3 + msg4
         else:
-            msg = msg1 + msg2 + msg4            
-        
-        QMessageBox.about(self, 'Entering frequency bands', msg)       
-    
+            msg = msg1 + msg2 + msg4
+
+        QMessageBox.about(self, 'Entering frequency bands', msg)
+
     def update_nseg(self):
         """Update the number of segments, displayed in the dialog."""
         self.nseg = 0
-        if self.one_grp:        
+        if self.one_grp:
             segments = self.get_segments()
-            
+
             if segments is not None:
                 self.nseg = len(segments)
                 self.show_nseg.setText('Number of segments: ' + str(self.nseg))
                 times = [t for seg in segments for t in seg['times']]
                 self.parent.overview.mark_poi(times)
-                
+
             else:
                 self.show_nseg.setText('No valid segments')
-                
+
         self.toggle_freq()
-    
+
     def check_all_local(self):
         """Check or uncheck all local event parameters."""
         all_local_chk = self.event['global']['all_local'].isChecked()
@@ -1164,7 +1168,7 @@ class AnalysisDialog(ChannelDialog):
                 error_dialog.setWindowTitle('File path error')
                 error_dialog.showMessage(msg)
                 return
-            
+
             # Check for signal
             self.update_nseg
             if self.nseg <= 0:
@@ -1173,7 +1177,7 @@ class AnalysisDialog(ChannelDialog):
                 error_dialog.setWindowTitle('Error fetching data')
                 error_dialog.showMessage(msg)
                 return
-            
+
             # Which analyses?
             freq = self.frequency
             freq_full = freq['export_full'].get_value()
@@ -1182,28 +1186,28 @@ class AnalysisDialog(ChannelDialog):
             freq_fooof = freq['fooof_on'].get_value()
             freq_prep = freq['prep'].get_value()
             freq_on = freq_full or freq_band or freq_plot or freq_fooof
-            
+
             if Pac is not None:
                 pac_on = self.pac['pac_on'].get_value()
                 pac_prep = self.pac['prep'].get_value()
             else:
                 pac_on = False
                 pac_prep = False
-                
+
             ev = self.event
             glob = asarray(
                     [v.get_value() for v in ev['global'].values()]).any()
             loc = asarray(
-                    [v[0].get_value() for v in ev['local'].values()]).any()            
-            avg_sl = ev['sw']['avg_slope'].get_value() 
-            max_sl = ev['sw']['max_slope'].get_value()            
+                    [v[0].get_value() for v in ev['local'].values()]).any()
+            avg_sl = ev['sw']['avg_slope'].get_value()
+            max_sl = ev['sw']['max_slope'].get_value()
             loc_prep = asarray(
                     [v[1].get_value() for v in ev['local'].values()]).any()
             slope_prep = ev['sw']['prep'].get_value()
-            
+
             if not (freq_on or pac_on or glob or loc or avg_sl or max_sl):
                 return
-            
+
             if freq['export_band'].get_value():
                 bands = freq_from_str(freq['band'].get_value())
                 if bands is None:
@@ -1213,16 +1217,16 @@ class AnalysisDialog(ChannelDialog):
                     error_dialog.setWindowTitle('Error reading bands')
                     error_dialog.showMessage(msg)
                     return
-            
-            if (freq['norm'].get_value() == 'by mean of event type(s)' and 
+
+            if (freq['norm'].get_value() == 'by mean of event type(s)' and
                 not freq['norm_evt_type'].selectedItems()):
                 msg = 'Select event type(s) for normalization.'
                 error_dialog = QErrorMessage(self)
                 error_dialog.setWindowTitle('Error fetching data')
                 error_dialog.showMessage(msg)
                 return
-            
-            if (freq['norm'].get_value() == 'by mean of stage(s)' and 
+
+            if (freq['norm'].get_value() == 'by mean of stage(s)' and
                 not freq['norm_stage'].selectedItems()):
                 msg = 'Select stage(s) for normalization.'
                 error_dialog = QErrorMessage(self)
@@ -1234,95 +1238,95 @@ class AnalysisDialog(ChannelDialog):
             eco = self.evt_chan_only
             evt_chan_only = eco.get_value() if eco.isEnabled() else None
             concat_chan = self.cat['chan'].get_value()
-            
+
             self.data = self.get_segments()
-            
+
             if not self.data.segments:
                 msg = 'No valid signal found.'
                 error_dialog = QErrorMessage(self)
                 error_dialog.setWindowTitle('Error fetching data')
                 error_dialog.showMessage(msg)
                 return
-            
-            ding = self.data.read_data(self.chan, 
+
+            ding = self.data.read_data(self.chan,
                                ref_chan=self.one_grp['ref_chan'],
                                grp_name=self.one_grp['name'],
-                               evt_chan_only=evt_chan_only, 
-                               concat_chan=concat_chan, 
+                               evt_chan_only=evt_chan_only,
+                               concat_chan=concat_chan,
                                max_s_freq=self.parent.value('max_s_freq'),
                                parent=self)
-            
+
             if not ding:
                 self.parent.statusBar().showMessage('Process interrupted.')
                 return
-            
+
             # Transform signal
             if freq_prep or pac_prep or loc_prep or slope_prep:
                 lg.info('Pre-processing data')
                 self.data = self.transform_data(self.data)
 
             """ ------ FREQUENCY ------ """
-            
+
             if freq_on:
-                
+
                 csd_on = freq['csd'].get_value()
                 gainphase_on = freq['gainphase'].get_value()
                 coh_on = freq['coh'].get_value()
-                
+
                 # don't need autospectrum if all we want is CSD
                 if not (csd_on and not (gainphase_on or coh_on)):
-                    asd = self.compute_freq() # autospectral density                    
+                    asd = self.compute_freq() # autospectral density
                     if not asd:
                         return
-                
+
                 if csd_on or gainphase_on or coh_on:
                     csd = self.compute_freq(csd=True) # cross-spectral density
                     chancombo = str(csd[0]['data'].axis['chan'][0][0])
                     freq_out = []
-                    
+
                     if csd_on:
-                        freq_out.append((csd, 'csd', 
-                                         ('Cross-spectral density, ' 
-                                          + chancombo + ', '), 
+                        freq_out.append((csd, 'csd',
+                                         ('Cross-spectral density, '
+                                          + chancombo + ', '),
                                           None, 'semilogy'))
-                        
+
                     if gainphase_on:
-                        xg, yg, ph = self.compute_freq_cross(csd, asd, 
+                        xg, yg, ph = self.compute_freq_cross(csd, asd,
                                                             output='gainphase')
                         xchancombo = str(xg[0]['data'].axis['chan'][0][0])
                         ychancombo = str(yg[0]['data'].axis['chan'][0][0])
-                        freq_out.append((xg, 'xgain', 
+                        freq_out.append((xg, 'xgain',
                                          ('Gain, ' + xchancombo + ', '),
                                          'Gain', 'linear'))
                         freq_out.append((yg, 'ygain',
                                          ('Gain, ' + ychancombo + ', '),
                                          'Gain', 'linear'))
-                        freq_out.append((ph, 'phase', 
+                        freq_out.append((ph, 'phase',
                                          ('Phase shift, ' + xchancombo + ', '),
                                          'Phase shift (degrees)', 'linear'))
-                    
+
                     if coh_on:
-                        coh, = self.compute_freq_cross(csd, asd, 
+                        coh, = self.compute_freq_cross(csd, asd,
                                                        output='coherence')
-                        freq_out.append((coh, 'coh', 
-                                         ('Coherence, ' + chancombo + ', '), 
+                        freq_out.append((coh, 'coh',
+                                         ('Coherence, ' + chancombo + ', '),
                                          'Coherence', 'linear'))
-                    
+
                 else:
                     freq_out = [(asd, 'freq', '', None, 'semilogy')]
-                
+
                 for one_xf, suffix, prefix, ylabel, scale in freq_out:
-                    
+
                     if freq_band:
                         perhz = freq['band_perhz'].get_value()
                         self.export_freq_band(one_xf, bands, suffix, perhz)
-                        
-                    if freq_full or freq_plot or freq_fooof:                
+
+                    if freq_full or freq_plot or freq_fooof:
                         n_freq_bins = [x['data']()[0].shape for x in one_xf]
-                        
+
                         if all(x == n_freq_bins[0] for x in n_freq_bins):
                             x = list(one_xf[0]['data'].axis['freq'][0])
-                            
+
                             if len(one_xf) == 1:
                                 desc = None
                                 y = abs(one_xf[0]['data'].data[0][0])
@@ -1331,23 +1335,23 @@ class AnalysisDialog(ChannelDialog):
                                    [y for x in one_xf for y in x['data']()[0]])
                                 desc = get_descriptives(as_matrix)
                                 y = desc['mean']
-                            
+
                             if freq_full:
                                 self.export_freq(one_xf, suffix, desc=desc)
 
-                            if freq_plot:                        
-                                self.plot_freq(x, y, 
-                                               title=(prefix + self.title), 
+                            if freq_plot:
+                                self.plot_freq(x, y,
+                                               title=(prefix + self.title),
                                                ylabel=ylabel, scale=scale)
-                                
+
                             if freq_fooof:
                                 self.report_fooof(asarray(x), y, suffix)
 
             """ ------ PAC ------ """
-            
+
             if pac_on:
                 pac_output = self.compute_pac()
-                
+
                 if pac_output is not None:
                     xpac, fpha, famp = pac_output
                 else:
@@ -1358,12 +1362,12 @@ class AnalysisDialog(ChannelDialog):
                          for x in range(chan['data'].shape[0])])
                 desc = get_descriptives(as_matrix)
                 self.export_pac(xpac, fpha, famp, desc)
-                
+
             """ ------ EVENTS ------ """
-            
+
             evt_output = self.compute_evt_params()
             lg.info('evtoutput ' + str(type(evt_output)))
-            
+
             if evt_output is not None:
                 glob, loc = evt_output
                 lg.info('export evt params; glob: ' + str(glob))
@@ -1386,43 +1390,43 @@ class AnalysisDialog(ChannelDialog):
         epoch_overlap = self.epoch_param['overlap_val'].value()
         epoch_step = None
         epoch = None
-        
+
         if chunk['epoch']:
             if lock_to_staging:
                 epoch = 'locked'
             else:
                 epoch = 'unlocked'
-                
+
                 if self.epoch_param['step'].isChecked():
                     epoch_step = self.epoch_param['step_val'].get_value()
-                    
+
                     if epoch_step <= 0:
                         epoch_step = 0.1
-        
+
         # Which channel(s)
         self.chan = self.get_channels() # chan name without group
         if not self.chan:
             return
-        
+
         # Which event type(s)
         chan_full = None
         evt_type = None
-        
+
         if chunk['event']:
-            
+
             if self.evt_chan_only.get_value():
                 chan_full = [i + ' (' + self.idx_group.currentText() + ''
                            ')' for i in self.chan]
-                    
-            evt_type = self.idx_evt_type.selectedItems()            
+
+            evt_type = self.idx_evt_type.selectedItems()
             if not evt_type:
                 return
             else:
                 evt_type = [x.text() for x in evt_type]
-           
+
         # Which cycle(s)
         cycle = self.cycle = self.get_cycles()
-        
+
         # Which stage(s)
         stage = self.idx_stage.selectedItems()
         if not stage:
@@ -1430,39 +1434,39 @@ class AnalysisDialog(ChannelDialog):
         else:
             stage = self.stage = [
                     x.text() for x in self.idx_stage.selectedItems()]
-    
+
         # Concatenation
         cat = {k: v.get_value() for k, v in self.cat.items()}
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
-    
+
         # Other options
         min_dur = self.min_dur.get_value()
         reject_epoch = self.reject_epoch.get_value()
         reject_artf = self.reject_event.get_value()
-        
+
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)
-        
-        segments = fetch(self.parent.info.dataset, 
-                         self.parent.notes.annot, cat=cat, 
-                         evt_type=evt_type, stage=stage, cycle=cycle, 
-                         chan_full=chan_full, epoch=epoch, 
-                         epoch_dur=epoch_dur, epoch_overlap=epoch_overlap, 
-                         epoch_step=epoch_step, reject_epoch=reject_epoch, 
+
+        segments = fetch(self.parent.info.dataset,
+                         self.parent.notes.annot, cat=cat,
+                         evt_type=evt_type, stage=stage, cycle=cycle,
+                         chan_full=chan_full, epoch=epoch,
+                         epoch_dur=epoch_dur, epoch_overlap=epoch_overlap,
+                         epoch_step=epoch_step, reject_epoch=reject_epoch,
                          reject_artf=reject_artf, min_dur=min_dur)
-        
+
         return segments
 
     def transform_data(self, data):
-        """Apply pre-processing transformation to data, and add it to data 
+        """Apply pre-processing transformation to data, and add it to data
         dict.
-        
+
         Parameters
         ---------
         data : instance of Segments
             segments including 'data' (ChanTime)
-            
+
         Returns
         -------
         instance of Segments
@@ -1473,26 +1477,26 @@ class AnalysisDialog(ChannelDialog):
         bandpass = trans['bandpass'].get_value()
         notch1 = trans['notch1'].get_value()
         notch2 = trans['notch2'].get_value()
-        
+
         for seg in data:
             dat = seg['data']
-        
+
             if differ:
                 dat = math(dat, operator=diff, axis='time')
-            
+
             if bandpass != 'none':
                 order = trans['bp']['order'][1].get_value()
                 f1 = trans['bp']['f1'][1].get_value()
                 f2 = trans['bp']['f2'][1].get_value()
-                
+
                 if f1 == '':
                     f1 = None
                 if f2 == '':
                     f2 = None
-                    
+
                 dat = filter_(dat, low_cut=f1, high_cut=f2, order=order,
                               ftype=bandpass)
-            
+
             if notch1 != 'none':
                 order = trans['n1']['order'][1].get_value()
                 cf = trans['n1']['cf'][1].get_value()
@@ -1501,7 +1505,7 @@ class AnalysisDialog(ChannelDialog):
                 hi_pass = cf + hbw
                 dat = filter_(dat, low_cut=hi_pass, order=order, ftype=notch1)
                 dat = filter_(dat, high_cut=lo_pass, order=order, ftype=notch1)
-        
+
             if notch2 != 'none':
                 order = trans['n2']['order'][1].get_value()
                 cf = trans['n2']['cf'][1].get_value()
@@ -1509,12 +1513,12 @@ class AnalysisDialog(ChannelDialog):
                 lo_pass = cf - hbw
                 hi_pass = cf + hbw
                 dat = filter_(dat, low_cut=hi_pass, order=order, ftype=notch1)
-                dat = filter_(dat, high_cut=lo_pass, order=order, ftype=notch1) 
-                
+                dat = filter_(dat, high_cut=lo_pass, order=order, ftype=notch1)
+
             seg['trans_data'] = dat
-            
+
         return data
-    
+
     def save_as(self):
         """Dialog for getting name, location of data export file."""
         filename = splitext(
@@ -1586,7 +1590,7 @@ class AnalysisDialog(ChannelDialog):
             step = None
         if detrend == 'none':
             detrend = None
-        
+
         if freq['nfft_fixed'].isChecked():
             n_fft = int(freq['nfft_fixed_val'].get_value())
         elif freq['nfft_zeropad'].isChecked():
@@ -1594,35 +1598,35 @@ class AnalysisDialog(ChannelDialog):
             lg.info('n_fft is zero-padded to: ' + str(n_fft))
         elif freq['nfft_seg'].isChecked():
             n_fft = None
-            
+
         # Normalization data preparation
         if norm not in ['none', 'by integral of each segment']:
             norm_evt_type = None
             norm_stage = None
             norm_chan = None
             ncat = (0, 0, 0, 0)
-            
+
             if norm == 'by mean of event type(s)':
                 norm_chan = [x + ' (' + self.idx_group.currentText() + ''
                                     ')'for x in self.one_grp['chan_to_plot']]
                 norm_evt_type = [x.text() for x in \
-                                 freq['norm_evt_type'].selectedItems()]             
-                    
+                                 freq['norm_evt_type'].selectedItems()]
+
             if norm == 'by mean of stage(s)':
                 norm_stage = [x.text() for x in \
                               freq['norm_stage'].selectedItems()]
-                
+
             if norm_concat:
-                ncat = (1, 1, 1, 1)    
-                        
-            lg.info(' '.join(['Getting segments for norm. cat: ', str(ncat), 
-                              'evt_type', str(norm_evt_type), 'stage', 
+                ncat = (1, 1, 1, 1)
+
+            lg.info(' '.join(['Getting segments for norm. cat: ', str(ncat),
+                              'evt_type', str(norm_evt_type), 'stage',
                               str(norm_stage), 'chan', str(norm_chan)]))
-            norm_seg = fetch(self.parent.info.dataset, 
-                                    self.parent.notes.annot, ncat, 
+            norm_seg = fetch(self.parent.info.dataset,
+                                    self.parent.notes.annot, ncat,
                                     evt_type=norm_evt_type, stage=norm_stage,
                                     chan_full=norm_chan)
-            
+
             if not norm_seg.segments:
                 msg = 'No valid normalization signal found.'
                 error_dialog = QErrorMessage(self)
@@ -1630,22 +1634,22 @@ class AnalysisDialog(ChannelDialog):
                 error_dialog.showMessage(msg)
                 progress.cancel()
                 return
-            
+
             norm_seg.read_data(self.chan, ref_chan=self.one_grp['ref_chan'],
                                grp_name=self.one_grp['name'], parent=None)
-                
-            if prep:                
+
+            if prep:
                 norm_seg = self.transform_data(norm_seg)
-                
+
             all_Sxx = []
             for seg in norm_seg:
                 dat = seg['data']
                 if prep:
                     dat = seg['trans_data']
-                
+
                 try:
-                    Sxx = frequency(dat, output=output, scaling=scaling, 
-                                sides=sides, taper=taper, 
+                    Sxx = frequency(dat, output=output, scaling=scaling,
+                                sides=sides, taper=taper,
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
                                 detrend=detrend, n_fft=n_fft)
@@ -1660,9 +1664,9 @@ class AnalysisDialog(ChannelDialog):
                     error_dialog.showMessage(msg)
                     progress.cancel()
                     return
-                    
+
                 all_Sxx.append(Sxx)
-                
+
             nSxx = ChanFreq()
             nSxx.s_freq = Sxx.s_freq
             nSxx.axis['freq'] = Sxx.axis['freq']
@@ -1672,32 +1676,32 @@ class AnalysisDialog(ChannelDialog):
                      Sxx.number_of('freq')[0]), dtype='f')
             nSxx.data[0] = mean(
                     stack([x()[0] for x in all_Sxx], axis=2), axis=2)
-            
+
             # end of normalization data prep
 
         lg.info(' '.join(['Freq settings:', output, scaling, 'sides:',
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
                          str(NW), 'dur:', str(duration), 'overlap:',
                          str(overlap), 'step:', str(step), 'detrend:',
-                         str(detrend), 'n_fft:', str(n_fft), 'norm', 
+                         str(detrend), 'n_fft:', str(n_fft), 'norm',
                          str(norm)]))
 
         # Main frequency analysis
         xfreq = []
-        for i, seg in enumerate(self.data):            
+        for i, seg in enumerate(self.data):
             new_seg = dict(seg)
             data = seg['data']
-            
+
             if prep:
                 data = seg['trans_data']
-                
+
             timeline = seg['data'].axis['time'][0]
             new_seg['times'] = timeline[0], timeline[-1]
             new_seg['duration'] = len(timeline) / data.s_freq
 
             try:
-                Sxx = frequency(data, output=output, scaling=scaling, 
-                                sides=sides, taper=taper, 
+                Sxx = frequency(data, output=output, scaling=scaling,
+                                sides=sides, taper=taper,
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
                                 detrend=detrend, n_fft=n_fft)
@@ -1708,23 +1712,23 @@ class AnalysisDialog(ChannelDialog):
                 error_dialog.showMessage(msg)
                 progress.cancel()
                 return
-            
+
             if norm != 'none':
-                
+
                 for j, chan in enumerate(Sxx.axis['chan'][0]):
-                    
+
                     dat = Sxx.data[0][j,:]
-                    
+
                     if norm == 'by integral of each segment':
                         norm_dat = sum(dat) / len(dat)
                     else:
                         norm_dat = nSxx(chan=chan)[0]
-                        
+
                     Sxx.data[0][j,:] = dat / norm_dat
-            
+
             new_seg['data'] = Sxx
             xfreq.append(new_seg)
-            
+
             progress.setValue(i)
             if progress.wasCanceled():
                 msg = 'Analysis canceled by user.'
@@ -1732,12 +1736,12 @@ class AnalysisDialog(ChannelDialog):
                 return
 
         progress.close()
-        
+
         return xfreq
 
     def compute_freq_cross(self, csd, asd, output='coherence'):
         """Compute cross-spectrum, gain, phase shift and/or coherence.
-        
+
         Parameters
         ----------
         csd : list of dict with 'data' key as instance of ChanFreq
@@ -1746,111 +1750,111 @@ class AnalysisDialog(ChannelDialog):
             autospectral density, two channels
         output : str
             'coherence' or 'gainphase'
-            
+
         Returns
         -------
         tuple of list of dict with 'data' key as instance of ChanFreq
             if coherence, tuple contains one dict
             if gainphase, tuple contains: xgain, ygain, phase
                 where xgain is gain with x as input and y as output
-        """        
+        """
         if output == 'coherence':
             coh_list = []
-        
-            for i in range(len(csd)):        
+
+            for i in range(len(csd)):
                 dat = ChanFreq()
                 dat.data = empty(1, dtype='O')
-                dat.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
+                dat.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]),
                         dtype='f')
                 dat.axis['freq'] = empty(1, dtype='O')
                 dat.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
                 dat.axis['chan'] = csd[i]['data'].axis['chan']
-                
+
                 newdict = dict(csd[i])
                 newdict['data'] = dat
-                
+
                 Pxy = csd[i]['data'].data[0][0]
                 Pxx = asd[i]['data'].data[0][0]
                 Pyy = asd[i]['data'].data[0][1]
-                
+
                 Cxy = abs(Pxy)**2 / Pxx / Pyy # ms coherence
-                
+
                 dat.data[0][0, :] = Cxy
                 coh_list.append(newdict)
-            
+
             out = (coh_list,)
-            
+
         elif output == 'gainphase':
             xg_list = []
             yg_list = []
             ph_list = []
-           
+
             for i in range(len(csd)):
                 xgain = ChanFreq()
                 xgain.data = empty(1, dtype='O')
-                xgain.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
+                xgain.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]),
                         dtype='f')
                 xgain.axis['freq'] = empty(1, dtype='O')
                 xgain.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
                 xgain.axis['chan'] = empty(1, dtype='O')
-                
+
                 ygain = ChanFreq()
                 ygain.data = empty(1, dtype='O')
-                ygain.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
+                ygain.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]),
                         dtype='f')
                 ygain.axis['freq'] = empty(1, dtype='O')
                 ygain.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
                 ygain.axis['chan'] = empty(1, dtype='O')
-                
+
                 phase = ChanFreq()
                 phase.data = empty(1, dtype='O')
-                phase.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]), 
+                phase.data[0] = empty((1, csd[i]['data'].number_of('freq')[0]),
                         dtype='f')
                 phase.axis['freq'] = empty(1, dtype='O')
                 phase.axis['freq'][0] = csd[i]['data'].axis['freq'][0]
                 phase.axis['chan'] = empty(1, dtype='O')
-                
+
                 xchan = asd[i]['data'].axis['chan'][0][0]
                 ychan = asd[i]['data'].axis['chan'][0][1]
-                xgain.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))], 
+                xgain.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))],
                           dtype='U')
-                ygain.axis['chan'][0] = asarray(['-->'.join((ychan, xchan))], 
+                ygain.axis['chan'][0] = asarray(['-->'.join((ychan, xchan))],
                           dtype='U')
-                phase.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))], 
+                phase.axis['chan'][0] = asarray(['-->'.join((xchan, ychan))],
                           dtype='U')
-                
+
                 Pxy = csd[i]['data'].data[0][0]
                 Pxx = asd[i]['data'].data[0][0]
                 Pyy = asd[i]['data'].data[0][1]
-                
+
                 Hx = Pxy / Pxx
                 Hy = Pxy / Pyy
-                
+
                 xgain.data[0][0, :] = abs(Hx)
                 ygain.data[0][0, :] = abs(Hy)
-                
+
                 phase.data[0][0, :] = angle(Hx, deg=True)
                 # phase is same in both directions, since Pxx and Pyy are real
-                
+
                 xg_dict = dict(csd[i])
                 xg_dict['data'] = xgain
                 xg_list.append(xg_dict)
-                
+
                 yg_dict = dict(csd[i])
                 yg_dict['data'] = ygain
                 yg_list.append(yg_dict)
-                
+
                 ph_dict = dict(csd[i])
                 ph_dict['data'] = phase
                 ph_list.append(ph_dict)
-                
+
             out = (xg_list, yg_list, ph_list)
-        
+
         return out
-    
+
     def export_freq(self, xfreq, suffix, desc=None):
         """Write frequency analysis data to CSV.
-        
+
         Parameters
         ----------
         xfreq : list of dict
@@ -1879,24 +1883,24 @@ class AnalysisDialog(ChannelDialog):
             lg.info('Writing to' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(heading_row_1 + freq)
-            
+
             if desc:
                 csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
                 csv_file.writerow(['SD'] + spacer + list(desc['sd']))
                 csv_file.writerow(['Mean of ln'] + spacer + list(
                         desc['mean_log']))
                 csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
-            
+
             idx = 0
             for seg in xfreq:
 
                 for chan in seg['data'].axis['chan'][0]:
                     idx += 1
-                    
+
                     cyc = None
                     if seg['cycle'] is not None:
                         cyc = seg['cycle'][2]
-                    
+
                     data_row = list(seg['data'](chan=chan)[0])
                     csv_file.writerow([idx,
                                        seg['times'][0],
@@ -1907,7 +1911,7 @@ class AnalysisDialog(ChannelDialog):
                                        cyc,
                                        seg['name'],
                                        chan,
-                                       ] + data_row)        
+                                       ] + data_row)
 
 
     def export_freq_band(self, xfreq, bands, suffix, perhz):
@@ -1925,18 +1929,18 @@ class AnalysisDialog(ChannelDialog):
                        'Channel',
                        ]
         spacer = [''] * (len(heading_row_1) - 1)
-        band_hdr = [str(b1) + '-' + str(b2) for b1, b2 in bands]        
+        band_hdr = [str(b1) + '-' + str(b2) for b1, b2 in bands]
         xband = xfreq.copy()
-        
+
         for seg in xband:
             bandlist = []
-             
+
             for i, b in enumerate(bands):
                 pwr, _ = band_power(seg['data'], b, perhz=perhz)
                 bandlist.append(pwr)
-            
+
             seg['band'] = bandlist
-                
+
         as_matrix = asarray([
                 [x['band'][y][chan] for y in range(len(x['band']))] \
                 for x in xband for chan in x['band'][0].keys()])
@@ -1956,11 +1960,11 @@ class AnalysisDialog(ChannelDialog):
 
                 for chan in seg['band'][0].keys():
                     idx += 1
-                    
+
                     cyc = None
                     if seg['cycle'] is not None:
                         cyc = seg['cycle'][2]
-                    
+
                     data_row = list(
                             [seg['band'][x][chan] for x in range(
                                     len(seg['band']))])
@@ -1975,7 +1979,7 @@ class AnalysisDialog(ChannelDialog):
                                        chan,
                                        ] + data_row)
 
-    
+
     def plot_freq(self, x, y, title='', ylabel=None, scale='semilogy'):
         """Plot mean frequency spectrum and display in dialog.
 
@@ -1994,7 +1998,7 @@ class AnalysisDialog(ChannelDialog):
         """
         freq = self.frequency
         scaling = freq['scaling'].get_value()
-        
+
         if ylabel is None:
             if freq['complex'].get_value():
                 ylabel = 'Amplitude (uV)'
@@ -2009,7 +2013,7 @@ class AnalysisDialog(ChannelDialog):
 
     def report_fooof(self, x, y, suffix):
         """Create FOOOF (fitting oscillations and 1/f) report.
-        
+
         Parameters
         ----------
         x : ndarray
@@ -2019,31 +2023,35 @@ class AnalysisDialog(ChannelDialog):
         """
         filename = splitext(self.filename)[0] + '_' + suffix + '_fooof.csv'
 
-        freq = self.frequency  
-        freq_range = [freq['fo_min_freq'].get_value(), 
+        freq = self.frequency
+        freq_range = [freq['fo_min_freq'].get_value(),
                       freq['fo_max_freq'].get_value()]
         pk_thresh = freq['fo_pk_thresh'].get_value()
-        pk_width = [freq['fo_pk_width_min'].get_value(), 
+        pk_width = [freq['fo_pk_width_min'].get_value(),
                     freq['fo_pk_width_max'].get_value()]
         max_n_pk = freq['fo_max_n_pk'].get_value()
         min_pk_amp = freq['fo_min_pk_amp'].get_value()
         bg_mode = freq['fo_bg_mode'].get_value()
-        
+
         if max_n_pk == 0:
             max_n_pk = inf
-        
-        fm = FOOOF(peak_width_limits=pk_width, max_n_peaks=max_n_pk, 
-                   min_peak_amplitude=min_pk_amp, peak_threshold=pk_thresh, 
+
+        if FOOOF is None:
+            lg.warning('"fooof" package is required for this function, run "pip install fooof"')
+            return
+
+        fm = FOOOF(peak_width_limits=pk_width, max_n_peaks=max_n_pk,
+                   min_peak_amplitude=min_pk_amp, peak_threshold=pk_thresh,
                    background_mode=bg_mode)
         fm.fit(x, y, freq_range)
-        
+
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to' + str(filename))
             csv_file = writer(f)
-            csv_file.writerow(['FOOOF - POWER SPECTRUM MODEL']) 
+            csv_file.writerow(['FOOOF - POWER SPECTRUM MODEL'])
             csv_file.writerow('')
             csv_file.writerow(['The model was run on the frequency range '
-                              '{} - {} Hz'.format(int(floor(fm.freq_range[0])), 
+                              '{} - {} Hz'.format(int(floor(fm.freq_range[0])),
                                int(ceil(fm.freq_range[1])))])
             csv_file.writerow(['Frequency Resolution is {:1.2f} Hz'.format(
                     fm.freq_res)])
@@ -2058,10 +2066,10 @@ class AnalysisDialog(ChannelDialog):
                     len(fm.peak_params_))])
             csv_file.writerow('')
             csv_file.writerow(['Index', 'CF', 'Amp', 'BW'])
-            
+
             for i, op in enumerate(fm.peak_params_):
-                csv_file.writerow([i, op[0], op[1], op[2]])            
-            
+                csv_file.writerow([i, op[0], op[1], op[2]])
+
             csv_file.writerow('')
             csv_file.writerow(['Goodness of fit metrics:'])
             csv_file.writerow(['R^2 of model fit is {:5.4f}'.format(
@@ -2137,7 +2145,7 @@ class AnalysisDialog(ChannelDialog):
             batch_dat = []
 
             for i, j in enumerate(self.data):
-                
+
                 if self.pac['prep'].get_value():
                     data = j['trans_data']
                 else:
@@ -2168,7 +2176,7 @@ class AnalysisDialog(ChannelDialog):
             for i, j in enumerate(batch):
                 progress.setValue(counter)
                 counter += 1
-                
+
                 if self.pac['prep'].get_value():
                     data = j['trans_data']
                 else:
@@ -2216,7 +2224,7 @@ class AnalysisDialog(ChannelDialog):
 
                 else:
                     xpac[chan]['data'][i, :, :] = out[:, :, 0]
-                    
+
                 if progress.wasCanceled():
                     msg = 'Analysis canceled by user.'
                     self.parent.statusBar().showMessage(msg)
@@ -2268,11 +2276,11 @@ class AnalysisDialog(ChannelDialog):
 
                 for i, j in enumerate(xpac[chan]['times']):
                     idx += 1
-                    
+
                     cyc = None
                     if xpac[chan]['cycle'][i] is not None:
-                        cyc = xpac[chan]['cycle'][i][2]                                            
-                                        
+                        cyc = xpac[chan]['cycle'][i][2]
+
                     data_row = list(ravel(xpac[chan]['data'][i, :, :]))
 
                     pval_row = []
@@ -2289,136 +2297,136 @@ class AnalysisDialog(ChannelDialog):
                                        xpac[chan]['name'][i],
                                        chan,
                                        ] + data_row + pval_row)
-            
+
     def compute_evt_params(self):
         """Compute event parameters."""
         progress = QProgressDialog('Computing parameters', 'Abort',
                                    0, len(self.data) - 1, self)
         progress.setWindowModality(Qt.ApplicationModal)
-        
+
         ev = self.event
         glob = {k: v.get_value() for k, v in ev['global'].items()}
         loc = {k: v[0].get_value() for k, v in ev['local'].items()}
         loc_prep = {k: v[1].get_value() for k, v in ev['local'].items()}
-        
+
         f1, f2 = ev['f1'].get_value(), ev['f2'].get_value()
         if not f1:
             f1 = 0
         if not f2:
             f2 = 100000 # arbitrarily high frequency
         freq = f1, f2
-        
-        avg_slope = ev['sw']['avg_slope'].get_value() 
+
+        avg_slope = ev['sw']['avg_slope'].get_value()
         max_slope = ev['sw']['max_slope'].get_value()
         slope_prep = ev['sw']['prep'].get_value()
         invert = ev['sw']['invert'].get_value()
-        
+
         glob_out = {}
         loc_out = []
-        
+
         if glob['count']:
             glob_out['count'] = self.nseg
-        
+
         if glob['density']:
             epoch_dur = glob['density_per']
             # get period of interest based on stage and cycle selection
-            poi = get_times(self.parent.notes.annot, stage=self.stage, 
+            poi = get_times(self.parent.notes.annot, stage=self.stage,
                             cycle=self.cycle, exclude=True)
             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
             glob_out['density'] = self.nseg / (total_dur / epoch_dur)
-        
-        for i, seg in enumerate(self.data):            
+
+        for i, seg in enumerate(self.data):
             out = dict(seg)
             dat = seg['data']
             timeline = dat.axis['time'][0]
             out['times'] = timeline[0], timeline[-1]
-            
+
             if loc['dur']:
                 out['dur'] = float(dat.number_of('time')) / dat.s_freq
-            
+
             if loc['minamp']:
                 dat1 = dat
                 if loc_prep['minamp']:
                     dat1 = seg['trans_data']
                 out['minamp'] = math(dat1, operator=_amin, axis='time')
-            
+
             if loc['maxamp']:
                 dat1 = dat
                 if loc_prep['maxamp']:
                     dat1 = seg['trans_data']
                 out['maxamp'] = math(dat1, operator=_amax, axis='time')
-            
+
             if loc['ptp']:
                 dat1 = dat
                 if loc_prep['ptp']:
                     dat1 = seg['trans_data']
                 out['ptp'] = math(dat1, operator=_ptp, axis='time')
-            
+
             if loc['rms']:
                 dat1 = dat
                 if loc_prep['rms']:
                     dat1 = seg['trans_data']
-                out['rms'] = math(dat1, operator=(square, _mean, sqrt), 
+                out['rms'] = math(dat1, operator=(square, _mean, sqrt),
                    axis='time')
-            
+
             for pw, pk in [('power', 'peakpf'), ('energy', 'peakef')]:
-            
+
                 if loc[pw] or loc[pk]:
-                    
+
                     if loc_prep[pw] or loc_prep[pk]:
-                        prep_pw, prep_pk = band_power(seg['trans_data'], freq, 
+                        prep_pw, prep_pk = band_power(seg['trans_data'], freq,
                                                      scaling=pw, perhz=False)
                     if not (loc_prep[pw] and loc_prep[pk]):
-                        raw_pw, raw_pk = band_power(dat, freq, scaling=pw, 
+                        raw_pw, raw_pk = band_power(dat, freq, scaling=pw,
                                                     perhz=False)
-                        
+
                     if loc_prep[pw]:
                         out[pw] = prep_pw
                     else:
                         out[pw] = raw_pw
-                        
+
                     if loc_prep[pk]:
                         out[pk] = prep_pk
                     else:
                         out[pk] = raw_pk
-                                        
+
             if avg_slope or max_slope:
                 out['slope'] = {}
                 dat1 = dat
                 if slope_prep:
-                    dat1 = seg['trans_data']                
+                    dat1 = seg['trans_data']
                 if invert:
                     dat1 = math(dat1, operator=negative, axis='time')
-                    
+
                 if avg_slope and max_slope:
                     level = 'all'
                 elif avg_slope:
                     level = 'average'
                 else:
                     level = 'maximum'
-                
+
                 for chan in dat1.axis['chan'][0]:
-                    d = dat1(chan=chan)[0]                
+                    d = dat1(chan=chan)[0]
                     out['slope'][chan] = slopes(d, dat.s_freq, level=level)
-            
+
             loc_out.append(out)
-            
+
             progress.setValue(i)
             if progress.wasCanceled():
                 msg = 'Analysis canceled by user.'
                 self.parent.statusBar().showMessage(msg)
                 return
-            
+
         progress.close()
-            
+
         return glob_out, loc_out
-        
+
     def export_evt_params(self, glob, loc):
         """Write event analysis data to CSV."""
         basename = splitext(self.filename)[0]
         #pickle_filename = basename + 'evtdat.p'
         csv_filename = basename + '_evtdat.csv'
-        
+
         heading_row_1 = ['Segment index',
                        'Start time',
                        'End time',
@@ -2428,7 +2436,7 @@ class AnalysisDialog(ChannelDialog):
                        'Event type',
                        'Channel']
         spacer = [''] * (len(heading_row_1) - 1)
-        
+
         param_headings_1 = ['Min. amplitude (uV)',
                             'Max. amplitude (uV)',
                             'Peak-to-peak amplitude (uV)',
@@ -2449,68 +2457,68 @@ class AnalysisDialog(ChannelDialog):
                           'Q23 max. slope (uV/s**2)']
         ordered_params_1 = ['minamp', 'maxamp', 'ptp', 'rms']
         ordered_params_2 = ['power', 'peakpf', 'energy', 'peakef']
-        
+
         idx_params_1 = in1d(ordered_params_1, list(loc[0].keys()))
         sel_params_1 = list(compress(ordered_params_1, idx_params_1))
         heading_row_2 = list(compress(param_headings_1, idx_params_1))
-        
+
         if 'dur' in loc[0].keys():
             heading_row_2 = ['Duration (s)'] + heading_row_2
-        
+
         idx_params_2 = in1d(ordered_params_2, list(loc[0].keys()))
         sel_params_2 = list(compress(ordered_params_2, idx_params_2))
         heading_row_3 = list(compress(param_headings_2, idx_params_2))
-        
+
         heading_row_4 = []
         if 'slope' in loc[0].keys():
             if next(iter(loc[0]['slope']))[0]:
                 heading_row_4.extend(slope_headings[:5])
             if next(iter(loc[0]['slope']))[1]:
                 heading_row_4.extend(slope_headings[5:])
-       
+
         # Get data as matrix and compute descriptives
-        dat = []        
+        dat = []
         if 'dur' in loc[0].keys():
-            one_mat = reshape(asarray(([x['dur'] for x in loc])), 
+            one_mat = reshape(asarray(([x['dur'] for x in loc])),
                                (len(loc), 1))
-            dat.append(one_mat) 
-        
+            dat.append(one_mat)
+
         if sel_params_1:
             one_mat = asarray([[seg[x](chan=chan)[0] for x in sel_params_1] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-        
-        if sel_params_2:    
+
+        if sel_params_2:
             one_mat = asarray([[seg[x][chan] for x in sel_params_2] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-            
+
         if 'slope' in loc[0].keys():
             one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
                     for seg in loc for chan in seg['data'].axis['chan'][0]])
             dat.append(one_mat)
-        
+
         if dat:
-            dat = concatenate(dat, axis=1)        
+            dat = concatenate(dat, axis=1)
             desc = get_descriptives(dat)
-    
+
         #with open(pickle_filename, 'wb') as f:
         #    dump(dat, f)
-             
+
         with open(csv_filename, 'w', newline='') as f:
             lg.info('Writing to' + str(csv_filename))
             csv_file = writer(f)
-            
+
             if 'count' in glob.keys():
                 csv_file.writerow(['Count'] + [glob['count']])
             if 'density' in glob.keys():
                 csv_file.writerow(['Density'] + [glob['density']])
-                
+
             if dat == []:
                 return
 
             csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
-                              + heading_row_4)            
+                              + heading_row_4)
             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
             csv_file.writerow(['SD'] + spacer + list(desc['sd']))
             csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
@@ -2523,17 +2531,17 @@ class AnalysisDialog(ChannelDialog):
                     idx += 1
                     data_row_1 = [seg[x](chan=chan)[0] for x in sel_params_1]
                     data_row_2 = [seg[x][chan] for x in sel_params_2]
-                    
+
                     if 'dur' in seg.keys():
                         data_row_1 = [seg['dur']] + data_row_1
-                    
+
                     if 'slope' in seg.keys():
                         data_row_3 = [x for y in seg['slope'][chan] for x in y]
                         data_row_2 = data_row_2 + data_row_3
-                        
+
                     if seg['cycle'] is not None:
-                        seg['cycle'] = seg['cycle'][2]                    
-                        
+                        seg['cycle'] = seg['cycle'][2]
+
                     csv_file.writerow([idx,
                                        seg['times'][0],
                                        seg['times'][1],
@@ -2550,10 +2558,10 @@ class AnalysisDialog(ChannelDialog):
         if cycle is not None:
             cyc_str = [str(c[2]) for c in cycle]
             cyc_str[0] = 'cycle ' + cyc_str[0]
-            
-        title = [' + '.join([str(x) for x in y]) for y in [chan, cyc_str, 
+
+        title = [' + '.join([str(x) for x in y]) for y in [chan, cyc_str,
                  stage, evt_type] if y is not None]
-        
+
         return ', '.join(title)
 
 
@@ -2584,7 +2592,7 @@ class PlotCanvas(FigureCanvas):
                 QSizePolicy.Expanding,
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-  
+
     def plot(self, x, y, title, ylabel, scale='semilogy', idx_lim=(1, -1)):
         """Plot the data.
 

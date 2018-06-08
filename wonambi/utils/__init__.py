@@ -5,5 +5,3 @@
 """
 from .exceptions import UnrecognizedFormat
 from .simulate import create_data, create_channels
-
-from wonambi.utils.fooof.fit import FOOOF

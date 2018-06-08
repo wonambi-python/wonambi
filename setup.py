@@ -33,7 +33,10 @@ setup(
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
     packages=find_packages(exclude=('test', )),
-    install_requires=['numpy', 'scipy'],
+    install_requires=[
+        'numpy',
+        'scipy',
+        ],
     extras_require={
         'gui': [
             'pyqt5',
@@ -49,18 +52,15 @@ setup(
             'codecov',
             'plotly',
             ],
-#==============================================================================
-#         'pac': [ # for phase-amplitude coupling
-#             'tensorpac',
-#             ],
-#==============================================================================
         'all': [
+            'pyqt5',
+            'plotly',
+            'vispy',
             'h5py',
             'mne',
             'nibabel',
-#            'tensorpac',
+            'fooof',
             'python-vlc',  # for videos, to avoid problems with backends
-            'request',  # to read ieeg.org dataset
             ]
     },
     package_data={

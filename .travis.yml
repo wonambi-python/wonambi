@@ -21,7 +21,7 @@ before_install:
 install: 
  # install requirements
  - pip install numpy scipy
- - pip install nibabel pyqt5 vispy h5py
+ - pip install nibabel pyqt5 vispy h5py fooof
  - pip install pytest pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme
  - pip install -e .
@@ -34,7 +34,7 @@ script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y pytest-qt pyqt5 nibabel
+ - pip uninstall -y pytest-qt pyqt5 nibabel fooof
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements for docs
