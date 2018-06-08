@@ -71,7 +71,8 @@ Optional Requirements
 - h5py (optional to read FieldTrip Matlab files)
 - mne (optional, to export to mne FIFF files)
 - nibabel (optional to read freesurfer)
-- fooof, tensorpac (optional to run phase-amplitude analysis)
+- tensorpac (optional to run phase-amplitude analysis)
+- fooof (optional to run parametrization of power spectra)
 
 Status
 ------

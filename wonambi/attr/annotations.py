@@ -1091,14 +1091,17 @@ class Annotations():
         -------
         list of tuple of float
             start and end times for each cycle, in seconds from recording start
+            and the cycle index starting at 1
         """
         cycles = self.rater.find('cycles')
 
         if not cycles:
             return None
 
-        starts = [float(mrkr.text) for mrkr in cycles.findall('cyc_start')]
-        ends = [float(mrkr.text) for mrkr in cycles.findall('cyc_end')]
+        starts = sorted(
+                [float(mrkr.text) for mrkr in cycles.findall('cyc_start')])
+        ends = sorted(
+                [float(mrkr.text) for mrkr in cycles.findall('cyc_end')])
         cyc_list = []
 
         if not starts or not ends:
