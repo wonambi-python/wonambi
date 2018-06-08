@@ -42,7 +42,6 @@ setup(
             'pyqt5',
             ],
         'viz': [
-            'plotly',
             'vispy',
             ],
         'test': [  # to run tests
@@ -54,13 +53,12 @@ setup(
             ],
         'all': [
             'pyqt5',
-            'plotly',
+            'python-vlc',  # for videos, to avoid problems with backends
             'vispy',
             'h5py',
             'mne',
             'nibabel',
             'fooof',
-            'python-vlc',  # for videos, to avoid problems with backends
             ]
     },
     package_data={

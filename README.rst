@@ -66,8 +66,12 @@ Requirements
 Optional Requirements
 ---------------------
 - PyQt5 (optional for sleep scoring GUI)
-- nibabel (optional to read freesurfer)
+- python-vlc (optional, to watch embedded movies)
+- vispy (optional to plot 3D brain surfaces and electrodes)
 - h5py (optional to read FieldTrip Matlab files)
+- mne (optional, to export to mne FIFF files)
+- nibabel (optional to read freesurfer)
+- fooof, tensorpac (optional to run phase-amplitude analysis)
 
 Status
 ------
