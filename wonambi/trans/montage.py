@@ -1,14 +1,22 @@
 from logging import getLogger
 
-from numpy import asarray, dot, zeros, where, c_, mean
-from numpy.linalg import norm
+from numpy import (asarray,
+                   c_,
+                   dot,
+                   mean,
+                   moveaxis,
+                   where,
+                   zeros,
+                   )
+from numpy.linalg import norm, lstsq
 
 from ..attr import Channels
 
 lg = getLogger(__name__)
 
 
-def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None):
+def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None,
+            method='average'):
     """Apply linear transformation to the channels.
 
     Parameters
@@ -22,6 +30,11 @@ def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None):
     bipolar : float
         distance in mm to consider two channels as neighbors and then compute
         the bipolar montage between them.
+    method : str
+        'average' or 'regression'. 'average' takes the
+        average across the channels selected as reference (it can be all) and
+        subtract it from each channel. 'regression' keeps the residuals after
+        regressing out the mean across channels.
 
     Returns
     -------
@@ -58,15 +71,18 @@ def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None):
     if ref_to_avg or ref_chan or bipolar:
         mdata = data._copy()
 
+        idx_chan = mdata.index_of('chan')
+
         for i in range(mdata.number_of('trial')):
             if ref_to_avg or ref_chan:
                 if ref_to_avg:
-                    ref_chan = data.axis['chan'][0]
+                    ref_chan = data.axis['chan'][i]
 
                 ref_data = data(trial=i, chan=ref_chan)
-                mdata.data[i] = (data(trial=i) -
-                                 mean(ref_data,
-                                      axis=mdata.index_of('chan')))
+                if method == 'average':
+                    mdata.data[i] = (data(trial=i) - mean(ref_data, axis=idx_chan))
+                elif method == 'regression':
+                    mdata.data[i] = compute_average_regress(data(trial=i), idx_chan)
 
             elif bipolar:
 
@@ -134,3 +150,33 @@ def create_bipolar_chan(chan, max_dist):
     bipolar = Channels(bipolar_labels, bipolar_xyz)
 
     return bipolar, bipolar_trans
+
+
+def compute_average_regress(x, idx_chan):
+    """Take the mean across channels and regress out the mean from each channel
+
+    Parameters
+    ----------
+    x : ndarray
+        2d array with channels on one dimension
+    idx_chan:
+        which axis contains channels
+
+    Returns
+    -------
+    ndarray
+        same as x, but with the mean being regressed out
+    """
+    if x.ndim != 2:
+        raise ValueError(f'The number of dimensions must be 2, not {x.ndim}')
+
+    x = moveaxis(x, idx_chan, 0)  # move axis to the front
+    avg = mean(x, axis=0)
+
+    x_o = []
+    for i in range(x.shape[0]):
+        r = lstsq(avg[:, None], x[i, :][:, None], rcond=0)[0]
+        x_o.append(
+            x[i, :] - r[0, 0] * avg
+            )
+    return moveaxis(asarray(x_o), 0, idx_chan)

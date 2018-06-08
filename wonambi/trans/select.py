@@ -12,7 +12,7 @@ will be added as we need them.
 from collections import Iterable
 from logging import getLogger
 
-from numpy import (arange, asarray, diff, empty, hstack, inf, linspace, 
+from numpy import (arange, asarray, diff, empty, hstack, inf, linspace,
                    nan_to_num, ones, ravel, setdiff1d)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
@@ -38,21 +38,21 @@ class Segments():
     def __init__(self, dataset):
         self.dataset = dataset
         self.segments = []
-        
+
     def __iter__(self):
         for one_event in self.segments:
             yield one_event
-            
+
     def __len__(self):
         return len(self.segments)
-    
+
     def __getitem__(self, index):
         return self.segments[index]
-    
-    def read_data(self, chan, ref_chan=[], grp_name=None, evt_chan_only=False, 
+
+    def read_data(self, chan, ref_chan=[], grp_name=None, evt_chan_only=False,
                   concat_chan=False, max_s_freq=30000, parent=None):
         """Read data for analysis. Adds data as 'data' in each dict.
-        
+
         Parameters
         ----------
         chan : list of str
@@ -62,82 +62,82 @@ class Segments():
         grp_name : str
             name of the channel group, required in GUI
         evt_chan_only : bool
-            for events. if True, only returns data for chan on which event was 
+            for events. if True, only returns data for chan on which event was
             marked
         concat_chan : bool
             if True, data from all channels will be concatenated
         max_s_freq: : int
             maximum sampling frequency
         parent : QWidget
-            for GUI only. Identifies parent widget for display of progress 
+            for GUI only. Identifies parent widget for display of progress
             dialog.
-        """        
+        """
         chan_to_read = chan + ref_chan
         active_chan = chan
         output = []
-        
+
         # Set up Progress Bar
         if parent:
             n_subseg = sum([len(x['times']) for x in self.segments])
-            progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg, 
+            progress = QProgressDialog('Fetching signal', 'Abort', 0, n_subseg,
                                        parent)
             progress.setWindowModality(Qt.ApplicationModal)
             counter = 0
-        
+
         # Begin bundle loop; will yield one segment per loop
-        for i, seg in enumerate(self.segments):          
-            one_segment = ChanTime()                    
+        for i, seg in enumerate(self.segments):
+            one_segment = ChanTime()
             one_segment.axis['chan'] = empty(1, dtype='O')
             one_segment.axis['time'] = empty(1, dtype='O')
             one_segment.data = empty(1, dtype='O')
             subseg = []
-            
+
             # Subsegment loop; subsegments will be concatenated
             for t0, t1 in seg['times']:
                 if parent:
                     progress.setValue(counter)
                     counter += 1
-    
+
                 if evt_chan_only: # for events
                     active_chan = [seg['chan'].split(' (')[0]]
                     chan_to_read = active_chan + ref_chan
-                
-                data = self.dataset.read_data(chan=chan_to_read, begtime=t0, 
+
+                data = self.dataset.read_data(chan=chan_to_read, begtime=t0,
                                          endtime=t1)
-    
+
                 # Downsample if necessary
                 if data.s_freq > max_s_freq:
                     q = int(data.s_freq / max_s_freq)
                     lg.debug('Decimate (no low-pass filter) at ' + str(q))
-        
+
                     data.data[0] = data.data[0][:, slice(None, None, q)]
                     data.axis['time'][0] = data.axis['time'][0][slice(
                             None, None, q)]
                     data.s_freq = int(data.s_freq / q)
-            
+
                 # read data from disk
                 subseg.append(_create_data(
                     data, active_chan, ref_chan=ref_chan, grp_name=grp_name))
-    
+
             one_segment.s_freq = s_freq = data.s_freq
             one_segment.axis['chan'][0] = chs = subseg[0].axis['chan'][0]
             one_segment.axis['time'][0] = timeline = hstack(
                     [x.axis['time'][0] for x in subseg])
-            one_segment.data[0] = empty((len(active_chan), len(timeline)), 
+            one_segment.data[0] = empty((len(active_chan), len(timeline)),
                                         dtype='f')
             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
-            
-            for i, chan in enumerate(subseg[0].axis['chan'][0]):                
+
+            for i, chan in enumerate(subseg[0].axis['chan'][0]):
                     one_segment.data[0][i, :] = hstack(
                             [x(chan=chan)[0] for x in subseg])
-    
+
             # For channel concatenation
             if concat_chan and len(chs) > 1:
                 one_segment.data[0] = ravel(one_segment.data[0])
-                one_segment.axis['chan'][0] = asarray([(', ').join(chs)], 
+                one_segment.axis['chan'][0] = asarray([(', ').join(chs)],
                                 dtype='U')
                 # axis['time'] should not be used in this case
-    
+
             output.append({'data': one_segment,
                            'chan': active_chan,
                            'stage': seg['stage'],
@@ -145,18 +145,18 @@ class Segments():
                            'name': seg['name'],
                            'n_stitch': n_stitch
                            })
-            
-            if parent:    
+
+            if parent:
                 if progress.wasCanceled():
                     parent.parent.statusBar().showMessage('Process canceled by'
                                            ' user.')
                     return
-    
+
         if parent:
             progress.setValue(counter)
-    
+
         self.segments = output
-        
+
         return 1 # for GUI
 
 
@@ -292,14 +292,14 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
     return output
 
 
-def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None, 
-          cycle=None, chan_full=None, epoch=None, epoch_dur=30, 
-          epoch_overlap=0, epoch_step=None, reject_epoch=False, 
+def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
+          cycle=None, chan_full=None, epoch=None, epoch_dur=30,
+          epoch_overlap=0, epoch_step=None, reject_epoch=False,
           reject_artf=False, min_dur=0):
-    """Create instance of Segments for analysis, complete with info about 
+    """Create instance of Segments for analysis, complete with info about
     stage, cycle, channel, event type. Segments contains only metadata until
     .read_data is called.
-    
+
     Parameters
     ----------
     dataset : instance of Dataset
@@ -334,27 +334,27 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
     epoch_dur : float
         only for epoch='unlocked'. Duration of epochs returned, in seconds.
     epoch_overlap : float
-        only for epoch='unlocked'. Ratio of overlap between two consecutive 
+        only for epoch='unlocked'. Ratio of overlap between two consecutive
         segments. Value between 0 and 1. Overriden by step.
     epoch_step : float
-        only for epoch='unlocked'. Time between consecutive epoch starts, in 
+        only for epoch='unlocked'. Time between consecutive epoch starts, in
         seconds. Overrides epoch_overlap/
     reject_epoch: bool
-        If True, epochs marked as 'Poor' quality or staged as 'Artefact' will 
+        If True, epochs marked as 'Poor' quality or staged as 'Artefact' will
         be rejected (and the signal segmented in consequence). Has no effect on
         event selection.
     reject_artf : bool
         If True, excludes events marked as 'Artefact' (and signal is segmented
         in consequence).
     min_dur : float
-        Minimum duration of segments returned, in seconds. 
-        
+        Minimum duration of segments returned, in seconds.
+
     Returns
     -------
     instance of Segments
         metadata for all analysis segments
     """
-    bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle, 
+    bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle,
                         chan=chan_full, exclude=reject_epoch)
 
     # Remove artefacts
@@ -368,26 +368,26 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
 
     # Divide bundles into segments to be concatenated
     if bundles:
-        
+
         if 'locked' == epoch:
             bundles = _divide_bundles(bundles)
 
         elif 'unlocked' == epoch:
-            
+
             if epoch_step is not None:
                 step = epoch_step
             else:
                 step = epoch_dur - (epoch_dur * epoch_overlap)
-                
+
             bundles = _concat(bundles, cat)
             bundles = _find_intervals(bundles, epoch_dur, step)
-                
+
         elif not epoch:
             bundles = _concat(bundles, cat)
-                
+
     segments = Segments(dataset)
     segments.segments = bundles
-    
+
     return segments
 
 
@@ -596,7 +596,7 @@ def _divide_bundles(bundles):
 
 
 def _find_intervals(bundles, duration, step):
-    """Divide bundles into segments of a certain duration and a certain step, 
+    """Divide bundles into segments of a certain duration and a certain step,
     discarding any remainder."""
     segments = []
     for bund in bundles:
@@ -644,7 +644,7 @@ def _create_data(data, active_chan, ref_chan=[], grp_name=None):
     sel_data = _select_channels(data, active_chan + ref_chan)
     data1 = montage(sel_data, ref_chan=ref_chan)
     data1.data[0] = nan_to_num(data1.data[0])
-    
+
     all_chan_grp_name = []
 
     for i, chan in enumerate(active_chan):
@@ -718,5 +718,3 @@ def _select_channels(data, channels):
     output.axis['chan'][0] = asarray(channels)
 
     return output
-
-

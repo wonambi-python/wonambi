@@ -6,6 +6,7 @@ from pytest import raises
 
 from wonambi.utils import create_data
 from wonambi.trans import montage
+from wonambi.trans.montage import compute_average_regress
 
 
 seed(0)
@@ -46,6 +47,23 @@ def test_montage_06():
     dat1 = reref(trial=0)
     assert_array_almost_equal(sum(dat1, axis=0), zeros((dat1.shape[1])),
                               decimal=4)
+
+
+def test_montage_regression():
+    reref = montage(data, ref_to_avg=True, method='regression')
+    assert_array_almost_equal(reref.data[0].mean(axis=0), 0)
+
+
+def test_montage_regression_transpose():
+    assert_array_equal(
+        compute_average_regress(data.data[0], 0),
+        compute_average_regress(data.data[0].T, 1).T
+        )
+
+
+def test_montage_regression_error():
+    with raises(ValueError):
+        compute_average_regress(data.data[0][:, :, None], 0)
 
 
 def test_montage_bipolar_00():
