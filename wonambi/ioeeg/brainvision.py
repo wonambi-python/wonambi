@@ -11,6 +11,8 @@ from numpy import (dtype,
                    )
 import wonambi
 
+from .utils import DEFAULT_DATETIME
+
 
 BV_ORIENTATION = {
     'MULTIPLEXED': 'F',
@@ -218,6 +220,7 @@ def _read_datetime(mrk):
     for v in mrk['Marker Infos'].values():
         if v[0] == 'New Segment':
             return datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
+    return DEFAULT_DATETIME
 
 
 def write_brainvision(data, filename, markers=None):
