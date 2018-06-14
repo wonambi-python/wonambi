@@ -424,6 +424,10 @@ class Notes(QTabWidget):
         act.triggered.connect(self.export)
         actions['export'] = act
 
+        act = QAction('CSV', self)
+        act.triggered.connect(partial(self.export_events, 'csv'))
+        actions['exp_evt_csv'] = act
+        
         act = QAction('Brain Vision', self)
         act.triggered.connect(partial(self.export_events, 'brainvision'))
         actions['exp_evt_brainvision'] = act
@@ -1402,8 +1406,14 @@ class Notes(QTabWidget):
 
         self.annot.export(filename)
 
-    def export_events(self, source):
-        """Export events to external file of desired format."""
+    def export_events(self, xformat):
+        """Export events to external file of desired format.
+        
+        Parameters
+        ----------
+        xformat : str
+            export file format: 'csv' or 'brainvision'
+        """
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
@@ -1418,12 +1428,6 @@ class Notes(QTabWidget):
             self.parent.statusBar.showMessage('No such event type.')
             return
         
-        events = self.annot.get_events(name=name)
-        
-        if events is None:
-            self.parent.statusBar.showMessage('No events found.')
-            return
-        
         fn, _ = QFileDialog.getSaveFileName(self, 'Export events', name)
         
         if fn == '':
@@ -1431,7 +1435,17 @@ class Notes(QTabWidget):
         
         fn = Path(fn).resolve()
         
-        if 'brainvision' == source:
+        if 'csv' == xformat:
+            self.annot.export_events(fn, [name])
+            return
+            
+        events = self.annot.get_events(name=name)
+        
+        if events is None:
+            self.parent.statusBar.showMessage('No events found.')
+            return
+        
+        if 'brainvision' == xformat:
             dataset = self.parent.info.dataset
             data = ChanTime()
             data.start_time = dataset.header['start_time']
@@ -1596,11 +1610,7 @@ class MergeDialog(QDialog):
                                      'Choose at least one event type.')
                 return
 
-            if not min_interval:
-                QMessageBox.warning(self, 'Missing information',
-                                     'Choose a minimum interval.')
-                return
-
+            min_interval = 0 if not min_interval else min_interval
 
             if self.merge_to == 'longer duration event':
                 merge_to_longer = True

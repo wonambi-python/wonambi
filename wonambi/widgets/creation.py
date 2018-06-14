@@ -276,6 +276,7 @@ def create_menubar(MAIN):
     menu_annot.addAction(actions['export'])
     
     submenu_exp_evt = menu_annot.addMenu('Export events')
+    submenu_exp_evt.addAction(actions['exp_evt_csv'])
     submenu_exp_evt.addAction(actions['exp_evt_brainvision'])
     
     menu_annot.addSeparator()

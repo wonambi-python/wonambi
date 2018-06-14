@@ -1138,7 +1138,7 @@ class Annotations():
         return output
 
     def export(self, file_to_export, stages=True):
-        """Export annotations to csv file.
+        """Export epochwise annotations to csv file.
 
         Parameters
         ----------
@@ -1259,95 +1259,52 @@ class Annotations():
 
         return slp_onset_lat, waso, total_slp_time # for testing
 
-    def export_event_data(self, filename, summary, events, cycles=None,
-                          fsplit=None):
-        """Export event analysis data to CSV, from dialog.
-
+    def export_events(self, filename, evt_type):
+        """Export events to CSV
+        
         Parameters
         ----------
         filename : str
-            Filename for csv export.
-        summary : list of dict
-            Parameter name as key with global parameters/avgs as values. If
-            fsplit, there are two dicts, low frequency and high frequency
-            respectively, combined together in a list.
-        events : list of list of dict, optional
-            One dictionary per event, each containing  individual event
-            parameters. If fsplit, there are two event lists, low frequency
-            and high frequency respectively, combined together in a list.
-            Otherwise, there is a single list within the master list.
-        cycles: int, optional
-            Number of cycles.
-        fsplit: float, optional
-            Frequency at which to split dataset.
+            path of export file
+        evt_type : list of str
+            event types to export
         """
-        sheets = [filename]
-
-        if cycles:
-            sheets = [splitext(filename)[0] + '_cycle' + str(i + 1) + '.csv' \
-                      for i in range(len(cycles))]
-
-        if fsplit:
-            all_sheets = []
-
-            for fn in sheets:
-                all_sheets.extend([splitext(fn)[0] + '_slow.csv',
-                                   splitext(fn)[0] + '_fast.csv'])
-
-            sheets = all_sheets
-
-        ordered_params = ['dur', 'maxamp', 'ptp', 'peakf', 'power', 'rms',
-                          'count', 'density']
-        headings = ['Duration (s)',
-                    'Maximum amplitude (uV)',
-                    'Peak-to-peak amplitude (uV)',
-                    'Peak frequency (Hz)',
-                    'Average power (uV^2)',
-                    'RMS (uV)',
-                    'Count',
-                    'Density']
-        idx_params = in1d(ordered_params, list(summary[0].keys()))
-        sel_params_in_order = list(compress(ordered_params, idx_params))
-        per_evt_params = list(compress(ordered_params[:-2], idx_params))
-
-        lg.info('sheets: ' + str(len(sheets)) + ' summ: ' + str(len(summary)) + 'events: ' + str(len(events)))
-        if events is not None:
-            lg.info('number of events ' + str(len(events[0])))
-
-        for fn, summ, evs in zip(sheets, summary, events):
-            first_row = list(compress(headings, idx_params))
-            second_row = [summ[key][0] for key in sel_params_in_order]
-
-            if evs:
-                first_row[:0] = ['Index', 'Start (clock)', 'Start (record)',
-                                'End (record)', 'Channel', 'Stage']
-                second_row[:0] = ['Mean', '', '', '', '', '']
-                third_row = ['SD', '', '', '', '', ''] + \
-                        [summ[key][1] for key in per_evt_params]
-
-            with open(fn, 'w', newline='') as f:
-                lg.info('Writing to' + fn)
-                csv_file = writer(f)
-                csv_file.writerow(first_row)
-                csv_file.writerow(second_row)
-
-                if evs:
-                    csv_file.writerow(third_row)
-
-                    for i, ev in enumerate(evs):
-                        ev_time = (self.start_time +
-                                      timedelta(seconds=ev['start']))
-                        if isinstance(ev['chan'], (tuple, list)):
-                            ev['chan'] = ', '.join(ev['chan'])
-                        info_row = [i+1,
-                                    ev_time.strftime('%H:%M:%S'),
-                                    ev['start'],
-                                    ev['end'],
-                                    ev['chan'],
-                                    ev['stage']]
-                        data_row = [ev[key] for key in per_evt_params]
-                        csv_file.writerow(info_row + data_row)
-
+        filename = str(filename) + '.csv'
+        headings_row = ['Index',
+                       'Start time',
+                       'End time',
+                       'Stitches',
+                       'Stage',
+                       'Cycle',
+                       'Event type',
+                       'Channel']
+        
+        events = []
+        for et in evt_type:
+            events.extend(self.get_events(name=et))
+            
+        events = sorted(events, key=lambda evt: evt['start'])
+        
+        if events is None:
+            lg.info('No events found.')
+            return
+        
+        with open(filename, 'w', newline='') as f:
+            lg.info('Writing to' + str(filename))
+            csv_file = writer(f)
+            csv_file.writerow(headings_row)
+            
+            for i, ev in enumerate(events):
+                csv_file.writerow([i + 1,
+                                   ev['start'],
+                                   ev['end'],
+                                   0,
+                                   ev['stage'],
+                                   '',
+                                   ev['name'],
+                                   ev['chan'],
+                                   ])
+        
 
 def update_annotation_version(xml_file):
     """Update the fields that have changed over different versions.
