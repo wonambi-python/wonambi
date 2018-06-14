@@ -419,6 +419,10 @@ class Notes(QTabWidget):
         act.triggered.connect(partial(self.import_staging, 'compumedics', 
                                       as_qual=True))
         actions['import_compumedics_qual'] = act
+        
+        act = QAction('Import events', self)
+        act.triggered.connect(self.import_events)
+        actions['imp_evt_csv'] = act
 
         act = QAction('Export staging', self)
         act.triggered.connect(self.export)
@@ -1454,6 +1458,23 @@ class Notes(QTabWidget):
             with fn.with_suffix('.vmrk').open('w') as f:
                 f.write(_write_vmrk(data, fn, events))
         
+    def import_events(self):
+        """action: import events from Wonambi CSV event export."""
+        if self.annot is None:  # remove if buttons are disabled
+            self.parent.statusBar().showMessage('No score file loaded')
+            return
+
+        fn, _ = QFileDialog.getOpenFileName(self, 'Import events',
+                                            None, 'CSV File (*.csv)')
+        
+        if fn == '':
+            return
+        
+        fn = Path(fn).resolve()
+
+        self.annot.import_events(fn, parent=self.parent)
+        self.display_notes()        
+    
     def export_sleeps_stats(self):
         """action: export sleep statistics CSV."""
         if self.annot is None:  # remove if buttons are disabled

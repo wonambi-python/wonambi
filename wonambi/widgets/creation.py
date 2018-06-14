@@ -271,6 +271,8 @@ def create_menubar(MAIN):
     submenu_import_qual.addAction(actions['import_domino_qual'])
     submenu_import_qual.addAction(actions['import_remlogic_qual'])
     submenu_import_qual.addAction(actions['import_sandman_qual'])
+    
+    menu_annot.addAction(actions['imp_evt_csv'])
     menu_annot.addSeparator()
     
     menu_annot.addAction(actions['export'])

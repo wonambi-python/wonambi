@@ -2,18 +2,22 @@
 """
 from logging import getLogger
 from bisect import bisect_left
-from csv import writer
+from csv import reader, writer
 from datetime import datetime, timedelta
-from itertools import compress
-from numpy import (allclose, around, asarray, in1d, isnan, logical_and, modf,
-                   nan)
+from numpy import allclose, around, asarray, isnan, logical_and, modf, nan
 from math import ceil, inf
-from os.path import splitext
 from pathlib import Path
 from re import search, sub
 from scipy.io import loadmat
 from xml.etree.ElementTree import Element, SubElement, tostring, parse
 from xml.dom.minidom import parseString
+
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QProgressDialog
+except ImportError:
+    Qt = None
+    QProgressDialog = None
 
 from ..utils.exceptions import UnrecognizedFormat
 
@@ -1302,8 +1306,56 @@ class Annotations():
                                    ev['stage'],
                                    '',
                                    ev['name'],
-                                   ev['chan'],
+                                   ', '.join(ev['chan']),
                                    ])
+            
+    def import_events(self, source_file, parent=None):
+        """Import events from Wonambi CSV event export and write to annot.
+        
+        Parameters
+        ----------
+        source_file : str
+            path to file CSV file
+        parent : QWidget
+            for GUI progress bar
+        """
+        events = []
+        
+        with open(source_file, 'r', encoding='utf-8') as csvfile:
+            csv_reader = reader(csvfile, delimiter=',')
+            
+            for row in csv_reader:
+                try:
+                    int(row[0])
+                    one_ev = {'name': row[6],
+                              'start': float(row[1]),
+                              'end': float(row[2]),
+                              'chan': row[7].split(', '),  # always a list
+                              'stage': row[4],
+                              'quality': 'Good'
+                              }
+                    events.append(one_ev)
+                    
+                except ValueError:
+                    continue
+                
+            if parent is not None:
+                progress = QProgressDialog('Saving events', 'Abort',
+                                   0, len(events) - 1, parent)
+                progress.setWindowModality(Qt.ApplicationModal)
+                
+            for i, one_ev in enumerate(events):
+                self.add_event(one_ev['name'],
+                                (one_ev['start'], one_ev['end']),
+                                chan=one_ev['chan'])
+                
+                if parent is not None:
+                    progress.setValue(i)                    
+                    if progress.wasCanceled():
+                        return
+
+        if parent is not None:
+            progress.close()
         
 
 def update_annotation_version(xml_file):
