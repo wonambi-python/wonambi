@@ -1,8 +1,11 @@
+from json import dump
 from numpy import array
 try:
     from bidso import iEEG
 except ImportError:
     iEEG = None
+
+from .brainvision import write_brainvision
 
 
 class BIDS:
@@ -93,3 +96,20 @@ class BIDS:
             })
 
         return markers
+
+
+def write_bids(data, filename):
+    write_brainvision(data, filename)
+
+
+def create_ieeg_info(output_file):
+    """Use only required fields
+    """
+    dataset_info = {
+        "TaskName": "unknown",
+        "Manufacturer": "unknown",
+        "PowerLineFrequency": 50,
+        }
+
+    with output_file.open('w') as f:
+        dump(dataset_info, f, indent=' ')
