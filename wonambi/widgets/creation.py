@@ -178,6 +178,10 @@ def create_menubar(MAIN):
     menu_time.addAction(actions['addtime_1h'])
     menu_time.addAction(actions['addtime_6h'])
     menu_time.addSeparator()
+    menu_time.addAction(actions['next_event'])
+    menu_time.addAction(actions['del_and_next_event'])
+    menu_time.addAction(actions['next_of_same_type'])
+    menu_time.addSeparator()
     menu_time.addAction(actions['go_to_epoch'])
     menu_time.addAction(actions['line_up_with_epoch'])
 

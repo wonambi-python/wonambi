@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from functools import partial
 from logging import getLogger
 from numpy import asarray, floor
+from math import isclose
 from os.path import basename, splitext
 from pathlib import Path
 
@@ -761,8 +762,10 @@ class Notes(QTabWidget):
         # store information about the time as list (easy to access)
         annot_start = [ann['start'] for ann in all_annot]
         annot_end = [ann['end'] for ann in all_annot]
+        annot_name = [ann['name'] for ann in all_annot]
         self.idx_annot_list.setProperty('start', annot_start)
         self.idx_annot_list.setProperty('end', annot_end)
+        self.idx_annot_list.setProperty('name', annot_name)
 
         if self.parent.traces.data is not None:
             self.parent.traces.display_annotations()
@@ -781,6 +784,11 @@ class Notes(QTabWidget):
                 self.annot.remove_bookmark(name=name, time=(start, end))
             else:
                 self.annot.remove_event(name=name, time=(start, end))
+                highlight = self.parent.traces.highlight
+                if highlight:
+                    self.parent.traces.scene.removeItem(highlight)
+                    highlight = None
+                    self.parent.traces.event_sel = None
 
         self.update_annotations()
 
@@ -804,7 +812,39 @@ class Notes(QTabWidget):
         window_length = self.parent.value('window_length')
         window_start = floor(marker_time / window_length) * window_length
         self.parent.overview.update_position(window_start)
+        
+        if table_type == 'annot':
+            for annot in self.parent.traces.idx_annot:
+                if annot.marker.x() == marker_time:
+                    self.parent.traces.highlight_event(annot)
+                    break
 
+    def find_row(self, ev_start, ev_end):
+        """Highlight event row in table from start and end time.
+        
+        Parameters
+        ----------
+        ev_start : float
+            start time, in seconds from record start
+        ev_end : float
+            end time, in seconds from record start
+            
+        Returns
+        -------
+        int
+            index of event row in idx_annot_list QTableWidget
+        """
+        all_starts = self.idx_annot_list.property('start')
+        all_ends = self.idx_annot_list.property('end')
+        
+        for i, (start, end) in enumerate(zip(all_starts, all_ends)):
+            if (isclose(ev_start, start, abs_tol=0.01) and \
+                isclose(ev_end, end, abs_tol=0.01)):
+                return i
+        
+        lg.info('error: ' + str())
+        raise ValueError
+        
     def get_sleepstage(self, stage_idx=None):
         """Score the sleep stage, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled

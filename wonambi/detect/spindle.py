@@ -28,7 +28,7 @@ class DetectSpindle:
     Parameters
     ----------
     method : str
-        one of the predefined methods (see below 'housestyle')
+        one of the predefined methods
     frequency : tuple of float
         low and high frequency of spindle band
     duration : tuple of float

@@ -283,6 +283,21 @@ class Traces(QGraphicsView):
         act.triggered.connect(partial(self.add_time, 6 * 60 * 60))
         actions['addtime_6h'] = act
 
+        act = QAction('Go to next event', self)
+        act.setShortcut('s')
+        #act.triggered.connect(self.next_event)
+        actions['next_event'] = act
+        
+        act = QAction('Delete event and go to next', self)
+        act.setShortcut('d')
+        #act.triggered.connect(self.next_event)
+        actions['del_and_next_event'] = act
+        
+        act = QAction('Next event of same type', self)
+        act.setCheckable(True)
+        act.setChecked(False)
+        actions['next_of_same_type'] = act
+        
         act = QAction('Full-length markers', self)
         act.setCheckable(True)
         act.setChecked(True)
@@ -776,49 +791,14 @@ class Traces(QGraphicsView):
         else:
             for annot in self.idx_annot:
                 if annot.contains(xy_scene):
-                    beg = annot.marker.x() - 0.5
-                    end = beg + annot.marker.width() + 1
-                    msg = 'Event from ' + str(beg) + ' to ' + str(end)
-                    self.parent.statusBar().showMessage(msg)
-                    self.event_sel = annot
-                    highlight = RectMarker(annot.marker.x(),
-                                           annot.marker.y(),
-                                           annot.marker.width(),
-                                           annot.marker.height(),
-                                           zvalue=-5,
-                                           color=QColor(255, 255, 51))
-#==============================================================================
-#                     pen = QPen(QColor(255, 255, 51), 0, Qt.SolidLine,
-#                                Qt.RoundCap)
-#                     brush = QBrush(QColor(255, 255, 51))
-#                     highlight.setPen(pen)
-#                     highlight.setBrush(brush)
-#                     highlight.setZValue(-5)
-#==============================================================================
-                    self.scene.addItem(highlight)
-                    self.highlight = highlight
+                    self.highlight_event(annot)
+                    row = self.parent.notes.find_row(annot.marker.x(),
+                                    annot.marker.x() + annot.marker.width())
+                    self.parent.notes.idx_annot_list.setCurrentCell(row, 0)
                     break
 
         # self.display_annotations
         self.ready = True
-
-        """
-    def mouseDoubleClickEvent(self, event):
-        When an event marker is double-clicked, it is removed
-        if not self.scene:
-            return
-
-        chk_marker = self.parent.notes.action['new_bookmark'].isChecked()
-        chk_event = self.parent.notes.action['new_event'].isChecked()
-
-        if not (chk_marker or chk_event):
-            xy_scene = self.mapToScene(event.pos())
-            for annot in self.idx_annot:
-                if annot.contains(xy_scene):
-                    self.parent.statusBar().showMessage('You clicked on an event!')
-                    self.parent.notes.remove_event(self, time=annot.mapToScene(0,0))
-                    self.scene.removeItem(annot)
-        """
 
     def mouseMoveEvent(self, event):
         """When normal selection, update power spectrum with current selection.
@@ -971,7 +951,8 @@ class Traces(QGraphicsView):
             self.idx_sel = None
 
     def keyPressEvent(self, event):
-        if not self.event_sel:
+        chk_event = self.parent.notes.action['new_event'].isChecked()
+        if not (chk_event and self.event_sel):
             return
 
         annot = self.event_sel
@@ -989,6 +970,62 @@ class Traces(QGraphicsView):
             self.highlight = None
             self.display_annotations
 
+    def highlight_event(self, annot):
+        """Highlight an annotation on the trace.
+        
+        Parameters
+        ----------
+        annot : intance of wonambi.widgets.utils.RectMarker
+            existing annotation
+        """
+        beg = annot.marker.x() - 0.5
+        end = beg + annot.marker.width() + 1
+        msg = 'Event from ' + str(beg) + ' to ' + str(end)
+        self.parent.statusBar().showMessage(msg)
+        highlight = RectMarker(annot.marker.x(),
+                               annot.marker.y(),
+                               annot.marker.width(),
+                               annot.marker.height(),
+                               zvalue=-5,
+                               color=QColor(255, 255, 51))
+        self.scene.addItem(highlight)
+        self.highlight = highlight
+        self.event_sel = annot
+    
+    def next_event(self):
+        """Go to next event."""
+        event_sel = self.event_sel
+        if event_sel is None:
+            return
+        
+        notes = self.parent.notes
+        row = notes.find_row(event_sel.marker.x(),
+                             event_sel.marker.x() + event_sel.marker.width())
+        lg.info('current row: ' + str(row))
+        
+        if row == notes.idx_annot_list.rowCount():
+            return
+        
+        if not self.action['next_of_same_type'].isChecked():
+            next_row = row + 1
+        else:
+            next_row = None
+            target = notes.idx_annot_list.item(row, 2).text()
+            lg.info('target type: ' + target)
+            types = notes.idx_annot_list.property('name')[row + 1:]
+            #lg.info('types list: ' + str(types))
+            
+            for i, ty in enumerate(types):
+                if ty == target:
+                    next_row = row + 1 + i
+                    break
+                    
+            if not next_row:
+                return                
+                    
+        notes.go_to_marker(next_row, 0, 'annot')
+        notes.idx_annot_list.setCurrentCell(next_row + 1, 0)             
+    
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
 
