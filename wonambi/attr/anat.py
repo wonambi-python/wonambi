@@ -11,14 +11,17 @@ from struct import unpack
 
 from numpy import (array, empty, vstack, around, dot, append, reshape,
                    meshgrid, asarray)
+from ..utils import MissingDependency
 
-lg = getLogger(__name__)
 
 try:
     from nibabel.freesurfer import load, read_annot
     from nibabel import load as nload
-except ImportError:
-    pass
+except ImportError as err:
+    load = read_annot = nload = MissingDependency(err)
+
+lg = getLogger(__name__)
+
 
 FS_AFFINE = array([[-1, 0, 0, 128],
                    [0, 0, -1, 128],
@@ -227,10 +230,7 @@ class Freesurfer:
         T1_path = self.dir / 'mri' / 'T1.mgz'
         assert T1_path.exists()
 
-        try:
-            T1 = nload(str(T1_path))
-        except NameError:
-            raise ImportError('nibabel needs to be installed for this function')
+        T1 = nload(str(T1_path))
 
         return T1.header['Pxyz_c']
 
@@ -313,10 +313,7 @@ class Freesurfer:
             names of the labels
         """
         parc_file = self.dir / 'label' / (hemi + '.' + parc_type + '.annot')
-        try:
-            vert_val, region_color, region_name = read_annot(parc_file)
-        except NameError:
-            raise ImportError('nibabel needs to be installed for this function')
+        vert_val, region_color, region_name = read_annot(parc_file)
         region_name = [x.decode('utf-8') for x in region_name]
         return vert_val, region_color, region_name
 
@@ -336,10 +333,7 @@ class Freesurfer:
             4x4 affine matrix
         """
         seg_file = self.dir / 'mri' / (parc_type + '+aseg.mgz')
-        try:
-            seg_mri = load(seg_file)
-        except NameError:
-            raise ImportError('nibabel needs to be installed for this function')
+        seg_mri = load(seg_file)
         seg_aff = seg_mri.affine
         seg_dat = seg_mri.get_data()
         return seg_dat, seg_aff

@@ -1,11 +1,13 @@
 from json import dump
 from numpy import array
-try:
-    from bidso import iEEG
-except ImportError:
-    iEEG = None
 
 from .brainvision import write_brainvision
+from ..utils import MissingDependency
+
+try:
+    from bidso import iEEG
+except ImportError as err:
+    iEEG = MissingDependency(err)
 
 
 class BIDS:

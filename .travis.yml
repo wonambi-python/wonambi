@@ -34,11 +34,14 @@ script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y pytest-qt pyqt5 nibabel fooof
+ - python -m venv venvimport 
+ - source venvimport/bin/activate
+ - pip install numpy scipy
+ - pip install pytest pytest-cov
  - python setup_wonambi.py --test_import
+ - deactivate
 
- # reinstall optional requirements for docs
- - pip install pyqt5 nibabel
+ # run the docs with all the packages
  - python setup_wonambi.py --docs
 
 after_success:

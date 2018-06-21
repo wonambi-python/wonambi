@@ -24,6 +24,9 @@ pip-log.txt
 .cache/
 htmlcov/
 
+# virtual environment to test imports
+venvimport/
+
 # test data
 tests/data/
 tests/downloads/

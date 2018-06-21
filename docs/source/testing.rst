@@ -95,6 +95,20 @@ To test that the ``ImportError`` is correctly raised when you need functions fro
 .. NOTE::
    You should run this only in an environment that does not have the optional dependencies installed. 
    Use ``python -m venv`` to create a minimal environment.
+   Then install ``numpy`` and ``scipy`` with ``pip install numpy scipy``.
+   Also remember to install the packages needed for the tests (``pip install pytest pytest-cov``).
+
+When importing a function from an optional module, you should wrap the import statement in this way::
+
+   from ..utils import MissingDependency
+   try:
+       from optionalmodule import function
+   except ImportError as err:
+       function = MissingDependency(err)
+
+Note that ``optionalmodule`` and ``function`` are placeholders. 
+You need to change only those two names.
+Also, you might need to adjust the relative import of ``..utils`` depending on which module you're working on.
 
 All the import tests should be in ``wonambi/tests/test_import.py``.
 

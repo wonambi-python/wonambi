@@ -7,6 +7,12 @@ from .utils import (read_hdf5_str,
                     read_hdf5_chan_name,
                     DEFAULT_DATETIME,
                     )
+from ..utils import MissingDependency
+
+try:
+    from h5py import File
+except ImportError as err:
+    File = MissingDependency(err)
 
 
 class EEGLAB:
@@ -58,7 +64,7 @@ class EEGLAB:
                 self.data = self.EEG.data
 
         else:
-            from h5py import File
+
             with File(self.filename) as f:
                 EEG = f['EEG']
                 self.s_freq = EEG['srate'].value.item()

@@ -15,13 +15,14 @@ from numpy import asarray, ndindex, zeros
 from numpy.linalg import norm
 from re import match
 
+from ..utils import UnrecognizedFormat, MissingDependency
+
 try:
     from nibabel import load as nload
     from nibabel.affines import apply_affine
-except ImportError:
-    pass
+except ImportError as err:
+    nload = apply_affine = MissingDependency(err)
 
-from ..utils import UnrecognizedFormat
 
 lg = getLogger(__name__)
 
@@ -483,10 +484,7 @@ def create_sphere_around_elec(xyz, template_mri, distance=8, freesurfer=None):
         shift = freesurfer.surface_ras_shift
 
     if isinstance(template_mri, str) or isinstance(template_mri, Path):
-        try:
-            template_mri = nload(str(template_mri))
-        except NameError:
-            raise ImportError('nibabel needs to be installed for this function')
+        template_mri = nload(str(template_mri))
 
     mask = zeros(template_mri.shape, dtype='bool')
     for vox in ndindex(template_mri.shape):
@@ -495,4 +493,3 @@ def create_sphere_around_elec(xyz, template_mri, distance=8, freesurfer=None):
             mask[vox] = True
 
     return mask
-

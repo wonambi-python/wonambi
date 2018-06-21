@@ -4,6 +4,13 @@ from numpy import around, empty
 from scipy.io import loadmat, savemat
 
 from .utils import read_hdf5_chan_name
+from ..utils import MissingDependency
+
+try:
+    from h5py import File
+except ImportError as err:
+    File = MissingDependency(err)
+
 
 lg = getLogger(__name__)
 VAR = 'data'
@@ -64,7 +71,6 @@ class FieldTrip:
             chan_name = list(ft_data['label'].item())
 
         except NotImplementedError:
-            from h5py import File
 
             with File(self.filename) as f:
 
