@@ -6,8 +6,9 @@ from ..utils import MissingDependency
 
 try:
     from bidso import iEEG
+    from bidso.utils import replace_extension, replace_underscore
 except ImportError as err:
-    iEEG = MissingDependency(err)
+    iEEG, replace_extension = MissingDependency(err)
 
 
 class BIDS:
@@ -100,18 +101,59 @@ class BIDS:
         return markers
 
 
-def write_bids(data, filename):
-    write_brainvision(data, filename)
+def write_bids(data, filename, markers=[]):
+    write_brainvision(data, filename, markers)
+    _write_ieeg_json(
+        replace_extension(filename, '.json'))
+    _write_ieeg_channels(
+        replace_underscore(filename, 'channels.tsv'), data)
+    _write_ieeg_events(
+        replace_underscore(filename, 'events.tsv'), markers)
 
 
-def create_ieeg_info(output_file):
+def _write_ieeg_json(output_file):
     """Use only required fields
     """
     dataset_info = {
         "TaskName": "unknown",
-        "Manufacturer": "unknown",
+        "Manufacturer": "n/a",
         "PowerLineFrequency": 50,
+        "iEEGReference": "n/a",
         }
 
     with output_file.open('w') as f:
         dump(dataset_info, f, indent=' ')
+
+
+def _write_ieeg_channels(output_file, data):
+    """
+    TODO
+    ----
+    Make sure that the channels in all the trials are the same.
+    """
+    CHAN_TYPE = 'ECOG'
+    CHAN_UNIT = 'µV'
+
+    with output_file.open('w') as f:
+        f.write('name\ttype\tunits\tsampling_frequency\tlow_cutoff\thigh_cutoff\tnotch\treference\n')
+        for one_chan in data.chan[0]:
+            f.write('\t'.join([
+                one_chan,
+                CHAN_TYPE,
+                CHAN_UNIT,
+                f'{data.s_freq:.3f}',
+                'n/a',
+                'n/a',
+                'n/a',
+                'n/a',
+                ]) + '\n')
+
+
+def _write_ieeg_events(output_file, markers):
+
+    with output_file.open('w') as f:
+        f.write('onset\tduration\ttrial_type\n')
+        for mrk in markers:
+            onset = mrk['start']
+            duration = mrk['end'] - mrk['start']
+            f.write(f'{onset:.3f}\t{duration:.3f}\t{mrk["name"]}\n')

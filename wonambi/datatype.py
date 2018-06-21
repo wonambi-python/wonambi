@@ -374,6 +374,8 @@ class Data:
             "name" : str (name of the marker),
             "start" : float (start time in seconds)
             "end" : float (end time in seconds)
+
+        'bids' has an optional argument "markers", like in 'brainvision'
         """
         filename = Path(filename)
         filename.parent.mkdir(parents=True, exist_ok=True)
@@ -399,6 +401,10 @@ class Data:
         elif export_format == 'brainvision':
             from .ioeeg import write_brainvision
             write_brainvision(self, filename, **options)
+
+        elif export_format == 'bids':
+            from .ioeeg import write_bids
+            write_bids(self, filename, **options)
 
         else:
             raise ValueError('Cannot export to ' + export_format)
