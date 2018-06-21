@@ -7,6 +7,7 @@ Data.__call__, which needs to be very general.
 from collections import OrderedDict, Iterable
 from copy import deepcopy
 from logging import getLogger
+from pathlib import Path
 
 from numpy import arange, array, empty, ix_, NaN, squeeze, where
 
@@ -374,6 +375,9 @@ class Data:
             "start" : float (start time in seconds)
             "end" : float (end time in seconds)
         """
+        filename = Path(filename)
+        filename.parent.mkdir(parents=True, exist_ok=True)
+
         export_format = export_format.lower()
         if export_format == 'edf':
             from .ioeeg import write_edf  # avoid circular import
