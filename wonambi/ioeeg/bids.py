@@ -8,7 +8,7 @@ try:
     from bidso import iEEG
     from bidso.utils import replace_extension, replace_underscore
 except ImportError as err:
-    iEEG, replace_extension = MissingDependency(err)
+    iEEG = replace_extension = MissingDependency(err)
 
 
 class BIDS:
