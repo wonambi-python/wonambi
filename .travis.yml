@@ -35,7 +35,7 @@ script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - pip uninstall -y $OPT_DEP
+ - pip uninstall -y pytest-qt $OPT_DEP
  - python setup_wonambi.py --test_import
 
  # reinstall optional requirements to run the docs

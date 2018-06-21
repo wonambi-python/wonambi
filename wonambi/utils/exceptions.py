@@ -14,7 +14,20 @@ class UnrecognizedFormat(Exception):
 
 
 class MissingDependency():
+    """Class to handle missing dependencies in an elegant and consistent way.
 
+    Examples
+    --------
+    When importing a function from an optional dependency, use this construct:
+
+    >>> try:
+    >>>     from optdep import function
+    >>> except ImportError as err:
+    >>>     function = MissingDependency(err)
+
+    and the use ``function`` in your code normally. It'll raise an ImportError
+    only if the code calls that specific function.
+    """
     def __init__(self, error):
         self.error = error
 
