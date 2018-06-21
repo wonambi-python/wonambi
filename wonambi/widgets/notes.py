@@ -808,9 +808,15 @@ class Notes(QTabWidget):
             marker_time = self.idx_marker.property('start')[row]
         else:
             marker_time = self.idx_annot_list.property('start')[row]
+            marker_end_time = self.idx_annot_list.property('end')[row]
 
         window_length = self.parent.value('window_length')
-        window_start = floor(marker_time / window_length) * window_length
+        
+        if self.parent.traces.action['centre_event']:
+            window_start = (marker_time + marker_end_time - window_length) / 2
+        else:
+            window_start = floor(marker_time / window_length) * window_length
+            
         self.parent.overview.update_position(window_start)
         
         if table_type == 'annot':
@@ -838,11 +844,17 @@ class Notes(QTabWidget):
         all_ends = self.idx_annot_list.property('end')
         
         for i, (start, end) in enumerate(zip(all_starts, all_ends)):
-            if (isclose(ev_start, start, abs_tol=0.01) and \
-                isclose(ev_end, end, abs_tol=0.01)):
+            if start == ev_start and end == ev_end:
                 return i
         
-        lg.info('error: ' + str())
+        for i, start in enumerate(all_starts):
+            if start == ev_start:
+                return i
+            
+        for i, end in enumerate(all_ends):
+            if end == ev_end:
+                return i
+        
         raise ValueError
         
     def get_sleepstage(self, stage_idx=None):

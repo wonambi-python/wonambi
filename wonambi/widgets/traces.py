@@ -285,18 +285,24 @@ class Traces(QGraphicsView):
 
         act = QAction('Go to next event', self)
         act.setShortcut('s')
-        #act.triggered.connect(self.next_event)
+        act.triggered.connect(self.next_event)
         actions['next_event'] = act
         
         act = QAction('Delete event and go to next', self)
         act.setShortcut('d')
-        #act.triggered.connect(self.next_event)
+        act.triggered.connect(self.next_event)
+        act.setEnabled(False)
         actions['del_and_next_event'] = act
         
         act = QAction('Next event of same type', self)
         act.setCheckable(True)
         act.setChecked(False)
         actions['next_of_same_type'] = act
+        
+        act = QAction('Centre window around event', self)
+        act.setCheckable(True)
+        act.setChecked(False)
+        actions['centre_event'] = act
         
         act = QAction('Full-length markers', self)
         act.setCheckable(True)
@@ -978,8 +984,8 @@ class Traces(QGraphicsView):
         annot : intance of wonambi.widgets.utils.RectMarker
             existing annotation
         """
-        beg = annot.marker.x() - 0.5
-        end = beg + annot.marker.width() + 1
+        beg = annot.marker.x()
+        end = beg + annot.marker.width()
         msg = 'Event from ' + str(beg) + ' to ' + str(end)
         self.parent.statusBar().showMessage(msg)
         highlight = RectMarker(annot.marker.x(),
@@ -999,8 +1005,10 @@ class Traces(QGraphicsView):
             return
         
         notes = self.parent.notes
+        #lg.info('looking for marker : {} - {}'.format(event_sel.marker.x(), 
+        #        event_sel.marker.x() + event_sel.marker.width()))
         row = notes.find_row(event_sel.marker.x(),
-                             event_sel.marker.x() + event_sel.marker.width())
+                        event_sel.marker.x() + event_sel.marker.width())
         lg.info('current row: ' + str(row))
         
         if row == notes.idx_annot_list.rowCount():
