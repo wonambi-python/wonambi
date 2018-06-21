@@ -70,6 +70,7 @@ fieldtrip_file = EXPORTED_PATH / 'fieldtrip.mat'
 wonambi_file = EXPORTED_PATH / 'exported.won'
 brainvision_file = EXPORTED_PATH / 'brainvision.vhdr'
 svg_file = EXPORTED_PATH / 'graphics_svg'
+bids_dir = EXPORTED_PATH / 'bids'
 
 # Store images
 DOCS_PATH = test_path.parent / 'docs'

@@ -141,7 +141,7 @@ def _write_ieeg_channels(output_file, data):
                 one_chan,
                 CHAN_TYPE,
                 CHAN_UNIT,
-                f'{data.s_freq:.3f}',
+                f'{data.s_freq:f}',
                 'n/a',
                 'n/a',
                 'n/a',
@@ -156,4 +156,4 @@ def _write_ieeg_events(output_file, markers):
         for mrk in markers:
             onset = mrk['start']
             duration = mrk['end'] - mrk['start']
-            f.write(f'{onset:.3f}\t{duration:.3f}\t{mrk["name"]}\n')
+            f.write(f'{onset:f}\t{duration:f}\t{mrk["name"]}\n')
