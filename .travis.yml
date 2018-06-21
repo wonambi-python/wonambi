@@ -7,6 +7,7 @@ env:
   global:
    - DOWNLOADS=$HOME/downloads
    - HTML_PATH=docs/build/html
+   - OPT_DEP='nibabel pyqt5 vispy h5py fooof'
 
 cache: 
  - directories:
@@ -21,7 +22,7 @@ before_install:
 install: 
  # install requirements
  - pip install numpy scipy
- - pip install nibabel pyqt5 vispy h5py fooof
+ - pip install $OPT_DEP
  - pip install pytest pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme
  - pip install -e .
@@ -34,14 +35,11 @@ script:
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
- - python -m venv venvimport 
- - source venvimport/bin/activate
- - pip install numpy scipy
- - pip install pytest pytest-cov
+ - pip uninstall -y $OPT_DEP
  - python setup_wonambi.py --test_import
- - deactivate
 
- # run the docs with all the packages
+ # reinstall optional requirements to run the docs
+ - pip install $OPT_DEP
  - python setup_wonambi.py --docs
 
 after_success:
