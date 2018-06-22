@@ -303,3 +303,12 @@ def test_fft_multiple_chan():
     f, Sxx = _fft(x, data.s_freq, detrend=None, sides='two', output='complex')
     f, Sxx_chan = _fft(x_chan, data.s_freq, detrend=None, sides='two', output='complex')
     assert_array_equal(Sxx, Sxx_chan[0, ...])
+
+
+def test_frequency_attr():
+    data.attr['xxx'] = True
+    freq = frequency(data)
+    assert freq.attr['xxx']
+
+    timefreq = timefrequency(data, method='spectrogram')
+    assert timefreq.attr['xxx']

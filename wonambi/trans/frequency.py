@@ -4,7 +4,7 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, copy, empty, exp, max, mean, pi, 
+from numpy import (arange, array, asarray, copy, empty, exp, max, mean, pi,
                    real, sqrt, swapaxes)
 from numpy.linalg import norm
 import numpy.fft as np_fft
@@ -100,7 +100,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
 
     if duration is not None and output == 'complex':
         raise ValueError('cannot average the complex spectrum over multiple epochs')
-        
+
     if output == 'csd' and data.number_of('chan') != 2:
         raise ValueError('CSD can only be computed between two channels')
 
@@ -112,6 +112,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
             nstep = nperseg - int(overlap * nperseg)
 
     freq = ChanFreq()
+    freq.attr = deepcopy(data.attr)
     freq.s_freq = data.s_freq
     freq.start_time = data.start_time
     freq.axis['chan'] = copy(data.axis['chan'])
@@ -254,6 +255,7 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     options = default_options
 
     timefreq = ChanTimeFreq()
+    timefreq.attr = deepcopy(data.attr)
     timefreq.s_freq = data.s_freq
     timefreq.start_time = data.start_time
     timefreq.axis['chan'] = data.axis['chan']
