@@ -193,6 +193,7 @@ class Traces(QGraphicsView):
         self.cross_chan_mrk = True
         self.highlight = None
         self.event_sel = None
+        self.current_event_row = None
         self.deselect = None
         self.ready = True
 
@@ -290,18 +291,17 @@ class Traces(QGraphicsView):
         
         act = QAction('Delete event and go to next', self)
         act.setShortcut('d')
-        act.triggered.connect(self.next_event)
-        act.setEnabled(False)
+        act.triggered.connect(partial(self.next_event, True))
         actions['del_and_next_event'] = act
         
         act = QAction('Next event of same type', self)
         act.setCheckable(True)
-        act.setChecked(False)
+        act.setChecked(True)
         actions['next_of_same_type'] = act
         
         act = QAction('Centre window around event', self)
         act.setCheckable(True)
-        act.setChecked(False)
+        act.setChecked(True)
         actions['centre_event'] = act
         
         act = QAction('Full-length markers', self)
@@ -772,6 +772,7 @@ class Traces(QGraphicsView):
         if self.event_sel:
             self.deselect = True
             self.event_sel = None
+            self.current_event_row = None
             highlight = self.highlight
             self.scene.removeItem(highlight)
             self.highlight = None
@@ -998,20 +999,28 @@ class Traces(QGraphicsView):
         self.highlight = highlight
         self.event_sel = annot
     
-    def next_event(self):
+    def next_event(self, delete=False):
         """Go to next event."""
         event_sel = self.event_sel
         if event_sel is None:
             return
         
         notes = self.parent.notes
-        #lg.info('looking for marker : {} - {}'.format(event_sel.marker.x(), 
-        #        event_sel.marker.x() + event_sel.marker.width()))
-        row = notes.find_row(event_sel.marker.x(),
-                        event_sel.marker.x() + event_sel.marker.width())
-        lg.info('current row: ' + str(row))
         
-        if row == notes.idx_annot_list.rowCount():
+        if not self.current_event_row:
+            row = notes.find_row(event_sel.marker.x(),
+                            event_sel.marker.x() + event_sel.marker.width())
+        else:
+            row = self.current_event_row
+            
+        if delete:
+            notes.delete_row()
+            msg = 'Deleted event from {} to {}.'.format(event_sel.marker.x(), 
+                            event_sel.marker.x() + event_sel.marker.width())
+            self.parent.statusBar().showMessage(msg)
+            row -= 1
+        
+        if row + 1 == notes.idx_annot_list.rowCount():
             return
         
         if not self.action['next_of_same_type'].isChecked():
@@ -1019,9 +1028,7 @@ class Traces(QGraphicsView):
         else:
             next_row = None
             target = notes.idx_annot_list.item(row, 2).text()
-            lg.info('target type: ' + target)
             types = notes.idx_annot_list.property('name')[row + 1:]
-            #lg.info('types list: ' + str(types))
             
             for i, ty in enumerate(types):
                 if ty == target:
@@ -1031,8 +1038,9 @@ class Traces(QGraphicsView):
             if not next_row:
                 return                
                     
+        self.current_event_row = next_row
         notes.go_to_marker(next_row, 0, 'annot')
-        notes.idx_annot_list.setCurrentCell(next_row + 1, 0)             
+        notes.idx_annot_list.setCurrentCell(next_row, 0)             
     
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.

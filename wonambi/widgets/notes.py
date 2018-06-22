@@ -262,6 +262,7 @@ class Notes(QTabWidget):
         tab_annot.setEditTriggers(QAbstractItemView.NoEditTriggers)
         go_to_annot = lambda r, c: self.go_to_marker(r, c, 'annot')
         tab_annot.cellDoubleClicked.connect(go_to_annot)
+        tab_annot.cellDoubleClicked.connect(self.reset_current_row)
 
         layout = QVBoxLayout()
         layout.addWidget(self.idx_eventtype_scroll, stretch=1)
@@ -812,7 +813,7 @@ class Notes(QTabWidget):
 
         window_length = self.parent.value('window_length')
         
-        if self.parent.traces.action['centre_event']:
+        if self.parent.traces.action['centre_event'].isChecked():
             window_start = (marker_time + marker_end_time - window_length) / 2
         else:
             window_start = floor(marker_time / window_length) * window_length
@@ -1585,6 +1586,10 @@ class Notes(QTabWidget):
         self.update_annotations()
 
         self.parent.create_menubar()  # remove all raters
+        
+    def reset_current_row(self):
+        """For traces.next_event"""
+        self.parent.traces.current_event_row = None
 
 
 class MergeDialog(QDialog):

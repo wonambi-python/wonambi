@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.23**: improved event navigation
 - **5.22**: frequency and timefrequency should keep attributes
 - **5.21**: import and export bids
 - **5.20**: fixes for cycles, ferrarelli spindle detection, EDF handling
