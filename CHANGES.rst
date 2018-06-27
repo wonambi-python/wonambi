@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.25**: export events dialog
+- **5.24**: event export dialog
 - **5.23**: improved event navigation
 - **5.22**: frequency and timefrequency should keep attributes
 - **5.21**: import and export bids

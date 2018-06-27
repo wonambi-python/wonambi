@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 from functools import partial
 from logging import getLogger
 from numpy import asarray, floor
-from math import isclose
 from os.path import basename, splitext
 from pathlib import Path
 
@@ -430,13 +429,9 @@ class Notes(QTabWidget):
         act.triggered.connect(self.export)
         actions['export'] = act
 
-        act = QAction('CSV', self)
-        act.triggered.connect(partial(self.export_events, 'csv'))
-        actions['exp_evt_csv'] = act
-        
-        act = QAction('Brain Vision', self)
-        act.triggered.connect(partial(self.export_events, 'brainvision'))
-        actions['exp_evt_brainvision'] = act
+        act = QAction('Export events...', self)
+        act.triggered.connect(self.parent.show_export_events_dialog)
+        actions['export_events'] = act
 
         act = QAction('Spindle...', self)
         act.triggered.connect(self.parent.show_spindle_dialog)
@@ -1463,54 +1458,6 @@ class Notes(QTabWidget):
 
         self.annot.export(filename)
 
-    def export_events(self, xformat):
-        """Export events to external file of desired format.
-        
-        Parameters
-        ----------
-        xformat : str
-            export file format: 'csv' or 'brainvision'
-        """
-        if self.annot is None:  # remove if buttons are disabled
-            self.parent.statusBar().showMessage('No score file loaded')
-            return
-        
-        name, ok = QInputDialog.getText(self, 'Choose Event Type',
-                                          'Enter event type to export')
-        
-        if not ok:
-            return
-        
-        if name not in self.annot.event_types:
-            self.parent.statusBar.showMessage('No such event type.')
-            return
-        
-        fn, _ = QFileDialog.getSaveFileName(self, 'Export events', name)
-        
-        if fn == '':
-            return
-        
-        fn = Path(fn).resolve()
-        
-        if 'csv' == xformat:
-            self.annot.export_events(fn, [name])
-            return
-            
-        events = self.annot.get_events(name=name)
-        
-        if events is None:
-            self.parent.statusBar.showMessage('No events found.')
-            return
-        
-        if 'brainvision' == xformat:
-            dataset = self.parent.info.dataset
-            data = ChanTime()
-            data.start_time = dataset.header['start_time']
-            data.s_freq = int(dataset.header['s_freq'])
-            
-            with fn.with_suffix('.vmrk').open('w') as f:
-                f.write(_write_vmrk(data, fn, events))
-        
     def import_events(self):
         """action: import events from Wonambi CSV event export."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1785,3 +1732,125 @@ class NewUserDialog(QDialog):
 
         elif button == self.idx_cancel:
             self.reject()
+
+
+class ExportEventsDialog(QDialog):
+    """Dialog for choosing export dataset options."""
+    def __init__(self, parent):
+        super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        self.parent = parent
+        
+        self.setWindowTitle('Export events')
+        self.setWindowModality(Qt.WindowModal)
+        self.filename = None
+
+        self.create_dialog()
+
+    def create_dialog(self):
+        """Create the dialog."""
+        bbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.idx_ok = bbox.button(QDialogButtonBox.Ok)
+        self.idx_cancel = bbox.button(QDialogButtonBox.Cancel)
+
+        filebutton = QPushButton()
+        filebutton.setText('Choose')
+        self.idx_filename = filebutton
+        
+        self.xp_format = FormMenu(['CSV', 'Brain Vision'])
+        self.all_types = FormBool('All event types')
+        
+        self.idx_evt_type = QListWidget()
+        self.idx_evt_type.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        
+        filebutton.clicked.connect(self.save_as)
+        self.all_types.connect(self.toggle_buttons)
+        bbox.clicked.connect(self.button_clicked)
+        
+        form = QFormLayout()
+        form.addRow('Filename', self.idx_filename)
+        form.addRow('Format', self.xp_format)
+        form.addRow(self.all_types)
+        form.addRow('Event type(s)', self.idx_evt_type)
+        
+        btnlayout = QHBoxLayout()
+        btnlayout.addStretch(1)
+        btnlayout.addWidget(bbox)
+
+        vlayout = QVBoxLayout()
+        vlayout.addLayout(form)
+        vlayout.addStretch(1)
+        vlayout.addLayout(btnlayout)
+
+        self.setLayout(vlayout)
+        
+    def button_clicked(self, button):
+        """Action when button was clicked.
+
+        Parameters
+        ----------
+        button : instance of QPushButton
+            which button was pressed
+        """
+        if button is self.idx_ok:            
+            fn = Path(self.filename)
+            xp_format = self.xp_format.get_value()
+            
+            if self.all_types.get_value():
+                evt_type = self.event_types
+            else:
+                evt_type = [
+                        x.text() for x in self.idx_evt_type.selectedItems()]
+                
+            if 'CSV' == xp_format:
+                                
+                self.parent.notes.annot.export_events(fn, evt_type)
+            
+            elif 'Brain Vision' == xp_format:
+                
+                events = []
+                for et in evt_type:                
+                    events.extend(self.parent.notes.annot.get_events(name=et))
+        
+                if not events:
+                    self.parent.statusBar.showMessage('No events found.')
+                    return
+                
+                dataset = self.parent.info.dataset
+                data = ChanTime()
+                data.start_time = dataset.header['start_time']
+                data.s_freq = int(dataset.header['s_freq'])
+                
+                with fn.with_suffix('.vmrk').open('w') as f:
+                    lg.info('Writing to ' + str(fn) + '.vmrk')
+                    f.write(_write_vmrk(data, fn, events))
+                
+            self.accept()
+            
+        if button is self.idx_cancel:
+            self.reject()
+        
+    def update(self):
+        """Update the event types list, info, when dialog is opened."""
+        self.filename = self.parent.notes.annot.xml_file
+        
+        self.event_types = self.parent.notes.annot.event_types
+        self.idx_evt_type.clear()
+        for ev in self.event_types:
+            self.idx_evt_type.addItem(ev)
+            
+    def toggle_buttons(self):
+        """Turn buttons on and off."""
+        all_types = self.all_types.get_value()
+        self.idx_evt_type.setEnabled(not all_types)
+    
+    def save_as(self):
+        """Dialog for getting name, location of dataset export."""
+        filename = splitext(self.filename)[0]
+        filename, _ = QFileDialog.getSaveFileName(self, 'Export events',
+                                                  filename)
+        if filename == '':
+            return
+
+        self.filename = filename
+        short_filename = short_strings(basename(self.filename))
+        self.idx_filename.setText(short_filename)

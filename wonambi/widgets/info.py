@@ -339,8 +339,8 @@ class ExportDatasetDialog(QDialog):
 
     def create_dialog(self):
         """Create the dialog."""
-        self.bbox = QDialogButtonBox(QDialogButtonBox.Help |
-                QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.bbox = QDialogButtonBox(QDialogButtonBox.Ok | 
+                QDialogButtonBox.Cancel)
         self.idx_ok = self.bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = self.bbox.button(QDialogButtonBox.Cancel)
 
