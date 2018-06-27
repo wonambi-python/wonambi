@@ -166,6 +166,11 @@ class MainWindow(QMainWindow):
         """Create the event merging dialog."""
         self.merge_dialog.update_event_types()
         self.merge_dialog.show()
+        
+    def show_export_events_dialog(self):
+        """Create the events export dialog."""
+        self.export_events_dialog.update()
+        self.export_events_dialog.show()        
 
     def show_export_dataset_dialog(self):
         """Create the dataset export dialog."""
