@@ -17,7 +17,7 @@ from .labels import Labels
 from .channels import Channels
 from .info import Info, ExportDatasetDialog
 from .overview import Overview
-from .notes import Notes, MergeDialog
+from .notes import Notes, MergeDialog, ExportEventsDialog
 from .detect_dialogs import SpindleDialog, SWDialog
 from .analysis import AnalysisDialog
 from .spectrum import Spectrum
@@ -38,6 +38,7 @@ def create_widgets(MAIN):
     MAIN.channels = Channels(MAIN)
     MAIN.notes = Notes(MAIN)
     MAIN.merge_dialog = MergeDialog(MAIN)
+    MAIN.export_events_dialog = ExportEventsDialog(MAIN)
     MAIN.export_dataset_dialog = ExportDatasetDialog(MAIN)
     MAIN.spindle_dialog = SpindleDialog(MAIN)
     MAIN.slow_wave_dialog = SWDialog(MAIN)
@@ -281,10 +282,13 @@ def create_menubar(MAIN):
     menu_annot.addSeparator()
     
     menu_annot.addAction(actions['export'])
+    menu_annot.addAction(actions['export_events'])
     
-    submenu_exp_evt = menu_annot.addMenu('Export events')
-    submenu_exp_evt.addAction(actions['exp_evt_csv'])
-    submenu_exp_evt.addAction(actions['exp_evt_brainvision'])
+#==============================================================================
+#     submenu_exp_evt = menu_annot.addMenu('Export events')
+#     submenu_exp_evt.addAction(actions['exp_evt_csv'])
+#     submenu_exp_evt.addAction(actions['exp_evt_brainvision'])
+#==============================================================================
     
     menu_annot.addSeparator()
     
