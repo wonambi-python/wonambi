@@ -4,8 +4,6 @@ source ~/.bashrc_secrets
 
 export R_LIBS_USER=~/tools/Rlib
 
-export PATH=~/tools/dcm2nii:$PATH
-
 # common folder
 export FRIDGE=/Fridge/users/giovanni
 
