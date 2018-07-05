@@ -566,7 +566,7 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
             for i, j in enumerate(bund['times']):
 
                 if last is not None:
-                    if not isclose(j[0], last, abs_tol=0.1):
+                    if not isclose(j[0], last, abs_tol=0.01):
                         new_times = bund['times'][start:i]
                         new_bund = bund.copy()
                         new_bund['times'] = new_times
