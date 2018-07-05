@@ -93,6 +93,7 @@ class ConfigNotes(Config):
         self.index['marker_color'] = FormStr()
         self.index['annot_show'] = FormBool('Display User-Made Annotations')
         self.index['annot_bookmark_color'] = FormStr()
+        self.index['min_marker_display_dur'] = FormFloat()
         self.index['min_marker_dur'] = FormFloat()
 
         flayout = QFormLayout()
@@ -102,6 +103,8 @@ class ConfigNotes(Config):
         flayout.addRow(self.index['annot_show'])
         flayout.addRow('Color of bookmarks in annotations',
                            self.index['annot_bookmark_color'])
+        flayout.addRow('Event markers appear at least this long on trace',
+                       self.index['min_marker_display_dur'])
         flayout.addRow('Below this duration, markers and events have no '
                            'duration', self.index['min_marker_dur'])
 

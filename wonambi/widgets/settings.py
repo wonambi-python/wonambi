@@ -46,6 +46,7 @@ DEFAULTS['notes'] = {'marker_show': True,
                      'annot_show': True,
                      'annot_bookmark_color': 'darkMagenta',
                      'min_marker_dur': .1,
+                     'min_marker_display_dur': .1,
                      'scoring_window': 30,
                      }
 DEFAULTS['traces'] = {'n_time_labels': 3,
