@@ -6,6 +6,7 @@ from csv import reader, writer
 from datetime import datetime, timedelta
 from numpy import allclose, around, asarray, isnan, logical_and, modf, nan
 from math import ceil, inf
+from os.path import splitext
 from pathlib import Path
 from re import search, sub
 from scipy.io import loadmat
@@ -1273,7 +1274,7 @@ class Annotations():
         evt_type : list of str
             event types to export
         """
-        filename = str(filename) + '.csv'
+        filename = splitext(filename)[0] + '.csv'
         headings_row = ['Index',
                        'Start time',
                        'End time',

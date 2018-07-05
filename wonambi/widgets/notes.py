@@ -631,7 +631,9 @@ class Notes(QTabWidget):
 
         # store information about the time as list (easy to access)
         marker_start = [mrk['start'] for mrk in markers]
+        marker_end = [mrk['end'] for mrk in markers]
         self.idx_marker.setProperty('start', marker_start)
+        self.idx_marker.setProperty('end', marker_end)
 
         if self.parent.traces.data is not None:
             self.parent.traces.display()
@@ -802,6 +804,7 @@ class Notes(QTabWidget):
         """
         if table_type == 'dataset':
             marker_time = self.idx_marker.property('start')[row]
+            marker_end_time = self.idx_marker.property('end')[row]
         else:
             marker_time = self.idx_annot_list.property('start')[row]
             marker_end_time = self.idx_annot_list.property('end')[row]
