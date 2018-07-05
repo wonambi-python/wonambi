@@ -5,7 +5,7 @@ from functools import partial
 from logging import getLogger
 from re import compile
 
-from numpy import (abs, arange, argmin, around, asarray, ceil, empty, floor,
+from numpy import (abs, amax, arange, argmin, around, asarray, ceil, empty, floor,
                    in1d, max, min, linspace, log2, logical_or, nan_to_num,
                    nanmean, pad, power)
 
@@ -609,8 +609,10 @@ class Traces(QGraphicsView):
                     item.setRotation(-90)
                     self.scene.addItem(item)
                     self.idx_annot_labels.append(item)
+                    mrk_dur = amax((mrk_end - mrk_start, 
+                                  self.parent.value('min_marker_display_dur')))
 
-                    item = RectMarker(mrk_start, 0, mrk_end - mrk_start,
+                    item = RectMarker(mrk_start, 0, mrk_dur,
                                       h_annot, zvalue=-8,
                                       color=color.lighter(120))
 
@@ -622,9 +624,11 @@ class Traces(QGraphicsView):
                     chan_idx_in_mrk = in1d(self.chan, annot['chan'])
                     y_annot = asarray(self.chan_pos)[chan_idx_in_mrk]
                     y_annot -= y_distance / 2
+                    mrk_dur = amax((mrk_end - mrk_start, 
+                                  self.parent.value('min_marker_display_dur')))
 
                     for y in y_annot:
-                        item = RectMarker(mrk_start, y, mrk_end - mrk_start,
+                        item = RectMarker(mrk_start, y, mrk_dur,
                                           y_distance, zvalue=-7, color=color)
                         self.scene.addItem(item)
                         self.idx_annot.append(item)
