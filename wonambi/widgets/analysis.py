@@ -1365,12 +1365,9 @@ class AnalysisDialog(ChannelDialog):
 
             """ ------ EVENTS ------ """
 
-            evt_output = self.compute_evt_params()
-            lg.info('evtoutput ' + str(type(evt_output)))
+            glob, loc, evt_output = self.compute_evt_params()
 
-            if evt_output is not None:
-                glob, loc = evt_output
-                lg.info('export evt params; glob: ' + str(glob))
+            if glob or evt_output:
                 self.export_evt_params(glob, loc)
                 self.parent.overview.mark_poi() # remove poi
 
@@ -1880,7 +1877,7 @@ class AnalysisDialog(ChannelDialog):
         freq = list(xfreq[0]['data'].axis['freq'][0])
 
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+            lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(heading_row_1 + freq)
 
@@ -1947,7 +1944,7 @@ class AnalysisDialog(ChannelDialog):
         desc = get_descriptives(as_matrix)
 
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+            lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(heading_row_1 + band_hdr)
             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
@@ -2046,7 +2043,7 @@ class AnalysisDialog(ChannelDialog):
         fm.fit(x, y, freq_range)
 
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+            lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(['FOOOF - POWER SPECTRUM MODEL'])
             csv_file.writerow('')
@@ -2263,7 +2260,7 @@ class AnalysisDialog(ChannelDialog):
             heading_row_2.extend(heading_row_3)
 
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+            lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(heading_row_1 + heading_row_2)
             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
@@ -2323,6 +2320,7 @@ class AnalysisDialog(ChannelDialog):
 
         glob_out = {}
         loc_out = []
+        evt_output = False
 
         if glob['count']:
             glob_out['count'] = self.nseg
@@ -2337,30 +2335,32 @@ class AnalysisDialog(ChannelDialog):
 
         for i, seg in enumerate(self.data):
             out = dict(seg)
-            dat = seg['data']
-            timeline = dat.axis['time'][0]
-            out['times'] = timeline[0], timeline[-1]
+            dat = seg['data']            
 
             if loc['dur']:
                 out['dur'] = float(dat.number_of('time')) / dat.s_freq
+                evt_output = True
 
             if loc['minamp']:
                 dat1 = dat
                 if loc_prep['minamp']:
                     dat1 = seg['trans_data']
                 out['minamp'] = math(dat1, operator=_amin, axis='time')
+                evt_output = True
 
             if loc['maxamp']:
                 dat1 = dat
                 if loc_prep['maxamp']:
                     dat1 = seg['trans_data']
                 out['maxamp'] = math(dat1, operator=_amax, axis='time')
+                evt_output = True
 
             if loc['ptp']:
                 dat1 = dat
                 if loc_prep['ptp']:
                     dat1 = seg['trans_data']
                 out['ptp'] = math(dat1, operator=_ptp, axis='time')
+                evt_output = True
 
             if loc['rms']:
                 dat1 = dat
@@ -2368,10 +2368,12 @@ class AnalysisDialog(ChannelDialog):
                     dat1 = seg['trans_data']
                 out['rms'] = math(dat1, operator=(square, _mean, sqrt),
                    axis='time')
+                evt_output = True
 
             for pw, pk in [('power', 'peakpf'), ('energy', 'peakef')]:
 
                 if loc[pw] or loc[pk]:
+                    evt_output = True
 
                     if loc_prep[pw] or loc_prep[pk]:
                         prep_pw, prep_pk = band_power(seg['trans_data'], freq,
@@ -2391,6 +2393,7 @@ class AnalysisDialog(ChannelDialog):
                         out[pk] = raw_pk
 
             if avg_slope or max_slope:
+                evt_output = True
                 out['slope'] = {}
                 dat1 = dat
                 if slope_prep:
@@ -2408,8 +2411,11 @@ class AnalysisDialog(ChannelDialog):
                 for chan in dat1.axis['chan'][0]:
                     d = dat1(chan=chan)[0]
                     out['slope'][chan] = slopes(d, dat.s_freq, level=level)
-
-            loc_out.append(out)
+                    
+            if evt_output:
+                timeline = dat.axis['time'][0]
+                out['times'] = timeline[0], timeline[-1]
+                loc_out.append(out)
 
             progress.setValue(i)
             if progress.wasCanceled():
@@ -2419,7 +2425,7 @@ class AnalysisDialog(ChannelDialog):
 
         progress.close()
 
-        return glob_out, loc_out
+        return glob_out, loc_out, evt_output
 
     def export_evt_params(self, glob, loc):
         """Write event analysis data to CSV."""
@@ -2506,7 +2512,7 @@ class AnalysisDialog(ChannelDialog):
         #    dump(dat, f)
 
         with open(csv_filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(csv_filename))
+            lg.info('Writing to ' + str(csv_filename))
             csv_file = writer(f)
 
             if 'count' in glob.keys():
