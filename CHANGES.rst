@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.27**: improvements for event deletion
 - **5.26**: bugfixes; min event display duration
 - **5.25**: bugfixes for event selection, marker naviagation
 - **5.24**: event export dialog

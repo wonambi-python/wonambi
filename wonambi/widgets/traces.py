@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (QAction,
                              QGraphicsView,
                              QGroupBox,
                              QInputDialog,
+                             QMessageBox,
                              QVBoxLayout,
                              )
 
@@ -1005,6 +1006,15 @@ class Traces(QGraphicsView):
     
     def next_event(self, delete=False):
         """Go to next event."""
+        if delete:
+            msg = "Delete this event? This cannot be undone."
+            msgbox = QMessageBox(QMessageBox.Question, 'Delete event', msg)
+            msgbox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            msgbox.setDefaultButton(QMessageBox.Yes)
+            response = msgbox.exec_()
+            if response == QMessageBox.No:
+                return
+        
         event_sel = self.event_sel
         if event_sel is None:
             return
@@ -1017,7 +1027,11 @@ class Traces(QGraphicsView):
         else:
             row = self.current_event_row
             
-        if delete:
+        same_type = self.action['next_of_same_type'].isChecked()
+        if same_type:
+            target = notes.idx_annot_list.item(row, 2).text()
+        
+        if delete:            
             notes.delete_row()
             msg = 'Deleted event from {} to {}.'.format(event_sel.marker.x(), 
                             event_sel.marker.x() + event_sel.marker.width())
@@ -1027,11 +1041,10 @@ class Traces(QGraphicsView):
         if row + 1 == notes.idx_annot_list.rowCount():
             return
         
-        if not self.action['next_of_same_type'].isChecked():
+        if not same_type:
             next_row = row + 1
         else:
             next_row = None
-            target = notes.idx_annot_list.item(row, 2).text()
             types = notes.idx_annot_list.property('name')[row + 1:]
             
             for i, ty in enumerate(types):
@@ -1039,7 +1052,7 @@ class Traces(QGraphicsView):
                     next_row = row + 1 + i
                     break
                     
-            if not next_row:
+            if next_row is None:
                 return                
                     
         self.current_event_row = next_row
