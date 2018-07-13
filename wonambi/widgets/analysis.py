@@ -2,10 +2,9 @@
 """
 from logging import getLogger
 
-from numpy import (abs, amax, amin, angle, asarray, ceil, concatenate,
-                   diff, empty, floor, in1d, inf, logical_and, logical_or,
-                   mean, negative, ptp, ravel, reshape, sqrt, square, stack,
-                   zeros)
+from numpy import (abs, angle, asarray, ceil, concatenate, diff, empty, floor, 
+                   in1d, inf, logical_and, logical_or, mean, ravel, reshape, 
+                   stack, zeros)
 from itertools import compress
 from functools import partial
 from csv import writer
@@ -58,7 +57,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 from .. import ChanFreq
 from ..trans import (math, filter_, frequency, get_descriptives, band_power,
-                     fetch, get_times, slopes)
+                     fetch, get_times, event_params, export_event_params)
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME, ICON)
@@ -1365,13 +1364,13 @@ class AnalysisDialog(ChannelDialog):
 
             """ ------ EVENTS ------ """
 
-            glob, loc, evt_output = self.compute_evt_params()
+            evt_dat, count, density = self.compute_evt_params()
 
-            if glob or evt_output:
-                self.export_evt_params(glob, loc)
-                self.parent.overview.mark_poi() # remove poi
-
-
+            if (evt_dat or count or density):
+                fn = splitext(self.filename)[0] + '_params.csv'
+                export_event_params(fn, evt_dat, count=count, density=density)
+            
+            self.parent.overview.mark_poi() # remove poi
             self.accept()
 
         if button is self.idx_cancel:
@@ -2297,266 +2296,296 @@ class AnalysisDialog(ChannelDialog):
 
     def compute_evt_params(self):
         """Compute event parameters."""
-        progress = QProgressDialog('Computing parameters', 'Abort',
-                                   0, len(self.data) - 1, self)
-        progress.setWindowModality(Qt.ApplicationModal)
-
         ev = self.event
         glob = {k: v.get_value() for k, v in ev['global'].items()}
-        loc = {k: v[0].get_value() for k, v in ev['local'].items()}
-        loc_prep = {k: v[1].get_value() for k, v in ev['local'].items()}
-
-        f1, f2 = ev['f1'].get_value(), ev['f2'].get_value()
-        if not f1:
-            f1 = 0
+        params = {k: v[0].get_value() for k, v in ev['local'].items()}
+        prep = {k: v[1].get_value() for k, v in ev['local'].items()}
+        slopes = {k: v.get_value() for k, v in ev['sw'].items()}
+        f1 = ev['f1'].get_value()
+        f2 = ev['f2'].get_value()
         if not f2:
-            f2 = 100000 # arbitrarily high frequency
-        freq = f1, f2
-
-        avg_slope = ev['sw']['avg_slope'].get_value()
-        max_slope = ev['sw']['max_slope'].get_value()
-        slope_prep = ev['sw']['prep'].get_value()
-        invert = ev['sw']['invert'].get_value()
-
-        glob_out = {}
-        loc_out = []
-        evt_output = False
-
+            f2 = None
+        band = (f1, f2)
+        
+        evt_dat = event_params(self.data, params, band=band, slopes=slopes, 
+                               prep=prep, parent=self)
+        
+        count = None
+        density = None
         if glob['count']:
-            glob_out['count'] = self.nseg
-
+            count = len(self.data)
         if glob['density']:
             epoch_dur = glob['density_per']
             # get period of interest based on stage and cycle selection
             poi = get_times(self.parent.notes.annot, stage=self.stage,
                             cycle=self.cycle, exclude=True)
             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
-            glob_out['density'] = self.nseg / (total_dur / epoch_dur)
+            density = len(self.data) / (total_dur / epoch_dur)
+        
+        return evt_dat, count, density                
+    
+# =============================================================================
+#     def compute_evt_params(self):
+#         """Compute event parameters."""
+#         progress = QProgressDialog('Computing parameters', 'Abort',
+#                                    0, len(self.data) - 1, self)
+#         progress.setWindowModality(Qt.ApplicationModal)
+# 
+#         ev = self.event
+#         glob = {k: v.get_value() for k, v in ev['global'].items()}
+#         loc = {k: v[0].get_value() for k, v in ev['local'].items()}
+#         loc_prep = {k: v[1].get_value() for k, v in ev['local'].items()}
+# 
+#         f1, f2 = ev['f1'].get_value(), ev['f2'].get_value()
+#         if not f1:
+#             f1 = 0
+#         if not f2:
+#             f2 = 100000 # arbitrarily high frequency
+#         freq = f1, f2
+# 
+#         avg_slope = ev['sw']['avg_slope'].get_value()
+#         max_slope = ev['sw']['max_slope'].get_value()
+#         slope_prep = ev['sw']['prep'].get_value()
+#         invert = ev['sw']['invert'].get_value()
+# 
+#         glob_out = {}
+#         loc_out = []
+#         evt_output = False
+# 
+#         if glob['count']:
+#             glob_out['count'] = self.nseg
+# 
+#         if glob['density']:
+#             epoch_dur = glob['density_per']
+#             # get period of interest based on stage and cycle selection
+#             poi = get_times(self.parent.notes.annot, stage=self.stage,
+#                             cycle=self.cycle, exclude=True)
+#             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
+#             glob_out['density'] = self.nseg / (total_dur / epoch_dur)
+# 
+#         for i, seg in enumerate(self.data):
+#             out = dict(seg)
+#             dat = seg['data']            
+# 
+#             if loc['dur']:
+#                 out['dur'] = float(dat.number_of('time')) / dat.s_freq
+#                 evt_output = True
+# 
+#             if loc['minamp']:
+#                 dat1 = dat
+#                 if loc_prep['minamp']:
+#                     dat1 = seg['trans_data']
+#                 out['minamp'] = math(dat1, operator=_amin, axis='time')
+#                 evt_output = True
+# 
+#             if loc['maxamp']:
+#                 dat1 = dat
+#                 if loc_prep['maxamp']:
+#                     dat1 = seg['trans_data']
+#                 out['maxamp'] = math(dat1, operator=_amax, axis='time')
+#                 evt_output = True
+# 
+#             if loc['ptp']:
+#                 dat1 = dat
+#                 if loc_prep['ptp']:
+#                     dat1 = seg['trans_data']
+#                 out['ptp'] = math(dat1, operator=_ptp, axis='time')
+#                 evt_output = True
+# 
+#             if loc['rms']:
+#                 dat1 = dat
+#                 if loc_prep['rms']:
+#                     dat1 = seg['trans_data']
+#                 out['rms'] = math(dat1, operator=(square, _mean, sqrt),
+#                    axis='time')
+#                 evt_output = True
+# 
+#             for pw, pk in [('power', 'peakpf'), ('energy', 'peakef')]:
+# 
+#                 if loc[pw] or loc[pk]:
+#                     evt_output = True
+# 
+#                     if loc_prep[pw] or loc_prep[pk]:
+#                         prep_pw, prep_pk = band_power(seg['trans_data'], freq,
+#                                                      scaling=pw, perhz=False)
+#                     if not (loc_prep[pw] and loc_prep[pk]):
+#                         raw_pw, raw_pk = band_power(dat, freq, scaling=pw,
+#                                                     perhz=False)
+# 
+#                     if loc_prep[pw]:
+#                         out[pw] = prep_pw
+#                     else:
+#                         out[pw] = raw_pw
+# 
+#                     if loc_prep[pk]:
+#                         out[pk] = prep_pk
+#                     else:
+#                         out[pk] = raw_pk
+# 
+#             if avg_slope or max_slope:
+#                 evt_output = True
+#                 out['slope'] = {}
+#                 dat1 = dat
+#                 if slope_prep:
+#                     dat1 = seg['trans_data']
+#                 if invert:
+#                     dat1 = math(dat1, operator=negative, axis='time')
+# 
+#                 if avg_slope and max_slope:
+#                     level = 'all'
+#                 elif avg_slope:
+#                     level = 'average'
+#                 else:
+#                     level = 'maximum'
+# 
+#                 for chan in dat1.axis['chan'][0]:
+#                     d = dat1(chan=chan)[0]
+#                     out['slope'][chan] = slopes(d, dat.s_freq, level=level)
+#                     
+#             if evt_output:
+#                 timeline = dat.axis['time'][0]
+#                 out['times'] = timeline[0], timeline[-1]
+#                 loc_out.append(out)
+# 
+#             progress.setValue(i)
+#             if progress.wasCanceled():
+#                 msg = 'Analysis canceled by user.'
+#                 self.parent.statusBar().showMessage(msg)
+#                 return
+# 
+#         progress.close()
+# 
+#         return glob_out, loc_out, evt_output
+# =============================================================================
 
-        for i, seg in enumerate(self.data):
-            out = dict(seg)
-            dat = seg['data']            
-
-            if loc['dur']:
-                out['dur'] = float(dat.number_of('time')) / dat.s_freq
-                evt_output = True
-
-            if loc['minamp']:
-                dat1 = dat
-                if loc_prep['minamp']:
-                    dat1 = seg['trans_data']
-                out['minamp'] = math(dat1, operator=_amin, axis='time')
-                evt_output = True
-
-            if loc['maxamp']:
-                dat1 = dat
-                if loc_prep['maxamp']:
-                    dat1 = seg['trans_data']
-                out['maxamp'] = math(dat1, operator=_amax, axis='time')
-                evt_output = True
-
-            if loc['ptp']:
-                dat1 = dat
-                if loc_prep['ptp']:
-                    dat1 = seg['trans_data']
-                out['ptp'] = math(dat1, operator=_ptp, axis='time')
-                evt_output = True
-
-            if loc['rms']:
-                dat1 = dat
-                if loc_prep['rms']:
-                    dat1 = seg['trans_data']
-                out['rms'] = math(dat1, operator=(square, _mean, sqrt),
-                   axis='time')
-                evt_output = True
-
-            for pw, pk in [('power', 'peakpf'), ('energy', 'peakef')]:
-
-                if loc[pw] or loc[pk]:
-                    evt_output = True
-
-                    if loc_prep[pw] or loc_prep[pk]:
-                        prep_pw, prep_pk = band_power(seg['trans_data'], freq,
-                                                     scaling=pw, perhz=False)
-                    if not (loc_prep[pw] and loc_prep[pk]):
-                        raw_pw, raw_pk = band_power(dat, freq, scaling=pw,
-                                                    perhz=False)
-
-                    if loc_prep[pw]:
-                        out[pw] = prep_pw
-                    else:
-                        out[pw] = raw_pw
-
-                    if loc_prep[pk]:
-                        out[pk] = prep_pk
-                    else:
-                        out[pk] = raw_pk
-
-            if avg_slope or max_slope:
-                evt_output = True
-                out['slope'] = {}
-                dat1 = dat
-                if slope_prep:
-                    dat1 = seg['trans_data']
-                if invert:
-                    dat1 = math(dat1, operator=negative, axis='time')
-
-                if avg_slope and max_slope:
-                    level = 'all'
-                elif avg_slope:
-                    level = 'average'
-                else:
-                    level = 'maximum'
-
-                for chan in dat1.axis['chan'][0]:
-                    d = dat1(chan=chan)[0]
-                    out['slope'][chan] = slopes(d, dat.s_freq, level=level)
-                    
-            if evt_output:
-                timeline = dat.axis['time'][0]
-                out['times'] = timeline[0], timeline[-1]
-                loc_out.append(out)
-
-            progress.setValue(i)
-            if progress.wasCanceled():
-                msg = 'Analysis canceled by user.'
-                self.parent.statusBar().showMessage(msg)
-                return
-
-        progress.close()
-
-        return glob_out, loc_out, evt_output
-
-    def export_evt_params(self, glob, loc):
-        """Write event analysis data to CSV."""
-        basename = splitext(self.filename)[0]
-        #pickle_filename = basename + 'evtdat.p'
-        csv_filename = basename + '_evtdat.csv'
-
-        heading_row_1 = ['Segment index',
-                       'Start time',
-                       'End time',
-                       'Stitches',
-                       'Stage',
-                       'Cycle',
-                       'Event type',
-                       'Channel']
-        spacer = [''] * (len(heading_row_1) - 1)
-
-        param_headings_1 = ['Min. amplitude (uV)',
-                            'Max. amplitude (uV)',
-                            'Peak-to-peak amplitude (uV)',
-                            'RMS (uV)']
-        param_headings_2 = ['Power (uV**2)',
-                            'Peak power frequency (Hz)',
-                            'Energy (uV**2/s)',
-                            'Peak energy frequency (Hz)']
-        slope_headings = ['Q1 average slope (uV/s)',
-                          'Q2 average slope (uV/s)',
-                          'Q3 average slope (uV/s)',
-                          'Q4 average slope (uV/s)',
-                          'Q23 average slope (uV/s)',
-                          'Q1 max. slope (uV/s**2)',
-                          'Q2 max. slope (uV/s**2)',
-                          'Q3 max. slope (uV/s**2)',
-                          'Q4 max. slope (uV/s**2)',
-                          'Q23 max. slope (uV/s**2)']
-        ordered_params_1 = ['minamp', 'maxamp', 'ptp', 'rms']
-        ordered_params_2 = ['power', 'peakpf', 'energy', 'peakef']
-
-        idx_params_1 = in1d(ordered_params_1, list(loc[0].keys()))
-        sel_params_1 = list(compress(ordered_params_1, idx_params_1))
-        heading_row_2 = list(compress(param_headings_1, idx_params_1))
-
-        if 'dur' in loc[0].keys():
-            heading_row_2 = ['Duration (s)'] + heading_row_2
-
-        idx_params_2 = in1d(ordered_params_2, list(loc[0].keys()))
-        sel_params_2 = list(compress(ordered_params_2, idx_params_2))
-        heading_row_3 = list(compress(param_headings_2, idx_params_2))
-
-        heading_row_4 = []
-        if 'slope' in loc[0].keys():
-            if next(iter(loc[0]['slope']))[0]:
-                heading_row_4.extend(slope_headings[:5])
-            if next(iter(loc[0]['slope']))[1]:
-                heading_row_4.extend(slope_headings[5:])
-
-        # Get data as matrix and compute descriptives
-        dat = []
-        if 'dur' in loc[0].keys():
-            one_mat = reshape(asarray(([x['dur'] for x in loc])),
-                               (len(loc), 1))
-            dat.append(one_mat)
-
-        if sel_params_1:
-            one_mat = asarray([[seg[x](chan=chan)[0] for x in sel_params_1] \
-                    for seg in loc for chan in seg['data'].axis['chan'][0]])
-            dat.append(one_mat)
-
-        if sel_params_2:
-            one_mat = asarray([[seg[x][chan] for x in sel_params_2] \
-                    for seg in loc for chan in seg['data'].axis['chan'][0]])
-            dat.append(one_mat)
-
-        if 'slope' in loc[0].keys():
-            one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
-                    for seg in loc for chan in seg['data'].axis['chan'][0]])
-            dat.append(one_mat)
-
-        if dat:
-            dat = concatenate(dat, axis=1)
-            desc = get_descriptives(dat)
-
-        #with open(pickle_filename, 'wb') as f:
-        #    dump(dat, f)
-
-        with open(csv_filename, 'w', newline='') as f:
-            lg.info('Writing to ' + str(csv_filename))
-            csv_file = writer(f)
-
-            if 'count' in glob.keys():
-                csv_file.writerow(['Count'] + [glob['count']])
-            if 'density' in glob.keys():
-                csv_file.writerow(['Density'] + [glob['density']])
-
-            if dat == []:
-                return
-
-            csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
-                              + heading_row_4)
-            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
-            idx = 0
-
-            for seg in loc:
-
-                for chan in seg['data'].axis['chan'][0]:
-                    idx += 1
-                    data_row_1 = [seg[x](chan=chan)[0] for x in sel_params_1]
-                    data_row_2 = [seg[x][chan] for x in sel_params_2]
-
-                    if 'dur' in seg.keys():
-                        data_row_1 = [seg['dur']] + data_row_1
-
-                    if 'slope' in seg.keys():
-                        data_row_3 = [x for y in seg['slope'][chan] for x in y]
-                        data_row_2 = data_row_2 + data_row_3
-
-                    if seg['cycle'] is not None:
-                        seg['cycle'] = seg['cycle'][2]
-
-                    csv_file.writerow([idx,
-                                       seg['times'][0],
-                                       seg['times'][1],
-                                       seg['n_stitch'],
-                                       seg['stage'],
-                                       seg['cycle'],
-                                       seg['name'],
-                                       chan,
-                                       ] + data_row_1 + data_row_2)
+# =============================================================================
+#     def export_evt_params(self, glob, loc):
+#         """Write event analysis data to CSV."""
+#         basename = splitext(self.filename)[0]
+#         csv_filename = basename + '_evtdat.csv'
+# 
+#         heading_row_1 = ['Segment index',
+#                        'Start time',
+#                        'End time',
+#                        'Stitches',
+#                        'Stage',
+#                        'Cycle',
+#                        'Event type',
+#                        'Channel']
+#         spacer = [''] * (len(heading_row_1) - 1)
+# 
+#         param_headings_1 = ['Min. amplitude (uV)',
+#                             'Max. amplitude (uV)',
+#                             'Peak-to-peak amplitude (uV)',
+#                             'RMS (uV)']
+#         param_headings_2 = ['Power (uV**2)',
+#                             'Peak power frequency (Hz)',
+#                             'Energy (uV**2/s)',
+#                             'Peak energy frequency (Hz)']
+#         slope_headings = ['Q1 average slope (uV/s)',
+#                           'Q2 average slope (uV/s)',
+#                           'Q3 average slope (uV/s)',
+#                           'Q4 average slope (uV/s)',
+#                           'Q23 average slope (uV/s)',
+#                           'Q1 max. slope (uV/s**2)',
+#                           'Q2 max. slope (uV/s**2)',
+#                           'Q3 max. slope (uV/s**2)',
+#                           'Q4 max. slope (uV/s**2)',
+#                           'Q23 max. slope (uV/s**2)']
+#         ordered_params_1 = ['minamp', 'maxamp', 'ptp', 'rms']
+#         ordered_params_2 = ['power', 'peakpf', 'energy', 'peakef']
+# 
+#         idx_params_1 = in1d(ordered_params_1, list(loc[0].keys()))
+#         sel_params_1 = list(compress(ordered_params_1, idx_params_1))
+#         heading_row_2 = list(compress(param_headings_1, idx_params_1))
+# 
+#         if 'dur' in loc[0].keys():
+#             heading_row_2 = ['Duration (s)'] + heading_row_2
+# 
+#         idx_params_2 = in1d(ordered_params_2, list(loc[0].keys()))
+#         sel_params_2 = list(compress(ordered_params_2, idx_params_2))
+#         heading_row_3 = list(compress(param_headings_2, idx_params_2))
+# 
+#         heading_row_4 = []
+#         if 'slope' in loc[0].keys():
+#             if next(iter(loc[0]['slope']))[0]:
+#                 heading_row_4.extend(slope_headings[:5])
+#             if next(iter(loc[0]['slope']))[1]:
+#                 heading_row_4.extend(slope_headings[5:])
+# 
+#         # Get data as matrix and compute descriptives
+#         dat = []
+#         if 'dur' in loc[0].keys():
+#             one_mat = reshape(asarray(([x['dur'] for x in loc])),
+#                                (len(loc), 1))
+#             dat.append(one_mat)
+# 
+#         if sel_params_1:
+#             one_mat = asarray([[seg[x](chan=chan)[0] for x in sel_params_1] \
+#                     for seg in loc for chan in seg['data'].axis['chan'][0]])
+#             dat.append(one_mat)
+# 
+#         if sel_params_2:
+#             one_mat = asarray([[seg[x][chan] for x in sel_params_2] \
+#                     for seg in loc for chan in seg['data'].axis['chan'][0]])
+#             dat.append(one_mat)
+# 
+#         if 'slope' in loc[0].keys():
+#             one_mat = asarray([[x for y in seg['slope'][chan] for x in y] \
+#                     for seg in loc for chan in seg['data'].axis['chan'][0]])
+#             dat.append(one_mat)
+# 
+#         if dat:
+#             dat = concatenate(dat, axis=1)
+#             desc = get_descriptives(dat)
+# 
+#         with open(csv_filename, 'w', newline='') as f:
+#             lg.info('Writing to ' + str(csv_filename))
+#             csv_file = writer(f)
+# 
+#             if 'count' in glob.keys():
+#                 csv_file.writerow(['Count'] + [glob['count']])
+#             if 'density' in glob.keys():
+#                 csv_file.writerow(['Density'] + [glob['density']])
+# 
+#             if dat == []:
+#                 return
+# 
+#             csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
+#                               + heading_row_4)
+#             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
+#             csv_file.writerow(['SD'] + spacer + list(desc['sd']))
+#             csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
+#             csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
+#             idx = 0
+# 
+#             for seg in loc:
+# 
+#                 for chan in seg['data'].axis['chan'][0]:
+#                     idx += 1
+#                     data_row_1 = [seg[x](chan=chan)[0] for x in sel_params_1]
+#                     data_row_2 = [seg[x][chan] for x in sel_params_2]
+# 
+#                     if 'dur' in seg.keys():
+#                         data_row_1 = [seg['dur']] + data_row_1
+# 
+#                     if 'slope' in seg.keys():
+#                         data_row_3 = [x for y in seg['slope'][chan] for x in y]
+#                         data_row_2 = data_row_2 + data_row_3
+# 
+#                     if seg['cycle'] is not None:
+#                         seg['cycle'] = seg['cycle'][2]
+# 
+#                     csv_file.writerow([idx,
+#                                        seg['times'][0],
+#                                        seg['times'][1],
+#                                        seg['n_stitch'],
+#                                        seg['stage'],
+#                                        seg['cycle'],
+#                                        seg['name'],
+#                                        chan,
+#                                        ] + data_row_1 + data_row_2)
+# =============================================================================
 
     def make_title(self, chan, cycle, stage, evt_type):
         """Make a title for plots, etc."""
@@ -2570,18 +2599,6 @@ class AnalysisDialog(ChannelDialog):
 
         return ', '.join(title)
 
-
-def _amax(x, axis, keepdims=None):
-    return amax(x, axis=axis)
-
-def _amin(x, axis, keepdims=None):
-    return amin(x, axis=axis)
-
-def _ptp(x, axis, keepdims=None):
-    return ptp(x, axis=axis)
-
-def _mean(x, axis, keepdims=None):
-    return mean(x, axis=axis)
 
 class PlotCanvas(FigureCanvas):
     """Widget for showing plots."""
