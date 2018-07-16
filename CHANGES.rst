@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.29**: event parameter export from script
 - **5.28**: bugfix
 - **5.27**: improvements for event deletion
 - **5.26**: bugfixes; min event display duration

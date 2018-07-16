@@ -103,6 +103,58 @@ def test_widget_analysis_fooof(qtbot):
     assert approx(float(rows[10][2])) == 0.24356640365481338
 
 
+def test_widget_analysis_event(qtbot):
+
+    w = MainWindow()
+    qtbot.addWidget(w)
+
+    w.info.open_dataset(str(gui_file))
+    channel_make_group(w)
+    w.channels.button_apply.click()
+    w.notes.update_notes(annot_psg_path)    
+    w.traces.go_to_epoch(test_text_str='23:34:45')
+    
+    w.notes.delete_eventtype(test_type_str='spindle')    
+    w.notes.new_eventtype(test_type_str='spindle')
+    w.notes.action['new_event'].setChecked(True)
+    w.notes.add_event('spindle', (24293.01, 24294.65), 'EEG Pz-Oz (scalp)')
+    w.notes.add_event('spindle', (24288.01, 24288.90), 'EEG Fpz-Cz (scalp)')
+    w.notes.add_event('spindle', (24290.5, 24291.00), 'EEG Fpz-Cz (scalp)')
+
+    w.notes.action['analyze']
+    ad = w.analysis_dialog
+    ad.update_evt_types()
+    ad.update_groups()
+
+    ad.filename = analysis_export_path
+    ad.chunk['event'].setChecked(True)
+    ad.idx_evt_type.setCurrentRow(1)
+    ad.idx_chan.setCurrentRow(0)
+    evt = ad.event
+    evt['global']['count'].set_value(True)
+    evt['global']['density'].set_value(True)
+    evt['f1'].set_value(10)
+    evt['f2'].set_value(16)
+    evt['global']['all_local'].set_value(True)
+    evt['sw']['avg_slope'].set_value(True)
+    evt['sw']['max_slope'].set_value(True)
+    ad.check_all_local()
+    
+    ad.button_clicked(ad.idx_ok)
+    w.notes.delete_eventtype(test_type_str='spindle')
+    w.close()
+    
+    evt_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] +
+                                 '_params.csv')
+    with open(evt_path) as f:
+        reader = csv.reader(f)
+        rows = [row for row in reader]
+    assert approx(float(rows[0][1])) == 2
+    assert approx(float(rows[1][1])) == 0.0020768431983
+    assert approx(float(rows[3][15])) == 1.1438439646200
+    assert approx(float(rows[8][13])) ==  0.9447896229175   
+
+
 def test_widget_notes_export_csv(qtbot):
 
     w = MainWindow()
