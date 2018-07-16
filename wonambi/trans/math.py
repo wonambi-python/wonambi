@@ -236,7 +236,7 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
                                    0, len(segments) - 1, parent)
         progress.setWindowModality(Qt.ApplicationModal)
 
-    param_keys = ['dur', 'minamp', 'maxamp', 'ptp', 'rms', 'power', 'peakf', 
+    param_keys = ['dur', 'minamp', 'maxamp', 'ptp', 'rms', 'power', 'peakpf', 
                   'energy', 'peakef']
     
     if params == 'all':
@@ -308,7 +308,7 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
                 else:
                     out[pk] = raw_pk
 
-        if slopes['avg_slope'] or slopes['max_slope']:
+        if slopes:
             evt_output = True
             out['slope'] = {}
             dat1 = dat
@@ -330,7 +330,8 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
                 
         if evt_output:
             timeline = dat.axis['time'][0]
-            out['times'] = timeline[0], timeline[-1]
+            out['start'] = timeline[0]
+            out['end'] = timeline[-1]
             params_out.append(out)
 
         if parent:
@@ -365,16 +366,16 @@ def export_event_params(filename, params, count=None, density=None):
                         'Peak power frequency (Hz)',
                         'Energy (uV**2/s)',
                         'Peak energy frequency (Hz)']
-    slope_headings = ['Q1 average slope (uV/s)',
-                      'Q2 average slope (uV/s)',
-                      'Q3 average slope (uV/s)',
-                      'Q4 average slope (uV/s)',
-                      'Q23 average slope (uV/s)',
-                      'Q1 max. slope (uV/s**2)',
-                      'Q2 max. slope (uV/s**2)',
-                      'Q3 max. slope (uV/s**2)',
-                      'Q4 max. slope (uV/s**2)',
-                      'Q23 max. slope (uV/s**2)']
+    slope_headings =   ['Q1 average slope (uV/s)',
+                        'Q2 average slope (uV/s)',
+                        'Q3 average slope (uV/s)',
+                        'Q4 average slope (uV/s)',
+                        'Q23 average slope (uV/s)',
+                        'Q1 max. slope (uV/s**2)',
+                        'Q2 max. slope (uV/s**2)',
+                        'Q3 max. slope (uV/s**2)',
+                        'Q4 max. slope (uV/s**2)',
+                        'Q23 max. slope (uV/s**2)']
     ordered_params_1 = ['minamp', 'maxamp', 'ptp', 'rms']
     ordered_params_2 = ['power', 'peakpf', 'energy', 'peakef']
 
@@ -399,8 +400,9 @@ def export_event_params(filename, params, count=None, density=None):
     # Get data as matrix and compute descriptives
     dat = []
     if 'dur' in params[0].keys():
-        one_mat = reshape(asarray(([x['dur'] for x in params])),
-                           (len(params), 1))
+        one_mat = asarray([seg['dur'] for seg in params \
+                           for chan in seg['data'].axis['chan'][0]])
+        one_mat = reshape(one_mat, (len(one_mat), 1))
         dat.append(one_mat)
 
     if sel_params_1:
@@ -443,6 +445,8 @@ def export_event_params(filename, params, count=None, density=None):
         idx = 0
 
         for seg in params:
+            if seg['cycle'] is not None:
+                seg['cycle'] = seg['cycle'][2]
 
             for chan in seg['data'].axis['chan'][0]:
                 idx += 1
@@ -456,12 +460,9 @@ def export_event_params(filename, params, count=None, density=None):
                     data_row_3 = [x for y in seg['slope'][chan] for x in y]
                     data_row_2 = data_row_2 + data_row_3
 
-                if seg['cycle'] is not None:
-                    seg['cycle'] = seg['cycle'][2]
-
                 csv_file.writerow([idx,
-                                   seg['times'][0],
-                                   seg['times'][1],
+                                   seg['start'],
+                                   seg['end'],
                                    seg['n_stitch'],
                                    seg['stage'],
                                    seg['cycle'],

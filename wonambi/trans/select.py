@@ -525,8 +525,6 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
     if cat[3]:
         evt_type = [all_evt_type]
 
-    #lg.info('Concat ' +  ' ,'.join((str(chan), str(cycle), str(stage), str(evt_type))))
-
     to_concat = []
     for ch in chan:
 
