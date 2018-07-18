@@ -11,7 +11,7 @@ from .select import (select, resample, get_times, _select_channels, fetch,
                      Segments)
 from .frequency import frequency, timefrequency, band_power
 from .merge import concatenate
-from .math import math, get_descriptives, slopes
+from .math import math, get_descriptives, event_params, export_event_params
 from .montage import montage
 from .peaks import peaks
 from .reject import rejectbadchan, remove_artf_evts

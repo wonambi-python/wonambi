@@ -333,7 +333,8 @@ def band_power(data, freq, scaling='power', perhz=False):
         data to be analyzed, one trial only
     freq : tuple of float
         Frequencies for band of interest. Power will be summed across this
-        band, and peak frequency determined within it.
+        band, and peak frequency determined within it. If a value is None,
+        the band is unbounded in that direction.
     input_type : str
         'time' or 'spectrum'
     scaling : str
@@ -364,10 +365,16 @@ def band_power(data, freq, scaling='power', perhz=False):
         Sxx = frequency(data, scaling=scaling, detrend=detrend)
     else:
         raise ValueError('Invalid data type')
-
+    
     sf = Sxx.axis['freq'][0]
-    idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
-    idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+    if freq[0] is not None:
+        idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
+    else:
+        idx_f1 = 0
+    if freq[1] is not None:
+        idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+    else:
+        idx_f2 = len(sf) - 1
 
     scale = idx_f2 - idx_f1
 
