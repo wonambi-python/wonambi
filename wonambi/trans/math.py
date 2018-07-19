@@ -293,10 +293,9 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
 
                 if prep[pw] or prep[pk]:
                     prep_pw, prep_pk = band_power(seg['trans_data'], band,
-                                                 scaling=pw, perhz=False)
+                                                 scaling=pw)
                 if not (prep[pw] and prep[pk]):
-                    raw_pw, raw_pk = band_power(dat, band, scaling=pw,
-                                                perhz=False)
+                    raw_pw, raw_pk = band_power(dat, band, scaling=pw)
 
                 if prep[pw]:
                     out[pw] = prep_pw

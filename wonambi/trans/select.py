@@ -127,9 +127,9 @@ class Segments():
                                         dtype='f')
             n_stitch = sum(asarray(diff(timeline) > 2/s_freq, dtype=bool))
 
-            for i, chan in enumerate(subseg[0].axis['chan'][0]):
+            for i, ch in enumerate(subseg[0].axis['chan'][0]):
                     one_segment.data[0][i, :] = hstack(
-                            [x(chan=chan)[0] for x in subseg])
+                            [x(chan=ch)[0] for x in subseg])
 
             # For channel concatenation
             if concat_chan and len(chs) > 1:

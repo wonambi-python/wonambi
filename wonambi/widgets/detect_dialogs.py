@@ -361,7 +361,7 @@ class SWDialog(ChannelDialog):
         form.addRow(self.index['excl_event'])
         form.addRow('Minimum subsegment duration',
                        self.index['min_seg_dur'])
-        form.addRow(self.index['demean'])
+        #form.addRow(self.index['demean'])
         form.addRow(self.index['invert'])
 
         self.bbox.clicked.connect(self.button_clicked)
