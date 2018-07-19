@@ -17,7 +17,10 @@ export NODEJS_HOME=~/tools/node-v8.9.2
 export PATH=$NODEJS_HOME/bin:$PATH
 
 # fsl
-source /etc/fsl/fsl.sh
+FSLDIR=/home/giovanni/tools/fsl
+. ${FSLDIR}/etc/fslconf/fsl.sh
+PATH=${FSLDIR}/bin:${PATH}
+export FSLDIR PATH
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_6.0.1
@@ -53,6 +56,9 @@ AFNI_IMSAVE_WARNINGS=NO
 export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DATASET
 # ln -s /usr/lib/x86_64-linux-gnu/libgsl.so  /home/giovanni/tools/lib/libgsl.so.0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/giovanni/tools/lib
+
+# ANTS
+export PATH=~/tools/ants:$PATH
 
 # custom code (ctags)
 export PATH=~/tools/bin:$PATH
