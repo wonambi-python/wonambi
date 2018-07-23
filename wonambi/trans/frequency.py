@@ -5,7 +5,7 @@ from logging import getLogger
 from warnings import warn
 
 from numpy import (arange, array, asarray, copy, empty, exp, max, mean, pi,
-                   real, sqrt, swapaxes)
+                   real, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -323,34 +323,39 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     return timefreq
 
 
-def band_power(data, freq, scaling='power', perhz=False):
+def band_power(data, freq, scaling='power', array_out=False):
     """Compute power or energy acoss a frequency band, and its peak frequency.
-    Input can be ChanTime or ChanFreq.
+    Power is estimated using the mid-point rectangle rule. Input can be 
+    ChanTime or ChanFreq.
 
     Parameters
     ----------
     data : instance of ChanTime or ChanFreq
         data to be analyzed, one trial only
     freq : tuple of float
-        Frequencies for band of interest. Power will be summed across this
-        band, and peak frequency determined within it. If a value is None,
-        the band is unbounded in that direction.
+        Frequencies for band of interest. Power will be integrated across this
+        band, inclusively, and peak frequency determined within it. If a value 
+        is None, the band is unbounded in that direction.
     input_type : str
         'time' or 'spectrum'
     scaling : str
         'power' or 'energy', only used if data is ChanTime
-    perhz : bool
-        if True, power is expressed per Hz
+    array_out : bool
+        if True, will return two arrays instead of two dict.
 
     Returns
     -------
-    dict of float
+    dict of float, or ndarray
         keys are channels, values are power or energy
-    dict of float
+    dict of float, or ndarray
         keys are channels, values are respective peak frequency
     """
-    power = {}
-    peakf = {}
+    if not array_out:
+        power = {}
+        peakf = {}
+    else:
+        power = zeros((data.axis['chan'].number_of(), 1))
+        peakf = zeros((data.axis['chan'].number_of(), 1))
 
     if 'power' == scaling:
         detrend = 'linear'
@@ -367,26 +372,31 @@ def band_power(data, freq, scaling='power', perhz=False):
         raise ValueError('Invalid data type')
     
     sf = Sxx.axis['freq'][0]
+    f_res = sf[1] - sf[0] # frequency resolution
+    
     if freq[0] is not None:
         idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
     else:
         idx_f1 = 0
     if freq[1] is not None:
-        idx_f2 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+        idx_f2 = min(asarray([abs(x - freq[1]) for x in sf]).argmin() + 1,
+                     len(sf) - 1) # inclusive, to follow convention
     else:
         idx_f2 = len(sf) - 1
 
-    scale = idx_f2 - idx_f1
-
-    if perhz:
-        scale *= sf[idx_f2] - sf[idx_f1]
-
-    for chan in Sxx.axis['chan'][0]:
+    for i, chan in enumerate(Sxx.axis['chan'][0]):
         s = Sxx(chan=chan)[0]
-        power[chan] = sum(s[idx_f1:idx_f2]) / scale
+        pw = sum(s[idx_f1:idx_f2]) * f_res
 
         idx_peak = s[idx_f1:idx_f2].argmax()
-        peakf[chan] = sf[idx_f1:idx_f2][idx_peak]
+        pf = sf[idx_f1:idx_f2][idx_peak]
+        
+        if array_out:
+            power[i, 0] = pw
+            peakf[i, 0] = pf
+        else:
+            power[chan] = pw
+            peakf[chan] = pf
 
     return power, peakf
 

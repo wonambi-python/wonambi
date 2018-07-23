@@ -62,8 +62,8 @@ def test_widget_analysis_frequency(qtbot):
     with open(band_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
-    assert approx(float(rows[1][10])) == 1.014291266084226
-    assert approx(float(rows[11][11])) == 0.44276760658862413
+    assert approx(float(rows[1][10])) ==  4.81846003248371
+    assert approx(float(rows[11][11])) == 3.230796520373666
 
 
 def test_widget_analysis_fooof(qtbot):
@@ -151,8 +151,8 @@ def test_widget_analysis_event(qtbot):
         rows = [row for row in reader]
     assert approx(float(rows[0][1])) == 2
     assert approx(float(rows[1][1])) == 0.0020768431983
-    assert approx(float(rows[3][15])) == 1.1438439646200
-    assert approx(float(rows[8][13])) ==  0.9447896229175   
+    assert approx(float(rows[3][15])) == 9.81616222270557
+    assert approx(float(rows[8][13])) ==  8.02638098366877  
 
 
 def test_widget_notes_export_csv(qtbot):
