@@ -9,6 +9,7 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
                           fftconvolve, hilbert, periodogram, remez, 
                           sosfiltfilt, tukey)
+from scipy.fftpack import next_fast_len
 try:
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import QProgressDialog
@@ -1056,7 +1057,9 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         dat = gaussian_filter(dat, sigma)        
 
     if 'hilbert' == method:
-        dat = hilbert(dat)
+        N = len(dat)
+        dat = hilbert(dat, N=next_fast_len(N)) # much faster this way
+        dat = dat[:N] # truncate away zero-padding
         
     if 'low_butter' == method:
         freq = method_opt['freq']
