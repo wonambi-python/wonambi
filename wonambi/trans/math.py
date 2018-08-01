@@ -224,13 +224,24 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
     ----------
     segments : instance of wonambi.trans.select.Segments
         list of segments, with time series and metadata
-    params : dict
+    params : dict of bool, or str
+        'dur', 'minamp', 'maxamp', 'ptp', 'rms', 'power', 'peakf', 'energy', 
+        'peakef'. If 'all', a dict will be created with these keys and all 
+        values as True, so that all parameters are returned.
     band : tuple of float
         band of interest for power and energy
-    slopes : dict
-    prep : dict
-    parent : 
-        """
+    slopes : dict of bool
+        'avg_slope', 'max_slope', 'prep', 'invert'
+    prep : dict of bool
+        same keys as params. if True, segment['trans_data'] will be used as dat
+    parent : QMainWindow
+        for use with GUI only
+        
+    Returns
+    -------
+    list of dict
+        list of segments, with time series, metadata and parameters
+    """
     if parent is not None:
         progress = QProgressDialog('Computing parameters', 'Abort',
                                    0, len(segments) - 1, parent)

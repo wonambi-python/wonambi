@@ -1674,7 +1674,7 @@ class AnalysisDialog(ChannelDialog):
             nSxx.data[0] = mean(
                     stack([x()[0] for x in all_Sxx], axis=2), axis=2)
 
-            # end of normalization data prep
+        # end of normalization data prep
 
         lg.info(' '.join(['Freq settings:', output, scaling, 'sides:',
                          str(sides), taper, 'hbw:', str(halfbandwidth), 'NW:',
@@ -1715,9 +1715,11 @@ class AnalysisDialog(ChannelDialog):
                 for j, chan in enumerate(Sxx.axis['chan'][0]):
 
                     dat = Sxx.data[0][j,:]
+                    sf = Sxx.axis['freq'][0]
+                    f_res = sf[1] - sf[0] # frequency resolution
 
                     if norm == 'by integral of each segment':
-                        norm_dat = sum(dat) / len(dat)
+                        norm_dat = sum(dat) * f_res # integral by midpoint rule
                     else:
                         norm_dat = nSxx(chan=chan)[0]
 

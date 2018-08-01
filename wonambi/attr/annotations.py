@@ -6,7 +6,7 @@ from csv import reader, writer
 from datetime import datetime, timedelta
 from numpy import allclose, around, asarray, isnan, logical_and, modf, nan
 from math import ceil, inf
-from os.path import splitext
+from os.path import basename, splitext
 from pathlib import Path
 from re import search, sub
 from scipy.io import loadmat
@@ -33,12 +33,12 @@ DOMINO_STAGE_KEY = {'N1': 'NREM1',
                     'Ar': 'Artefact',
                     'A\n': 'Artefact'}
 
-REMLOGIC_STAGE_KEY = {'S0': 'Wake',
-                      'S1': 'NREM1',
-                      'S2': 'NREM2',
-                      'S3': 'NREM3',
-                      'EM': 'REM',
-                      'ED': 'Undefined'}
+REMLOGIC_STAGE_KEY = {'SLEEP-S0': 'Wake',
+                      'SLEEP-S1': 'NREM1',
+                      'SLEEP-S2': 'NREM2',
+                      'SLEEP-S3': 'NREM3',
+                      'SLEEP-REM': 'REM',
+                      'SLEEP-UNSCORED': 'Undefined'}
 
 ALICE_STAGE_KEY = {'WK': 'Wake',
                    'N1': 'NREM1',
@@ -382,7 +382,7 @@ class Annotations():
 
                 first_line = 14
 
-                stage_key = REMLOGIC_STAGE_KEY
+                stage_key = {k[-2:]: v for k, v in REMLOGIC_STAGE_KEY.items()}
                 idx_stage = (-6, -4)
 
             elif source == 'alice':
@@ -1142,23 +1142,21 @@ class Annotations():
 
         return output
 
-    def export(self, file_to_export, stages=True):
+    def export(self, file_to_export, xformat='csv'):
         """Export epochwise annotations to csv file.
 
         Parameters
         ----------
         file_to_export : path to file
-            csv file to write to
-        stages : bool, optional
-            if you want to write down the sleep stages
+            file to write to
         """
-        with open(file_to_export, 'w', newline='') as f:
-            csv_file = writer(f)
-
-            if stages:
+        if 'csv' == xformat:
+        
+            with open(file_to_export, 'w', newline='') as f:
+                csv_file = writer(f)
                 csv_file.writerow(('clock start time', 'start', 'end',
                                    'stage'))
-
+    
                 for epoch in self.epochs:
                     epoch_time = (self.start_time +
                                   timedelta(seconds=epoch['start']))
@@ -1166,6 +1164,38 @@ class Annotations():
                                        epoch['start'],
                                        epoch['end'],
                                        epoch['stage']))
+                    
+        if 'remlogic' == xformat:
+            patient_id = splitext(basename(self.dataset))[0]
+            rec_date = self.start_time.strftime('%d/%m/%Y')
+            stkey = {v:k for k, v in REMLOGIC_STAGE_KEY.items()}
+            stkey['Artefact'] = 'SLEEP-UNSCORED'
+            stkey['Unknown'] = 'SLEEP-UNSCORED'
+            stkey['Movement'] = 'SLEEP-UNSCORED'
+            
+            with open(file_to_export, 'w') as f:
+                f.write('RemLogic Event Export\n')
+                f.write('Patient:\t' + patient_id + '\n')
+                f.write('Parient ID:\t' + patient_id + '\n')
+                f.write('Recording Date:\t' + rec_date + '\n')
+                f.write('\n')
+                f.write('Events Included:\n')
+                
+                for i in sorted(set([stkey[x['stage']] for x in self.epochs])):
+                    f.write(i + '\n')
+                
+                f.write('\n')
+                f.write('Time [hh:mm:ss]\tEvent\tDuration[s]\n')
+                
+                for epoch in self.epochs:
+                    epoch_time = (self.start_time +
+                                  timedelta(seconds=epoch['start']))
+                    f.write((epoch_time.strftime('%Y-%m-%dT%H:%M:%S.000000') + 
+                             '\t' + 
+                             stkey[epoch['stage']] + 
+                             '\t' + 
+                             str(self.epoch_length) + 
+                             '\n'))
 
     def export_sleep_stats(self, filename, lights_out, lights_on):
         """Create CSV with sleep statistics.
