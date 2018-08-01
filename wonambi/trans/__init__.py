@@ -6,12 +6,14 @@ use this package to transform to other classes. If you want to transform to
 basic elements, use the package "detect" for example.
 
 """
+from .analyze import (event_params, export_freq, export_freq_band, 
+                      export_event_params)
 from .filter import filter_, convolve
 from .select import (select, resample, get_times, _select_channels, fetch, 
                      Segments)
 from .frequency import frequency, timefrequency, band_power
 from .merge import concatenate
-from .math import math, get_descriptives, event_params, export_event_params
+from .math import math, get_descriptives
 from .montage import montage
 from .peaks import peaks
 from .reject import rejectbadchan, remove_artf_evts

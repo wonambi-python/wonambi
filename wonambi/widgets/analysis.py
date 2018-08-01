@@ -2,10 +2,8 @@
 """
 from logging import getLogger
 
-from numpy import (abs, angle, asarray, ceil, concatenate, diff, empty, floor, 
-                   in1d, inf, logical_and, logical_or, mean, ravel, reshape, 
-                   stack, zeros)
-from itertools import compress
+from numpy import (abs, angle, asarray, ceil, diff, empty, floor, inf, 
+                   logical_and, logical_or, mean, ravel, stack, zeros)
 from functools import partial
 from csv import writer
 from os.path import basename, splitext
@@ -56,8 +54,9 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import ChanFreq
-from ..trans import (math, filter_, frequency, get_descriptives, band_power,
-                     fetch, get_times, event_params, export_event_params)
+from ..trans import (math, filter_, frequency, get_descriptives, 
+                     fetch, get_times, event_params, export_event_params,
+                     export_freq, export_freq_band)
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME, ICON)
@@ -1319,7 +1318,9 @@ class AnalysisDialog(ChannelDialog):
                 for one_xf, suffix, prefix, ylabel, scale in freq_out:
 
                     if freq_band:
-                        self.export_freq_band(one_xf, bands, suffix)
+                        filename = (splitext(self.filename)[0] + '_' + suffix + 
+                                    '_band.csv')
+                        export_freq_band(one_xf, bands, filename)
 
                     if freq_full or freq_plot or freq_fooof:
                         n_freq_bins = [x['data']()[0].shape for x in one_xf]
@@ -1337,7 +1338,9 @@ class AnalysisDialog(ChannelDialog):
                                 y = desc['mean']
 
                             if freq_full:
-                                self.export_freq(one_xf, suffix, desc=desc)
+                                filename = (splitext(self.filename)[0] + '_' + 
+                                            suffix + '_full.csv')
+                                export_freq(one_xf, filename, desc=desc)
 
                             if freq_plot:
                                 self.plot_freq(x, y,
@@ -1693,7 +1696,8 @@ class AnalysisDialog(ChannelDialog):
                 data = seg['trans_data']
 
             timeline = seg['data'].axis['time'][0]
-            new_seg['times'] = timeline[0], timeline[-1]
+            new_seg['start'] = timeline[0]
+            new_seg['end'] = timeline[-1]
             new_seg['duration'] = len(timeline) / data.s_freq
 
             try:
@@ -1850,134 +1854,6 @@ class AnalysisDialog(ChannelDialog):
             out = (xg_list, yg_list, ph_list)
 
         return out
-
-    def export_freq(self, xfreq, suffix, desc=None):
-        """Write frequency analysis data to CSV.
-
-        Parameters
-        ----------
-        xfreq : list of dict
-            spectral data, one dict per segment, where 'data' is ChanFreq
-        suffix : str
-            suffix for filename: 'name_suffix.csv
-        desc : dict of ndarray
-            descriptives
-        '"""
-        filename = splitext(self.filename)[0] + '_' + suffix + '_full.csv'
-
-        heading_row_1 = ['Segment index',
-                       'Start time',
-                       'End time',
-                       'Duration',
-                       'Stitches',
-                       'Stage',
-                       'Cycle',
-                       'Event type',
-                       'Channel',
-                       ]
-        spacer = [''] * (len(heading_row_1) - 1)
-        freq = list(xfreq[0]['data'].axis['freq'][0])
-
-        with open(filename, 'w', newline='') as f:
-            lg.info('Writing to ' + str(filename))
-            csv_file = writer(f)
-            csv_file.writerow(heading_row_1 + freq)
-
-            if desc:
-                csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-                csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-                csv_file.writerow(['Mean of ln'] + spacer + list(
-                        desc['mean_log']))
-                csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
-
-            idx = 0
-            for seg in xfreq:
-
-                for chan in seg['data'].axis['chan'][0]:
-                    idx += 1
-
-                    cyc = None
-                    if seg['cycle'] is not None:
-                        cyc = seg['cycle'][2]
-
-                    data_row = list(seg['data'](chan=chan)[0])
-                    csv_file.writerow([idx,
-                                       seg['times'][0],
-                                       seg['times'][1],
-                                       seg['duration'],
-                                       seg['n_stitch'],
-                                       seg['stage'],
-                                       cyc,
-                                       seg['name'],
-                                       chan,
-                                       ] + data_row)
-
-
-    def export_freq_band(self, xfreq, bands, suffix):
-        """Write frequency analysis data to CSV by pre-defined band."""
-        filename = splitext(self.filename)[0] + '_' + suffix + '_band.csv'
-
-        heading_row_1 = ['Segment index',
-                       'Start time',
-                       'End time',
-                       'Duration',
-                       'Stitches',
-                       'Stage',
-                       'Cycle',
-                       'Event type',
-                       'Channel',
-                       ]
-        spacer = [''] * (len(heading_row_1) - 1)
-        band_hdr = [str(b1) + '-' + str(b2) for b1, b2 in bands]
-        xband = xfreq.copy()
-
-        for seg in xband:
-            bandlist = []
-
-            for i, b in enumerate(bands):
-                pwr, _ = band_power(seg['data'], b)
-                bandlist.append(pwr)
-
-            seg['band'] = bandlist
-
-        as_matrix = asarray([
-                [x['band'][y][chan] for y in range(len(x['band']))] \
-                for x in xband for chan in x['band'][0].keys()])
-        desc = get_descriptives(as_matrix)
-
-        with open(filename, 'w', newline='') as f:
-            lg.info('Writing to ' + str(filename))
-            csv_file = writer(f)
-            csv_file.writerow(heading_row_1 + band_hdr)
-            csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
-            csv_file.writerow(['SD'] + spacer + list(desc['sd']))
-            csv_file.writerow(['Mean of ln'] + spacer + list(desc['mean_log']))
-            csv_file.writerow(['SD of ln'] + spacer + list(desc['sd_log']))
-            idx = 0
-
-            for seg in xband:
-
-                for chan in seg['band'][0].keys():
-                    idx += 1
-
-                    cyc = None
-                    if seg['cycle'] is not None:
-                        cyc = seg['cycle'][2]
-
-                    data_row = list(
-                            [seg['band'][x][chan] for x in range(
-                                    len(seg['band']))])
-                    csv_file.writerow([idx,
-                                       seg['times'][0],
-                                       seg['times'][1],
-                                       seg['duration'],
-                                       seg['n_stitch'],
-                                       seg['stage'],
-                                       cyc,
-                                       seg['name'],
-                                       chan,
-                                       ] + data_row)
-
 
     def plot_freq(self, x, y, title='', ylabel=None, scale='semilogy'):
         """Plot mean frequency spectrum and display in dialog.
