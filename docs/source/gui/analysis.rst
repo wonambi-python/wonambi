@@ -76,7 +76,7 @@ Rejection
 
 ``Exclude Artefact events`` removes signal concurrent with ``Artefact`` events *on all channels*.
 
-``Minimum duration (sec)`` sets the minimum length of segments after artefact rejection and *before* concatenation, below which the segment is excluded.
+``Minimum duration (sec)`` sets the minimum length of segments after artefact rejection and concatenation, below which the segment is excluded.
 
 For ``Poor`` signal and ``Artefact`` event marking, see :ref:`notes`.
 

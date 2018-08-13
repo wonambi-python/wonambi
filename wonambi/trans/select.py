@@ -362,10 +362,6 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         for bund in bundles:
             bund['times'] = remove_artf_evts(bund['times'], annot, min_dur=0)
 
-    # Minimum duration
-    if bundles:
-        bundles = _longer_than(bundles, min_dur)
-
     # Divide bundles into segments to be concatenated
     if bundles:
 
@@ -385,6 +381,9 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         elif not epoch:
             bundles = _concat(bundles, cat)
 
+        # Minimum duration
+        bundles = _longer_than(bundles, min_dur)
+    
     segments = Segments(dataset)
     segments.segments = bundles
 
