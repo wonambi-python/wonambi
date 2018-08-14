@@ -72,6 +72,12 @@ FASST_STAGE_KEY = ['Wake',
                    'REM',
                    ]
 
+PRANA_STAGE_KEY = {'0': 'Wake',
+                   '1': 'NREM1',
+                   '2': 'NREM2',
+                   '3': 'NREM3',
+                   '5': 'REM'}
+
 def parse_iso_datetime(date):
     try:
         return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
@@ -389,9 +395,11 @@ class Annotations():
                 stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
                 dt = rec_start
 
+                # best guess in absence of date
                 if lines[1][11:13] == 'pm' and rec_start.hour < 12:
-                    # best guess in absence of date
                     dt = rec_start - timedelta(days=1)
+                elif lines[1][11:13] == 'am' and rec_start.hour > 12:
+                    dt = rec_start + timedelta
 
                 stage_start = stage_start.replace(year=dt.year,
                                                   month=dt.month,
@@ -425,6 +433,25 @@ class Annotations():
 
                 stage_key = COMPUMEDICS_STAGE_KEY
                 idx_stage = (0, 1)
+                
+            elif source == 'prana':
+                stage_start = datetime.strptime(lines[5][:11], '%d %H:%M:%S')
+                
+                # best guess in absence of date
+                dt = rec_start
+                if stage_start.hour > 12 and rec_start.hour < 12:
+                    dt = rec_start - timedelta(days=1)
+                elif stage_start.hour < 12 and rec_start.hour > 12:
+                    dt = rec_start + timedelta(days=1)                                
+                stage_start = stage_start.replace(year=dt.year,
+                                                  month=dt.month,
+                                                  day=dt.day)                
+                first_second = int((stage_start - rec_start).total_seconds())
+                
+                first_line = 5
+                
+                stage_key = PRANA_STAGE_KEY
+                idx_stage = (45, 46)
 
             else:
                 raise ValueError('Unknown source program for staging file')

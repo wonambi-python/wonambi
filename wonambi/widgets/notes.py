@@ -394,6 +394,10 @@ class Notes(QTabWidget):
         act = QAction('Compumedics', self)
         act.triggered.connect(partial(self.import_staging, 'compumedics'))
         actions['import_compumedics'] = act
+        
+        act = QAction('PRANA', self)
+        act.triggered.connect(partial(self.import_staging, 'prana'))
+        actions['import_prana'] = act
 
         act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)
@@ -424,13 +428,22 @@ class Notes(QTabWidget):
                                       as_qual=True))
         actions['import_compumedics_qual'] = act
         
+        act = QAction('PRANA', self)
+        act.triggered.connect(partial(self.import_staging, 'prana', 
+                                      as_qual=True))
+        actions['import_prana_qual'] = act
+        
         act = QAction('Import events', self)
         act.triggered.connect(self.import_events)
         actions['imp_evt_csv'] = act
 
-        act = QAction('Export staging', self)
-        act.triggered.connect(self.export)
-        actions['export'] = act
+        act = QAction('CSV', self)
+        act.triggered.connect(partial(self.export, xformat='csv'))
+        actions['export_to_csv'] = act
+        
+        act = QAction('RemLogic', self)
+        act.triggered.connect(partial(self.export, xformat='remlogic'))
+        actions['export_to_remlogic'] = act
 
         act = QAction('Export events...', self)
         act.triggered.connect(self.parent.show_export_events_dialog)
@@ -1449,7 +1462,7 @@ class Notes(QTabWidget):
 
         self.update_annotations()
 
-    def export(self):
+    def export(self, xformat='csv'):
         """action: export annotations to CSV."""
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
@@ -1462,7 +1475,7 @@ class Notes(QTabWidget):
         if filename == '':
             return
 
-        self.annot.export(filename)
+        self.annot.export(filename, xformat=xformat)
 
     def import_events(self):
         """action: import events from Wonambi CSV event export."""

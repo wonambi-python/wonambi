@@ -267,6 +267,7 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_alice'])
     submenu_import.addAction(actions['import_compumedics'])
     submenu_import.addAction(actions['import_domino'])
+    submenu_import.addAction(actions['import_prana'])
     submenu_import.addAction(actions['import_remlogic'])
     submenu_import.addAction(actions['import_sandman'])
     submenu_import.addAction(actions['import_fasst'])
@@ -275,13 +276,17 @@ def create_menubar(MAIN):
     submenu_import_qual.addAction(actions['import_alice_qual'])
     submenu_import_qual.addAction(actions['import_compumedics_qual'])
     submenu_import_qual.addAction(actions['import_domino_qual'])
+    submenu_import_qual.addAction(actions['import_prana_qual'])
     submenu_import_qual.addAction(actions['import_remlogic_qual'])
     submenu_import_qual.addAction(actions['import_sandman_qual'])
     
     menu_annot.addAction(actions['imp_evt_csv'])
     menu_annot.addSeparator()
     
-    menu_annot.addAction(actions['export'])
+    submenu_export_staging = menu_annot.addMenu('Export staging')
+    submenu_export_staging.addAction(actions['export_to_csv'])
+    submenu_export_staging.addAction(actions['export_to_remlogic'])
+
     menu_annot.addAction(actions['export_events'])
     
 #==============================================================================

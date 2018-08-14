@@ -18,6 +18,7 @@ from .paths import (annot_file,
                     annot_fasst_path,
                     annot_remlogic_path,
                     annot_sandman_path,
+                    annot_prana_path,
                     annot_psg_path,
                     annot_sleepstats_path,
                     ns2_file,
@@ -167,6 +168,13 @@ def test_import_domino():
     annot.import_staging(str(annot_domino_path), 'domino', 'domino', 
                          record_start)
     assert annot.time_in_stage('REM') == 2460
+
+
+def test_import_prana():
+    annot = Annotations(annot_file)
+    record_start = datetime(2000, 1, 1, 21, 17, 29)
+    annot.import_staging(str(annot_prana_path), 'prana', 'prana', record_start)
+    assert annot.time_in_stage('REM') == 2880
 
 
 def test_import_remlogic():
