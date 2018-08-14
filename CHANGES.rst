@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.34**: import PRANA staging
 - **5.33**: min duration criterion applied after concatenation in fetch
 - **5.32**: faster Hilbert transform
 - **5.31**: bugfix

@@ -222,7 +222,7 @@ def test_widget_notes_export_csv(qtbot):
 
     act_annot = find_in_qt(menubar, QAction, 'Annotations')
     menubar.setActiveAction(act_annot)
-    act_annot.menu().setActiveAction(w.notes.action['export'])
+    act_annot.menu().setActiveAction(w.notes.action['export_to_csv'])
 
     screenshot(w, 'notes_06_export.png')
     w.close()
