@@ -170,11 +170,13 @@ def test_import_domino():
     assert annot.time_in_stage('REM') == 2460
 
 
-def test_import_prana():
-    annot = Annotations(annot_file)
-    record_start = datetime(2000, 1, 1, 21, 17, 29)
-    annot.import_staging(str(annot_prana_path), 'prana', 'prana', record_start)
-    assert annot.time_in_stage('REM') == 2880
+# =============================================================================
+# def test_import_prana():
+#     annot = Annotations(annot_file)
+#     record_start = datetime(2000, 1, 1, 21, 17, 29)
+#     annot.import_staging(str(annot_prana_path), 'prana', 'prana', record_start)
+#     assert annot.time_in_stage('REM') == 2880
+# =============================================================================
 
 
 def test_import_remlogic():
