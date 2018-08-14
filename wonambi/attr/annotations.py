@@ -1192,7 +1192,12 @@ class Annotations():
                                        epoch['end'],
                                        epoch['stage']))
                     
-        if 'remlogic' == xformat:
+        if 'remlogic' in xformat:
+            
+            columns = 'Time [hh:mm:ss]\tEvent\tDuration[s]\n'
+            if 'remlogic_fr' == xformat:
+                columns = 'Heure [hh:mm:ss]\tEvénement\tDurée[s]\n'
+                
             patient_id = splitext(basename(self.dataset))[0]
             rec_date = self.start_time.strftime('%d/%m/%Y')
             stkey = {v:k for k, v in REMLOGIC_STAGE_KEY.items()}
@@ -1203,7 +1208,7 @@ class Annotations():
             with open(file_to_export, 'w') as f:
                 f.write('RemLogic Event Export\n')
                 f.write('Patient:\t' + patient_id + '\n')
-                f.write('Parient ID:\t' + patient_id + '\n')
+                f.write('Patient ID:\t' + patient_id + '\n')
                 f.write('Recording Date:\t' + rec_date + '\n')
                 f.write('\n')
                 f.write('Events Included:\n')
@@ -1212,7 +1217,7 @@ class Annotations():
                     f.write(i + '\n')
                 
                 f.write('\n')
-                f.write('Time [hh:mm:ss]\tEvent\tDuration[s]\n')
+                f.write(columns)
                 
                 for epoch in self.epochs:
                     epoch_time = (self.start_time +

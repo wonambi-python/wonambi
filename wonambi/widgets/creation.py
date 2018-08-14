@@ -286,6 +286,7 @@ def create_menubar(MAIN):
     submenu_export_staging = menu_annot.addMenu('Export staging')
     submenu_export_staging.addAction(actions['export_to_csv'])
     submenu_export_staging.addAction(actions['export_to_remlogic'])
+    submenu_export_staging.addAction(actions['export_to_remlogic_fr'])
 
     menu_annot.addAction(actions['export_events'])
     

@@ -444,6 +444,10 @@ class Notes(QTabWidget):
         act = QAction('RemLogic', self)
         act.triggered.connect(partial(self.export, xformat='remlogic'))
         actions['export_to_remlogic'] = act
+        
+        act = QAction('RemLogic FR', self)
+        act.triggered.connect(partial(self.export, xformat='remlogic_fr'))
+        actions['export_to_remlogic_fr'] = act
 
         act = QAction('Export events...', self)
         act.triggered.connect(self.parent.show_export_events_dialog)
@@ -1468,10 +1472,16 @@ class Notes(QTabWidget):
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
-        filename = splitext(self.annot.xml_file)[0] + '.csv'
-        filename, _ = QFileDialog.getSaveFileName(self, 'Export stages',
-                                                  filename,
-                                                  'Sleep stages (*.csv)')
+        if xformat == 'csv':
+            filename = splitext(self.annot.xml_file)[0] + '.csv'
+            filename, _ = QFileDialog.getSaveFileName(self, 'Export stages',
+                                                      filename,
+                                                      'Sleep stages (*.csv)')
+        if 'remlogic' in xformat:
+            filename = splitext(self.annot.xml_file)[0] + '.txt'
+            filename, _ = QFileDialog.getSaveFileName(self, 'Export stages',
+                                                      filename,
+                                                      'Sleep stages (*.txt)')
         if filename == '':
             return
 
