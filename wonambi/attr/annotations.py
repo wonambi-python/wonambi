@@ -451,7 +451,10 @@ class Annotations():
                 first_line = 5
                 
                 stage_key = PRANA_STAGE_KEY
-                idx_stage = (45, 46)
+                
+                spacer = next(i for i, j in enumerate(lines[5][30:]) \
+                              if j.strip())
+                idx_stage = (30 + spacer, 30 + spacer + 1)
 
             else:
                 raise ValueError('Unknown source program for staging file')

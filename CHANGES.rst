@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.36**: fix for PRANA import
 - **5.35**: export RemLogic FR
 - **5.34**: import PRANA staging
 - **5.33**: min duration criterion applied after concatenation in fetch
