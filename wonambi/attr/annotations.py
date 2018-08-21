@@ -78,6 +78,13 @@ PRANA_STAGE_KEY = {'0': 'Wake',
                    '3': 'NREM3',
                    '5': 'REM'}
 
+PHYSIP_STAGE_KEY = {'0': 'Wake',
+                   '1': 'NREM1',
+                   '2': 'NREM2',
+                   '3': 'NREM3',
+                   '4': 'Unknown',
+                   '5': 'REM'}
+
 def parse_iso_datetime(date):
     try:
         return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
@@ -366,7 +373,23 @@ class Annotations():
             stages = self.rater.find('stages')
 
             if source == 'domino':
-                stage_start = datetime.strptime(lines[7][:8], '%H:%M:%S')
+                
+                for i, line in enumerate(lines):
+                    if line[0].isdigit():
+                        first_line = i
+                        break
+                
+                if lines[first_line].index(';') > 15:
+                    idx_time = (11, 19)
+                    idx_stage = (25, 26)
+                    stage_key = PHYSIP_STAGE_KEY
+                else:
+                    idx_time = (0, 8)
+                    idx_stage = (14, 16)
+                    stage_key = DOMINO_STAGE_KEY
+                
+                stage_start = datetime.strptime(
+                        lines[first_line][idx_time[0]:idx_time[1]], '%H:%M:%S')
                 stage_day = int(lines[1][12:14])
                 stage_month = int(lines[1][15:17])
                 stage_start_for_delta = stage_start.replace(year=1999,
@@ -375,11 +398,6 @@ class Annotations():
                 rec_start_for_delta = rec_start.replace(year=1999)
                 first_second = int((stage_start_for_delta -
                                     rec_start_for_delta).total_seconds())
-
-                first_line = 7
-
-                stage_key = DOMINO_STAGE_KEY
-                idx_stage = (14, 16)
 
             elif source == 'remlogic':
                 stage_start = datetime.strptime(lines[14][:19],
@@ -661,6 +679,21 @@ class Annotations():
         for e in list(events):
             if e.get('type') == name:
                 events.remove(e)
+
+        self.save()
+        
+    def rename_event_type(self, name, new_name):
+        """Rename event type."""
+
+        if name not in self.event_types:
+            lg.info('Event type ' + name + ' was not found.')
+
+        events = self.rater.find('events')
+
+        # list is necessary so that it does not rename in place
+        for e in list(events):
+            if e.get('type') == name:
+                e.set('type', new_name)
 
         self.save()
 

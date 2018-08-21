@@ -55,7 +55,7 @@ def _convert_time_to_sample(abs_time, dataset):
 
     if not isinstance(abs_time, timedelta):
         try:
-            abs_time = timedelta(seconds=abs_time)
+            abs_time = timedelta(seconds=float(abs_time))
         except TypeError as err:
             if isinstance(abs_time, int64):
                 # timedelta and int64: http://bugs.python.org/issue5476

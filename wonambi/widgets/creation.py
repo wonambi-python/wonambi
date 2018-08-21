@@ -247,6 +247,7 @@ def create_menubar(MAIN):
     submenu_event = menu_annot.addMenu('Event')
     submenu_event.addAction(actions['new_eventtype'])
     submenu_event.addAction(actions['del_eventtype'])
+    submenu_event.addAction(actions['rename_eventtype'])
     submenu_mrk2evt = submenu_event.addMenu('Markers into events')
     submenu_mrk2evt.addAction(actions['m2e_newname'])
     submenu_mrk2evt.addAction(actions['m2e_keepname'])

@@ -312,6 +312,10 @@ class Notes(QTabWidget):
         act = QAction(QIcon(ICON['del_eventtype']), 'Delete Event Type', self)
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
+        
+        act = QAction('Rename event type', self)
+        act.triggered.connect(self.rename_eventtype)
+        actions['rename_eventtype'] = act
 
         act = QAction('New name', self)
         act.triggered.connect(self.markers_to_events)
@@ -1330,6 +1334,23 @@ class Notes(QTabWidget):
             self.annot.remove_event_type(answer[0])
             self.display_eventtype()
 
+    def rename_eventtype(self, test_name=None, test_new_name=None):
+        """action: create dialog to rename event type."""
+        if test_name and test_new_name:
+            name = test_name, True
+            new_name = test_new_name, True
+        else:
+            name = QInputDialog.getText(self, 'Rename Event Type',
+                                        'Enter name of event type to rename.')
+        
+        if name[1]:
+            new_name = QInputDialog.getText(self, 'Rename Event Type',
+                                            'Enter new name for event type.')
+            
+            if new_name[1]:
+                self.annot.rename_event_type(name[0], new_name[0])
+                self.display_eventtype()
+    
     def add_event(self, name, time, chan):
         """Action: add a single event."""
         self.annot.add_event(name, time, chan=chan)

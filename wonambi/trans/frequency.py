@@ -91,7 +91,8 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
     recompute the sampling frequency based on the time axis.
     """
     if output not in ('spectraldensity', 'complex', 'csd'):
-        raise TypeError(f'output can be "spectraldensity" or "complex", not "{output}"')
+        raise TypeError(f'output can be "spectraldensity", "complex" or "csd",'
+                        ' not "{output}"')
     if 'time' not in data.list_of_axes:
         raise TypeError('\'time\' is not in the axis ' +
                         str(data.list_of_axes))
@@ -354,8 +355,8 @@ def band_power(data, freq, scaling='power', array_out=False):
         power = {}
         peakf = {}
     else:
-        power = zeros((data.axis['chan'].number_of(), 1))
-        peakf = zeros((data.axis['chan'].number_of(), 1))
+        power = zeros((data.number_of('chan')[0], 1))
+        peakf = zeros((data.number_of('chan')[0], 1))
 
     if 'power' == scaling:
         detrend = 'linear'
