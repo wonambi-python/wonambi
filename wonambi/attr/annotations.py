@@ -1393,7 +1393,7 @@ class Annotations():
             return
         
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
+            lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(headings_row)
             

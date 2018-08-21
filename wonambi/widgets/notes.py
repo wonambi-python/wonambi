@@ -327,7 +327,6 @@ class Notes(QTabWidget):
         
         act = QAction('Merge Events...', self)
         act.triggered.connect(self.parent.show_merge_dialog)
-        act.setEnabled(False)
         actions['merge_events'] = act
 
         act = QAction(QIcon(ICON['event']), 'Event Mode', self)
@@ -546,12 +545,10 @@ class Notes(QTabWidget):
         annotations and channels are active.
         """
         if self.annot is not None and self.parent.channels.groups:
-            self.action['merge_events'].setEnabled(True)
             self.action['spindle'].setEnabled(True)
             self.action['slow_wave'].setEnabled(True)
             self.action['analyze'].setEnabled(True)
         else:
-            self.action['merge_events'].setEnabled(False)
             self.action['spindle'].setEnabled(False)
             self.action['slow_wave'].setEnabled(False)
             self.action['analyze'].setEnabled(False)
@@ -1333,6 +1330,7 @@ class Notes(QTabWidget):
         if answer[1]:
             self.annot.remove_event_type(answer[0])
             self.display_eventtype()
+            self.update_annotations()
 
     def rename_eventtype(self, test_name=None, test_new_name=None):
         """action: create dialog to rename event type."""
@@ -1712,18 +1710,18 @@ class MergeDialog(QDialog):
                                      merge_to_longer=merge_to_longer)
 
             else:
-                channels = set([x['chan'] for x in events])
+                channels = sorted(set([y for x in events for y in x['chan']]))
                 events = []
                 chan_events = []
 
                 for chan in channels:
+                    chan_events = []
 
                     for etype in evt_types:
 
                         chan_events.extend(self.parent.notes.annot.get_events(
                                 name=etype, chan=chan, qual='Good'))
-
-                    events.extend(merge_close(chan_events, min_interval,
+                        events.extend(merge_close(chan_events, min_interval,
                                               merge_to_longer=merge_to_longer))
 
             for etype in evt_types:
