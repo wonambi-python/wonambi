@@ -690,7 +690,6 @@ class Annotations():
 
         events = self.rater.find('events')
 
-        # list is necessary so that it does not rename in place
         for e in list(events):
             if e.get('type') == name:
                 e.set('type', new_name)
@@ -1121,17 +1120,14 @@ class Annotations():
         """
         if self.rater is None:
             raise IndexError('You need to have at least one rater')
-        lg.info('epoch_start: ' + str(epoch_start))
         cycles = self.rater.find('cycles')
         for one_mrkr in cycles.iterfind('cyc_start'):
-            lg.info('cycle: ' + one_mrkr.text)
             if int(one_mrkr.text) == epoch_start:
                 cycles.remove(one_mrkr)
                 self.save()
                 return
 
         for one_mrkr in cycles.iterfind('cyc_end'):
-            lg.info('cycle: ' + one_mrkr.text)
             if int(one_mrkr.text) == epoch_start:
                 cycles.remove(one_mrkr)
                 self.save()
@@ -1145,10 +1141,8 @@ class Annotations():
             raise IndexError('You need to have at least one rater')
 
         cycles = self.rater.find('cycles')
-        for one_mrkr in cycles.iterfind('cyc_start'):
-            cycles.remove(one_mrkr)
-        for one_mrkr in cycles.iterfind('cyc_end'):
-            cycles.remove(one_mrkr)
+        for cyc in list(cycles):
+            cycles.remove(cyc)
 
         self.save()
 

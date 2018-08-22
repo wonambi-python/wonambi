@@ -444,23 +444,22 @@ class Overview(QGraphicsView):
             self.scene.removeItem(old_rect)
             self.idx_annot.remove(old_rect)
 
-        rect = QGraphicsRectItem(start_time, y_pos, length, height)
+        rect = QGraphicsRectItem(start_time, y_pos, 30, height)
         rect.setPen(NoPen)
         rect.setBrush(color)
         self.scene.addItem(rect)
         self.idx_annot.append(rect)
 
         if end:
-            start_time += length
-            length = - length
+            start_time -= 120
 
-        kink_hi = QGraphicsRectItem(start_time, y_pos, length * 5, 1)
+        kink_hi = QGraphicsRectItem(start_time, y_pos, 150, 1)
         kink_hi.setPen(NoPen)
         kink_hi.setBrush(color)
         self.scene.addItem(kink_hi)
         self.idx_annot.append(kink_hi)
 
-        kink_lo = QGraphicsRectItem(start_time, y_pos + height, length * 5, 1)
+        kink_lo = QGraphicsRectItem(start_time, y_pos + height, 150, 1)
         kink_lo.setPen(NoPen)
         kink_lo.setBrush(color)
         self.scene.addItem(kink_lo)
