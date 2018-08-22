@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QComboBox,
                              )
 
 from ..detect import DetectSpindle, DetectSlowWave
-from ..trans import fetch
+from ..trans import fetch, math
 from .modal_widgets import ChannelDialog
 from .notes import SPINDLE_METHODS, SLOW_WAVE_METHODS
 from .utils import FormStr, FormFloat, FormBool, FormMenu
@@ -114,6 +114,7 @@ class SpindleDialog(ChannelDialog):
 
         box3 = QGroupBox('Options')
 
+        self.index['detrend'] = FormBool('Detrend (linear)')
         self.index['merge'] = FormBool('Merge events across channels')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
         self.index['excl_event'] = FormBool('Exclude Artefact events')
@@ -125,6 +126,7 @@ class SpindleDialog(ChannelDialog):
         self.index['merge'].setEnabled(False)
 
         form = QFormLayout(box3)
+        form.addRow(self.index['detrend'])
         form.addRow(self.index['excl_epoch'])
         form.addRow(self.index['excl_event'])
         form.addRow('Minimum subsegment duration',
@@ -204,9 +206,13 @@ class SpindleDialog(ChannelDialog):
             
             if not ding:
                 self.parent.statusBar().showMessage('Process interrupted.')
-                return            
+                return
+
+            data = data[0]['data']
+            if params['detrend']:
+                data = math(data, operator_name='detrend', axis='time')            
             
-            self.parent.notes.detect_events(data[0]['data'], self.method, 
+            self.parent.notes.detect_events(data, self.method, 
                                             params, label=label)
 
             self.accept()
@@ -344,7 +350,7 @@ class SWDialog(ChannelDialog):
                            self.index['max_dur'])
         box3 = QGroupBox('Options')
 
-        self.index['demean'] = FormBool('De-mean (by channel mean)')
+        self.index['detrend'] = FormBool('Detrend (linear)')
         self.index['exclude'] = FormBool('Exclude Artefact events')
         self.index['invert'] = FormBool('Invert detection')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
@@ -353,7 +359,7 @@ class SWDialog(ChannelDialog):
 
         self.index['excl_epoch'].set_value(True)
         self.index['excl_event'].set_value(True)
-        self.index['demean'].set_value(True)
+        self.index['detrend'].set_value(True)
         self.index['exclude'].set_value(True)
 
         form = QFormLayout(box3)
@@ -361,7 +367,7 @@ class SWDialog(ChannelDialog):
         form.addRow(self.index['excl_event'])
         form.addRow('Minimum subsegment duration',
                        self.index['min_seg_dur'])
-        #form.addRow(self.index['demean'])
+        form.addRow(self.index['detrend'])
         form.addRow(self.index['invert'])
 
         self.bbox.clicked.connect(self.button_clicked)
@@ -429,9 +435,13 @@ class SWDialog(ChannelDialog):
             
             if not ding:
                 self.parent.statusBar().showMessage('Process interrupted.')
-                return            
+                return
+
+            data = data[0]['data']
+            if params['detrend']:
+                data = math(data, operator_name='detrend', axis='time')
             
-            self.parent.notes.detect_events(data[0]['data'], self.method, 
+            self.parent.notes.detect_events(data, self.method, 
                                             params, label=label)
 
             self.accept()

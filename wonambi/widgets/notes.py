@@ -1449,7 +1449,6 @@ class Notes(QTabWidget):
             detector.min_interval = params['interval']
 
         elif method in SLOW_WAVE_METHODS:
-            lg.info('building SW detector with ' + method)
             detector = DetectSlowWave(method=method, duration=duration)
 
             detector.det_filt['freq'] = freq
