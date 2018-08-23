@@ -10,6 +10,7 @@ from numpy import (amax, amin, asarray, concatenate, in1d, mean, negative, ptp,
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressDialog
 
+from .. import __version__
 from .math import math, get_descriptives
 from .frequency import band_power
 from .peaks import get_slopes
@@ -17,8 +18,8 @@ from .peaks import get_slopes
 lg = getLogger(__name__)
 
 
-def event_params(segments, params, band=None, slopes=None, prep=None,
-                 parent=None):
+def event_params(segments, params, band=None, n_fft=None, slopes=None, 
+                 prep=None, parent=None):
     """Compute event parameters.
     
     Parameters
@@ -31,6 +32,9 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
         values as True, so that all parameters are returned.
     band : tuple of float
         band of interest for power and energy
+    n_fft : int
+        length of FFT. if shorter than input signal, signal is truncated; if 
+        longer, signal is zero-padded to length
     slopes : dict of bool
         'avg_slope', 'max_slope', 'prep', 'invert'
     prep : dict of bool
@@ -105,9 +109,10 @@ def event_params(segments, params, band=None, slopes=None, prep=None,
 
                 if prep[pw] or prep[pk]:
                     prep_pw, prep_pk = band_power(seg['trans_data'], band,
-                                                 scaling=pw)
+                                                 scaling=pw, n_fft=n_fft)
                 if not (prep[pw] and prep[pk]):
-                    raw_pw, raw_pk = band_power(dat, band, scaling=pw)
+                    raw_pw, raw_pk = band_power(dat, band, 
+                                                scaling=pw, n_fft=n_fft)
 
                 if prep[pw]:
                     out[pw] = prep_pw
@@ -238,6 +243,7 @@ def export_event_params(filename, params, count=None, density=None):
     with open(filename, 'w', newline='') as f:
         lg.info('Writing to ' + str(filename))
         csv_file = writer(f)
+        csv_file.writerow(['Wonambi v{}'.format(__version__)])
 
         if count:
             csv_file.writerow(['Count', count])
@@ -309,6 +315,7 @@ def export_freq(xfreq, filename, desc=None):
     with open(filename, 'w', newline='') as f:
         lg.info('Writing to ' + str(filename))
         csv_file = writer(f)
+        csv_file.writerow(['Wonambi v{}'.format(__version__)])
         csv_file.writerow(heading_row_1 + freq)
 
         if desc:
@@ -374,6 +381,7 @@ def export_freq_band(xfreq, bands, filename):
     with open(filename, 'w', newline='') as f:
         lg.info('Writing to ' + str(filename))
         csv_file = writer(f)
+        csv_file.writerow(['Wonambi v{}'.format(__version__)])
         csv_file.writerow(heading_row_1 + band_hdr)
         csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
         csv_file.writerow(['SD'] + spacer + list(desc['sd']))

@@ -230,6 +230,7 @@ class Traces(QGraphicsView):
         actions['go_to_epoch'] = act
 
         act = QAction('Line Up with Epoch', self)
+        act.setShortcut('F4')
         act.triggered.connect(self.line_up_with_epoch)
         actions['line_up_with_epoch'] = act
 

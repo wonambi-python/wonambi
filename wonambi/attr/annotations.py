@@ -20,6 +20,7 @@ except ImportError:
     Qt = None
     QProgressDialog = None
 
+from .. import __version__
 from ..utils.exceptions import UnrecognizedFormat
 
 
@@ -78,12 +79,12 @@ PRANA_STAGE_KEY = {'0': 'Wake',
                    '3': 'NREM3',
                    '5': 'REM'}
 
-PHYSIP_STAGE_KEY = {'0': 'Wake',
-                   '1': 'NREM1',
-                   '2': 'NREM2',
-                   '3': 'NREM3',
-                   '4': 'Unknown',
-                   '5': 'REM'}
+PHYSIP_STAGE_KEY = {'0': 'NREM3',
+                   '1': 'NREM2',
+                   '2': 'NREM1',
+                   '3': 'REM',
+                   '4': 'Wake',
+                   '5': 'Artefact'}
 
 def parse_iso_datetime(date):
     try:
@@ -1211,6 +1212,7 @@ class Annotations():
         
             with open(file_to_export, 'w', newline='') as f:
                 csv_file = writer(f)
+                csv_file.writerow(['Wonambi v{}'.format(__version__)])
                 csv_file.writerow(('clock start time', 'start', 'end',
                                    'stage'))
     
@@ -1317,6 +1319,7 @@ class Annotations():
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to' + str(filename))
             csv_file = writer(f)
+            csv_file.writerow(['Wonambi v{}'.format(__version__)])
             csv_file.writerow(['Total dark time',
                                'Sleep onset latency',
                                'Sleep period time',
@@ -1389,6 +1392,7 @@ class Annotations():
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
+            csv_file.writerow(['Wonambi v{}'.format(__version__)])
             csv_file.writerow(headings_row)
             
             for i, ev in enumerate(events):

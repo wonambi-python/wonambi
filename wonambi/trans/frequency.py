@@ -324,7 +324,7 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     return timefreq
 
 
-def band_power(data, freq, scaling='power', array_out=False):
+def band_power(data, freq, scaling='power', n_fft=None, array_out=False):
     """Compute power or energy acoss a frequency band, and its peak frequency.
     Power is estimated using the mid-point rectangle rule. Input can be 
     ChanTime or ChanFreq.
@@ -341,6 +341,9 @@ def band_power(data, freq, scaling='power', array_out=False):
         'time' or 'spectrum'
     scaling : str
         'power' or 'energy', only used if data is ChanTime
+    n_fft : int
+        length of FFT. if shorter than input signal, signal is truncated; if 
+        longer, signal is zero-padded to length
     array_out : bool
         if True, will return two arrays instead of two dict.
 
@@ -368,7 +371,7 @@ def band_power(data, freq, scaling='power', array_out=False):
     if isinstance(data, ChanFreq):
         Sxx = data
     elif isinstance(data, ChanTime):
-        Sxx = frequency(data, scaling=scaling, detrend=detrend)
+        Sxx = frequency(data, scaling=scaling, n_fft=n_fft, detrend=detrend)
     else:
         raise ValueError('Invalid data type')
     

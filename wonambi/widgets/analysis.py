@@ -53,7 +53,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              QWidget,
                              )
 
-from .. import ChanFreq
+from .. import ChanFreq, __version__
 from ..trans import (math, filter_, frequency, get_descriptives, 
                      fetch, get_times, event_params, export_event_params,
                      export_freq, export_freq_band)
@@ -2140,6 +2140,7 @@ class AnalysisDialog(ChannelDialog):
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
+            csv_file.writerow(['Wonambi v{}'.format(__version__)])
             csv_file.writerow(heading_row_1 + heading_row_2)
             csv_file.writerow(['Mean'] + spacer + list(desc['mean']))
             csv_file.writerow(['SD'] + spacer + list(desc['sd']))
