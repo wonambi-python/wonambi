@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.37**: rename event type; detrending for detections; fixes for event merger, band power, cycles
 - **5.36**: fix for PRANA import
 - **5.35**: export RemLogic FR
 - **5.34**: import PRANA staging

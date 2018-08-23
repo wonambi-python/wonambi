@@ -1923,6 +1923,7 @@ class AnalysisDialog(ChannelDialog):
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to ' + str(filename))
             csv_file = writer(f)
+            csv_file.writerow(['Wonambi v{}'.format(__version__)])
             csv_file.writerow(['FOOOF - POWER SPECTRUM MODEL'])
             csv_file.writerow('')
             csv_file.writerow(['The model was run on the frequency range '
