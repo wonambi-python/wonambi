@@ -2,6 +2,7 @@ from json import dump
 from numpy import array
 
 from .brainvision import write_brainvision
+from .edf import Edf
 from ..utils import MissingDependency
 
 try:
@@ -157,3 +158,66 @@ def _write_ieeg_events(output_file, markers):
             onset = mrk['start']
             duration = mrk['end'] - mrk['start']
             f.write(f'{onset:f}\t{duration:f}\t{mrk["name"]}\n')
+
+def write_bids_channels(output_file, dataset):
+    """Export BIDS channels TSV from Dataset.
+    
+    Parameters
+    ----------
+    output_file : path to file
+        file to export to (use '.tsv' as extension)
+    dataset : instance of wonambi.Dataset
+        Dataset with record metadata
+    """
+    if dataset.IOClass is Edf:
+        hdr = dataset.header['orig']
+        channels = hdr['label']
+        units = [x if x.encode('utf-8') != b'\xef\xbf\xbd' else '?' \
+                 for x in hdr['physical_dim']]
+        low_cut = [x[x.index('HP:') + 3:x.index('Hz')] \
+                     if 'HP:' in x else '0' for x in hdr['prefiltering']]
+        high_cut = [x[x.index('LP:') + 3:x[x.index('LP:'):].index('Hz') \
+                      + x.index('LP:')] \
+                      if 'LP:' in x else 'Inf' for x in hdr['prefiltering']]
+        notch = [x[x.index('N:') + 2:-2] \
+                      if 'N:' in x else '' for x in hdr['prefiltering']]        
+        s_freq = [x / hdr['record_length'] \
+                  for x in hdr['n_samples_per_record']]
+        
+        chan_type = []
+        for one_chan in channels:
+            ch = one_chan.lower()
+            if 'eog' in ch or ch == 'e1' or ch == 'e2':
+                chan_type.append('EOG')
+            elif any(x in ch for x in ['ecg', 'ekg']):
+                chan_type.append('ECG')
+            elif any(x in ch for x in ['emg', 'chin', 'leg']):
+                chan_type.append('EMG')
+            elif (ch[-1].isdigit() and ch[:2] != 'sp') or ch[-1] == 'z': 
+                # not a perfect test
+                #print(f'yessir, {ch} fits the bill alright!')
+                chan_type.append('EEG')
+            else:
+                chan_type.append('MISC')
+        
+        with output_file.open('w') as f:
+            
+            f.write('name\ttype\tunits\tsampling_frequency\tlow_cutoff'
+                    '\thigh_cutoff\tnotch\treference\n')
+            
+            for i, one_chan in enumerate(channels):
+                f.write('\t'.join([
+                    one_chan,
+                    chan_type[i],
+                    units[i],
+                    f'{s_freq[i]:f}',
+                    low_cut[i],
+                    high_cut[i],
+                    notch[i],
+                    'n/a',
+                    ]) + '\n')
+    
+    else:
+        print(str(dataset.IOClass) + ' not currently supported.')
+    
+    

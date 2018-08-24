@@ -1320,7 +1320,7 @@ class Annotations():
             lg.info('Writing to' + str(filename))
             csv_file = writer(f)
             csv_file.writerow(['Wonambi v{}'.format(__version__)])
-            csv_file.writerow(['Total dark time',
+            csv_file.writerow(['Total dark time (Time in bed)',
                                'Sleep onset latency',
                                'Sleep period time',
                                'WASO',
