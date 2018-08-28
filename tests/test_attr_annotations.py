@@ -210,4 +210,4 @@ def test_import_fasst_error():
 def test_export_sleepstats():
     annot = Annotations(annot_psg_path)
     assert annot.export_sleep_stats(annot_sleepstats_path, 0, 29000) == (338, 
-                                   36, 327)
+                                   36, 133)

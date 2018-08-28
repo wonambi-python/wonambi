@@ -2,9 +2,11 @@
 """
 from logging import getLogger
 from bisect import bisect_left
+from itertools import groupby
 from csv import reader, writer
 from datetime import datetime, timedelta
-from numpy import allclose, around, asarray, isnan, logical_and, modf, nan
+from numpy import (allclose, around, asarray, clip, diff, isnan, logical_and, 
+                   modf, nan)
 from math import ceil, inf
 from os.path import basename, splitext
 from pathlib import Path
@@ -1200,6 +1202,72 @@ class Annotations():
 
         return output
 
+    def switch(self):
+        """Obtain switch parameter, ie number of times the stage shifts."""
+        stag_to_int = {'NREM1': 1, 'NREM2': 2, 'NREM3': 3, 'REM': 5, 'Wake': 0}
+        hypno = [stag_to_int[x['stage']] for x in self.get_epochs() \
+                 if x['stage'] in stag_to_int.keys()]
+        
+        return sum(asarray(diff(hypno), dtype=bool))
+    
+    def slp_frag(self):
+        """Obtain sleep fragmentation parameter, ie number of stage shifts to 
+        a lighter stage."""
+        nrem_int = {'Wake': 0, 'NREM1': 1, 'NREM2': 2, 'NREM3': 3}
+        rem_int = {'Wake': 0, 'NREM1': 0, 'REM': 1}
+        
+        frag = 0
+        for j in (nrem_int, rem_int):
+            hypno = [j[x['stage']] for x in self.get_epochs() \
+                    if x['stage'] in j.keys()]
+            frag += sum(asarray(clip(diff(hypno), a_min=None, a_max=0), 
+                                dtype=bool))
+            
+        return frag
+    
+    def latency_to_consolidated(self, lights_off, duration=5, 
+                                stage=['NREM2', 'NREM3']):
+        """Find latency to the first period of uninterrupted 'stage'.
+        
+        Parameters
+        ----------
+        lights_off : float
+            lights off time, in seconds form recording start
+        duration : float
+            duration of uninterrupted period, in minutes
+        stage : list of str
+            target stage(s)
+            
+        Returns
+        -------
+        float
+            latency to the start of the consolidated period, in minutes
+        """
+        epochs = self.get_epochs()
+        
+        if len(stage) > 1:
+            for ep in epochs:
+                if ep['stage'] in stage:
+                    ep['stage'] = 'target'
+            stage = ['target']
+            
+        hypno = [x['stage'] for x in epochs]        
+        groups = groupby(hypno)
+        runs = [(stag, sum(1 for _ in group)) for stag, group in groups]
+        
+        idx_start = 0
+        for one_stage, n in runs:
+            if (one_stage in stage) and n >= duration * 60 / self.epoch_length:
+                break
+            idx_start += n
+            
+        if idx_start < len(hypno):
+            latency = (epochs[idx_start]['start'] - lights_off) / 60 
+        else:
+            latency = nan
+        
+        return latency
+    
     def export(self, file_to_export, xformat='csv'):
         """Export epochwise annotations to csv file.
 
@@ -1261,19 +1329,19 @@ class Annotations():
                              str(self.epoch_length) + 
                              '\n'))
 
-    def export_sleep_stats(self, filename, lights_out, lights_on):
+    def export_sleep_stats(self, filename, lights_off, lights_on):
         """Create CSV with sleep statistics.
 
         Parameters
         ----------
         filename: str
             Filename for csv export
-        lights_out: float
+        lights_off: float
             Initial time when sleeper turns off the light (or their phone) to
-            go to sleep, in seconds from recording start.
+            go to sleep, in seconds from recording start
         lights_on: float
             Final time when sleeper rises from bed after sleep, in seconds from
-            recording start.
+            recording start
 
         Returns
         -------
@@ -1282,7 +1350,9 @@ class Annotations():
             returns the sleep onset latency, for testing purposes.
         """
         epochs = self.get_epochs()
+        ep_starts = [i['start'] for i in epochs]
         hypno = [i['stage'] for i in epochs]
+        n_ep_per_min = 60 / self.epoch_length
 
         first = {}
         latency = {}
@@ -1290,72 +1360,224 @@ class Annotations():
             first[stage] = next(((i, j) for i, j in enumerate(epochs) if \
                                 j['stage'] == stage), None)
             if first[stage] is not None:
-                latency[stage] = (first[stage][1]['start'] - lights_out) / 60
+                latency[stage] = (first[stage][1]['start'] - 
+                       lights_off) / 60
             else:
+                first[stage] = nan
                 latency[stage] = nan
-                del first[stage]
 
-        if first == {}:
-            return None
-
+        idx_loff = asarray([abs(x - lights_off) for x in ep_starts]).argmin()
+        idx_lon = asarray([abs(x - lights_on) for x in ep_starts]).argmin()
         duration = {}
         for stage in ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
                       'Artefact']:
-            duration[stage] = hypno.count(stage) * self.epoch_length / 60
+            duration[stage] = hypno[idx_loff:idx_lon].count(
+                    stage) / n_ep_per_min
 
         slp_onset = sorted(first.values(), key=lambda x: x[1]['start'])[0]
         wake_up = next((len(epochs) - i, j) for i, j in enumerate(
                 epochs[::-1]) if j['stage'] in ['NREM1', 'NREM2', 'NREM3',
                                                 'REM'])
-
-        total_dark_time = (lights_on - lights_out) / 60
-        slp_period_time = (wake_up[1]['start'] - slp_onset[1]['start']) / 60
-        slp_onset_lat = (slp_onset[1]['start'] - lights_out) / 60
-        waso = (hypno[slp_onset[0]:wake_up[0]].count('Wake') *
-                self.epoch_length) / 60
-        total_slp_time = slp_period_time - waso
+        total_dark_time = (lights_on - lights_off) / 60
+        #slp_period_time = (wake_up[1]['start'] - slp_onset[1]['start']) / 60
+        slp_onset_lat = (slp_onset[1]['start'] - lights_off) / 60
+        waso = hypno[slp_onset[0]:wake_up[0]].count('Wake') / n_ep_per_min
+        wake = waso + slp_onset_lat
+        total_slp_period = sum((waso, duration['NREM1'], duration['NREM2'],
+                                  duration['NREM3'], duration['REM']))
+        total_slp_time = total_slp_period - waso
         slp_eff = total_slp_time / total_dark_time
-
+        switch = self.switch()
+        slp_frag = self.slp_frag()
+        
+        dt_format = '%d/%m/%Y %H:%M:%S'
+        loff_str = (self.start_time + timedelta(seconds=lights_off)).strftime(
+                dt_format)
+        lon_str = (self.start_time + timedelta(seconds=lights_on)).strftime(
+                dt_format)
+        slp_onset_str = (self.start_time + timedelta(
+                seconds=slp_onset[1]['start'])).strftime(dt_format)
+        wake_up_str = (self.start_time + timedelta(
+                seconds=wake_up[1]['start'])).strftime(dt_format)
+        
+        slcnrem5 = self.latency_to_consolidated(lights_off, duration=5, 
+                                                stage=['NREM2', 'NREM3'])
+        slcnrem10 = self.latency_to_consolidated(lights_off, duration=10, 
+                                                 stage=['NREM2', 'NREM3'])
+        slcn35 = self.latency_to_consolidated(lights_off, duration=5, 
+                                              stage=['NREM3'])
+        slcn310 = self.latency_to_consolidated(lights_off, duration=10, 
+                                               stage=['NREM3'])
+        
         with open(filename, 'w', newline='') as f:
-            lg.info('Writing to' + str(filename))
-            csv_file = writer(f)
-            csv_file.writerow(['Wonambi v{}'.format(__version__)])
-            csv_file.writerow(['Total dark time (Time in bed)',
-                               'Sleep onset latency',
-                               'Sleep period time',
-                               'WASO',
-                               'Total sleep time',
-                               'Sleep efficiency',
-                               'N1 latency',
-                               'N2 latency',
-                               'N3 latency',
-                               'REM latency',
-                               'N1 duration',
-                               'N2 duration',
-                               'N3 duration',
-                               'REM duration',
-                               'Wake duration',
-                               'Movement duration',
-                               'Artefact duration',
-                               ])
-            csv_file.writerow([total_dark_time,
-                               slp_onset_lat,
-                               slp_period_time,
-                               waso,
-                               total_slp_time,
-                               slp_eff,
-                               latency['NREM1'],
-                               latency['NREM2'],
-                               latency['NREM3'],
-                               latency['REM'],
-                               duration['NREM1'],
-                               duration['NREM2'],
-                               duration['NREM3'],
-                               duration['REM'],
-                               duration['Wake'],
-                               duration['Movement'],
-                               duration['Artefact'],
-                               ])
+            lg.info('Writing to ' + str(filename))
+            cf = writer(f)
+            cf.writerow(['Wonambi v{}'.format(__version__)])            
+            cf.writerow(['Variable', 'Acronym', 
+                         'Unit 1', 'Value 1', 
+                         'Unit 2', 'Value 2', 
+                         'Formula'])
+            cf.writerow(['Lights off', 'LOFF', 
+                         'dd/mm/yyyy HH:MM:SS', loff_str, 
+                         'seconds from recording start', lights_off, 
+                         'marker'])
+            cf.writerow(['Lights on', 'LON', 
+                         'dd/mm/yyyy HH:MM:SS', lon_str, 
+                         'seconds from recording start', lights_on, 
+                         'marker'])
+            cf.writerow(['Sleep onset', 'SO', 
+                         'dd/mm/yyyy HH:MM:SS', slp_onset_str, 
+                         'seconds from recording start', slp_onset[1]['start'], 
+                         'first sleep epoch (N1 or N2) - LOFF'])
+            cf.writerow(['Time of last awakening', '',
+                         'dd/mm/yyyy HH:MM:SS', wake_up_str,
+                         'seconds from recording start', wake_up[1]['start'],
+                         'end time of last epoch of N1, N2, N3 or REM'])
+            cf.writerow(['Total dark time (Time in bed)', 'TDT (TIB)', 
+                         'Epochs', total_dark_time * n_ep_per_min, 
+                         'Minutes', total_dark_time, 
+                         'LON - LOFF'])
+            cf.writerow(['Sleep latency', 'SL', 
+                         'Epochs', slp_onset_lat * n_ep_per_min, 
+                         'Minutes', slp_onset_lat, 
+                         'LON - SO'])
+            cf.writerow(['Wake', 'W', 
+                         'Epochs', wake * n_ep_per_min, 
+                         'Minutes', wake,
+                         'total wake duration between LOFF and LON'])
+            cf.writerow(['Wake after sleep onset', 'WASO', 
+                         'Epochs', waso * n_ep_per_min, 
+                         'Minutes', waso, 
+                         'W - SL'])
+            cf.writerow(['N1 duration', '',
+                         'Epochs', duration['NREM1'] * n_ep_per_min,
+                         'Minutes', duration['NREM1'],
+                         'total N1 duration between LOFF and LON'])
+            cf.writerow(['N2 duration', '',
+                         'Epochs', duration['NREM2'] * n_ep_per_min,
+                         'Minutes', duration['NREM2'],
+                         'total N2 duration between LOFF and LON'])
+            cf.writerow(['N3 duration', '',
+                         'Epochs', duration['NREM3'] * n_ep_per_min, 
+                         'Minutes', duration['NREM3'],
+                         'total N3 duration between LOFF and LON'])
+            cf.writerow(['REM duration', '', 
+                         'Epochs', duration['REM'] * n_ep_per_min,
+                         'Minutes', duration['REM'],
+                         'total REM duration between LOFF and LON'])            
+            cf.writerow(['Artefact duration', '', 
+                         'Epochs', 
+                         duration['Artefact'] * n_ep_per_min,
+                         'Minutes', duration['Artefact'],
+                         'total Artefact duration between LOFF and LON'])
+            cf.writerow(['Movement duration', '', 
+                         'Epochs', 
+                         duration['Movement'] * n_ep_per_min,
+                         'Minutes', duration['Movement'],
+                         'total Movement duration between LOFF and LON'])
+            cf.writerow(['Total sleep period', 'TSP', 
+                         'Epochs', total_slp_period * n_ep_per_min, 
+                         'Minutes', total_slp_period,
+                         'WASO + N1 + N2 + N3 + REM'])
+            cf.writerow(['Total sleep time', 'TST', 
+                         'Epochs', total_slp_time * n_ep_per_min, 
+                         'Minutes', total_slp_time, 
+                         'N1 + N2 + N3 + REM'])
+            cf.writerow(['Sleep efficiency', 'SE', 
+                         '%', slp_eff * 100, 
+                         '', '',
+                         'TST / TDT'])
+            cf.writerow(['W % TSP', '',
+                         '%', duration['Wake'] * 100 / total_slp_period,
+                         '', '',
+                         'W / TSP'])
+            cf.writerow(['N1 % TSP', '',
+                         '%', duration['NREM1'] * 100 / total_slp_period,
+                         '', '',
+                         'N1 / TSP'])
+            cf.writerow(['N2 % TSP', '',
+                         '%', duration['NREM2'] * 100 / total_slp_period,
+                         '', '',
+                         'N2 / TSP'])
+            cf.writerow(['N3 % TSP', '',
+                         '%', duration['NREM3'] * 100 / total_slp_period,
+                         '', '',
+                         'N3 / TSP'])
+            cf.writerow(['REM % TSP', '',
+                         '%', duration['REM'] * 100 / total_slp_period,
+                         '', '',
+                         'REM / TSP'])
+            cf.writerow(['N1 % TST', '',
+                         '%', duration['NREM1'] * 100 / total_slp_time,
+                         '', '',
+                         'N1 / TST'])
+            cf.writerow(['N2 % TST', '',
+                         '%', duration['NREM2'] * 100 / total_slp_time,
+                         '', '',
+                         'N2 / TST'])
+            cf.writerow(['N3 % TST', '',
+                         '%', duration['NREM3'] * 100 / total_slp_time,
+                         '', '',
+                         'N3 / TST'])
+            cf.writerow(['REM % TST', '',
+                         '%', duration['REM'] * 100 / total_slp_time,
+                         '', '',
+                         'REM / TST'])
+            cf.writerow(['Switch', '',
+                         'N', switch,
+                         '', '', 
+                         'number of stage shifts'])
+            cf.writerow(['Switch %', '',
+                         '%', switch * 100 / total_slp_period,
+                         '', '',
+                         'switch / TSP'])
+            cf.writerow(['Sleep fragmentation', '',
+                         'N', slp_frag,
+                         '', '', 
+                         ('number of shifts to a lighter stage '
+                          '(W > N1 > N2 > N3; W > N1 > REM)')])
+            cf.writerow(['Sleep fragmentation index', 'SFI', 
+                         '%', slp_frag * 100 / total_slp_time, 
+                         '', '',
+                         'sleep fragmentation / TST'])
+            cf.writerow(['Sleep latency to N1', 'SLN1', 
+                         'Epochs', latency['NREM1'] * n_ep_per_min, 
+                         'Minutes', latency['NREM1'],
+                         'first N1 epoch - LOFF'])
+            cf.writerow(['Sleep latency to N2', 'SLN2', 
+                         'Epochs', latency['NREM2'] * n_ep_per_min, 
+                         'Minutes', latency['NREM2'],
+                         'first N2 epoch - LOFF'])
+            cf.writerow(['Sleep latency to N3', 'SLN3', 
+                         'Epochs', latency['NREM3'] * n_ep_per_min, 
+                         'Minutes', latency['NREM3'],
+                         'first N3 epoch - LOFF'])
+            cf.writerow(['Sleep latency to REM', 'SLREM', 
+                         'Epochs', latency['REM'] * n_ep_per_min, 
+                         'Minutes', latency['REM'],
+                         'first REM epoch - LOFF'])
+            cf.writerow(['Sleep latency to consolidated NREM, 5 min', 
+                         'SLCNREM5', 
+                         'Epochs', slcnrem5 * n_ep_per_min, 
+                         'Minutes', slcnrem5,
+                         ('start of first uninterrupted 5-minute period of '
+                          'N2 and/or N3 - LOFF')])
+            cf.writerow(['Sleep latency to consolidated NREM, 10 min', 
+                         'SLCNREM10', 
+                         'Epochs', slcnrem10 * n_ep_per_min, 
+                         'Minutes', slcnrem10,
+                         ('start of first uninterrupted 10-minute period of '
+                          'N2 and/or N3 - LOFF')])
+            cf.writerow(['Sleep latency to consolidated N3, 5 min', 'SLCN35', 
+                         'Epochs', slcn35 * n_ep_per_min, 
+                         'Minutes', slcn35,
+                         ('start of first uninterrupted 5-minute period of '
+                          'N3 - LOFF')])
+            cf.writerow(['Sleep latency to consolidated N3, 10 min', 'SLCN310', 
+                         'Epochs', slcn310 * n_ep_per_min, 
+                         'Minutes', slcn310,
+                         ('start of first uninterrupted 10-minute period of '
+                          'N3 - LOFF')])
 
         return slp_onset_lat, waso, total_slp_time # for testing
 

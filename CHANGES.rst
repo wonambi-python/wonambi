@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.41**: improved sleep statistics
 - **5.40**: bci2000 bug fix
 - **5.39**: bci2000 sampling frequency can end with Hz
 - **5.38**: bci2000 sampling frequency can end with Hz

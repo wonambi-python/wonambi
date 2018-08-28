@@ -1534,21 +1534,19 @@ class Notes(QTabWidget):
         if fn == '':
             return
 
-        dt_dialog = DateTimeDialog('Lights OUT', self.annot.start_time,
+        dt_dialog = DateTimeDialog('Lights OFF', self.annot.start_time,
                                    self.annot.last_second)
         if not dt_dialog.exec():
-            return
-        lights_out = dt_dialog.idx_seconds.value()
+            return                        
+        lights_off = float(dt_dialog.idx_seconds.value())
 
         dt_dialog = DateTimeDialog('Lights ON', self.annot.start_time,
                                    self.annot.last_second)
         if not dt_dialog.exec():
             return
-        lights_on = dt_dialog.idx_seconds.value()
+        lights_on = float(dt_dialog.idx_seconds.value())
 
-        lights_out, lights_on = float(lights_out), float(lights_on)
-
-        if self.annot.export_sleep_stats(fn, lights_out, lights_on) is None:
+        if self.annot.export_sleep_stats(fn, lights_off, lights_on) is None:
             self.parent.statusBar().showMessage('No epochs scored as sleep.')
 
     def reset(self):
