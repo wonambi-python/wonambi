@@ -66,7 +66,7 @@ class BCI2000:
         chan_dtype = dtype(orig['DataFormat'])
         self.statevector_len = int(orig['StatevectorLen'])
 
-        s_freq = int(orig['Parameter']['SamplingRate'])
+        s_freq = orig['Parameter']['SamplingRate']
         storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
         try:  # newer version
             start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
@@ -86,7 +86,7 @@ class BCI2000:
 
         if s_freq.endswith('Hz'):
             s_freq = s_freq.replace('Hz', '')
-        self.s_freq = float(s_freq.strip())
+        self.s_freq = int(s_freq.strip())
 
         self.header_len = int(orig['HeaderLen'])
         self.n_samples = n_samples
