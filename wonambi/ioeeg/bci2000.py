@@ -21,7 +21,7 @@ from numpy import (fromfile,
                    uint8,
                    )
 
-STATEVECTOR = ['Name', 'Length',  'Value', 'ByteLocation', 'BitLocation']
+STATEVECTOR = ['Name', 'Length', 'Value', 'ByteLocation', 'BitLocation']
 
 
 class BCI2000:
@@ -75,8 +75,8 @@ class BCI2000:
 
         subj_id = orig['Parameter']['SubjectName']
 
-        self.dtype = dtype([(chan, chan_dtype) for chan in chan_name]
-                            + [('statevector', 'S', self.statevector_len)])
+        self.dtype = dtype([(chan, chan_dtype) for chan in chan_name] +
+                           [('statevector', 'S', self.statevector_len)])
 
         # compute n_samples based on file size - header
         with open(self.filename, 'rb') as f:
@@ -84,7 +84,10 @@ class BCI2000:
             EOData = f.tell()
         n_samples = int((EOData - int(orig['HeaderLen'])) / self.dtype.itemsize)
 
-        self.s_freq = s_freq
+        if s_freq.endswith('Hz'):
+            s_freq = s_freq.replace('Hz', '')
+        self.s_freq = float(s_freq.strip())
+
         self.header_len = int(orig['HeaderLen'])
         self.n_samples = n_samples
         self.statevectors = _prepare_statevectors(orig['StateVector'])
