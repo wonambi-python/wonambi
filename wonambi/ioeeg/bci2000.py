@@ -67,6 +67,11 @@ class BCI2000:
         self.statevector_len = int(orig['StatevectorLen'])
 
         s_freq = orig['Parameter']['SamplingRate']
+        if s_freq.endswith('Hz'):
+            s_freq = s_freq.replace('Hz', '')
+        s_freq = int(s_freq.strip())
+        self.s_freq = s_freq
+
         storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
         try:  # newer version
             start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
@@ -84,10 +89,7 @@ class BCI2000:
             EOData = f.tell()
         n_samples = int((EOData - int(orig['HeaderLen'])) / self.dtype.itemsize)
 
-        if s_freq.endswith('Hz'):
-            s_freq = s_freq.replace('Hz', '')
-        self.s_freq = int(s_freq.strip())
-
+        self.s_freq = s_freq
         self.header_len = int(orig['HeaderLen'])
         self.n_samples = n_samples
         self.statevectors = _prepare_statevectors(orig['StateVector'])
