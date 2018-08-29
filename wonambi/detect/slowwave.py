@@ -2,7 +2,7 @@
 
 """
 from logging import getLogger
-from numpy import argmax, concatenate, diff, hstack, sign, sum, where, zeros
+from numpy import argmin, concatenate, diff, hstack, sign, sum, where, zeros
 
 try:
     from PyQt5.QtCore import Qt
@@ -159,11 +159,11 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
 
     dat_det = transform_signal(dat_orig, s_freq, 'double_butter', 
                                opts.det_filt)
-    below_zero = detect_events(dat_det, 'below_thresh', value=0.)
+    above_zero = detect_events(dat_det, 'above_thresh', value=0.)
 
     sw_in_chan = []
-    if below_zero is not None:
-        troughs = within_duration(below_zero, time, opts.trough_duration)
+    if above_zero is not None:
+        troughs = within_duration(above_zero, time, opts.trough_duration)
         #lg.info('troughs within duration: ' + str(troughs.shape))
 
         if troughs is not None:
@@ -171,7 +171,7 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
             #lg.info('troughs deep enough: ' + str(troughs.shape))
 
             if troughs is not None:
-                events = _add_pos_halfwave(dat_det, troughs, s_freq, opts)
+                events = _add_halfwave(dat_det, troughs, s_freq, opts)
                 #lg.info('SWs high enough: ' + str(events.shape))
 
                 if len(events):
@@ -250,8 +250,8 @@ def make_slow_waves(events, data, time, s_freq):
     return slow_waves
 
 
-def _add_pos_halfwave(data, events, s_freq, opts):
-    """Find the next zero crossing and the intervening positive peak and add
+def _add_halfwave(data, events, s_freq, opts):
+    """Find the next zero crossing and the intervening peak and add
     them to events. If no zero found before max_dur, event is discarded. If
     peak-to-peak is smaller than min_ptp, the event is discarded.
 
@@ -260,7 +260,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     data : ndarray (dtype='float')
         vector with the data
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples
+        N x 3 matrix with start, trough, end samples
     s_freq : float
         sampling frequency
     opts : instance of 'DetectSlowWave'
@@ -272,8 +272,8 @@ def _add_pos_halfwave(data, events, s_freq, opts):
     Returns
     -------
     ndarray (dtype='int')
-        N x 5 matrix with start, trough, - to + zero crossing, peak, and end
-        samples
+        N x 5 matrix with start, trough, - to + zero crossing, peak, 
+        and end samples
     """
     max_dur = opts.duration[1]
     if max_dur is None:
@@ -297,7 +297,7 @@ def _add_pos_halfwave(data, events, s_freq, opts):
             #lg.info('no 0cross, rejected')
             continue
 
-        ev[3] = ev[2] + argmax(data[ev[2]:ev[4]])
+        ev[3] = ev[2] + argmin(data[ev[2]:ev[4]])
 
         if abs(data[ev[1]] - data[ev[3]]) < opts.min_ptp:
             selected.append(False)

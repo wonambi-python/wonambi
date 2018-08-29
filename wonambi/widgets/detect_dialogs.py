@@ -352,7 +352,7 @@ class SWDialog(ChannelDialog):
 
         self.index['detrend'] = FormBool('Detrend (linear)')
         self.index['exclude'] = FormBool('Exclude Artefact events')
-        self.index['invert'] = FormBool('Invert detection')
+        self.index['invert'] = FormBool('Invert detection (down-then-up)')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
         self.index['excl_event'] = FormBool('Exclude Artefact events')
         self.index['min_seg_dur'] = FormFloat(5)

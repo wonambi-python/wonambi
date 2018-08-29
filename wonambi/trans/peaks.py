@@ -1,6 +1,6 @@
 from logging import getLogger
 from numpy import (asarray, diff, empty, isinf, nan, nanargmax, nanargmin, 
-                   ones, sign, where)
+                   negative, ones, sign, where)
 from scipy.signal import fftconvolve
 
 lg = getLogger(__name__)
@@ -86,6 +86,8 @@ def get_slopes(data, s_freq, level='all', smooth=0.05):
     times AS WELL AS manually delimited ones. In the latter case, the first
     and last zero has to be detected within this function.
     """
+    data = negative(data) # legacy code
+    
     nan_array = empty((5,))
     nan_array[:] = nan
     idx_trough = data.argmin()

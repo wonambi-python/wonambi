@@ -616,7 +616,7 @@ class AnalysisDialog(ChannelDialog):
         ev['f2'] = FormFloat()
 
         ev['sw'] = {}
-        ev['sw']['invert'] = FormBool('Inverted (peak-then-trough)')
+        ev['sw']['invert'] = FormBool('Inverted (down-then-up)')
         ev['sw']['prep'] = FormBool('Pre-process')
         ev['sw']['avg_slope'] = FormBool('Average slopes (uV/s)')
         ev['sw']['max_slope'] = FormBool('Max. slopes (uV/s**2)')

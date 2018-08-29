@@ -189,9 +189,18 @@ This method is identical to FASST, except step 3 is replaced with the following 
 #. *Detection is limited to NREM signal.*
 #. The signal is bandpass filtered between ``Lowcut`` and ``Highcut``, using a zero-phase 4th (2x2) order Butterworth filter. Wonambi's implementation applies the filter sequentially to avoid numerical instability: first lowpass, the highpass.
 #. Slow waves are detected when the following 3 criteria are met:
-   * A negative zero crossing and a subsequent positive zero crossing separated by ``Min. trough duration`` [0.3] and ``Max. trough duration`` [1.0] s.
+
+   * A positive-to-negative zero crossing and a subsequent negative-to-positive zero crossing separated by ``Min. trough duration`` [0.3] and ``Max. trough duration`` [1.0] s.
    * A negative peak between the two zero crossings with voltage less than ``Max. trough amplitude`` [-80] μV
-   * A negative-to-positive peak-to-peak amplitude greater than ``Min. peak-to-peak amplitude`` [140] μV.
+   * A peak-to-peak amplitude greater than ``Min. peak-to-peak amplitude`` [140] μV.
+
+.. NOTE::
+   Not all channels will show slow waves with the same polarity (e.g. F3-M2 and M2-F3 will be inverted).
+   Furthermore, the typical iEEG channels will show slow waves as positive-then-negative, contrary to surface EEG electrodes.
+   For these reasons, it is left to the user to set the correct polarity for slow wave detection.
+   The default polarity is negative-then-positive. 
+   Wonambi displays signals negative-up, so on typical EEG channels, slow waves will be up-then-down.
+   To switch to positive-then-negative (down-then-up), check the ``Invert detection`` box.
 
 **AASM/Massimini2004**
 
