@@ -242,7 +242,6 @@ def make_slow_waves(events, data, time, s_freq):
                   'trough_val': data[ev[1]],
                   'peak_val': data[ev[3]],
                   'dur': (ev[4] - ev[0]) / s_freq,
-                  'area_under_curve': sum(data[ev[0]: ev[4]]) / s_freq,
                   'ptp': abs(ev[3] - ev[1])
                   }
         slow_waves.append(one_sw)

@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.43**: bugfix for SW tests
 - **5.42**: default SW detection is negative-then-positive (up-then-down); sleep stats fixes
 - **5.41**: improved sleep statistics
 - **5.40**: bci2000 bug fix

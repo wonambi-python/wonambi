@@ -11,6 +11,7 @@ data = d.read_data(chan=('EEG Fpz-Cz', 'EEG Pz-Oz'), begtime=27930, endtime=2796
 
 def test_detect_slowwave_Massimini2004():
     detsw = DetectSlowWave()
+    detsw.invert = True
     assert repr(detsw) == 'detsw_Massimini2004_0.10-4.00Hz'
 
     sw = detsw(data)
@@ -19,6 +20,7 @@ def test_detect_slowwave_Massimini2004():
 
 def test_detect_slowwave_AASM_Massimini2004():
     detsw = DetectSlowWave(method='AASM/Massimini2004')
+    detsw.invert = True
     assert repr(detsw) == 'detsw_AASM/Massimini2004_0.10-4.00Hz'
 
     sw = detsw(data)
@@ -27,13 +29,11 @@ def test_detect_slowwave_AASM_Massimini2004():
 
 def test_detect_slowwave_to_data():
     detsw = DetectSlowWave()
+    detsw.invert = True
     sw = detsw(data)
 
     sw_data = sw.to_data('count')
     assert sw_data(0)[1] == 1
-
-    sw_auc = sw.to_data('area_under_curve')
-    assert approx(sw_auc(0)[1]) == -14.151624155247811
 
     sw_ptp = sw.to_data('ptp')
     assert approx(sw_ptp(0)[1]) == 63.0
