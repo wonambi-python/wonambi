@@ -918,6 +918,7 @@ class Traces(QGraphicsView):
         if chk_marker or chk_event:
 
             x_in_scene = self.mapToScene(event.pos()).x()
+            y_in_scene = self.mapToScene(event.pos()).y()
 
             # it can happen that selection is empty (f.e. double-click)
             if self.sel_xy[0] is not None:
@@ -941,8 +942,14 @@ class Traces(QGraphicsView):
 
                 elif chk_event and start != end:
                     eventtype = self.parent.notes.idx_eventtype.currentText()
-                    chan_idx = int(floor(self.sel_xy[1] / y_distance))
-                    chan = self.chan[chan_idx]
+                    
+                    # if dragged across > 1.5 chan, event is marked on all chan
+                    if abs(y_in_scene - self.sel_xy[1]) > 1.5 * y_distance:
+                        chan = self.chan
+                    else:
+                        chan_idx = int(floor(self.sel_xy[1] / y_distance))
+                        chan = self.chan[chan_idx]
+                        
                     self.parent.notes.add_event(eventtype, time, chan)
 
         else:  # normal selection
