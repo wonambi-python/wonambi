@@ -1213,17 +1213,23 @@ class Annotations():
     def slp_frag(self):
         """Obtain sleep fragmentation parameter, ie number of stage shifts to 
         a lighter stage."""
-        nrem_int = {'Wake': 0, 'NREM1': 1, 'NREM2': 2, 'NREM3': 3}
-        rem_int = {'Wake': 0, 'NREM1': 0, 'REM': 1}
+        epochs = self.get_epochs()
+        stage_int = {'Wake': 0, 'NREM1': 1, 'NREM2': 2, 'NREM3': 3, 'REM': 2}
         
-        frag = 0
-        for j in (nrem_int, rem_int):
-            hypno = [j[x['stage']] for x in self.get_epochs() \
-                    if x['stage'] in j.keys()]
-            frag += sum(asarray(clip(diff(hypno), a_min=None, a_max=0), 
-                                dtype=bool))
+        hypno_str = [x['stage'] for x in epochs \
+                     if x['stage'] in stage_int.keys()]
+        hypno_int = [stage_int[x] for x in hypno_str]
+        frag = sum(asarray(clip(diff(hypno_int), a_min=None, a_max=0), 
+                           dtype=bool))
             
-        return frag
+        # N3 to REM doesn't count
+        n3_to_rem = 0
+        for i, j in enumerate(hypno_str):
+            if j == 'NREM3':
+                if hypno_str[i + 1] == 'REM':
+                    n3_to_rem += 1
+        
+        return frag - n3_to_rem
     
     def latency_to_consolidated(self, lights_off, duration=5, 
                                 stage=['NREM2', 'NREM3']):
