@@ -945,7 +945,7 @@ class Traces(QGraphicsView):
                     
                     # if dragged across > 1.5 chan, event is marked on all chan
                     if abs(y_in_scene - self.sel_xy[1]) > 1.5 * y_distance:
-                        chan = self.chan
+                        chan = ''
                     else:
                         chan_idx = int(floor(self.sel_xy[1] / y_distance))
                         chan = self.chan[chan_idx]

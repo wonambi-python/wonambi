@@ -34,7 +34,18 @@ lg = getLogger(__name__)
 
 class Segments():
     """Class containing a set of data segments for analysis, with metadata.
-    Only contains metadata until .read_data is called."""
+    Only contains metadata until .read_data is called.
+    
+    Attributes
+    ----------
+    dataset : instance of wonambi.dataset
+        metadata for the associated record
+    segments : list of dict
+        chronological list of segment metadata. Each segment dict contains info
+        about start and end times, stage, cycle, channel and event name, if 
+        applicable. Once read_data is called, the signal data are added to each
+        segment dictionary under 'data'.
+    """
     def __init__(self, dataset):
         self.dataset = dataset
         self.segments = []
@@ -49,8 +60,8 @@ class Segments():
     def __getitem__(self, index):
         return self.segments[index]
 
-    def read_data(self, chan, ref_chan=[], grp_name=None, evt_chan_only=False,
-                  concat_chan=False, max_s_freq=30000, parent=None):
+    def read_data(self, chan=[], ref_chan=[], grp_name=None, concat_chan=False, 
+                  max_s_freq=30000, parent=None):
         """Read data for analysis. Adds data as 'data' in each dict.
 
         Parameters
@@ -61,9 +72,6 @@ class Segments():
             reference channel names as they appear in record, without group
         grp_name : str
             name of the channel group, required in GUI
-        evt_chan_only : bool
-            for events. if True, only returns data for chan on which event was
-            marked
         concat_chan : bool
             if True, data from all channels will be concatenated
         max_s_freq: : int
@@ -72,8 +80,6 @@ class Segments():
             for GUI only. Identifies parent widget for display of progress
             dialog.
         """
-        chan_to_read = chan + ref_chan
-        active_chan = chan
         output = []
 
         # Set up Progress Bar
@@ -98,9 +104,17 @@ class Segments():
                     progress.setValue(counter)
                     counter += 1
 
-                if evt_chan_only: # for events
+                # if channel not specified, use segment channel
+                if chan:
+                    active_chan = chan
+                elif seg['chan']:
                     active_chan = [seg['chan'].split(' (')[0]]
-                    chan_to_read = active_chan + ref_chan
+                else:
+                    raise ValueError('No channel was specified and the '
+                                     'segment at {}-{} has no channel.'.format(
+                                             t0, t1))
+                active_chan = chan if chan else [seg['chan'].split(' (')[0]]
+                chan_to_read = active_chan + ref_chan
 
                 data = self.dataset.read_data(chan=chan_to_read, begtime=t0,
                                          endtime=t1)
@@ -322,10 +336,12 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
     cycle: list of tuple of two float, optional
         Cycle(s) of interest, as start and end times in seconds from record
         start. If None, cycles are ignored.
-    chan_full: list of str or tuple of None
+    chan_full: list of str or None
         Channel(s) of interest, only used for events (epochs have no
         channel). Channel format is 'chan_name (group_name)'.
-        If None, channel is ignored.
+        If used for epochs, separate segments will be returned for each 
+        channel; this is necessary for channel-specific artefact removal (see
+        reject_artf below). If None, channel is ignored.
     epoch : str, optional
         If 'locked', returns epochs locked to staging. If 'unlocked', divides
         signal (with specified concatenation) into epochs of duration epoch_dur
@@ -344,8 +360,10 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         be rejected (and the signal segmented in consequence). Has no effect on
         event selection.
     reject_artf : bool
-        If True, excludes events marked as 'Artefact' (and signal is segmented
-        in consequence).
+        If True, excludes events marked as 'Artefact'. If chan_full is 
+        specified, only artefacts marked on a given channel are removed from 
+        that channel. Signal is segmented in consequence. 
+        If None, Artefact events are ignored.
     min_dur : float
         Minimum duration of segments returned, in seconds.
 
@@ -360,7 +378,8 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
     # Remove artefacts
     if reject_artf and bundles:
         for bund in bundles:
-            bund['times'] = remove_artf_evts(bund['times'], annot, min_dur=0)
+            bund['times'] = remove_artf_evts(bund['times'], annot, 
+                bund['chan'], min_dur=0)
 
     # Divide bundles into segments to be concatenated
     if bundles:
@@ -408,8 +427,7 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         Cycle(s) of interest, as start and end times in seconds from record
         start. If None, cycles are ignored.
     chan: list of str or tuple of None
-        Channel(s) of interest, only used for events (epochs have no
-        channel). Channel format is 'chan_name (group_name)'.
+        Channel(s) of interest. Channel format is 'chan_name (group_name)'.
         If None, channel is ignored.
     exclude: bool
         Exclude epochs by quality. If True, epochs marked as 'Poor' quality

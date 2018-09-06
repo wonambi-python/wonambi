@@ -117,18 +117,19 @@ class SpindleDialog(ChannelDialog):
         self.index['detrend'] = FormBool('Detrend (linear)')
         self.index['merge'] = FormBool('Merge events across channels')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
-        self.index['excl_event'] = FormBool('Exclude Artefact events')
+        self.index['excl_event'] = FormMenu(['none', 'channel-specific', 
+                                      'from any channel'])
         self.index['min_seg_dur'] = FormFloat(5)
 
         self.index['excl_epoch'].set_value(True)
-        self.index['excl_event'].set_value(True)
         self.index['merge'].setCheckState(Qt.Unchecked)
         self.index['merge'].setEnabled(False)
 
         form = QFormLayout(box3)
         form.addRow(self.index['detrend'])
         form.addRow(self.index['excl_epoch'])
-        form.addRow(self.index['excl_event'])
+        form.addRow('Exclude Artefact events', 
+                    self.index['excl_event'])
         form.addRow('Minimum subsegment duration',
                        self.index['min_seg_dur'])
         form.addRow(self.index['merge'])
@@ -187,12 +188,22 @@ class SpindleDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
+            chan_full = None
+            reject_artf = False
+            if params['excl_event'] == 'channel-specific':
+                chan_full = [i + ' (' + self.idx_group.currentText() + ''
+                           ')' for i in chans]
+                chans = None
+                reject_artf = True
+            elif params['excl_event'] == 'from any channel':
+                reject_artf = True
+            
             data = fetch(self.parent.info.dataset, 
                           self.parent.notes.annot, cat=(1, 1, 1, 0),
                           stage=stage, cycle=cycle, 
-                          min_dur=params['min_seg_dur'], 
+                          chan_full=chan_full, min_dur=params['min_seg_dur'], 
                           reject_epoch=params['excl_epoch'], 
-                          reject_artf=params['excl_event'])
+                          reject_artf=reject_artf)
             
             if not data.segments:
                 msg = 'No valid signal found.'
@@ -351,20 +362,19 @@ class SWDialog(ChannelDialog):
         box3 = QGroupBox('Options')
 
         self.index['detrend'] = FormBool('Detrend (linear)')
-        self.index['exclude'] = FormBool('Exclude Artefact events')
         self.index['invert'] = FormBool('Invert detection (down-then-up)')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
-        self.index['excl_event'] = FormBool('Exclude Artefact events')
+        self.index['excl_event'] = FormMenu(['none', 'channel-specific', 
+                                      'from any channel'])
         self.index['min_seg_dur'] = FormFloat(5)
 
         self.index['excl_epoch'].set_value(True)
-        self.index['excl_event'].set_value(True)
         self.index['detrend'].set_value(True)
-        self.index['exclude'].set_value(True)
 
         form = QFormLayout(box3)
         form.addRow(self.index['excl_epoch'])
-        form.addRow(self.index['excl_event'])
+        form.addRow('Exclude Artefact events', 
+                    self.index['excl_event'])
         form.addRow('Minimum subsegment duration',
                        self.index['min_seg_dur'])
         form.addRow(self.index['detrend'])
@@ -416,12 +426,23 @@ class SWDialog(ChannelDialog):
             else:
                 stage = [x.text() for x in self.idx_stage.selectedItems()]
 
+            chan_full = None
+            reject_artf = False
+            if params['excl_event'] == 'channel-specific':
+                chan_full = [i + ' (' + self.idx_group.currentText() + ''
+                           ')' for i in chans]
+                chans = None
+                reject_artf = True
+            elif params['excl_event'] == 'from any channel':
+                reject_artf = True
+            
             data = fetch(self.parent.info.dataset, 
                                   self.parent.notes.annot, cat=(1, 1, 1, 0),
                                   stage=stage, cycle=cycle, 
+                                  chan_full=chan_full,
                                   min_dur=params['min_seg_dur'], 
                                   reject_epoch=params['excl_epoch'], 
-                                  reject_artf=params['excl_event'])
+                                  reject_artf=reject_artf)
             
             if not data.segments:
                 msg = 'No valid signal found.'

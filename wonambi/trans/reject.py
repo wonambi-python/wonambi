@@ -10,15 +10,22 @@ def rejectbadchan():
     """
     pass
 
-def remove_artf_evts(times, annot, min_dur=0.5):
+def remove_artf_evts(times, annot, chan=None, min_dur=0.1):
     """Correct times to remove events marked 'Artefact'.
 
     Parameters
     ----------
     times : list of tuple of float
         the start and end times of each segment
-    annot: instance of Annotations
-        The annotation file containing events and epochs
+    annot : instance of Annotations
+        the annotation file containing events and epochs
+    chan : str, optional
+        full name of channel on which artefacts were marked. Channel format is 
+        'chan_name (group_name)'. If None, artefacts from any channel will be
+        removed.
+    min_dur : float
+        resulting segments, after concatenation, are rejected if shorter than
+        this duration
 
     Returns
     -------
@@ -29,8 +36,10 @@ def remove_artf_evts(times, annot, min_dur=0.5):
     new_times = times
     beg = times[0][0]
     end = times[-1][-1]
+    chan = (chan, '') if chan else None # '' is for channel-global artefacts
     
-    artefact = annot.get_events(name='Artefact', time=(beg, end), qual='Good')
+    artefact = annot.get_events(name='Artefact', time=(beg, end), chan=chan,
+                                qual='Good')
         
     if artefact:
         new_times = []

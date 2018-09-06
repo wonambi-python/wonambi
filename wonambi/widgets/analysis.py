@@ -192,12 +192,14 @@ class AnalysisDialog(ChannelDialog):
 
         self.min_dur = FormFloat(0.0)
         self.reject_epoch = FormBool('Exclude Poor signal epochs')
-        self.reject_event = FormBool('Exclude Artefact events')
+        self.reject_event = FormMenu(['none', 'channel-specific', 
+                                      'from any channel'])
 
         flayout = QFormLayout()
         box_r.setLayout(flayout)
         flayout.addRow(self.reject_epoch)
-        flayout.addRow(self.reject_event)
+        flayout.addRow('Exclude Artefact events', 
+                       self.reject_event)
         flayout.addRow('Minimum duration (sec)',
                            self.min_dur)
 
@@ -880,7 +882,7 @@ class AnalysisDialog(ChannelDialog):
             self.cat['evt_type'].setChecked(False)
 
         if epoch_on and not lock_on:
-            self.reject_event.setChecked(False)
+            self.reject_event.set_value('none')
             for i in self.cat.values():
                 i.setChecked(False)
                 i.setEnabled(False)
@@ -1236,7 +1238,7 @@ class AnalysisDialog(ChannelDialog):
 
             # Fetch signal
             eco = self.evt_chan_only
-            evt_chan_only = eco.get_value() if eco.isEnabled() else None
+            chan = [] if (eco.get_value() and eco.isEnabled()) else self.chan
             concat_chan = self.cat['chan'].get_value()
 
             self.data = self.get_segments()
@@ -1248,10 +1250,9 @@ class AnalysisDialog(ChannelDialog):
                 error_dialog.showMessage(msg)
                 return
 
-            ding = self.data.read_data(self.chan,
+            ding = self.data.read_data(chan,
                                ref_chan=self.one_grp['ref_chan'],
                                grp_name=self.one_grp['name'],
-                               evt_chan_only=evt_chan_only,
                                concat_chan=concat_chan,
                                max_s_freq=self.parent.value('max_s_freq'),
                                parent=self)
@@ -1439,11 +1440,21 @@ class AnalysisDialog(ChannelDialog):
         cat = {k: v.get_value() for k, v in self.cat.items()}
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
-
+        
+        # Artefact event rejection
+        reject_event = self.reject_event.get_value()
+        if reject_event == 'channel-specific':
+            chan_full = [i + ' (' + self.idx_group.currentText() + ''
+                           ')' for i in self.chan]
+            reject_artf = True
+        elif reject_event == 'from any channel':
+            reject_artf = True
+        else:
+            reject_artf = False
+            
         # Other options
         min_dur = self.min_dur.get_value()
         reject_epoch = self.reject_epoch.get_value()
-        reject_artf = self.reject_event.get_value()
 
         # Generate title for summary plot
         self.title = self.make_title(chan_full, cycle, stage, evt_type)

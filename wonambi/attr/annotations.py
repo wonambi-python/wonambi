@@ -949,8 +949,6 @@ class Annotations():
         ----------
         time : tuple of two float, optional
             start and end time of the period of interest
-        chan : tuple of str, optional
-            list of channels of interests
         stage : tuple of str, optional
             list of stages of interest
         qual : str, optional
