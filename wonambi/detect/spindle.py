@@ -3,8 +3,8 @@
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
                    diff, exp, empty, floor, histogram, hstack, insert, invert,
-                   logical_and, mean, median, nan, ones, percentile, pi, ptp, 
-                   real, sqrt, square, std, vstack, where, zeros)
+                   log10, logical_and, mean, median, nan, ones, percentile, pi, 
+                   ptp, real, sqrt, square, std, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
                           fftconvolve, hilbert, periodogram, remez, 
@@ -118,6 +118,14 @@ class DetectSpindle:
             self.smooth = {'dur': 2 / self.cdemod['freq']}
             self.min_interval = 0.25 # they only start looking again after .25s
             self.zwin = {'dur': 60}
+        
+        elif method == 'Lacourse2018':
+            if self.frequency is None:
+                self.frequency = (11, 16)
+            self.duration = (.3, 2.5)
+            self.moving_ms = {'dur': 0.3,
+                              'step': 0.1}
+            self.zwin = {'dur': 30}
         
         elif 'FASST' in method:
             if self.frequency is None:
@@ -297,6 +305,87 @@ class DetectSpindle:
         
         return spindle
 
+
+def detect_Lacourse2018(dat_orig, s_freq, time, opts):
+    """Spindle detection based on Lacourse et al., 2018
+    
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
+    opts : instance of 'DetectSpindle'
+    
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value_lo' with detection value, 'det_value_hi' is nan,
+        'sel_value' is nan (for consistency with other methods)
+    float
+        spindle density, per 30-s epoch
+
+    References
+    ----------
+    Lacourse, K. et al. J. Neurosci. Meth. (2018).
+    """
+    # Absolute sigma power
+    dat_sigma = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_det = transform_signal(dat_sigma, s_freq, 'moving_ms', opts.moving_ms)
+    abs_sig_pow = log10(dat_det)
+    
+    # Relative sigma power
+    dat_det = transform_signal(dat_orig, s_freq, 'moving_powrat', 
+                               opts.moving_powrat)
+    dat_det = log10(dat_det)
+    rel_sig_pow = transform_signal(dat_det, s_freq, 'zscore', opts.zscore)
+    
+    # Sigma covariance
+    dat_broad = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter2)
+    dat_covar = transform_signal(dat_sigma, s_freq, 'moving_covar', opts.covar, 
+                                 data2=dat_broad)
+    dat_det = log10(dat_covar)
+    sigma_covar = transform_signal(dat_det, s_freq, 'zscore', opts.zscore)
+    
+    # Sigma correlation
+    dat_sd_broad = transform_signal(dat_broad, s_freq, 'moving_sd', 
+                                    opts.moving_sd)
+    dat_sd_sigma = transform_signal(dat_sigma, s_freq, 'moving_sd', 
+                                    opts.moving_sd)
+    sigma_corr = sigma_covar / (dat_sd_broad * dat_sd_sigma)
+    
+    covar_and_corr = logical_and(sigma_covar >= opts.sigma_covar_thresh,
+                                 sigma_corr >= opts.sigma_corr_thresh)
+    concensus = logical_and.reduce((abs_sig_pow >= opts.abs_sig_thresh,
+                                    rel_sig_pow >= opts.rel_sig_thresh,
+                                    covar_and_corr))                                    
+    events = detect_events(concensus, 'custom') # at s_freq * 0.3
+    
+    if events is not None:
+        events = select_events(dat_det, events, 'above_thresh', sel_value)
+        
+        events = _merge_close(dat_det, events, time, opts.min_interval)
+        events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
 
 def detect_Ray2015(dat_orig, s_freq, time, opts):
     """Spindle detection based on Ray et al., 2015
@@ -903,7 +992,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     method : str
         one of 'butter', 'cheby2', 'double_butter', 'morlet', 'morlet_real', 
         'hilbert', 'abs', 'moving_avg', 'gaussian', 'remez', 'wavelet_real',
-        'low_butter'
+        'low_butter', 'zscore', 'moving_rms', 'moving_ms'
     method_opt : dict
         depends on methods
 
@@ -1258,11 +1347,14 @@ def detect_events(dat, method, value=None):
             below_det = dat < value[1]
             between_det = logical_and(above_det, below_det)
             detected = _detect_start_end(between_det)
+            
+        if method == 'custom':
+            detected = _detect_start_end(dat)
 
         if detected is None:
             return None
         
-        if method == 'above_thresh':    
+        if method in ['above_thresh', 'custom']:    
             # add the location of the peak in the middle
             detected = insert(detected, 1, 0, axis=1)
             for i in detected:
