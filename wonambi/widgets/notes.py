@@ -616,6 +616,17 @@ class Notes(QTabWidget):
 
         self.update_annotations()
 
+    def remove_bookmark(self, time):
+        """User removes bookmark.
+
+        Parameters
+        ----------
+        time : tuple of float
+            start and end of the new bookmark, in s
+        """
+        self.annot.remove_bookmark(time=time)
+        self.update_annotations()
+    
     def update_dataset_marker(self):
         """Update markers which are in the dataset. It always updates the list
         of events. Depending on the settings, it might add the markers to
@@ -1348,6 +1359,7 @@ class Notes(QTabWidget):
             if new_name[1]:
                 self.annot.rename_event_type(name[0], new_name[0])
                 self.display_eventtype()
+                self.update_annotations()
     
     def add_event(self, name, time, chan):
         """Action: add a single event."""
@@ -1358,6 +1370,28 @@ class Notes(QTabWidget):
         """Action: remove single event."""
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
+        
+    def change_event_type(self, new_name=None, name=None, time=None, 
+                          chan=None):
+        """Action: change an event's type."""
+        if new_name is None:
+            event_types = self.annot.event_types
+            
+            if name is None:
+                event = self.annot.get_events(time=time, chan=chan)[0]
+                name = event['name']
+                
+            idx_name = event_types.index(name)
+            if idx_name == len(event_types) - 1:
+                new_name = event_types[0]
+            else:
+                new_name = event_types[idx_name + 1]
+                    
+        self.annot.add_event(new_name, time, chan=chan)
+        self.annot.remove_event(name=name, time=time, chan=chan)
+        self.update_annotations()
+        
+        return new_name
 
     def markers_to_events(self, keep_name=False):
         """Copy all markers in dataset to event type. """

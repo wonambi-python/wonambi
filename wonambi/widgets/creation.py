@@ -252,6 +252,7 @@ def create_menubar(MAIN):
     submenu_mrk2evt.addAction(actions['m2e_newname'])
     submenu_mrk2evt.addAction(actions['m2e_keepname'])
     submenu_event.addAction(actions['merge_events'])
+    submenu_event.addAction(MAIN.traces.action['change_event_type'])
 
     # these are the real QActions attached to notes
     submenu_stage = menu_annot.addMenu('Stage')

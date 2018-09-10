@@ -194,7 +194,9 @@ class Traces(QGraphicsView):
         self.cross_chan_mrk = True
         self.highlight = None
         self.event_sel = None
+        self.current_event = None
         self.current_event_row = None
+        self.current_etype = None
         self.deselect = None
         self.ready = True
 
@@ -300,6 +302,11 @@ class Traces(QGraphicsView):
         act.setCheckable(True)
         act.setChecked(True)
         actions['next_of_same_type'] = act
+        
+        act = QAction('Change event type', self)
+        act.setShortcut('e')
+        act.triggered.connect(self.change_event_type)
+        actions['change_event_type'] = act
         
         act = QAction('Centre window around event', self)
         act.setCheckable(True)
@@ -773,17 +780,19 @@ class Traces(QGraphicsView):
             it contains the position that was clicked.
         """
         if not self.scene:
-            return
+            return            
 
-        if self.event_sel:
+        if self.event_sel or self.current_event:
+            self.parent.notes.idx_eventtype.setCurrentText(self.current_etype)
+            self.current_etype = None
+            self.current_event = None
             self.deselect = True
             self.event_sel = None
             self.current_event_row = None
-            highlight = self.highlight
-            self.scene.removeItem(highlight)
+            self.scene.removeItem(self.highlight)
             self.highlight = None
             self.parent.statusBar().showMessage('')
-            return
+            return        
 
         self.ready = False
         self.event_sel = None
@@ -800,17 +809,17 @@ class Traces(QGraphicsView):
             channame = self.chan[self.sel_chan] + ' in selected window'
             self.parent.spectrum.show_channame(channame)
 
-        # JOB: Make annotations clickable
+        # Make annotations clickable
         else:
             for annot in self.idx_annot:
                 if annot.contains(xy_scene):
                     self.highlight_event(annot)
-                    row = self.parent.notes.find_row(annot.marker.x(),
+                    if chk_event:
+                        row = self.parent.notes.find_row(annot.marker.x(),
                                     annot.marker.x() + annot.marker.width())
-                    self.parent.notes.idx_annot_list.setCurrentCell(row, 0)
+                        self.parent.notes.idx_annot_list.setCurrentCell(row, 0)
                     break
 
-        # self.display_annotations
         self.ready = True
 
     def mouseMoveEvent(self, event):
@@ -972,7 +981,8 @@ class Traces(QGraphicsView):
 
     def keyPressEvent(self, event):
         chk_event = self.parent.notes.action['new_event'].isChecked()
-        if not (chk_event and self.event_sel):
+        chk_book = self.parent.notes.action['new_bookmark'].isChecked()
+        if not ((chk_event or chk_book) and self.event_sel):
             return
 
         annot = self.event_sel
@@ -982,14 +992,21 @@ class Traces(QGraphicsView):
 
         if type(event) == QKeyEvent and (
            event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace):
-            self.parent.notes.remove_event(time=(annot_start, annot_end))
+            if chk_event:
+                self.parent.notes.remove_event(time=(annot_start, annot_end))
+            elif chk_book:
+                self.parent.notes.remove_bookmark(
+                        time=(annot_start, annot_end))
             self.scene.removeItem(highlight)
-            msg = 'Deleted event from ' + str(annot_start) + ' to ' + str(annot_end)
+            msg = 'Deleted event from {} to {}'.format(annot_start, annot_end)
             self.parent.statusBar().showMessage(msg)
             self.event_sel = None
             self.highlight = None
+            self.parent.notes.idx_eventtype.setCurrentText(self.current_etype)
+            self.current_etype = None
+            self.current_event = None
             self.display_annotations
-
+    
     def highlight_event(self, annot):
         """Highlight an annotation on the trace.
         
@@ -1000,17 +1017,33 @@ class Traces(QGraphicsView):
         """
         beg = annot.marker.x()
         end = beg + annot.marker.width()
-        msg = 'Event from ' + str(beg) + ' to ' + str(end)
+        window_start = self.parent.value('window_start')
+        window_length = self.parent.value('window_length')
+        events = self.parent.notes.get_selected_events((window_start, 
+                                                window_start + window_length))
+        ev = [x for x in events if (x['start'] == annot.marker.x() or \
+                                    x['end'] == annot.marker.y())]
+        
+        if ev:
+            annot_name = ev[0]['name']
+            
+            msg = "Event of type '{}' from {} to {}".format(
+                    annot_name, beg, end)
+            self.current_etype = self.parent.notes.idx_eventtype.currentText()
+            self.parent.notes.idx_eventtype.setCurrentText(annot_name)
+            self.current_event = ev[0]
+        else:
+            msg = "Marker from {} to {}".format(beg, end)
         self.parent.statusBar().showMessage(msg)
-        highlight = RectMarker(annot.marker.x(),
-                               annot.marker.y(),
-                               annot.marker.width(),
-                               annot.marker.height(),
-                               zvalue=-5,
-                               color=QColor(255, 255, 51))
+            
+        highlight = self.highlight = RectMarker(annot.marker.x(),
+                                               annot.marker.y(),
+                                               annot.marker.width(),
+                                               annot.marker.height(),
+                                               zvalue=-5,
+                                               color=QColor(255, 255, 51))
         self.scene.addItem(highlight)
-        self.highlight = highlight
-        self.event_sel = annot
+        self.event_sel = annot        
     
     def next_event(self, delete=False):
         """Go to next event."""
@@ -1066,6 +1099,33 @@ class Traces(QGraphicsView):
         self.current_event_row = next_row
         notes.go_to_marker(next_row, 0, 'annot')
         notes.idx_annot_list.setCurrentCell(next_row, 0)             
+    
+    def change_event_type(self):
+        """Action: change highlighted event's type by cycling through event 
+        type list."""
+        if self.current_event is None:
+            return
+        
+        hl_params = self.highlight.params
+        self.scene.removeItem(self.highlight)
+
+        ev = self.current_event
+        new_name = self.parent.notes.change_event_type(name=ev['name'], 
+                                                       time=(ev['start'],
+                                                             ev['end']), 
+                                                       chan=ev['chan'])
+        msg = "Event from {} to {} changed type from '{}' to '{}'".format(
+                ev['start'], ev['end'], ev['name'], new_name)
+        ev['name'] = new_name
+        
+        self.current_event = ev
+        self.current_etype = new_name
+        #self.event_sel = True
+        self.parent.notes.idx_eventtype.setCurrentText(new_name)
+        self.parent.statusBar().showMessage(msg)
+        self.display_annotations()
+        self.highlight = RectMarker(*hl_params)
+        self.scene.addItem(self.highlight)
     
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.

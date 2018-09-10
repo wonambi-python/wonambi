@@ -116,6 +116,7 @@ class RectMarker(QGraphicsRectItem):
         self.marker = QRectF(x, y, width, height)
         self.b_rect = QRectF(x - buffer / 2, y + buffer / 2, width + buffer,
                              height + buffer)
+        self.params = x, y, width, height, zvalue, color
 
     def boundingRect(self):
         return self.b_rect
