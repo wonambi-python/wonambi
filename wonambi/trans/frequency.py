@@ -324,7 +324,8 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
     return timefreq
 
 
-def band_power(data, freq, scaling='power', n_fft=None, array_out=False):
+def band_power(data, freq, scaling='power', n_fft=None, detrend='linear',
+               array_out=False):
     """Compute power or energy acoss a frequency band, and its peak frequency.
     Power is estimated using the mid-point rectangle rule. Input can be 
     ChanTime or ChanFreq.
@@ -360,13 +361,6 @@ def band_power(data, freq, scaling='power', n_fft=None, array_out=False):
     else:
         power = zeros((data.number_of('chan')[0], 1))
         peakf = zeros((data.number_of('chan')[0], 1))
-
-    if 'power' == scaling:
-        detrend = 'linear'
-    elif 'energy' == scaling:
-        detrend = None
-    else:
-        raise ValueError("scaling must be 'power' or 'energy'")
 
     if isinstance(data, ChanFreq):
         Sxx = data

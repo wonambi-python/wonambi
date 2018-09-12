@@ -43,7 +43,13 @@ def test_detect_Ray2015():
 
     sp = detsp(data)
     assert len(sp.events) == 3
+    
+    
+def test_detect_Lacourse2018():
+    detsp = DetectSpindle(method='Lacourse2018')
 
+    sp = detsp(data)
+    assert len(sp.events) == 0
 
 def test_detect_spindle_FASST():
     detsp = DetectSpindle(method='FASST')

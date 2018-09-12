@@ -1,10 +1,11 @@
 """Module to detect spindles.
 """
 from logging import getLogger
-from numpy import (absolute, arange, argmax, argmin, asarray, concatenate, cos,
-                   diff, exp, empty, floor, histogram, hstack, insert, invert,
-                   log10, logical_and, mean, median, nan, ones, percentile, pi, 
-                   ptp, real, sqrt, square, std, vstack, where, zeros)
+from numpy import (absolute, arange, argmax, argmin, around, asarray, 
+                   concatenate, cos, diff, exp, empty, floor, histogram, 
+                   hstack, insert, invert, log10, logical_and, mean, median, 
+                   nan, ones, percentile, pi, ptp, real, sqrt, square, std, 
+                   vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
                           fftconvolve, hilbert, periodogram, remez, 
@@ -58,8 +59,10 @@ class DetectSpindle:
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 8
             self.sel_thresh = 2
-            self.moving_rms = {'dur': None}
-            self.smooth = {'dur': None}
+            self.moving_rms = {'dur': None,
+                               'step': None}
+            self.smooth = {'dur': None,
+                           'win': None}
 
         elif method == 'Nir2011':
             if self.frequency is None:
@@ -72,7 +75,8 @@ class DetectSpindle:
             self.det_thresh_lo = 3
             self.sel_thresh = 1
             self.min_interval = 1
-            self.moving_rms = {'dur': None}
+            self.moving_rms = {'dur': None,
+                               'step': None}
             self.smooth = {'dur': .04}  # is in fact sigma
 
         elif method == 'Moelle2011':
@@ -87,8 +91,10 @@ class DetectSpindle:
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 1.5
             self.sel_thresh = None
-            self.moving_rms = {'dur': .2}
-            self.smooth = {'dur': .2}
+            self.moving_rms = {'dur': .2,
+                               'step': None}
+            self.smooth = {'dur': .2,
+                           'win': 'flat'}
         
         elif method == 'Wamsley2012':
             if self.frequency is None:
@@ -100,8 +106,10 @@ class DetectSpindle:
             self.duration = (0.3, 3)
             self.det_thresh_lo = 4.5
             self.sel_thresh = None  # necessary for gui/detect
-            self.moving_rms = {'dur': None}
-            self.smooth = {'dur': .1}
+            self.moving_rms = {'dur': None,
+                               'step': None}
+            self.smooth = {'dur': .1,
+                           'win': 'flat'}
 
         elif method == 'Ray2015':
             if self.frequency is None:
@@ -115,17 +123,42 @@ class DetectSpindle:
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 2.33
             self.sel_thresh = 0.1
-            self.smooth = {'dur': 2 / self.cdemod['freq']}
+            self.smooth = {'dur': 2 / self.cdemod['freq'],
+                           'win': 'triangle'}
             self.min_interval = 0.25 # they only start looking again after .25s
-            self.zwin = {'dur': 60}
+            self.zscore = {'dur': 60,
+                           'step': None,
+                           'pcl_range': None}
         
         elif method == 'Lacourse2018':
             if self.frequency is None:
                 self.frequency = (11, 16)
             self.duration = (.3, 2.5)
-            self.moving_ms = {'dur': 0.3,
-                              'step': 0.1}
-            self.zwin = {'dur': 30}
+            self.windowing = win = {'dur': .3,
+                                    'step': .1}
+            self.det_butter = {'freq': self.frequency,
+                               'order': 20}
+            self.det_butter2 = {'freq': (.3, 30),
+                                'order': 10}
+            self.moving_ms = {'dur': win['dur'],
+                              'step': win['step']}
+            self.moving_power_ratio = {'dur': win['dur'],
+                                     'step': win['step'],
+                                     'freq_narrow': self.frequency,
+                                     'freq_broad': (4.5, 30),
+                                     'fft_dur': 2}
+            self.zscore = {'dur': 30,
+                           'step': None,
+                           'pcl_range': (10, 90)}
+            self.moving_covar = {'dur': win['dur'],
+                                 'step': win['step']}
+            self.moving_sd = {'dur': win['dur'],
+                              'step': win['step']}
+            self.min_interval = .1
+            self.abs_pow_thresh = 1.25
+            self.rel_pow_thresh = 1.6
+            self.covar_thresh = 1.3
+            self.corr_thresh = 0.69
         
         elif 'FASST' in method:
             if self.frequency is None:
@@ -136,8 +169,10 @@ class DetectSpindle:
             self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 90
             self.sel_thresh = None
-            self.moving_rms = {'dur': .1}
-            self.smooth = {'dur': .1}
+            self.moving_rms = {'dur': .1,
+                               'step': None}
+            self.smooth = {'dur': .1,
+                           'win': 'flat'}
             self.min_interval = 1
         
         elif method == 'UCSD':
@@ -160,8 +195,10 @@ class DetectSpindle:
                                 }
             self.sel_thresh = 1
             self.ratio_thresh = .5
-            self.moving_rms = {'dur': None}
-            self.smooth = {'dur': None}
+            self.moving_rms = {'dur': None,
+                               'step': None}
+            self.smooth = {'dur': None,
+                           'win': None}
 
         elif method == 'Concordia':
             if self.frequency is None:
@@ -174,8 +211,10 @@ class DetectSpindle:
             self.det_thresh_lo = 3
             self.det_thresh_hi = 10
             self.sel_thresh = 1
-            self.moving_rms = {'dur': .2}
-            self.smooth = {'dur': .2}
+            self.moving_rms = {'dur': .2,
+                               'step': None}
+            self.smooth = {'dur': .2,
+                           'win': 'flat'}
             self.min_interval = 0.2
 
         else:
@@ -214,9 +253,7 @@ class DetectSpindle:
         
         spindle = Spindles()
         spindle.chan_name = data.axis['chan'][0]
-        spindle.det_value_lo = zeros(data.number_of('chan')[0])
-        spindle.det_value_hi = zeros(data.number_of('chan')[0])
-        spindle.sel_value = zeros(data.number_of('chan')[0])
+        spindle.det_values = empty(data.number_of('chan')[0], dtype='O')
         spindle.density = zeros(data.number_of('chan')[0])
         
         if self.duration[1] is None:
@@ -259,7 +296,11 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_Ray2015(dat_orig,
                                                             data.s_freq,
                                                             time, self)
-                
+            elif self.method == 'Lacourse2018':
+                sp_in_chan, values, density = detect_Lacourse2018(dat_orig,
+                                                                  data.s_freq,
+                                                                  time, self)    
+            
             elif self.method == 'FASST':
                 sp_in_chan, values, density = detect_FASST(dat_orig,
                                                            data.s_freq,
@@ -278,9 +319,7 @@ class DetectSpindle:
             else:
                 raise ValueError('Unknown method')
 
-            spindle.det_value_lo[i] = values['det_value_lo']
-            spindle.det_value_hi[i] = values['det_value_hi']
-            spindle.sel_value[i] = values['sel_value']
+            spindle.det_values[i] = values
             spindle.density[i] = density
 
             for sp in sp_in_chan:
@@ -334,22 +373,28 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
     # Absolute sigma power
-    dat_sigma = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
+    dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
+                                 opts.det_butter)
     dat_det = transform_signal(dat_sigma, s_freq, 'moving_ms', opts.moving_ms)
     abs_sig_pow = log10(dat_det)
     
     # Relative sigma power
-    dat_det = transform_signal(dat_orig, s_freq, 'moving_powrat', 
-                               opts.moving_powrat)
+    dat_det = transform_signal(dat_orig, s_freq, 'moving_power_ratio', 
+                               opts.moving_power_ratio)
     dat_det = log10(dat_det)
-    rel_sig_pow = transform_signal(dat_det, s_freq, 'zscore', opts.zscore)
+    rel_sig_pow = transform_signal(dat_det, s_freq, 'moving_zscore', 
+                                   opts.zscore)
     
     # Sigma covariance
-    dat_broad = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter2)
-    dat_covar = transform_signal(dat_sigma, s_freq, 'moving_covar', opts.covar, 
-                                 data2=dat_broad)
-    dat_det = log10(dat_covar)
-    sigma_covar = transform_signal(dat_det, s_freq, 'zscore', opts.zscore)
+    dat_broad = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
+                                 opts.det_butter2)
+    dat_covar = transform_signal(dat_sigma, s_freq, 'moving_covar', 
+                                 opts.moving_covar, dat2=dat_broad)
+    dat_det = dat_covar.copy()
+    dat_det[dat_det < 0] = 0 # negative covariances are discarded
+    dat_det = log10(dat_det + 1) # add 1 to avoid -inf
+    sigma_covar = transform_signal(dat_det, s_freq, 'moving_zscore', 
+                                   opts.zscore)
     
     # Sigma correlation
     dat_sd_broad = transform_signal(dat_broad, s_freq, 'moving_sd', 
@@ -357,31 +402,48 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_sd_sigma = transform_signal(dat_sigma, s_freq, 'moving_sd', 
                                     opts.moving_sd)
     sigma_corr = sigma_covar / (dat_sd_broad * dat_sd_sigma)
+    print('corr max: {}, min: {}'.format(max(sigma_corr), min(sigma_corr)))
+    sigma_corr.fill(1)
     
-    covar_and_corr = logical_and(sigma_covar >= opts.sigma_covar_thresh,
-                                 sigma_corr >= opts.sigma_corr_thresh)
-    concensus = logical_and.reduce((abs_sig_pow >= opts.abs_sig_thresh,
-                                    rel_sig_pow >= opts.rel_sig_thresh,
+    print('abs: {}, re: {}, cov: {}, cor: {}'.format(
+            sum(abs_sig_pow >= opts.abs_pow_thresh),
+            sum(rel_sig_pow >= opts.rel_pow_thresh),
+            sum(sigma_covar >= opts.covar_thresh),
+            sum(sigma_corr >= opts.corr_thresh)))
+    covar_and_corr = logical_and(sigma_covar >= opts.covar_thresh,
+                                 sigma_corr >= opts.corr_thresh)
+    print('cov&cor: ' + str(sum(covar_and_corr)))
+    concensus = logical_and.reduce((abs_sig_pow >= opts.abs_pow_thresh,
+                                    rel_sig_pow >= opts.rel_pow_thresh,
                                     covar_and_corr))                                    
-    events = detect_events(concensus, 'custom') # at s_freq * 0.3
+    print('concensus: ' + str(sum(concensus)))
+    events = detect_events(concensus, 'custom') # at s_freq * 0.1
+    print('first detection: ' + str(events.shape))
     
     if events is not None:
-        events = select_events(dat_det, events, 'above_thresh', sel_value)
+        events = _select_period(events, covar_and_corr)
+        print('selection: ' + str(events.shape))
+        events *= int(around(s_freq * opts.windowing['step'])) # upsample
         
-        events = _merge_close(dat_det, events, time, opts.min_interval)
+        events = _merge_close(dat_sigma, events, time, opts.min_interval)
         events = within_duration(events, time, opts.duration)
+        print('duration applied: ' + str(events.shape))
         events = remove_straddlers(events, time, s_freq)
+        print('straddlers removed: ' + str(events.shape))
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_sigma,
                                    dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'abs_pow_thresh': opts.abs_pow_thresh, 
+              'rel_pow_thresh': opts.rel_pow_thresh, 
+              'covar_thresh': opts.covar_thresh,
+              'corr_thresh': opts.corr_thresh}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -402,7 +464,7 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
         'det_wavelet' : dict
             parameters for 'morlet',
         'smooth' : dict
-            parameters for 'moving_avg'
+            parameters for 'smooth'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : nan
@@ -428,9 +490,9 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'cdemod', opts.cdemod)
     dat_det = transform_signal(dat_det, s_freq, 'low_butter', 
                                opts.det_low_butter)
-    dat_det = transform_signal(dat_det, s_freq, 'tri_smooth', opts.smooth)
+    dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
     dat_det = transform_signal(dat_det, s_freq, 'abs2')
-    dat_det = transform_signal(dat_det, s_freq, 'zscore', opts.zwin)
+    dat_det = transform_signal(dat_det, s_freq, 'moving_zscore', opts.zscore)
     
     det_value = opts.det_thresh_lo
     sel_value = opts.sel_thresh
@@ -445,7 +507,7 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -474,7 +536,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         'det_wavelet' : dict
             parameters for 'morlet',
         'smooth' : dict
-            parameters for 'moving_avg'
+            parameters for 'smooth'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : nan
@@ -498,7 +560,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     """
     dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
     dat_det = real(dat_det ** 2) ** 2
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+    dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
 
@@ -510,7 +572,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -594,7 +656,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -673,7 +735,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
         lg.info('Spindles in chan: ' + str(len(sp_in_chan)))
@@ -707,7 +769,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         'moving_rms' : dict
             parameters for 'moving_rms'
         'smooth' : dict
-            parameters for 'moving_avg'
+            parameters for 'smooth'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : nan
@@ -731,7 +793,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     """
     dat_det = transform_signal(dat_orig, s_freq, 'remez', opts.det_remez)
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+    dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean+std',
                                  opts.det_thresh_lo)
@@ -744,7 +806,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -777,7 +839,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         'moving_rms' : dict
             parameters for 'moving_rms'
         'smooth' : dict
-            parameters for 'moving_avg'
+            parameters for 'smooth'
         'det_thresh' : float
             detection threshold
         'sel_thresh' : nan
@@ -811,7 +873,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         dat_det = transform_signal(dat_det, s_freq, 'moving_rms', 
                                    opts.moving_rms)
         
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+    dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
     
     events = detect_events(dat_det, 'above_thresh', det_value)
 
@@ -821,7 +883,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -894,7 +956,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                          opts.ratio_thresh)
 
     power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-    powers = band_power(events, dat_orig, s_freq, opts.frequency)
+    powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
     sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                dat_orig, time, s_freq)
 
@@ -922,7 +984,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
         'moving_rms' : dict
             parameters for 'moving_rms'
         'smooth' : dict
-            parameters for 'moving_avg'
+            parameters for 'smooth'
         'det_thresh_lo' : float
             low detection threshold
         'det_thresh_hi' : float
@@ -944,7 +1006,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
     """
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
     dat_det = transform_signal(dat_det, s_freq, 'moving_rms', opts.moving_rms)
-    dat_det = transform_signal(dat_det, s_freq, 'moving_avg', opts.smooth)
+    dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value_lo = define_threshold(dat_det, s_freq, 'mean+std',
                                     opts.det_thresh_lo)
@@ -964,7 +1026,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
-        powers = band_power(events, dat_orig, s_freq, opts.frequency)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                    dat_orig, time, s_freq)
 
@@ -980,7 +1042,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
     return sp_in_chan, values, density
 
 
-def transform_signal(dat, s_freq, method, method_opt=None):
+def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     """Transform the data using different methods.
 
     Parameters
@@ -991,10 +1053,12 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         sampling frequency
     method : str
         one of 'butter', 'cheby2', 'double_butter', 'morlet', 'morlet_real', 
-        'hilbert', 'abs', 'moving_avg', 'gaussian', 'remez', 'wavelet_real',
+        'hilbert', 'abs', 'smooth', 'gaussian', 'remez', 'wavelet_real',
         'low_butter', 'zscore', 'moving_rms', 'moving_ms'
     method_opt : dict
         depends on methods
+    dat2 : ndarray(dtype='float')
+        second vector with data
 
     Returns
     -------
@@ -1051,7 +1115,7 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         dur : float
             window length in number of standard deviations
 
-    morlet_real has parameters:
+    wavelet_real has parameters:
         freqs : ndarray
             vector of wavelet frequencies for spindle detection
         dur : float
@@ -1061,13 +1125,17 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         win : float
             moving average window length (sec) of wavelet convolution
 
-    moving_avg has parameters:
+    smooth has parameters:
         dur : float
             duration of the window (sec)
 
     moving_rms has parameters:
         dur : float
             duration of the window (sec)
+            
+    moving_zscore has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
             
     remez has parameters:
         freq : tuple of float
@@ -1080,10 +1148,6 @@ def transform_signal(dat, s_freq, method, method_opt=None):
     tri_smooth has parameters:
         dur : float
             length of convolution window, base of isosceles triangle
-    
-    zscore has parameters:
-        dur : float
-            duration of the z-score sliding window (sec)
     """
     if 'abs' == method:
         dat = absolute(dat)
@@ -1099,15 +1163,6 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         Wn = asarray(freq) / nyquist
         b, a = butter(N, Wn, btype='bandpass')
         dat = filtfilt(b, a, dat)
-        
-    if 'sosbutter' == method:
-        freq = method_opt['freq']
-        N = method_opt['order']
-
-        nyquist = s_freq / 2
-        Wn = asarray(freq) / nyquist
-        sos = butter(N, Wn, btype='bandpass', output='sos')
-        dat = sosfiltfilt(sos, dat)
         
     if 'cdemod' == method:
         carr_freq = method_opt['freq']
@@ -1140,6 +1195,21 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         b, a = butter(N, Wn, btype='lowpass')
         dat = filtfilt(b, a, dat)
 
+    if 'double_sosbutter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+        nyquist = s_freq / 2
+        
+        # Highpass
+        Wn = freq[0] / nyquist
+        sos = butter(N, Wn, btype='highpass', output='sos')
+        dat = sosfiltfilt(sos, dat)
+        
+        # Lowpass
+        Wn = freq[1] / nyquist
+        sos = butter(N, Wn, btype='lowpass', output='sos')
+        dat = sosfiltfilt(sos, dat)
+    
     if 'gaussian' == method:
         sigma = method_opt['dur']
 
@@ -1167,22 +1237,77 @@ def transform_signal(dat, s_freq, method, method_opt=None):
         wm = _wmorlet(f0, sd, s_freq, dur)
         dat = absolute(fftconvolve(dat, wm, mode='same'))
 
-    if 'moving_avg' == method:
+    if 'moving' in method:
         dur = method_opt['dur']
-
-        flat = ones(int(dur * s_freq))
-        dat = fftconvolve(dat, flat / sum(flat), mode='same')
-
-    if 'moving_rms' == method:
-        dur = method_opt['dur']
-        halfdur = int(floor(s_freq * dur / 2))
-        lendat = len(dat)
-        rms = zeros((lendat))
-
-        for i in range(lendat):
-            rms[i] = sqrt(mean(square(
-                    dat[max(0, i - halfdur):min(lendat, i + halfdur)])))
-        dat = rms
+        step = method_opt['step']
+        n_step = int(around(step * s_freq)) if step else None
+        n_halfdur = int(s_freq * dur / 2)
+        len_dat = len(dat)
+        len_out = int(len_dat / n_step) if n_step else len_dat
+        last = len_dat - 1
+        out = zeros((len_out))
+        
+        if 'moving_covar' == method:            
+            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
+                win1 = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+                win2 = dat2[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+                out[i] = mean((win1 - mean(win1)) * (win2 - mean(win2)))
+            dat = out
+    
+        if 'moving_power_ratio' == method:
+            freq1 = method_opt['freq_narrow']
+            freq2 = method_opt['freq_broad']
+            fft_dur = method_opt['fft_dur']
+            nfft = int(s_freq * fft_dur)
+            
+            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
+                windat = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+                
+                sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
+                                       detrend='constant')
+                f0 = asarray([abs(x - freq1[0]) for x in sf]).argmin()
+                f1 = asarray([abs(x - freq1[1]) for x in sf]).argmin()
+                pow1 = sum(psd[f0:f1])
+                
+                sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
+                                       detrend='constant')
+                f0 = asarray([abs(x - freq2[0]) for x in sf]).argmin()
+                f1 = asarray([abs(x - freq2[1]) for x in sf]).argmin()
+                pow2 = sum(psd[f0:f1])
+                
+                out[i] = pow1 / pow2
+                
+            dat = out
+        
+        if 'moving_sd' == method:
+            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
+                win = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+                out[i] = std(win)
+            dat = out
+        
+        if 'moving_zscore' == method:        
+            pcl_range = method_opt['pcl_range']
+            stop = len_dat - dur
+            
+            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
+                start = min(max(0, j - n_halfdur), stop)
+                end = min(start + dur, len_dat)
+                windat = stddat = dat[start:end]
+                if pcl_range is not None:
+                    lo, hi = pcl_range
+                    stddat = windat[logical_and(
+                                            windat > percentile(windat, lo),
+                                            windat < percentile(windat, hi))]
+                out[i] = (dat[i] - mean(windat)) / std(stddat)
+            dat = out
+        
+        if method in ['moving_rms', 'moving_ms']:
+            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
+                out[i] = mean(square(
+                    dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]))            
+            if method == 'moving_rms':
+                out = sqrt(out)
+            dat = out
     
     if 'remez' == method:
         Fp1, Fp2 = method_opt['freq']
@@ -1198,6 +1323,31 @@ def transform_signal(dat, s_freq, method, method_opt=None):
                       grid_density=dens, fs=s_freq)
         dat = filtfilt(bpass, 1, dat)
 
+    if 'smooth' == method:   
+        dur = method_opt['dur']
+        win = method_opt['win']
+        
+        if 'flat' == win:
+            flat = ones(int(dur * s_freq))
+            H = flat / sum(flat)
+        elif 'triangle' == win:
+            T = int(dur * s_freq / 2)
+            a = arange(T, 0, -1)
+            
+            H = hstack([a[-1:0:-1], a])
+            H = H / sum(H)
+            
+        dat = fftconvolve(dat, H, mode='same')
+    
+    if 'sosbutter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+
+        nyquist = s_freq / 2
+        Wn = asarray(freq) / nyquist
+        sos = butter(N, Wn, btype='bandpass', output='sos')
+        dat = sosfiltfilt(sos, dat)
+        
     if 'wavelet_real' == method:
         freqs = method_opt['freqs']
         dur = method_opt['dur']
@@ -1210,29 +1360,6 @@ def transform_signal(dat, s_freq, method, method_opt=None):
             x = abs(fftconvolve(dat, one_wm, mode='same'))
             tfr[:, i] = fftconvolve(x, tukey(win), mode='same')
         dat = mean(tfr, axis=1)
-        
-    if 'tri_smooth' == method:
-        T = int(method_opt['dur'] * s_freq / 2)
-        a = arange(T, 0, -1)
-        
-        H = hstack([a[-1:0:-1], a])
-        H = H / sum(H)
-        
-        dat = fftconvolve(dat, H, mode='same')
-    
-    if 'zscore' == method:
-        dur = int(floor(method_opt['dur'] * s_freq))
-        halfdur = int(floor(dur / 2))
-        lendat = len(dat)
-        stop = lendat - dur
-        zs = zeros((lendat))
-        
-        for i in range(lendat):
-            start = min(max(0, i - halfdur), stop)
-            end = min(start + dur, lendat)
-            windat = dat[start:end]
-            zs[i] = (dat[i] - mean(windat)) / std(windat)
-        dat = zs
 
     return dat
 
@@ -1332,7 +1459,7 @@ def detect_events(dat, method, value=None):
         N x 3 matrix with start, peak, end samples
 
     """
-    if 'thresh' in method:
+    if 'thresh' in method or 'custom' == method:
 
         if method == 'above_thresh':
             above_det = dat >= value
@@ -1606,7 +1733,7 @@ def peak_in_power(events, dat, s_freq, method, value=None):
     return peak
 
 
-def band_power(events, dat, s_freq, frequency):
+def power_in_band(events, dat, s_freq, frequency):
     """Define power of the signal within frequency band.
 
     Parameters
