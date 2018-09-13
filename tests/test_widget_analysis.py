@@ -152,7 +152,7 @@ def test_widget_analysis_event(qtbot):
     assert approx(float(rows[1][1])) == 2
     assert approx(float(rows[2][1])) == 0.0020768431983
     assert approx(float(rows[4][15])) == 9.81616222270557
-    assert approx(float(rows[9][13])) ==  8.02638098366877  
+    assert approx(float(rows[9][13])) ==  7.052493472354065 
 
 
 def test_widget_notes_export_csv(qtbot):
