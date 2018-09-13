@@ -466,6 +466,8 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         evt_type = (None,)
     elif isinstance(evt_type[0], str):
         getter = annot.get_events
+        if chan != (None,):
+            chan.append('') # also retrieve events marked on all channels
     else:
         lg.error('Event type must be list/tuple of str or None')
 

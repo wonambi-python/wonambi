@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.46**: Lacourse2018 spindle detection; fix for reading events
 - **5.45**: change event's type in GUI
 - **5.44**: channel-specific artefact event marking and rejection
 - **5.43**: bugfix for SW tests
