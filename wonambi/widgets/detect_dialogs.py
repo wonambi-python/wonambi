@@ -95,7 +95,7 @@ class SpindleDialog(ChannelDialog):
                        self.index['rolloff'])
         form.addRow('Min. duration (sec)',
                        self.index['min_dur'])
-        form.addRow(' Max. duration (sec)',
+        form.addRow('Max. duration (sec)',
                        self.index['max_dur'])
         form.addRow('Wavelet sigma',
                        self.index['sigma'])
@@ -239,20 +239,31 @@ class SpindleDialog(ChannelDialog):
         if self.method in ['Wamsley2012', 'UCSD']:
             self.index['win_sz'].set_value(spin_det.det_wavelet['dur'])
         elif self.method == 'Ray2015':
-            self.index['win_sz'].set_value(spin_det.zwin['dur'])
+            self.index['win_sz'].set_value(spin_det.zscore['dur'])
+        elif self.method == 'Lacourse2018':
+            self.index['win_sz'].set_value(spin_det.windowing['dur'])
         else:
             self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
+                        
+        if self.method == 'Lacourse2018':
+            self.index['smooth'].set_value(spin_det.windowing['step'])
+            self.index['sigma'].set_value(spin_det.covar_thresh)
+            self.index['det_thresh_lo'].set_value(spin_det.abs_pow_thresh)
+            self.index['det_thresh_hi'].set_value(spin_det.rel_pow_thresh)
+            self.index['sel_thresh'].set_value(spin_det.corr_thresh)
+
+        else:
+            self.index['smooth'].set_value(spin_det.smooth['dur'])
+            self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
+            self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
+            self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
+            self.index['sel_thresh'].set_value(spin_det.sel_thresh)
 
         self.index['f1'].set_value(spin_det.frequency[0])
         self.index['f2'].set_value(spin_det.frequency[1])
         self.index['rolloff'].set_value(spin_det.rolloff)
         self.index['min_dur'].set_value(spin_det.duration[0])
-        self.index['max_dur'].set_value(spin_det.duration[1])
-        self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
-        self.index['smooth'].set_value(spin_det.smooth['dur'])
-        self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
-        self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
-        self.index['sel_thresh'].set_value(spin_det.sel_thresh)
+        self.index['max_dur'].set_value(spin_det.duration[1])        
         self.index['interval'].set_value(spin_det.min_interval)
 
         for param in ['sigma', 'win_sz', 'det_thresh_lo', 'det_thresh_hi',

@@ -68,6 +68,7 @@ STAGE_SHORTCUT = ['1', '2', '3', '5', '9', '8', '0', '', '', '7']
 QUALIFIERS = ['Good', 'Poor']
 QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Moelle2011',
+                   'Lacourse2018',
                    'Ray2015',
                    'Wamsley2012',  
                    'Nir2011', 
@@ -1468,18 +1469,27 @@ class Notes(QTabWidget):
             detector = DetectSpindle(method=method, frequency=freq,
                                      duration=duration, merge=params['merge'])
 
-            if method in ['Wamsley2012', 'UCSD']:
-                detector.det_wavelet['dur'] = params['win_sz']
-            elif method == 'Ray2015':
-                detector.zwin['dur'] = params['win_sz']
+            if 'Lacourse2018' == method:
+                detector.windowing['dur'] = params['win_sz']
+                detector.windowing['step'] = params['smooth']
+                detector.abs_pow_thresh = params['det_thresh_lo']
+                detector.rel_pow_thresh = params['det_thresh_hi']
+                detector.covar_thresh = params['sigma']
+                detector.corr_thresh = params['sel_thresh']
             else:
-                detector.moving_rms['dur'] = params['win_sz']
-
-            detector.det_wavelet['sd'] = params['sigma']
-            detector.smooth['dur'] = params['smooth']
-            detector.det_thresh_lo = params['det_thresh_lo']
-            detector.det_thresh_hi = params['det_thresh_hi']
-            detector.sel_thresh = params['sel_thresh']
+                if method in ['Wamsley2012', 'UCSD']:
+                    detector.det_wavelet['dur'] = params['win_sz']
+                elif method == 'Ray2015':
+                    detector.zscore['dur'] = params['win_sz']
+                else:
+                    detector.moving_rms['dur'] = params['win_sz']
+    
+                detector.det_wavelet['sd'] = params['sigma']
+                detector.smooth['dur'] = params['smooth']
+                detector.det_thresh_lo = params['det_thresh_lo']
+                detector.det_thresh_hi = params['det_thresh_hi']
+                detector.sel_thresh = params['sel_thresh']
+            
             detector.min_interval = params['interval']
 
         elif method in SLOW_WAVE_METHODS:
