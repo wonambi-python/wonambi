@@ -113,6 +113,9 @@ autocmd BufRead,BufNewFile *.md syntax match String /\w\+_\w\+/ contains=@NoSpel
 " latex cls files should have tex syntax
 autocmd BufRead,BufNewFile *.cls setfiletype=tex
 
+" Presetation .sce files
+autocmd BufRead,BufNewFile *.sce setfiletype=xml
+
 " PYTHON
 " line at 80
 autocmd FileType python setlocal colorcolumn=80
