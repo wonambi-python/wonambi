@@ -1980,7 +1980,10 @@ def _merge_close(dat, events, time, min_interval):
     # add the location of the peak in the middle
     new_events = insert(new_events, 1, 0, axis=1)
     for i in new_events:
-        i[1] = i[0] + argmax(dat[i[0]:i[2]])
+        if i[2] - i[0] >= 1:
+            i[1] = i[0] + argmax(dat[i[0]:i[2]])
+        else:
+            i[1] = nan
 
     return new_events
 
