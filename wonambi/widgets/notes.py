@@ -1468,29 +1468,82 @@ class Notes(QTabWidget):
         if method in SPINDLE_METHODS:
             detector = DetectSpindle(method=method, frequency=freq,
                                      duration=duration, merge=params['merge'])
-
-            if 'Lacourse2018' == method:
-                detector.windowing['dur'] = params['win_sz']
-                detector.windowing['step'] = params['smooth']
-                detector.abs_pow_thresh = params['det_thresh_lo']
-                detector.rel_pow_thresh = params['det_thresh_hi']
-                detector.covar_thresh = params['sigma']
-                detector.corr_thresh = params['sel_thresh']
-            else:
-                if method in ['Wamsley2012', 'UCSD']:
-                    detector.det_wavelet['dur'] = params['win_sz']
-                elif method == 'Ray2015':
-                    detector.zscore['dur'] = params['win_sz']
-                else:
-                    detector.moving_rms['dur'] = params['win_sz']
-    
-                detector.det_wavelet['sd'] = params['sigma']
-                detector.smooth['dur'] = params['smooth']
-                detector.det_thresh_lo = params['det_thresh_lo']
-                detector.det_thresh_hi = params['det_thresh_hi']
-                detector.sel_thresh = params['sel_thresh']
-            
+            detector.rolloff = params['rolloff']
             detector.min_interval = params['interval']
+
+            if 'Ferrarelli2007' == method:
+                detector.det_thresh_lo = params['0']
+                detector.sel_thresh = params['1']
+                
+            if 'Nir2011' == method:
+                detector.smooth['dur'] = params['0']
+                detector.det_thresh_lo = params['1']
+                detector.sel_thresh = params['2']
+                
+            if 'Moelle2011' == method:
+                detector.moving_rms['dur'] = params['0']
+                detector.smooth['dur'] = params['1']
+                detector.det_thresh_lo = params['2']            
+            
+            if 'Wamsley2012' == method:
+                detector.det_wavelet['dur'] = params['0']
+                detector.det_wavelet['sd'] = params['1']
+                detector.smooth['dur'] = params['2']  
+                detector.det_thresh_lo = params['3']  
+            
+            if 'Ray2015' == method:
+                detector.smooth['dur'] = params['0']
+                detector.zscore['step'] = params['1']
+                detector.det_thresh_lo = params['2']  
+                detector.sel_thresh = params['3']             
+            
+            if 'Lacourse2018' == method:
+                detector.windowing['dur'] = params['0']
+                detector.windowing['step'] = params['1']
+                detector.abs_pow_thresh = params['2']
+                detector.rel_pow_thresh = params['3']
+                detector.covar_thresh = params['4']
+                detector.corr_thresh = params['5']
+                
+            if 'FASST' == method:
+                detector.det_thresh_lo = params['0']
+                detector.smooth['dur'] = params['1']
+                
+            if 'FASST2' == method:
+                detector.det_thresh_lo = params['0']
+                detector.moving_rms['dur'] = params['1']
+                detector.smooth['dur'] = params['2']
+            
+            if 'UCSD' == method:
+                detector.det_wavelet['dur'] = params['0']
+                detector.det_wavelet['width'] = params['1']
+                detector.det_wavelet['win'] = params['2']
+                detector.det_thresh_lo = params['3']  
+                detector.sel_thresh = params['4'] 
+                
+            if 'Concordia' == method:
+                detector.moving_rms['dur'] = params['0']
+                detector.smooth['dur'] = params['1']
+                detector.det_thresh_lo = params['2']            
+                detector.det_thresh_hi = params['3']            
+                detector.tolerance = params['4']            
+                detector.sel_thresh = params['5']            
+                
+# =============================================================================
+#             else:
+#                 if method in ['Wamsley2012', 'UCSD']:
+#                     detector.det_wavelet['dur'] = params['win_sz']
+#                 elif method == 'Ray2015':
+#                     detector.zscore['dur'] = params['win_sz']
+#                 else:
+#                     detector.moving_rms['dur'] = params['win_sz']
+#     
+#                 detector.det_wavelet['sd'] = params['sigma']
+#                 detector.smooth['dur'] = params['smooth']
+#                 detector.det_thresh_lo = params['det_thresh_lo']
+#                 detector.det_thresh_hi = params['det_thresh_hi']
+#                 detector.sel_thresh = params['sel_thresh']
+# =============================================================================      
 
         elif method in SLOW_WAVE_METHODS:
             detector = DetectSlowWave(method=method, duration=duration)

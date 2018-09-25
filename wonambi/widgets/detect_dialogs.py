@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QComboBox,
                              QFormLayout,
                              QGroupBox,
                              QHBoxLayout,
+                             QLabel,
                              QVBoxLayout,
                              )
 
@@ -22,13 +23,13 @@ lg = getLogger(__name__)
 
 class SpindleDialog(ChannelDialog):
     """Dialog for specifying spindle detection parameters, ie:
-    label, channel, stage, lowcut, highcut, min dur, max dur, detection method,
+    name, channel, stage, lowcut, highcut, min dur, max dur, detection method,
     wavelet sigma, detection window, smoothing, detection threshold, selection
     threshold, minimum interval, merge across channels.
 
     Attributes
     ----------
-    label : str
+    name : str
         name of event type (to be added to or created)
     method : str
         name of detection method
@@ -47,15 +48,15 @@ class SpindleDialog(ChannelDialog):
         """ Create the dialog."""
         box0 = QGroupBox('Info')
 
-        self.label = FormStr()
+        self.name = FormStr()
 
-        self.label.setText('spin')
+        self.name.setText('spin')
         self.idx_group.activated.connect(self.update_channels)
         self.idx_chan.itemSelectionChanged.connect(self.count_channels)
 
         form = QFormLayout(box0)
-        form.addRow('Label',
-                       self.label)
+        form.addRow('Event name',
+                       self.name)
         form.addRow('Channel group',
                        self.idx_group)
         form.addRow('Channel(s)',
@@ -67,19 +68,24 @@ class SpindleDialog(ChannelDialog):
 
         box1 = QGroupBox('Parameters')
 
+        self.idx_method = FormMenu(SPINDLE_METHODS)
         self.index['f1'] = FormFloat()
         self.index['f2'] = FormFloat()
         self.index['rolloff'] = FormFloat()
         self.index['min_dur'] = FormFloat()
         self.index['max_dur'] = FormFloat()
-        self.index['sigma'] = FormFloat()
-        self.index['win_sz'] = FormFloat()
-        self.index['smooth'] = FormFloat()
-        self.index['det_thresh_lo'] = FormFloat()
-        self.index['det_thresh_hi'] = FormFloat()
-        self.index['sel_thresh'] = FormFloat()
         self.index['interval'] = FormFloat()
-        self.idx_method = FormMenu(SPINDLE_METHODS)
+        
+        self.index['0'] = FormFloat() # sigma
+        self.index['1'] = FormFloat() # win_sz
+        self.index['2'] = FormFloat() # smooth
+        self.index['3'] = FormFloat() # det_thresh_lo
+        self.index['4'] = FormFloat() # det_thresh_hi
+        self.index['5'] = FormFloat() # sel_thresh
+        
+        self.label = []
+        for i in range(6):
+            self.label.append(QLabel(''))
 
         self.method = self.idx_method.currentText()
         self.idx_method.currentIndexChanged.connect(self.update_values)
@@ -97,20 +103,16 @@ class SpindleDialog(ChannelDialog):
                        self.index['min_dur'])
         form.addRow('Max. duration (sec)',
                        self.index['max_dur'])
-        form.addRow('Wavelet sigma',
-                       self.index['sigma'])
-        form.addRow('Detection window',
-                       self.index['win_sz'])
-        form.addRow('Smoothing',
-                       self.index['smooth'])
-        form.addRow('Detection threshold, low',
-                       self.index['det_thresh_lo'])
-        form.addRow('Detection threshold, high',
-                       self.index['det_thresh_hi'])
-        form.addRow('Selection threshold',
-                       self.index['sel_thresh'])
-        form.addRow('Min. interval',
+        form.addRow('Min. interval (sec)',
                        self.index['interval'])
+        
+        form.addRow(self.label[0], self.index['0'])
+        form.addRow(self.label[1], self.index['1'])
+        form.addRow(self.label[2], self.index['2'])
+        form.addRow(self.label[3], self.index['3'])
+        form.addRow(self.label[4], self.index['4'])
+        form.addRow(self.label[5], self.index['5'])
+
 
         box3 = QGroupBox('Options')
 
@@ -168,7 +170,7 @@ class SpindleDialog(ChannelDialog):
             cycle = self.get_cycles()
             stage = self.idx_stage.selectedItems()
             params = {k: v.get_value() for k, v in self.index.items()}
-            label = self.label.get_value()
+            name = self.name.get_value()
 
             if None in [params['f1'], params['f2']]:
                 self.parent.statusBar().showMessage(
@@ -224,7 +226,7 @@ class SpindleDialog(ChannelDialog):
                 data = math(data, operator_name='detrend', axis='time')            
             
             self.parent.notes.detect_events(data, self.method, 
-                                            params, label=label)
+                                            params, label=name)
 
             self.accept()
 
@@ -235,45 +237,182 @@ class SpindleDialog(ChannelDialog):
         """Update form values when detection method is selected."""
         self.method = self.idx_method.currentText()
         spin_det = DetectSpindle(method=self.method)
-
-        if self.method in ['Wamsley2012', 'UCSD']:
-            self.index['win_sz'].set_value(spin_det.det_wavelet['dur'])
-        elif self.method == 'Ray2015':
-            self.index['win_sz'].set_value(spin_det.zscore['dur'])
-        elif self.method == 'Lacourse2018':
-            self.index['win_sz'].set_value(spin_det.windowing['dur'])
-        else:
-            self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
-                        
-        if self.method == 'Lacourse2018':
-            self.index['smooth'].set_value(spin_det.windowing['step'])
-            self.index['sigma'].set_value(spin_det.covar_thresh)
-            self.index['det_thresh_lo'].set_value(spin_det.abs_pow_thresh)
-            self.index['det_thresh_hi'].set_value(spin_det.rel_pow_thresh)
-            self.index['sel_thresh'].set_value(spin_det.corr_thresh)
-
-        else:
-            self.index['smooth'].set_value(spin_det.smooth['dur'])
-            self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
-            self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
-            self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
-            self.index['sel_thresh'].set_value(spin_det.sel_thresh)
-
+        
         self.index['f1'].set_value(spin_det.frequency[0])
         self.index['f2'].set_value(spin_det.frequency[1])
-        self.index['rolloff'].set_value(spin_det.rolloff)
         self.index['min_dur'].set_value(spin_det.duration[0])
         self.index['max_dur'].set_value(spin_det.duration[1])        
         self.index['interval'].set_value(spin_det.min_interval)
 
-        for param in ['sigma', 'win_sz', 'det_thresh_lo', 'det_thresh_hi',
-                      'sel_thresh', 'smooth', 'rolloff']:
-            widg = self.index[param]
-            if widg.get_value() == 0:
-                widg.set_value('N/A')
-                widg.setEnabled(False)
+        if spin_det.rolloff:
+            self.index['rolloff'].set_value(spin_det.rolloff)
+            self.index['rolloff'].setEnabled(True)
+        else:
+            self.index['rolloff'].set_value('N/A')
+            self.index['rolloff'].setEnabled(False)
+
+        if self.method == 'Ferrarelli2007':
+            self.label[0].setText('Detection threshold')
+            self.label[1].setText('Selection threshold')
+            self.label[2].setText('')
+            self.label[3].setText('')
+            self.label[4].setText('')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['1'].set_value(spin_det.sel_thresh)        
+        
+        if self.method == 'Nir2011':
+            self.label[0].setText('Gaussian smoothing sigma (sec)')
+            self.label[1].setText('Detection threshold (SD)')
+            self.label[2].setText('Selection threshold (SD)')
+            self.label[3].setText('')
+            self.label[4].setText('')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.smooth['dur'])
+            self.index['1'].set_value(spin_det.det_thresh_lo)
+            self.index['2'].set_value(spin_det.sel_thresh)            
+        
+        if self.method == 'Moelle2011':
+            self.label[0].setText('RMS window length (sec)')
+            self.label[1].setText('Smoothing window length (sec)')
+            self.label[2].setText('Detection threshold (SD)')
+            self.label[3].setText('')
+            self.label[4].setText('')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.moving_rms['dur'])
+            self.index['1'].set_value(spin_det.smooth['dur'])
+            self.index['2'].set_value(spin_det.det_thresh_lo)
+
+        if self.method == 'Wamsley2012':
+            self.label[0].setText('Wavelet window length (sec)')
+            self.label[1].setText('Wavelet sigma (sec)')
+            self.label[2].setText('Smoothing window length (sec)')
+            self.label[3].setText('Detection threshold')
+            self.label[4].setText('')
+            self.label[5].setText('')
+            
+            self.index['0'].set_value(spin_det.det_wavelet['dur'])
+            self.index['1'].set_value(spin_det.det_wavelet['sd'])
+            self.index['2'].set_value(spin_det.smooth['dur'])
+            self.index['3'].set_value(spin_det.det_thresh_lo)
+
+        if self.method == 'Ray2015':
+            self.label[0].setText('Smoothing window length (sec)')
+            self.label[1].setText('z-score window length (sec)')
+            self.label[2].setText('Detection threshold (z)')
+            self.label[3].setText('Selection threshold (z)')
+            self.label[4].setText('')
+            self.label[5].setText('')
+            
+            self.index['0'].set_value(spin_det.smooth['dur'])
+            self.index['1'].set_value(spin_det.zscore['step'])
+            self.index['2'].set_value(spin_det.det_thresh_lo)
+            self.index['3'].set_value(spin_det.sel_thresh)
+
+        if self.method == 'Lacourse2018':
+            self.label[0].setText('Window length (sec)')
+            self.label[1].setText('Window step (sec)')
+            self.label[2].setText('Absolute power threshold')
+            self.label[3].setText('Relative power threshold')
+            self.label[4].setText('Covariance threshold')
+            self.label[5].setText('Correlation threshold')
+            
+            self.index['0'].set_value(spin_det.windowing['dur'])
+            self.index['1'].set_value(spin_det.windowing['step'])
+            self.index['2'].set_value(spin_det.abs_pow_thresh)
+            self.index['3'].set_value(spin_det.rel_pow_thresh)
+            self.index['4'].set_value(spin_det.covar_thresh)
+            self.index['5'].set_value(spin_det.corr_thresh)
+
+        if self.method == 'FASST':
+            self.label[0].setText('Detection threshold (percentile)')
+            self.label[1].setText('Smoothing window length (sec)')
+            self.label[2].setText('')
+            self.label[3].setText('')
+            self.label[4].setText('')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['1'].set_value(spin_det.smooth['dur'])
+            
+        if self.method == 'FASST2':
+            self.label[0].setText('Detection threshold (percentile)')
+            self.label[1].setText('RMS window length (sec)')
+            self.label[2].setText('Smoothing window length (sec)')
+            self.label[3].setText('')
+            self.label[4].setText('')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['1'].set_value(spin_det.moving_rms['dur'])
+            self.index['2'].set_value(spin_det.smooth['dur'])
+            
+        if 'UCSD' in self.method:
+            self.label[0].setText('Wavelet duration (sec)')
+            self.label[1].setText('Wavelet width (sec)')
+            self.label[2].setText('Smoothing window length (sec)')
+            self.label[3].setText('Detection threshold (SD)')
+            self.label[4].setText('Selection threshold (SD)')
+            self.label[5].setText('')
+
+            self.index['0'].set_value(spin_det.det_wavelet['dur'])
+            self.index['1'].set_value(spin_det.det_wavelet['width'])
+            self.index['2'].set_value(spin_det.det_wavelet['win'])
+            self.index['3'].set_value(spin_det.det_thresh_lo)
+            self.index['4'].set_value(spin_det.sel_thresh)
+
+        if 'Concordia' in self.method:
+            self.label[0].setText('RMS window length (sec)')
+            self.label[1].setText('Smoothing window length (sec)')
+            self.label[2].setText('Detection threshold, low (SD)')
+            self.label[3].setText('Detection threshold, high (SD)')
+            self.label[4].setText('Tolerance (sec)')
+            self.label[5].setText('Selection threshold (SD)')
+
+            self.index['0'].set_value(spin_det.moving_rms['dur'])
+            self.index['1'].set_value(spin_det.smooth['dur'])
+            self.index['2'].set_value(spin_det.det_thresh_lo)
+            self.index['3'].set_value(spin_det.det_thresh_hi)
+            self.index['4'].set_value(spin_det.tolerance)
+            self.index['5'].set_value(spin_det.sel_thresh)
+        
+        for i, j in enumerate(self.label):
+            one_param = self.index[str(i)]
+            if j.text() == '':
+                one_param.set_value('')
+                one_param.setEnabled(False)
             else:
-                widg.setEnabled(True)
+                one_param.setEnabled(True)
+        
+# =============================================================================
+#         if self.method in ['Wamsley2012', 'UCSD']:
+#             self.index['win_sz'].set_value(spin_det.det_wavelet['dur'])
+#         elif self.method == 'Ray2015':
+#             self.index['win_sz'].set_value(spin_det.zscore['dur'])
+#         else:
+#             self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
+#                         
+#         else:
+#             self.index['smooth'].set_value(spin_det.smooth['dur'])
+#             self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
+#             self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
+#             self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
+#             self.index['sel_thresh'].set_value(spin_det.sel_thresh)
+# 
+# 
+# 
+#         for param in ['sigma', 'win_sz', 'det_thresh_lo', 'det_thresh_hi',
+#                       'sel_thresh', 'smooth', 'rolloff']:
+#             widg = self.index[param]
+#             if widg.get_value() == 0:
+#                 widg.set_value('N/A')
+#                 widg.setEnabled(False)
+#             else:
+#                 widg.setEnabled(True)
+# =============================================================================
 
     def count_channels(self):
         """If more than one channel selected, activate merge checkbox."""
@@ -291,13 +430,13 @@ class SpindleDialog(ChannelDialog):
 
 class SWDialog(ChannelDialog):
     """Dialog for specifying SW detection parameters, ie:
-    label, channel, stage, min dur, max dur, detection method, lowcut, highcut,
+    name, channel, stage, min dur, max dur, detection method, lowcut, highcut,
     minimum and maximum trough duration, maximum trough amplitude, minimum
     peak-to-peak amplitude.
 
     Attributes
     ----------
-    label : str
+    name : str
         name of event type (to be added to or created)
     method : str
         name of detection method
@@ -315,14 +454,14 @@ class SWDialog(ChannelDialog):
         """ Create the dialog."""
         box0 = QGroupBox('Info')
 
-        self.label = FormStr()
+        self.name = FormStr()
 
-        self.label.setText('sw')
+        self.name.setText('sw')
         self.idx_group.activated.connect(self.update_channels)
 
         form = QFormLayout(box0)
-        form.addRow('Label',
-                           self.label)
+        form.addRow('Event name',
+                           self.name)
         form.addRow('Channel group',
                        self.idx_group)
         form.addRow('Channel(s)',
@@ -425,7 +564,7 @@ class SWDialog(ChannelDialog):
             cycle = self.get_cycles()
             stage = self.idx_stage.selectedItems()
             params = {k: v.get_value() for k, v in self.index.items()}
-            label = self.label.get_value()
+            name = self.name.get_value()
 
             if None in [params['f1'], params['f2']]:
                 self.parent.statusBar().showMessage(
@@ -474,7 +613,7 @@ class SWDialog(ChannelDialog):
                 data = math(data, operator_name='detrend', axis='time')
             
             self.parent.notes.detect_events(data, self.method, 
-                                            params, label=label)
+                                            params, label=name)
 
             self.accept()
 

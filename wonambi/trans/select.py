@@ -68,6 +68,8 @@ class Segments():
         ----------
         chan : list of str
             active channel names as they appear in record, without ref or group
+            If given an empty list, the channel specified in seg['chan'] will
+            be read for each segment
         ref_chan : list of str
             reference channel names as they appear in record, without group
         grp_name : str

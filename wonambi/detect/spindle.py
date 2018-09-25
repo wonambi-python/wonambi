@@ -56,7 +56,6 @@ class DetectSpindle:
                               'dur': 1.18
                               }
             self.duration = (0.3, 3)
-            self.det_wavelet = {'sd': None}
             self.det_thresh_lo = 8
             self.sel_thresh = 2
             self.moving_rms = {'dur': None,
@@ -71,13 +70,10 @@ class DetectSpindle:
                                'freq': self.frequency,
                                }
             self.duration = (0.5, 2)
-            self.det_wavelet = {'sd': None}
+            self.min_interval = 1
+            self.smooth = {'dur': .04}  # is in fact sigma
             self.det_thresh_lo = 3
             self.sel_thresh = 1
-            self.min_interval = 1
-            self.moving_rms = {'dur': None,
-                               'step': None}
-            self.smooth = {'dur': .04}  # is in fact sigma
 
         elif method == 'Moelle2011':
             if self.frequency is None:
@@ -88,13 +84,11 @@ class DetectSpindle:
                               'dur': 1.18
                                }
             self.duration = (0.5, 3)
-            self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 1.5
-            self.sel_thresh = None
             self.moving_rms = {'dur': .2,
                                'step': None}
             self.smooth = {'dur': .2,
                            'win': 'flat'}
+            self.det_thresh_lo = 1.5
         
         elif method == 'Wamsley2012':
             if self.frequency is None:
@@ -104,12 +98,9 @@ class DetectSpindle:
                                 'dur': 2,
                                 }
             self.duration = (0.3, 3)
-            self.det_thresh_lo = 4.5
-            self.sel_thresh = None  # necessary for gui/detect
-            self.moving_rms = {'dur': None,
-                               'step': None}
             self.smooth = {'dur': .1,
                            'win': 'flat'}
+            self.det_thresh_lo = 4.5
 
         elif method == 'Ray2015':
             if self.frequency is None:
@@ -120,26 +111,26 @@ class DetectSpindle:
             self.det_low_butter = {'freq': 5,
                                    'order': 4}
             self.duration = (.49, None)
-            self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 2.33
-            self.sel_thresh = 0.1
+            self.min_interval = 0.25 # they only start looking again after .25s
             self.smooth = {'dur': 2 / self.cdemod['freq'],
                            'win': 'triangle'}
-            self.min_interval = 0.25 # they only start looking again after .25s
             self.zscore = {'dur': 60,
                            'step': None,
                            'pcl_range': None}
+            self.det_thresh_lo = 2.33
+            self.sel_thresh = 0.1
         
         elif method == 'Lacourse2018':
             if self.frequency is None:
                 self.frequency = (11, 16)
             self.duration = (.3, 2.5)
-            self.windowing = win = {'dur': .3,
-                                    'step': .1}
             self.det_butter = {'freq': self.frequency,
                                'order': 20}
             self.det_butter2 = {'freq': (.3, 30),
                                 'order': 10}
+            self.min_interval = .1
+            self.windowing = win = {'dur': .3,
+                                    'step': .1}
             self.moving_ms = {'dur': win['dur'],
                               'step': win['step']}
             self.moving_power_ratio = {'dur': win['dur'],
@@ -154,7 +145,6 @@ class DetectSpindle:
                                  'step': win['step']}
             self.moving_sd = {'dur': win['dur'],
                               'step': win['step']}
-            self.min_interval = .1
             self.abs_pow_thresh = 1.25
             self.rel_pow_thresh = 1.6
             self.covar_thresh = 1.3
@@ -166,14 +156,12 @@ class DetectSpindle:
             self.det_butter = {'freq': self.frequency,
                                'order': 4}
             self.duration = (.4, 1.3)
-            self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 90
-            self.sel_thresh = None
+            self.min_interval = 1
             self.moving_rms = {'dur': .1,
                                'step': None}
             self.smooth = {'dur': .1,
                            'win': 'flat'}
-            self.min_interval = 1
+            self.det_thresh_lo = 90
         
         elif method == 'UCSD':
             if self.frequency is None:
@@ -195,10 +183,6 @@ class DetectSpindle:
                                 }
             self.sel_thresh = 1
             self.ratio_thresh = .5
-            self.moving_rms = {'dur': None,
-                               'step': None}
-            self.smooth = {'dur': None,
-                           'win': None}
 
         elif method == 'Concordia':
             if self.frequency is None:
@@ -207,16 +191,16 @@ class DetectSpindle:
                                'freq': self.frequency,
                                }
             self.duration = (0.5, 3)
-            self.det_wavelet = {'sd': None}
-            self.det_thresh_lo = 3
-            self.det_thresh_hi = 10
-            self.sel_thresh = 1
+            self.min_interval = 0
             self.moving_rms = {'dur': .2,
                                'step': None}
             self.smooth = {'dur': .2,
                            'win': 'flat'}
-            self.min_interval = 0.2
-
+            self.det_thresh_lo = 3
+            self.det_thresh_hi = 10
+            self.tolerance = 0.2
+            self.sel_thresh = 1
+        
         else:
             raise ValueError('Unknown method')
             
@@ -376,11 +360,13 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
                                  opts.det_butter)
     dat_det = transform_signal(dat_sigma, s_freq, 'moving_ms', opts.moving_ms)
+    dat_det[dat_det <= 0] = 0.000000001
     abs_sig_pow = log10(dat_det)
     
     # Relative sigma power
     dat_det = transform_signal(dat_orig, s_freq, 'moving_power_ratio', 
                                opts.moving_power_ratio)
+    dat_det[dat_det <= 0] = 0.000000001
     dat_det = log10(dat_det)
     rel_sig_pow = transform_signal(dat_det, s_freq, 'moving_zscore', 
                                    opts.zscore)
@@ -401,6 +387,8 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
                                     opts.moving_sd)
     dat_sd_sigma = transform_signal(dat_sigma, s_freq, 'moving_sd', 
                                     opts.moving_sd)
+    dat_sd_broad[dat_sd_broad == 0] = 0.000000001
+    dat_sd_sigma[dat_sd_sigma == 0] = 0.000000001
     sigma_corr = dat_covar / (dat_sd_broad * dat_sd_sigma)
     
     print('abs: {}, rel: {}, cov: {}, cor: {}'.format(
@@ -884,7 +872,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
-                                   dat_orig, time, s_freq)
+                               dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
@@ -1017,11 +1005,12 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
                            value=(det_value_lo, det_value_hi))
 
     if events is not None:
-        events = _merge_close(dat_det, events, time, opts.min_interval)
+        events = _merge_close(dat_det, events, time, opts.tolerance)
 
         events = select_events(dat_det, events, 'above_thresh', sel_value)
 
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -1967,6 +1956,9 @@ def _merge_close(dat, events, time, min_interval):
     ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
     """
+    if not events.any():
+        return events
+    
     no_merge = time[events[1:, 0] - 1] - time[events[:-1, 2]] >= min_interval
 
     if no_merge.any():
@@ -1982,8 +1974,6 @@ def _merge_close(dat, events, time, min_interval):
     for i in new_events:
         if i[2] - i[0] >= 1:
             i[1] = i[0] + argmax(dat[i[0]:i[2]])
-        else:
-            i[1] = nan
 
     return new_events
 

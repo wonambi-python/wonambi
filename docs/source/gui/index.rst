@@ -9,5 +9,6 @@ Graphical User Interface
    traces
    notes
    detect
+   methods
    analysis
    screenshot
