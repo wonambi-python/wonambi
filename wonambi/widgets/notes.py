@@ -1535,22 +1535,6 @@ class Notes(QTabWidget):
                 detector.tolerance = params['4']            
                 detector.sel_thresh = params['5']            
                 
-# =============================================================================
-#             else:
-#                 if method in ['Wamsley2012', 'UCSD']:
-#                     detector.det_wavelet['dur'] = params['win_sz']
-#                 elif method == 'Ray2015':
-#                     detector.zscore['dur'] = params['win_sz']
-#                 else:
-#                     detector.moving_rms['dur'] = params['win_sz']
-#     
-#                 detector.det_wavelet['sd'] = params['sigma']
-#                 detector.smooth['dur'] = params['smooth']
-#                 detector.det_thresh_lo = params['det_thresh_lo']
-#                 detector.det_thresh_hi = params['det_thresh_hi']
-#                 detector.sel_thresh = params['sel_thresh']
-# =============================================================================      
-
         elif method in SLOW_WAVE_METHODS:
             detector = DetectSlowWave(method=method, duration=duration)
 

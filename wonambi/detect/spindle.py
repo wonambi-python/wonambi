@@ -261,7 +261,7 @@ class DetectSpindle:
         i = 0
         for i, chan in enumerate(data.axis['chan'][0]):
                 
-            lg.info('Detecting spindles on chan %s', chan)
+            lg.info('Detecting spindles on channel %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
 
@@ -409,32 +409,20 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_sd_broad[dat_sd_broad == 0] = 0.000000001
     dat_sd_sigma[dat_sd_sigma == 0] = 0.000000001
     sigma_corr = dat_covar / (dat_sd_broad * dat_sd_sigma)
-    
-    print('abs: {}, rel: {}, cov: {}, cor: {}'.format(
-            sum(abs_sig_pow >= opts.abs_pow_thresh),
-            sum(rel_sig_pow >= opts.rel_pow_thresh),
-            sum(sigma_covar >= opts.covar_thresh),
-            sum(sigma_corr >= opts.corr_thresh)))
 
     covar_and_corr = logical_and(sigma_covar >= opts.covar_thresh,
                                  sigma_corr >= opts.corr_thresh)
-    print('cov&cor: ' + str(sum(covar_and_corr)))
     concensus = logical_and.reduce((abs_sig_pow >= opts.abs_pow_thresh,
                                     rel_sig_pow >= opts.rel_pow_thresh,
                                     covar_and_corr))                                    
-    print('concensus: ' + str(sum(concensus)))
     events = detect_events(concensus, 'custom') # at s_freq * 0.1
     
     if events is not None:
-        print('first detection: ' + str(events.shape))
         events = _select_period(events, covar_and_corr)
-        print('selection: ' + str(events.shape))
         events *= int(around(s_freq * opts.windowing['step'])) # upsample
         
         events = _merge_close(dat_orig, events, time, opts.min_interval)
-        print('merged: ' + str(events.shape))        
         events = within_duration(events, time, opts.duration)
-        print('duration applied: ' + str(events.shape))
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -569,9 +557,12 @@ def detect_Martin2013(dat_orig, s_freq, time, opts):
     events = detect_events(dat_det, 'above_thresh', det_value)
     
     if events is not None:
+        lg.info('first detection: ' + str(events.shape))
         events *= int(around(s_freq * opts.moving_rms['step'])) # upsample
-        events = _merge_close(dat_filt, events, time, opts.min_interval)
         events = within_duration(events, time, opts.duration)
+        lg.nfo('duration applied: ' + str(events.shape))
+        events = _merge_close(dat_filt, events, time, opts.min_interval)
+        lg.info('merged: ' + str(events.shape))        
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
