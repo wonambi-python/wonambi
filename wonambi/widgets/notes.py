@@ -70,6 +70,7 @@ QUALITY_SHORTCUT = ['o', 'p']
 SPINDLE_METHODS = ['Moelle2011',
                    'Lacourse2018',
                    'Ray2015',
+                   'Martin2013',
                    'Wamsley2012',  
                    'Nir2011', 
                    'Ferrarelli2007',
@@ -1490,6 +1491,11 @@ class Notes(QTabWidget):
                 detector.det_wavelet['sd'] = params['1']
                 detector.smooth['dur'] = params['2']  
                 detector.det_thresh_lo = params['3']  
+            
+            if 'Martin2013' == method:
+                detector.moving_rms['dur'] = params['0']
+                detector.moving_rms['step'] = params['1']
+                detector.percentile = params['3']
             
             if 'Ray2015' == method:
                 detector.smooth['dur'] = params['0']

@@ -102,6 +102,20 @@ class DetectSpindle:
                            'win': 'flat'}
             self.det_thresh_lo = 4.5
 
+        elif method == 'Martin2013':
+            if self.frequency is None:
+                self.frequency = (11, 16)
+            self.duration = (.5, 3)
+            self.min_interval = 0
+            self.rolloff = .4
+            self.det_remez = {'freq': self.frequency,
+                              'rolloff': self.rolloff,
+                              'dur': 1
+                               }
+            self.moving_rms = {'dur': .25,
+                               'step': .25}
+            self.percentile = 95
+        
         elif method == 'Ray2015':
             if self.frequency is None:
                 self.frequency = (11, 16)
@@ -276,6 +290,11 @@ class DetectSpindle:
                                                                 data.s_freq,
                                                                 time, self)
                 
+            elif self.method == 'Martin2013':
+                sp_in_chan, values, density = detect_Martin2013(dat_orig,
+                                                                data.s_freq,
+                                                                time, self)
+            
             elif self.method == 'Ray2015':
                 sp_in_chan, values, density = detect_Ray2015(dat_orig,
                                                             data.s_freq,
@@ -405,9 +424,9 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
                                     covar_and_corr))                                    
     print('concensus: ' + str(sum(concensus)))
     events = detect_events(concensus, 'custom') # at s_freq * 0.1
-    print('first detection: ' + str(events.shape))
     
     if events is not None:
+        print('first detection: ' + str(events.shape))
         events = _select_period(events, covar_and_corr)
         print('selection: ' + str(events.shape))
         events *= int(around(s_freq * opts.windowing['step'])) # upsample
@@ -496,6 +515,68 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
         sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
+                                   dat_orig, time, s_freq)
+
+    else:
+        lg.info('No spindle found')
+        sp_in_chan = []
+
+    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+
+    density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
+
+    return sp_in_chan, values, density
+
+def detect_Martin2013(dat_orig, s_freq, time, opts):
+    """Spindle detection based on Martin et al. 2013
+    
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
+    opts : instance of 'DetectSpindle'
+        'remez' : dict
+             parameters for 'remez' filter
+        'moving_rms' : dict
+             parameters for 'moving_rms'
+        'percentile' : float
+            percentile for detection threshold
+    
+    Returns
+    -------
+    list of dict
+        list of detected spindles
+    dict
+        'det_value_lo' with detection value, 'det_value_hi' is nan,
+        'sel_value' is nan (for consistency with other methods)
+    float
+        spindle density, per 30-s epoch
+
+    References
+    ----------
+    Martin, N. et al. Neurobio Aging 34(2), 468-76 (2013).
+    """
+    dat_filt = transform_signal(dat_orig, s_freq, 'remez', opts.det_remez)
+    dat_det = transform_signal(dat_filt, s_freq, 'moving_rms', opts.moving_rms)
+        # downsampled
+    
+    det_value = percentile(dat_det, opts.percentile)
+    
+    events = detect_events(dat_det, 'above_thresh', det_value)
+    
+    if events is not None:
+        events *= int(around(s_freq * opts.moving_rms['step'])) # upsample
+        events = _merge_close(dat_filt, events, time, opts.min_interval)
+        events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
+
+        power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
+        powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
+        sp_in_chan = make_spindles(events, power_peaks, powers, dat_filt,
                                    dat_orig, time, s_freq)
 
     else:

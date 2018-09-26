@@ -299,6 +299,15 @@ class SpindleDialog(ChannelDialog):
             self.index['2'].set_value(spin_det.smooth['dur'])
             self.index['3'].set_value(spin_det.det_thresh_lo)
 
+        if self.method == 'Martin2013':
+            self.label[0].setText('RMS window length (sec)')
+            self.label[1].setText('RMS window step (sec)')
+            self.label[2].setText('Detection threshold (percentile)')
+            
+            self.index['0'].set_value(spin_det.moving_rms['dur'])
+            self.index['1'].set_value(spin_det.moving_rms['step'])
+            self.index['2'].set_value(spin_det.percentile)
+        
         if self.method == 'Ray2015':
             self.label[0].setText('Smoothing window length (sec)')
             self.label[1].setText('z-score window length (sec)')

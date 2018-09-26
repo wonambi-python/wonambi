@@ -38,6 +38,13 @@ def test_detect_spindle_Ferrarelli2007():
     assert len(sp.events) == 0
 
 
+def test_detect_Martin2013():
+    detsp = DetectSpindle(method='Martin2013')
+    
+    sp = detsp(data)
+    assert len(sp.events) == 1
+
+
 def test_detect_Ray2015():
     detsp = DetectSpindle(method='Ray2015')
 
