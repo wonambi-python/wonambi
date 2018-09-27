@@ -2,6 +2,7 @@ Detection methods
 =================
 
 The method options in the spindle and slow wave detection dialogs are direct implementations of detection methods reported in the scholarly articles cited below.
+These implementations are based on original author code when available.
 
 Original values for the customizable parameters are provided in square brackets [].
 
@@ -23,7 +24,7 @@ Spindle detection methods
 #. The detection threshold is set to the mean of the signal envelope x ``Detection threshold`` [8].
 #. For the selection threshold, the signal envelope amplitude values are distributed in a 120-bin histogram, and the amplitude of the highest-count bin x ``Selection threshold`` [2] yields the selection threshold.
 #. Spindles are detected where the signal envelope exceeds the detection threshold, with start and end times where the envelope dips below the selection threshold, before and after the detected peak.
-#. Spindles are merged if within ``Min. interval`` (or overlapping).
+#. Spindles are merged if within ``Min. interval`` [0] s of each other (or overlapping).
 #. Spindles within ``Min. duration`` and ``Max. duration`` are retained.
 
 **Nir2011** - *Nir, Y. et al. (2011) Neuron 70, 153-69*
@@ -32,7 +33,7 @@ Spindle detection methods
 #. The EEG signal is bandpass filtered between ``Lowcut`` Hz and ``Highcut`` Hz with a zero-phase 4th (2x2) order Butterworth filter. Authors specify -3 dB attenuation at 9.2 Hz and 16.8 Hz. To achieve this with a 4th order filter, ``Lowcut`` and ``Highcut`` must be set to 9.2 Hz and 16.8 Hz, respectively.
 #. Instantaneous amplitude in the sigma frequency is extracted via the Hilbert transform.
 #. To avoid excessive multiple crossings of thresholds within the same spindle event, instantaneous amplitude is temporally smoothed using a Gaussian kernel of σ = ``Gaussian smoothing sigma`` [0.4] s.
-#. Events with amplitude greater than mean + ``Detection threshold`` [3] SD (computed across all artifact-free NREM sleep epochs) are considered putative spindles and detections within ``Min. interval`` [1] s are merged.
+#. Events with amplitude greater than mean + ``Detection threshold`` [3] SD (computed across all *artifact-free NREM sleep* epochs) are considered putative spindles and detections within ``Min. interval`` [1] s of each other are merged.
 #. A threshold of mean + ``Selection threshold`` [1] SD defines start and end times, and events with duration between ``Min. duration`` [0.5] s and ``Max. duration`` [2] s are selected for further analysis.
 #. *Those channels, in which an increase in spectral power within the detected events was restricted to the spindle-frequency range (10-16 Hz) rather than broadband (unpaired t-test (α=0.001) between maximal spectral power in detected vs. random events), and with at least 1 spindle per min of NREM sleep were chosen for further analysis. This highly conservative procedure of including in the analysis only the channels with high spindle SNR, ensured that local occurrence of spindle events does not arise merely as a result of the lack of spindles or poor spindle SNR in some channels.*
 
@@ -44,20 +45,32 @@ Spindle detection methods
 #. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing window length`` [0.2] s.
 #. The detection threshold is set to the mean of the RMS signal + ``Detection threshold`` [1.5] x RMS signal SD.
 #. Spindles are detected as a continuous rise in the smoothed RMS signal above the detection threshold lasting between ``Min. duration`` [0.5] s and ``Max. duration`` [3] s. Spindle start and end times are the threshold crossings.
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
 
 **Wamsley2012** - *Wamsley, E. J. et al. (2012) Biol. Psychiatry 71, 154-61*
 
 #. *Detection is limited to NREM2 signal, filtered between 0.5-35 Hz.*
-#. The artefact-free EEG signal is subjected to a time-frequency transformation using an 8-parameter complex Morlet wavelet with the average of ``Lowcut`` and ``Highcut`` as the frequency, with σ = ``Wavelet sigma`` [0.5] s and with window size = ``Wavelet window length`` [1] s.
+#. The *artefact-free* EEG signal is subjected to a time-frequency transformation using an 8-parameter complex Morlet wavelet with the average of ``Lowcut`` and ``Highcut`` as the frequency, with σ = ``Wavelet sigma`` [0.5] s and with window size = ``Wavelet window length`` [1] s.
 #. The resulting complex-valued time series is squared.
 #. The imaginary component of the time-series is discarded, and the remaining real-valued time series is squared again.
 #. The moving average of the real signal is calculated, using a sliding window of size = ``Smoothing window length`` [0.1] s.
-#. A spindle event is identified whenever this wavelet signal exceeds a threshold, defined as ``Detection threshold`` [4.5] times the mean signal amplitude of all artifact-free epochs, between ``Min. duration`` [0.4] s and ``Max. duration`` s [no maximum]. In this implementation, threshold crossings define the spindle start and end times, but see next point for the original method.
+#. A spindle event is identified whenever this wavelet signal exceeds a threshold, defined as ``Detection threshold`` [4.5] times the mean signal amplitude of all artefact-free epochs, between ``Min. duration`` [0.4] s and ``Max. duration`` s [no maximum]. In this implementation, threshold crossings define the spindle start and end times, but see next point for the original method.
 #. *The duration of each spindle was calculated as the half-height width of wavelet energy within the spindle frequency range.*
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
+
+**Martin2013** - *Martin, N. et al. (2013) Neurobio. Aging 34(2) 468-76*
+
+#. *Artefact-free NREM sleep epochs are retained for analysis.*
+#. Signal is bandpass-filtered between ``Lowcut`` and ``Highcut`` with a zero-phase equiripple Chebyshev FIR filter. The authors used a slightly different filter, but this implementation is more stable, and with the default lowcut and highcut and a ``Roll-off`` of 0.4 Hz, -3 dB attenuation is achieved at 11.1 Hz and 14.9 Hz.
+#. The root-mean-square of the filtered signal is taken for every consecutive window of duration ``RMS window length`` [0.25] s and of step ``RMS window step`` [None] s.
+#. The detection threshold is set at percentile ``Detection threshold`` [95] of the RMS signal.
+#. Spindles are detected when the RMS signal exceeds the detection threshold for longer than ``Min. duration`` [0.5] s and shorter than ``Max. duration`` [3] s.
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
+
 
 **Ray2015** - *Ray, L. B. et al. (2015) Front. Hum. Neurosci. 9-16*
 
-#. The artefact-free signal is bandpass filtered between 0.3 Hz and 35 Hz, using a zero-phase 8th (4x2) order Butterworth filter.
+#. The *artefact-free* signal is bandpass filtered between 0.3 Hz and 35 Hz, using a zero-phase 8th (4x2) order Butterworth filter.
 #. Complex demodulation is deployed on the data about the frequency of interest, set by the mean of ``Lowcut`` [11] and ``Highcut`` [16] (Hz).
 #. The complex demodulated signal is lowpass filtered below 5 Hz, using a zero-phase 8th (4x2) order Butterworth filter.
 #. The lowpass filtered signal is smoothed using a triangle convolution, with window size set by ``Smoothing window length`` [2 / frequency of interest] (sec).
@@ -68,6 +81,29 @@ Spindle detection methods
 #. Spindles separated by less than ``Min. interval`` [0.25] sec are merged. *Instead of merging spindles, authors excluded spindles beginning less than 0.25 s after of a detected spindle.*
 #. Spindles within ``Min. duration`` [0.49] sec and ``Max. duration`` [None] are retained.
 
+**Lacourse2018** - *Lacourse, K. et al. (2018) J Neurosci. Meth.*
+
+#. *Artefact-free NREM sleep epochs are retained for analysis.*
+#. Signal is bandpass filtered between ``Lowcut`` and ``Highcut`` to create the sigma signal, and between 0.3 Hz and 30 Hz to create the broadband signal.
+#. All transformations are applied to the windowed signal, with a window duration of ``Window length`` [0.3] s and with a step of ``Window step`` [0.1] s.
+#. The absolute sigma power signal is taken as the window average of the squared value of each data sample. The resulting signal is log10-transformed.
+#. The relative sigma power signal is taken as the ratio of sigma band power to broadband power, log10-transformed and z-score normalized with respect to a 30-s window centered on the current window. In computing the z-score, only values between the 10th and 90th percentile are used to compute the standard deviation.
+#. The covariance signal is taken as the window average of the sample-wise product of the detrended sigma signal and detrended broadband signal.
+#. The normalized covariance signal is taken as the covariance signal log10-transformed and z-score normalized with respect to the 30-s window centered on the current window.  In computing the z-score, only values between the 10th and 90th percentile are used to compute the standard deviation.
+#. The correlation signal is taken as the covariance signal divided, window-wise, by the product of the standard deviations of the sigma and broadband signals.
+#. Spindles are detected when all four of these conditions are met:
+
+   * the absolute sigma power signal exceeds ``Absolute power threshold`` [1.25];
+   * the relative sigma power signal exceeds ``Relative sigma threshold`` [1.6];
+   * the normalized covariance signal exceeds ``Covariance threshold`` [1.3];
+   * the correlation signal exceeds ``Correlation threshold`` [0.69].
+   
+#. Spindle start and end times are defined where the normalized covariance and correlation signals surrounding a detected spindle drop below their respective threshold.
+#. Spindles shorter than ``Min. duration`` [0.3] s and ``Max. duration`` [2.5] s are discarded.
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
+
+#. *A context classifier, based on the spectral makeup of the signal surrounding each detected spindle, identifies those spindles likely to be true positives. This step (not implemented) is most useful in the absence of sleep staging.*
+
 **FASST** - *Leclerq, Y. et al. (2011) Compu. Intel. Neurosci. 1-11*
 
 #. Signal is bandpass filtered between ``Lowcut`` [11] and ``Highcut`` [18] using a zero-phase 8th (4x2) order Butterworth filter.
@@ -75,7 +111,7 @@ Spindle detection methods
 #. The filtered signal is rectified, yielding the detection signal.
 #. The detection signal is smoothed with a moving average of window size = ``Smoothing window length`` [0.1].
 #. Spindles are detected as rises in the detection signal above the detection threshold, lasting between ``Min. duration`` [0.4] and ``Max. duration`` [1.3].
-#. Detected spindles separated by less than ``Min. interval`` [1] are merged.
+#. Detected spindles separated by less than ``Min. interval`` [1] s are merged.
 #. *Spindles overlapping across channels are merged.*
 
 **FASST2** - *Leclerq, Y. et al. (2011) Compu. Intel. Neurosci. 1-11*
@@ -93,6 +129,7 @@ This method is identical to FASST, except step 3 is replaced with the following 
 #. Steps 1-3 are repeated on the raw signal, this time with width = 0.2 s, with Tukey window size = 0.2 s, and with the threshold set at ``Selection threshold`` [1] SD.
 #. Spindle start and end times are defined at threshold crossings.
 #. Spindles are retained if their duration is between ``Min. duration`` and ``Max. duration``.
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
 
 **Concordia** - *Concordia University, Montreal; unpublished*
 
@@ -100,8 +137,9 @@ This method is identical to FASST, except step 3 is replaced with the following 
 #. The root-mean-square of the signal is taken, with a moving window of size = ``RMs window length`` [0.2] s.
 #. The resulting RMS signal is smoothed with a moving average of window size = ``Smoothing window length`` [0.2] s.
 #. The low and high detection thresholds are set at the mean of the RMS signal + ``Detection threshold`` [1.5] x RMS signal SD, and mean + ``Detection threshold`` [10] x SD, respectively.
-#. RMS rises between the low and high detection thresholds are considered putative spindles, and those located within ``Min. interval`` [0.2] s are merged.
+#. RMS rises between the low and high detection thresholds are considered putative spindles, and those located within ``Tolerance`` [0.2] s are merged.
 #. A threshold of mean + ``Selection threshold`` [1] SD defines start and end times, and events with duration between ``Min. duration`` [0.5] s and ``Max. duration`` [2] s are selected for further analysis.
+#. Spindles are merged if within ``Min. interval`` [0] s of each other.
 
 Slow wave detection methods
 ---------------------------
@@ -128,4 +166,4 @@ Slow wave detection methods
 
 **AASM/Massimini2004**
 
-This is a reimplementation of Massimini et al., 2004 (above), except with default values for slow waves as defined by the American Academy of Sleep Medicine (AASM).
+This is the same as Massimini2004, except with default values for slow waves as defined by the American Academy of Sleep Medicine (AASM).

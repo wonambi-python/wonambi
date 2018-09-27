@@ -56,12 +56,8 @@ class DetectSpindle:
                               'dur': 1.18
                               }
             self.duration = (0.3, 3)
-            self.det_thresh_lo = 8
+            self.det_thresh = 8
             self.sel_thresh = 2
-            self.moving_rms = {'dur': None,
-                               'step': None}
-            self.smooth = {'dur': None,
-                           'win': None}
 
         elif method == 'Nir2011':
             if self.frequency is None:
@@ -72,7 +68,7 @@ class DetectSpindle:
             self.duration = (0.5, 2)
             self.min_interval = 1
             self.smooth = {'dur': .04}  # is in fact sigma
-            self.det_thresh_lo = 3
+            self.det_thresh = 3
             self.sel_thresh = 1
 
         elif method == 'Moelle2011':
@@ -88,7 +84,7 @@ class DetectSpindle:
                                'step': None}
             self.smooth = {'dur': .2,
                            'win': 'flat'}
-            self.det_thresh_lo = 1.5
+            self.det_thresh = 1.5
         
         elif method == 'Wamsley2012':
             if self.frequency is None:
@@ -100,7 +96,7 @@ class DetectSpindle:
             self.duration = (0.3, 3)
             self.smooth = {'dur': .1,
                            'win': 'flat'}
-            self.det_thresh_lo = 4.5
+            self.det_thresh = 4.5
 
         elif method == 'Martin2013':
             if self.frequency is None:
@@ -114,7 +110,7 @@ class DetectSpindle:
                                }
             self.moving_rms = {'dur': .25,
                                'step': .25}
-            self.percentile = 95
+            self.det_thresh = 95
         
         elif method == 'Ray2015':
             if self.frequency is None:
@@ -131,7 +127,7 @@ class DetectSpindle:
             self.zscore = {'dur': 60,
                            'step': None,
                            'pcl_range': None}
-            self.det_thresh_lo = 2.33
+            self.det_thresh = 2.33
             self.sel_thresh = 0.1
         
         elif method == 'Lacourse2018':
@@ -142,7 +138,7 @@ class DetectSpindle:
                                'order': 20}
             self.det_butter2 = {'freq': (.3, 30),
                                 'order': 10}
-            self.min_interval = .1
+            self.min_interval = 0
             self.windowing = win = {'dur': .3,
                                     'step': .1}
             self.moving_ms = {'dur': win['dur'],
@@ -175,7 +171,7 @@ class DetectSpindle:
                                'step': None}
             self.smooth = {'dur': .1,
                            'win': 'flat'}
-            self.det_thresh_lo = 90
+            self.det_thresh = 90
         
         elif method == 'UCSD':
             if self.frequency is None:
@@ -188,7 +184,7 @@ class DetectSpindle:
                                 'sd': None
                                 }
             self.duration = (0.3, 3)
-            self.det_thresh_lo = 2  # wavelet_peak_thresh
+            self.det_thresh = 2  # wavelet_peak_thresh
             self.sel_wavelet = {'freqs': arange(self.frequency[0],
                                                 self.frequency[1] + .5, .5),
                                 'dur': 1,
@@ -210,7 +206,7 @@ class DetectSpindle:
                                'step': None}
             self.smooth = {'dur': .2,
                            'win': 'flat'}
-            self.det_thresh_lo = 3
+            self.det_thresh = 3
             self.det_thresh_hi = 10
             self.tolerance = 0.2
             self.sel_thresh = 1
@@ -375,6 +371,11 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     ----------
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
+    # Downsample z-score parameters
+    opts.zscore['dur'] /= opts.windowing['step']
+    if opts.zscore['step'] is not None:
+        opts.zscore['step'] /= opts.windowing['step'] 
+    
     # Absolute sigma power
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
                                  opts.det_butter)
@@ -410,6 +411,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_sd_sigma[dat_sd_sigma == 0] = 0.000000001
     sigma_corr = dat_covar / (dat_sd_broad * dat_sd_sigma)
 
+    # Thresholding
     covar_and_corr = logical_and(sigma_covar >= opts.covar_thresh,
                                  sigma_corr >= opts.corr_thresh)
     concensus = logical_and.reduce((abs_sig_pow >= opts.abs_pow_thresh,
@@ -488,7 +490,7 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'abs2')
     dat_det = transform_signal(dat_det, s_freq, 'moving_zscore', opts.zscore)
     
-    det_value = opts.det_thresh_lo
+    det_value = opts.det_thresh
     sel_value = opts.sel_thresh
     
     events = detect_events(dat_det, 'above_thresh', det_value)
@@ -509,7 +511,7 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'det_value_lo': det_value, 'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -552,17 +554,14 @@ def detect_Martin2013(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_filt, s_freq, 'moving_rms', opts.moving_rms)
         # downsampled
     
-    det_value = percentile(dat_det, opts.percentile)
+    det_value = percentile(dat_det, opts.det_thresh)
     
     events = detect_events(dat_det, 'above_thresh', det_value)
     
     if events is not None:
-        lg.info('first detection: ' + str(events.shape))
         events *= int(around(s_freq * opts.moving_rms['step'])) # upsample
         events = within_duration(events, time, opts.duration)
-        lg.nfo('duration applied: ' + str(events.shape))
         events = _merge_close(dat_filt, events, time, opts.min_interval)
-        lg.info('merged: ' + str(events.shape))        
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -574,7 +573,7 @@ def detect_Martin2013(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'det_value_lo': det_value, 'sel_value': nan}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -621,7 +620,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     dat_det = real(dat_det ** 2) ** 2
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
-    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
+    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
 
@@ -639,7 +638,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'det_value_lo': det_value, 'sel_value': nan}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -701,7 +700,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'gaussian', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean+std',
-                                 opts.det_thresh_lo)
+                                 opts.det_thresh)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
@@ -723,8 +722,7 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan,
-              'sel_value': sel_value}
+    values = {'det_value_lo': det_value, 'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -774,7 +772,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     idx_env = peaks_in_time(dat_det)
     idx_peak = idx_env[peaks_in_time(dat_det[idx_env])]
 
-    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh_lo)
+    det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
     sel_value = define_threshold(dat_det[idx_peak], s_freq, 'histmax', 
                                  opts.sel_thresh, nbins=120)
     
@@ -803,8 +801,7 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan,
-              'sel_value': sel_value}
+    values = {'det_value_lo': det_value, 'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -855,7 +852,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean+std',
-                                 opts.det_thresh_lo)
+                                 opts.det_thresh)
 
     events = detect_events(dat_det, 'above_thresh', det_value)
 
@@ -873,7 +870,7 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'det_value_lo': det_value, 'sel_value': nan}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -924,7 +921,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
     """
     dat_det = transform_signal(dat_orig, s_freq, 'butter', opts.det_butter)
     
-    det_value = percentile(dat_det, opts.det_thresh_lo)
+    det_value = percentile(dat_det, opts.det_thresh)
     
     if submethod == 'abs':
         dat_det = transform_signal(dat_det, s_freq, 'abs')
@@ -950,7 +947,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan, 'sel_value': nan}
+    values = {'det_value_lo': det_value, 'sel_value': nan}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -997,7 +994,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                                opts.det_wavelet)
 
     det_value = define_threshold(dat_det, s_freq, 'median+std',
-                                 opts.det_thresh_lo)
+                                 opts.det_thresh)
 
     events = detect_events(dat_det, 'maxima', det_value)
 
@@ -1019,8 +1016,7 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
     sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
                                dat_orig, time, s_freq)
 
-    values = {'det_value_lo': det_value, 'det_value_hi': nan,
-              'sel_value': sel_value}
+    values = {'det_value_lo': det_value, 'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -1044,7 +1040,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
             parameters for 'moving_rms'
         'smooth' : dict
             parameters for 'smooth'
-        'det_thresh_lo' : float
+        'det_thresh' : float
             low detection threshold
         'det_thresh_hi' : float
             high detection threshold
@@ -1068,7 +1064,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value_lo = define_threshold(dat_det, s_freq, 'mean+std',
-                                    opts.det_thresh_lo)
+                                    opts.det_thresh)
     det_value_hi = define_threshold(dat_det, s_freq, 'mean+std',
                                     opts.det_thresh_hi)
     sel_value = define_threshold(dat_det, s_freq, 'mean+std', opts.sel_thresh)
@@ -1094,8 +1090,7 @@ def detect_Concordia(dat_orig, s_freq, time, opts):
         lg.info('No spindle found')
         sp_in_chan = []
 
-    values = {'det_value_lo': det_value_lo, 'det_value_hi': det_value_hi,
-              'sel_value': sel_value}
+    values = {'det_value_lo': det_value_lo, 'sel_value': sel_value}
 
     density = len(sp_in_chan) * s_freq * 30 / len(dat_orig)
 
@@ -1347,12 +1342,10 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         
         if 'moving_zscore' == method:        
             pcl_range = method_opt['pcl_range']
-            stop = len_dat - dur
             
             for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                start = min(max(0, j - n_halfdur), stop)
-                end = min(start + dur, len_dat)
-                windat = stddat = dat[start:end]
+                windat = stddat = dat[max(0, j - n_halfdur):\
+                                      min(last, j + n_halfdur)] 
                 if pcl_range is not None:
                     lo, hi = pcl_range
                     stddat = windat[logical_and(

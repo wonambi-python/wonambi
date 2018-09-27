@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.48**: Martin2013 spindle detection; fixes for Ray2015 and Lacourse2018
 - **5.47**: revamped spindle dialog; spindle detection fixes
 - **5.46**: Lacourse2018 spindle detection; fix for reading events
 - **5.45**: change event's type in GUI

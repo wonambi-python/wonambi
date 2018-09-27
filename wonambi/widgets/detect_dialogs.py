@@ -79,7 +79,7 @@ class SpindleDialog(ChannelDialog):
         self.index['0'] = FormFloat() # sigma
         self.index['1'] = FormFloat() # win_sz
         self.index['2'] = FormFloat() # smooth
-        self.index['3'] = FormFloat() # det_thresh_lo
+        self.index['3'] = FormFloat() # det_thresh
         self.index['4'] = FormFloat() # det_thresh_hi
         self.index['5'] = FormFloat() # sel_thresh
         
@@ -259,7 +259,7 @@ class SpindleDialog(ChannelDialog):
             self.label[4].setText('')
             self.label[5].setText('')
 
-            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['0'].set_value(spin_det.det_thresh)
             self.index['1'].set_value(spin_det.sel_thresh)        
         
         if self.method == 'Nir2011':
@@ -271,7 +271,7 @@ class SpindleDialog(ChannelDialog):
             self.label[5].setText('')
 
             self.index['0'].set_value(spin_det.smooth['dur'])
-            self.index['1'].set_value(spin_det.det_thresh_lo)
+            self.index['1'].set_value(spin_det.det_thresh)
             self.index['2'].set_value(spin_det.sel_thresh)            
         
         if self.method == 'Moelle2011':
@@ -284,7 +284,7 @@ class SpindleDialog(ChannelDialog):
 
             self.index['0'].set_value(spin_det.moving_rms['dur'])
             self.index['1'].set_value(spin_det.smooth['dur'])
-            self.index['2'].set_value(spin_det.det_thresh_lo)
+            self.index['2'].set_value(spin_det.det_thresh)
 
         if self.method == 'Wamsley2012':
             self.label[0].setText('Wavelet window length (sec)')
@@ -297,7 +297,7 @@ class SpindleDialog(ChannelDialog):
             self.index['0'].set_value(spin_det.det_wavelet['dur'])
             self.index['1'].set_value(spin_det.det_wavelet['sd'])
             self.index['2'].set_value(spin_det.smooth['dur'])
-            self.index['3'].set_value(spin_det.det_thresh_lo)
+            self.index['3'].set_value(spin_det.det_thresh)
 
         if self.method == 'Martin2013':
             self.label[0].setText('RMS window length (sec)')
@@ -306,7 +306,7 @@ class SpindleDialog(ChannelDialog):
             
             self.index['0'].set_value(spin_det.moving_rms['dur'])
             self.index['1'].set_value(spin_det.moving_rms['step'])
-            self.index['2'].set_value(spin_det.percentile)
+            self.index['2'].set_value(spin_det.det_thresh)
         
         if self.method == 'Ray2015':
             self.label[0].setText('Smoothing window length (sec)')
@@ -318,7 +318,7 @@ class SpindleDialog(ChannelDialog):
             
             self.index['0'].set_value(spin_det.smooth['dur'])
             self.index['1'].set_value(spin_det.zscore['step'])
-            self.index['2'].set_value(spin_det.det_thresh_lo)
+            self.index['2'].set_value(spin_det.det_thresh)
             self.index['3'].set_value(spin_det.sel_thresh)
 
         if self.method == 'Lacourse2018':
@@ -344,7 +344,7 @@ class SpindleDialog(ChannelDialog):
             self.label[4].setText('')
             self.label[5].setText('')
 
-            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['0'].set_value(spin_det.det_thresh)
             self.index['1'].set_value(spin_det.smooth['dur'])
             
         if self.method == 'FASST2':
@@ -355,7 +355,7 @@ class SpindleDialog(ChannelDialog):
             self.label[4].setText('')
             self.label[5].setText('')
 
-            self.index['0'].set_value(spin_det.det_thresh_lo)
+            self.index['0'].set_value(spin_det.det_thresh)
             self.index['1'].set_value(spin_det.moving_rms['dur'])
             self.index['2'].set_value(spin_det.smooth['dur'])
             
@@ -370,7 +370,7 @@ class SpindleDialog(ChannelDialog):
             self.index['0'].set_value(spin_det.det_wavelet['dur'])
             self.index['1'].set_value(spin_det.det_wavelet['width'])
             self.index['2'].set_value(spin_det.det_wavelet['win'])
-            self.index['3'].set_value(spin_det.det_thresh_lo)
+            self.index['3'].set_value(spin_det.det_thresh)
             self.index['4'].set_value(spin_det.sel_thresh)
 
         if 'Concordia' in self.method:
@@ -383,7 +383,7 @@ class SpindleDialog(ChannelDialog):
 
             self.index['0'].set_value(spin_det.moving_rms['dur'])
             self.index['1'].set_value(spin_det.smooth['dur'])
-            self.index['2'].set_value(spin_det.det_thresh_lo)
+            self.index['2'].set_value(spin_det.det_thresh)
             self.index['3'].set_value(spin_det.det_thresh_hi)
             self.index['4'].set_value(spin_det.tolerance)
             self.index['5'].set_value(spin_det.sel_thresh)
@@ -395,33 +395,6 @@ class SpindleDialog(ChannelDialog):
                 one_param.setEnabled(False)
             else:
                 one_param.setEnabled(True)
-        
-# =============================================================================
-#         if self.method in ['Wamsley2012', 'UCSD']:
-#             self.index['win_sz'].set_value(spin_det.det_wavelet['dur'])
-#         elif self.method == 'Ray2015':
-#             self.index['win_sz'].set_value(spin_det.zscore['dur'])
-#         else:
-#             self.index['win_sz'].set_value(spin_det.moving_rms['dur'])
-#                         
-#         else:
-#             self.index['smooth'].set_value(spin_det.smooth['dur'])
-#             self.index['sigma'].set_value(spin_det.det_wavelet['sd'])
-#             self.index['det_thresh_lo'].set_value(spin_det.det_thresh_lo)
-#             self.index['det_thresh_hi'].set_value(spin_det.det_thresh_hi)
-#             self.index['sel_thresh'].set_value(spin_det.sel_thresh)
-# 
-# 
-# 
-#         for param in ['sigma', 'win_sz', 'det_thresh_lo', 'det_thresh_hi',
-#                       'sel_thresh', 'smooth', 'rolloff']:
-#             widg = self.index[param]
-#             if widg.get_value() == 0:
-#                 widg.set_value('N/A')
-#                 widg.setEnabled(False)
-#             else:
-#                 widg.setEnabled(True)
-# =============================================================================
 
     def count_channels(self):
         """If more than one channel selected, activate merge checkbox."""

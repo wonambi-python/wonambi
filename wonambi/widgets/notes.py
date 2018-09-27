@@ -1473,34 +1473,34 @@ class Notes(QTabWidget):
             detector.min_interval = params['interval']
 
             if 'Ferrarelli2007' == method:
-                detector.det_thresh_lo = params['0']
+                detector.det_thresh = params['0']
                 detector.sel_thresh = params['1']
                 
             if 'Nir2011' == method:
                 detector.smooth['dur'] = params['0']
-                detector.det_thresh_lo = params['1']
+                detector.det_thresh = params['1']
                 detector.sel_thresh = params['2']
                 
             if 'Moelle2011' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.smooth['dur'] = params['1']
-                detector.det_thresh_lo = params['2']            
+                detector.det_thresh = params['2']            
             
             if 'Wamsley2012' == method:
                 detector.det_wavelet['dur'] = params['0']
                 detector.det_wavelet['sd'] = params['1']
                 detector.smooth['dur'] = params['2']  
-                detector.det_thresh_lo = params['3']  
+                detector.det_thresh = params['3']  
             
             if 'Martin2013' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.moving_rms['step'] = params['1']
-                detector.percentile = params['3']
+                detector.det_thresh = params['2']
             
             if 'Ray2015' == method:
                 detector.smooth['dur'] = params['0']
                 detector.zscore['step'] = params['1']
-                detector.det_thresh_lo = params['2']  
+                detector.det_thresh = params['2']  
                 detector.sel_thresh = params['3']             
             
             if 'Lacourse2018' == method:
@@ -1512,11 +1512,11 @@ class Notes(QTabWidget):
                 detector.corr_thresh = params['5']
                 
             if 'FASST' == method:
-                detector.det_thresh_lo = params['0']
+                detector.det_thresh = params['0']
                 detector.smooth['dur'] = params['1']
                 
             if 'FASST2' == method:
-                detector.det_thresh_lo = params['0']
+                detector.det_thresh = params['0']
                 detector.moving_rms['dur'] = params['1']
                 detector.smooth['dur'] = params['2']
             
@@ -1524,13 +1524,13 @@ class Notes(QTabWidget):
                 detector.det_wavelet['dur'] = params['0']
                 detector.det_wavelet['width'] = params['1']
                 detector.det_wavelet['win'] = params['2']
-                detector.det_thresh_lo = params['3']  
+                detector.det_thresh = params['3']  
                 detector.sel_thresh = params['4'] 
                 
             if 'Concordia' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.smooth['dur'] = params['1']
-                detector.det_thresh_lo = params['2']            
+                detector.det_thresh = params['2']            
                 detector.det_thresh_hi = params['3']            
                 detector.tolerance = params['4']            
                 detector.sel_thresh = params['5']            
