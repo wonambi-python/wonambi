@@ -180,7 +180,7 @@ def write_bids_channels(output_file, dataset):
                       + x.index('LP:')] \
                       if 'LP:' in x else 'Inf' for x in hdr['prefiltering']]
         notch = [x[x.index('N:') + 2:-2] \
-                      if 'N:' in x else '' for x in hdr['prefiltering']]        
+                      if 'N:' in x else 'n/a' for x in hdr['prefiltering']]        
         s_freq = [x / hdr['record_length'] \
                   for x in hdr['n_samples_per_record']]
         
