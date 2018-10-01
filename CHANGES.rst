@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.49**: event consensus; Brain Vision and BIDS export fixes
 - **5.48**: Martin2013 spindle detection; fixes for Ray2015 and Lacourse2018
 - **5.47**: revamped spindle dialog; spindle detection fixes
 - **5.46**: Lacourse2018 spindle detection; fix for reading events

@@ -3,3 +3,4 @@
 from .spindle import DetectSpindle, merge_close, transform_signal
 from .ripple import DetectRipple
 from .slowwave import DetectSlowWave
+from .agreement import consensus

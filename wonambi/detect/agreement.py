@@ -54,7 +54,7 @@ def consensus(raters, threshold, s_freq, min_duration=None):
     merged = vstack((start_times, end_times))
     
     if min_duration:
-        merged = merged[merged[1, :] - merged[0, :] >= min_duration, :]
+        merged = merged[:, merged[1, :] - merged[0, :] >= min_duration]
         
     out = Graphoelement()
     out.events = [{'start': merged[0, i], 
