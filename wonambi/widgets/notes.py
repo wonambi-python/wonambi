@@ -1947,6 +1947,7 @@ class ExportEventsDialog(QDialog):
                     self.parent.statusBar.showMessage('No events found.')
                     return
                 
+                events = sorted(events, key=lambda x: x['start'])
                 dataset = self.parent.info.dataset
                 data = ChanTime()
                 data.start_time = dataset.header['start_time']
