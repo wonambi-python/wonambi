@@ -1,8 +1,43 @@
 """Module for agreement and consensus analysis between raters"""
 
-from numpy import arange, concatenate, diff, mean, vstack, where, zeros
+from numpy import (arange, argmax, asarray, concatenate, diff, invert, 
+                   logical_and, maximum, mean, minimum, newaxis, repeat, 
+                   sum, vstack, where, zeros)
 
 from .. import Graphoelement
+
+
+class MatchedEvents:
+    """Class for storing matched events and producing statistics."""
+    def __init__(self, tp, fp, fn, detection, standard, threshold):
+        self.tp = tp
+        self.fp = fp
+        self.fn = fn
+        self.detection = detection
+        self.standard = standard
+        self.threshold = threshold        
+        self.n_tp = sum(tp)
+        self.n_fp = len(fp)
+        self.n_fn = len(fn)
+
+    @property
+    def recall(self):
+        tp = self.n_tp
+        fn = self.n_fn
+        return tp / (tp + fn)
+    
+    @property
+    def precision(self):
+        tp = self.n_tp
+        fp = self.n_fp
+        return tp / (tp + fp)
+    
+    @property
+    def f1score(self):     
+        recall = self.recall
+        precision = self.precision        
+        return 2 * precision * recall / (precision + recall)
+
 
 def consensus(raters, threshold, s_freq, min_duration=None):
     """Take two or more event lists and output a merged list based on 
@@ -10,8 +45,9 @@ def consensus(raters, threshold, s_freq, min_duration=None):
     
     Parameters
     ----------
-    raters: tuple of instances of wonambi.Graphoelement
-        two or more lists of events from different raters
+    raters: tuple of lists of dict
+        two or more lists of events from different raters, with 'start', 'end'
+        and 'chan'
     threshold : float
         value between 0 and 1 to threshold consensus. Consensus is computed on
         a per-sample basis. For a given rater, if an event is present at a 
@@ -63,5 +99,88 @@ def consensus(raters, threshold, s_freq, min_duration=None):
 
     return out     
             
-def match_events():
-    pass
+def match_events(detection, standard, threshold):
+    """Find best matches between detected and standard events, by a thresholded
+    intersection-union rule.
+    
+    Parameters
+    ----------
+    detection : list of dict
+        list of detected events to be tested against the standard, with 
+        'start'and 'end'
+    standard : list of dict
+        list of ground-truth events, with 'start' and 'end'
+    threshold : float
+        minimum intersection-union score to match a pair, between 0 and 1
+        
+    Returns
+    -------
+    
+    
+    1 - for each pair, find overlap
+    2 - threshold overlap and store positives in TPcand
+    3 - match i with j based on highest overlap
+    4 - match j with i based on highest overlap
+    5 - if i and j chose each other, count them as TP
+    6 - now take incomplete matches and repeat 2-5
+    7 - count all non-matched events as FP
+    """
+    # Vectorize start and end times and set up for broadcasting
+    det_beg = asarray([x['start'] for x in detection])[:, newaxis]
+    det_end = asarray([x['end'] for x in detection])[:, newaxis]
+    std_beg = asarray([x['start'] for x in standard])[newaxis, :]
+    std_end = asarray([x['end'] for x in standard])[newaxis, :]
+
+    # Get durations and broadcast them
+    det_dur = repeat(det_end - det_beg, len(standard), axis=1)
+    std_dur = repeat(std_end - std_beg, len(detection), axis=0)
+    
+    # Subtract every end by every start and find overlaps
+    det_minus_std = det_end - std_beg # array of shape (len(det), len(std))
+    std_minus_det = std_end - det_beg    
+    overlapping = logical_and(det_minus_std > 0, std_minus_det > 0)
+    
+    # Find intersection and union
+    shorter_diff = minimum(det_minus_std, std_minus_det)
+    longer_diff = maximum(det_minus_std, std_minus_det)
+    
+    shorter_dur = minimum(det_dur, std_dur)
+    longer_dur = maximum(det_dur, std_dur)
+    
+    interx = minimum(shorter_diff, shorter_dur)
+    union = maximum(longer_diff, longer_dur)
+        
+    # Compute intersection-union score and set non-overlapping pairs to 0
+    iu = interx / union
+    iu[invert(overlapping)] = 0
+    
+    # Threshold IU score to yield  True Positive candidates
+    iu[iu <= threshold] = 0
+    
+    # Find partial matches, round 1
+    det_match1 = argmax(iu, axis=1)
+    std_match1 = argmax(iu, axis=0)
+    
+    # Find full matches, round 1, then remove them from IU
+    tp = zeros(iu.shape, dtype=bool)
+    for i, j in enumerate(std_match1):
+        if det_match1[j] == i:
+            tp[j, i] = True
+            iu[j, :].fill(0)
+            iu[:, i].fill(0)
+    
+    # Round 2
+    det_match2 = argmax(iu, axis=1)
+    std_match2 = argmax(iu, axis=0)
+    
+    for i, j in enumerate(std_match2):
+        if det_match2[j] == i:
+            tp[j, i] = True
+    
+    # Find false positives and false negatives
+    fp = where(logical_and(det_match1 == 0, det_match2 == 0))
+    fn = where(logical_and(std_match1 == 0, std_match2 == 0))
+    
+    match = MatchedEvents(tp, fp, fn, detection, standard, threshold)
+    
+    return match
