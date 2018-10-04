@@ -18,10 +18,10 @@ class MatchedEvents:
     fn : ndarray
         indices of false negatives in standard
     detection : list of dict
-        list of detected events tested against the standard, with 'start'and 
-        'end' times
+        list of detected events tested against the standard, with 'start', 
+        'end' and 'chan'
     standard : list of dict
-        list of ground-truth events, with 'start' and 'end' times
+        list of ground-truth events, with 'start', 'end' and 'chan'
     threshold : float
         minimum intersection-union score for events to be considered 
         overlapping
@@ -54,6 +54,52 @@ class MatchedEvents:
         recall = self.recall
         precision = self.precision        
         return 2 * precision * recall / (precision + recall)
+    
+    def to_annot(self, annot, category, name, s_freq=512):
+        """Write matched events to Wonambi XML file for visualization.
+        
+        Parameters
+        ----------
+        annot : instance of Annotations
+            Annotations file
+        category : str
+            'tp_cons', 'tp_det', 'tp_std', 'fp' or 'fn'
+        name : str
+            name for the event type
+        s_freq : int
+            sampling frequency, in Hz, only required for 'tp_cons' category
+        """
+        if 'tp_cons' == category:
+            cons = consensus((self.detection, self.standard), 1, s_freq)
+            events = cons.events
+        
+        elif 'tp_det' == category:
+            events = asarray(self.detection)[self.tp.any(axis=1)]
+            
+        elif 'tp_std' == category:
+            events = asarray(self.standard)[self.tp.any(axis=0)] 
+            
+        elif 'fp' == category:
+            events = asarray(self.detection)[self.fp]
+        
+        elif 'fn' == category:
+            events = asarray(self.standard)[self.fn]
+        
+        else:
+            raise ValueError("Invalid category.")
+        
+        for one_ev in events:
+            annot.add_event(name,
+                            (one_ev['start'], one_ev['end']),
+                            chan=one_ev['chan'])
+            
+    def all_to_annot(self, annot, names=['TPd', 'TPs', 'FP', 'FN']):
+        """Convenience function to write all events to XML by category, showing
+        overlapping TP detection and TP standard."""
+        self.to_annot(annot, 'tp_det', names[0])
+        self.to_annot(annot, 'tp_std', names[1])
+        self.to_annot(annot, 'fp', names[2])
+        self.to_annot(annot, 'fn', names[3])                
 
 
 def consensus(events, threshold, s_freq, min_duration=None):
@@ -124,9 +170,9 @@ def match_events(detection, standard, threshold):
     ----------
     detection : list of dict
         list of detected events to be tested against the standard, with 
-        'start'and 'end'
+        'start', 'end' and 'chan'
     standard : list of dict
-        list of ground-truth events, with 'start' and 'end' times
+        list of ground-truth events, with 'start', 'end' and 'chan'
     threshold : float
         minimum intersection-union score to match a pair, between 0 and 1
         
