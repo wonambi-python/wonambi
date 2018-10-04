@@ -248,7 +248,7 @@ def create_menubar(MAIN):
     submenu_event.addAction(actions['new_eventtype'])
     submenu_event.addAction(actions['del_eventtype'])
     submenu_event.addAction(actions['rename_eventtype'])
-    submenu_mrk2evt = submenu_event.addMenu('Markers into events')
+    submenu_mrk2evt = submenu_event.addMenu('Markers into Events')
     submenu_mrk2evt.addAction(actions['m2e_newname'])
     submenu_mrk2evt.addAction(actions['m2e_keepname'])
     submenu_event.addAction(actions['merge_events'])
@@ -265,7 +265,7 @@ def create_menubar(MAIN):
     submenu_mrkr.addAction(actions['clear_cyc'])
     menu_annot.addSeparator()
 
-    submenu_import = menu_annot.addMenu('Import staging')
+    submenu_import = menu_annot.addMenu('Import Staging')
     submenu_import.addAction(actions['import_alice'])
     submenu_import.addAction(actions['import_compumedics'])
     submenu_import.addAction(actions['import_domino'])
@@ -274,7 +274,7 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_sandman'])
     submenu_import.addAction(actions['import_fasst'])
 
-    submenu_import_qual = menu_annot.addMenu('Import signal quality')
+    submenu_import_qual = menu_annot.addMenu('Import Signal Quality')
     submenu_import_qual.addAction(actions['import_alice_qual'])
     submenu_import_qual.addAction(actions['import_compumedics_qual'])
     submenu_import_qual.addAction(actions['import_domino_qual'])
@@ -285,19 +285,12 @@ def create_menubar(MAIN):
     menu_annot.addAction(actions['imp_evt_csv'])
     menu_annot.addSeparator()
     
-    submenu_export_staging = menu_annot.addMenu('Export staging')
+    submenu_export_staging = menu_annot.addMenu('Export Staging')
     submenu_export_staging.addAction(actions['export_to_csv'])
     submenu_export_staging.addAction(actions['export_to_remlogic'])
     submenu_export_staging.addAction(actions['export_to_remlogic_fr'])
 
-    menu_annot.addAction(actions['export_events'])
-    
-#==============================================================================
-#     submenu_exp_evt = menu_annot.addMenu('Export events')
-#     submenu_exp_evt.addAction(actions['exp_evt_csv'])
-#     submenu_exp_evt.addAction(actions['exp_evt_brainvision'])
-#==============================================================================
-    
+    menu_annot.addAction(actions['export_events'])    
     menu_annot.addSeparator()
     
     menu_annot.addAction(actions['export_sleepstats'])

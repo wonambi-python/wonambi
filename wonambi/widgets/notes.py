@@ -315,15 +315,15 @@ class Notes(QTabWidget):
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
         
-        act = QAction('Rename event type', self)
+        act = QAction('Rename Event Type', self)
         act.triggered.connect(self.rename_eventtype)
         actions['rename_eventtype'] = act
 
-        act = QAction('New name', self)
+        act = QAction('New Name', self)
         act.triggered.connect(self.markers_to_events)
         actions['m2e_newname'] = act
         
-        act = QAction('Keep marker names', self)
+        act = QAction('Keep Marker Names', self)
         act.triggered.connect(partial(self.markers_to_events, True))
         actions['m2e_keepname'] = act
         
@@ -362,21 +362,21 @@ class Notes(QTabWidget):
 
         actions['quality'] = act
 
-        act = QAction('Set cycle start', self)
+        act = QAction('Set Cycle Start', self)
         act.setShortcut('Ctrl+[')
         act.triggered.connect(self.get_cycle_mrkr)
         actions['cyc_start'] = act
 
-        act = QAction('Set cycle end', self)
+        act = QAction('Set Cycle End', self)
         act.setShortcut('Ctrl+]')
         act.triggered.connect(partial(self.get_cycle_mrkr, end=True))
         actions['cyc_end'] = act
 
-        act = QAction('Remove cycle marker', self)
+        act = QAction('Remove Cycle Marker', self)
         act.triggered.connect(self.remove_cycle_mrkr)
         actions['remove_cyc'] = act
 
-        act = QAction('Clear cycle markers', self)
+        act = QAction('Clear Cycle Markers', self)
         act.triggered.connect(self.clear_cycle_mrkrs)
         actions['clear_cyc'] = act
 
@@ -438,7 +438,7 @@ class Notes(QTabWidget):
                                       as_qual=True))
         actions['import_prana_qual'] = act
         
-        act = QAction('Import events', self)
+        act = QAction('Import Events', self)
         act.triggered.connect(self.import_events)
         actions['imp_evt_csv'] = act
 
@@ -454,7 +454,7 @@ class Notes(QTabWidget):
         act.triggered.connect(partial(self.export, xformat='remlogic_fr'))
         actions['export_to_remlogic_fr'] = act
 
-        act = QAction('Export events...', self)
+        act = QAction('Export Events...', self)
         act.triggered.connect(self.parent.show_export_events_dialog)
         actions['export_events'] = act
 
@@ -464,19 +464,19 @@ class Notes(QTabWidget):
         act.setEnabled(False)
         actions['spindle'] = act
 
-        act = QAction('Slow wave...', self)
+        act = QAction('Slow Wave...', self)
         act.triggered.connect(self.parent.show_slow_wave_dialog)
         act.setShortcut('Ctrl+Shift+w')
         act.setEnabled(False)
         actions['slow_wave'] = act
 
-        act = QAction('Analysis console', self)
+        act = QAction('Analysis Console', self)
         act.triggered.connect(self.parent.show_analysis_dialog)
         act.setShortcut('Ctrl+Shift+a')
         act.setEnabled(False)
         actions['analyze'] = act
 
-        act = QAction('Sleep statistics', self)
+        act = QAction('Sleep Statistics', self)
         act.triggered.connect(self.export_sleeps_stats)
         actions['export_sleepstats'] = act
 

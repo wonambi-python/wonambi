@@ -6,9 +6,26 @@ from numpy import (arange, argmax, asarray, concatenate, diff, invert,
 
 from .. import Graphoelement
 
-
 class MatchedEvents:
-    """Class for storing matched events and producing statistics."""
+    """Class for storing matched events and producing statistics.
+    
+    Parameters
+    ----------
+    tp : ndarray
+        true positives as boolean array of shape len(detection) x len(standard)
+    fp : ndarray
+        indices of false positives in detection
+    fn : ndarray
+        indices of false negatives in standard
+    detection : list of dict
+        list of detected events tested against the standard, with 'start'and 
+        'end' times
+    standard : list of dict
+        list of ground-truth events, with 'start' and 'end' times
+    threshold : float
+        minimum intersection-union score for events to be considered 
+        overlapping
+    """
     def __init__(self, tp, fp, fn, detection, standard, threshold):
         self.tp = tp
         self.fp = fp
@@ -39,13 +56,13 @@ class MatchedEvents:
         return 2 * precision * recall / (precision + recall)
 
 
-def consensus(raters, threshold, s_freq, min_duration=None):
+def consensus(events, threshold, s_freq, min_duration=None):
     """Take two or more event lists and output a merged list based on 
     consensus.
     
     Parameters
     ----------
-    raters: tuple of lists of dict
+    events: tuple of lists of dict
         two or more lists of events from different raters, with 'start', 'end'
         and 'chan'
     threshold : float
@@ -65,14 +82,14 @@ def consensus(raters, threshold, s_freq, min_duration=None):
     instance of wonambi.Graphoelement
         events merged by consensus
     """
-    chan = raters[0][0]['chan']
-    beg = min([one_rater[0]['start'] for one_rater in raters])
-    end = max([one_rater[-1]['end'] for one_rater in raters])
+    chan = events[0][0]['chan']
+    beg = min([one_rater[0]['start'] for one_rater in events])
+    end = max([one_rater[-1]['end'] for one_rater in events])
     n_samples = int((end - beg) * s_freq)
     times = arange(beg, end + 1/s_freq, 1/s_freq)
     
-    positives = zeros((len(raters), n_samples))
-    for i, one_rater in enumerate(raters):
+    positives = zeros((len(events), n_samples))
+    for i, one_rater in enumerate(events):
         for ev in one_rater:
             n_start = int((ev['start'] - beg) * s_freq)
             n_end = int((ev['end'] - beg) * s_freq)
@@ -109,21 +126,15 @@ def match_events(detection, standard, threshold):
         list of detected events to be tested against the standard, with 
         'start'and 'end'
     standard : list of dict
-        list of ground-truth events, with 'start' and 'end'
+        list of ground-truth events, with 'start' and 'end' times
     threshold : float
         minimum intersection-union score to match a pair, between 0 and 1
         
     Returns
     -------
-    
-    
-    1 - for each pair, find overlap
-    2 - threshold overlap and store positives in TPcand
-    3 - match i with j based on highest overlap
-    4 - match j with i based on highest overlap
-    5 - if i and j chose each other, count them as TP
-    6 - now take incomplete matches and repeat 2-5
-    7 - count all non-matched events as FP
+    instance of MatchedEvents
+        indices of true positives, false positives and false negatives, with
+        statistics (recall, precision, F1)
     """
     # Vectorize start and end times and set up for broadcasting
     det_beg = asarray([x['start'] for x in detection])[:, newaxis]
@@ -178,9 +189,10 @@ def match_events(detection, standard, threshold):
             tp[j, i] = True
     
     # Find false positives and false negatives
-    fp = where(logical_and(det_match1 == 0, det_match2 == 0))
-    fn = where(logical_and(std_match1 == 0, std_match2 == 0))
+    fp = where(logical_and(det_match1 == 0, det_match2 == 0))[0]
+    fn = where(logical_and(std_match1 == 0, std_match2 == 0))[0]
     
+    # Store in MatchedEvents class, which computes statistics
     match = MatchedEvents(tp, fp, fn, detection, standard, threshold)
     
     return match

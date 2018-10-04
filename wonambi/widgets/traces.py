@@ -288,32 +288,32 @@ class Traces(QGraphicsView):
         act.triggered.connect(partial(self.add_time, 6 * 60 * 60))
         actions['addtime_6h'] = act
 
-        act = QAction('Go to next event', self)
+        act = QAction('Go to Next Event', self)
         act.setShortcut('s')
         act.triggered.connect(self.next_event)
         actions['next_event'] = act
         
-        act = QAction('Delete event and go to next', self)
+        act = QAction('Delete Event and Go to Next', self)
         act.setShortcut('d')
         act.triggered.connect(partial(self.next_event, True))
         actions['del_and_next_event'] = act
         
-        act = QAction('Next event of same type', self)
+        act = QAction('Next Event of Same Type', self)
         act.setCheckable(True)
         act.setChecked(True)
         actions['next_of_same_type'] = act
         
-        act = QAction('Change event type', self)
+        act = QAction('Change Event Type', self)
         act.setShortcut('e')
         act.triggered.connect(self.change_event_type)
         actions['change_event_type'] = act
         
-        act = QAction('Centre window around event', self)
+        act = QAction('Centre Window Around Event', self)
         act.setCheckable(True)
         act.setChecked(True)
         actions['centre_event'] = act
         
-        act = QAction('Full-length markers', self)
+        act = QAction('Full-length Markers', self)
         act.setCheckable(True)
         act.setChecked(True)
         act.triggered.connect(self.display_annotations)
