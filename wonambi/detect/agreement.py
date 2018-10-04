@@ -99,7 +99,7 @@ class MatchedEvents:
         self.to_annot(annot, 'tp_det', names[0])
         self.to_annot(annot, 'tp_std', names[1])
         self.to_annot(annot, 'fp', names[2])
-        self.to_annot(annot, 'fn', names[3])                
+        self.to_annot(annot, 'fn', names[3])
 
 
 def consensus(events, threshold, s_freq, min_duration=None):
