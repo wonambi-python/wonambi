@@ -304,6 +304,14 @@ class Annotations():
 
         self.save()
 
+    def rename_rater(self, name, new_name):
+        """Rename event type."""
+        for rater in self.root.iterfind('rater'):
+            if rater.get('name') == name:
+                rater.set('name', new_name)
+
+        self.save()
+    
     def remove_rater(self, rater_name):
         # remove one rater
         for rater in self.root.iterfind('rater'):

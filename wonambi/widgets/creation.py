@@ -233,6 +233,7 @@ def create_menubar(MAIN):
 
     submenu_rater = menu_annot.addMenu('Rater')
     submenu_rater.addAction(actions['new_rater'])
+    submenu_rater.addAction(actions['rename_rater'])
     submenu_rater.addAction(actions['del_rater'])
     submenu_rater.addSeparator()
     if MAIN.notes.annot is not None:

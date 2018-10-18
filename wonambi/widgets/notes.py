@@ -298,6 +298,10 @@ class Notes(QTabWidget):
         act = QAction('New...', self)
         act.triggered.connect(self.new_rater)
         actions['new_rater'] = act
+        
+        act = QAction('Rename...', self)
+        act.triggered.connect(self.rename_rater)
+        actions['rename_rater'] = act
 
         act = QAction('Delete...', self)
         act.triggered.connect(self.delete_rater)
@@ -1313,6 +1317,24 @@ class Notes(QTabWidget):
             self.annot.remove_rater(answer[0])
             self.display_notes()
             self.parent.create_menubar()  # refresh list ot raters
+
+    def rename_rater(self, test_name=None, test_new_name=None):
+        """action: create dialog to rename event type."""
+        if test_name and test_new_name:
+            name = test_name, True
+            new_name = test_new_name, True
+        else:
+            name = QInputDialog.getText(self, 'Rename Rater',
+                                        'Enter name of rater to rename.')
+        
+        if name[1]:
+            new_name = QInputDialog.getText(self, 'Rename Rater',
+                                            'Enter new name for rater.')
+            
+            if new_name[1]:
+                self.annot.rename_rater(name[0], new_name[0])
+                self.display_notes()
+                self.parent.create_menubar()  # refresh list ot raters
 
     def new_eventtype(self, test_type_str=None):
         """Action: create dialog to add new event type."""
