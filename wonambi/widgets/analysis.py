@@ -2,7 +2,7 @@
 """
 from logging import getLogger
 
-from numpy import (abs, angle, asarray, ceil, diff, empty, floor, inf, 
+from numpy import (abs, angle, asarray, ceil, diff, empty, floor, inf,
                    logical_and, logical_or, mean, ravel, stack, zeros)
 from functools import partial
 from csv import writer
@@ -54,9 +54,10 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import ChanFreq, __version__
-from ..trans import (math, filter_, frequency, get_descriptives, 
-                     fetch, get_times, event_params, export_event_params,
-                     export_freq, export_freq_band)
+from ..trans import (math, filter_, frequency, get_descriptives,
+                     fetch, get_times)
+from ..trans.analyze import (event_params, export_event_params,
+                             export_freq, export_freq_band)
 from .modal_widgets import ChannelDialog
 from .utils import (FormStr, FormInt, FormFloat, FormBool, FormMenu, FormRadio,
                     FormSpin, freq_from_str, short_strings, STAGE_NAME, ICON)
@@ -192,13 +193,13 @@ class AnalysisDialog(ChannelDialog):
 
         self.min_dur = FormFloat(0.0)
         self.reject_epoch = FormBool('Exclude Poor signal epochs')
-        self.reject_event = FormMenu(['none', 'channel-specific', 
+        self.reject_event = FormMenu(['none', 'channel-specific',
                                       'from any channel'])
 
         flayout = QFormLayout()
         box_r.setLayout(flayout)
         flayout.addRow(self.reject_epoch)
-        flayout.addRow('Exclude Artefact events', 
+        flayout.addRow('Exclude Artefact events',
                        self.reject_event)
         flayout.addRow('Minimum duration (sec)',
                            self.min_dur)
@@ -1319,7 +1320,7 @@ class AnalysisDialog(ChannelDialog):
                 for one_xf, suffix, prefix, ylabel, scale in freq_out:
 
                     if freq_band:
-                        filename = (splitext(self.filename)[0] + '_' + suffix + 
+                        filename = (splitext(self.filename)[0] + '_' + suffix +
                                     '_band.csv')
                         export_freq_band(one_xf, bands, filename)
 
@@ -1339,7 +1340,7 @@ class AnalysisDialog(ChannelDialog):
                                 y = desc['mean']
 
                             if freq_full:
-                                filename = (splitext(self.filename)[0] + '_' + 
+                                filename = (splitext(self.filename)[0] + '_' +
                                             suffix + '_full.csv')
                                 export_freq(one_xf, filename, desc=desc)
 
@@ -1374,7 +1375,7 @@ class AnalysisDialog(ChannelDialog):
             if (evt_dat or count or density):
                 fn = splitext(self.filename)[0] + '_params.csv'
                 export_event_params(fn, evt_dat, count=count, density=density)
-            
+
             self.parent.overview.mark_poi() # remove poi
             self.accept()
 
@@ -1440,7 +1441,7 @@ class AnalysisDialog(ChannelDialog):
         cat = {k: v.get_value() for k, v in self.cat.items()}
         cat = (int(cat['cycle']), int(cat['stage']),
                int(cat['discontinuous']), int(cat['evt_type']))
-        
+
         # Artefact event rejection
         reject_event = self.reject_event.get_value()
         if reject_event == 'channel-specific':
@@ -1451,7 +1452,7 @@ class AnalysisDialog(ChannelDialog):
             reject_artf = True
         else:
             reject_artf = False
-            
+
         # Other options
         min_dur = self.min_dur.get_value()
         reject_epoch = self.reject_epoch.get_value()
@@ -2198,13 +2199,13 @@ class AnalysisDialog(ChannelDialog):
         if not f2:
             f2 = None
         band = (f1, f2)
-        
+
         if not (slopes['avg_slope'] or slopes['max_slope']):
             slopes = None
-        
-        evt_dat = event_params(self.data, params, band=band, slopes=slopes, 
+
+        evt_dat = event_params(self.data, params, band=band, slopes=slopes,
                                prep=prep, parent=self)
-        
+
         count = None
         density = None
         if glob['count']:
@@ -2216,9 +2217,9 @@ class AnalysisDialog(ChannelDialog):
                             cycle=self.cycle, exclude=True)
             total_dur = sum([x[1] - x[0] for y in poi for x in y['times']])
             density = len(self.data) / (total_dur / epoch_dur)
-        
-        return evt_dat, count, density                
- 
+
+        return evt_dat, count, density
+
     def make_title(self, chan, cycle, stage, evt_type):
         """Make a title for plots, etc."""
         cyc_str = None

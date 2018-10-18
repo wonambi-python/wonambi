@@ -47,7 +47,7 @@ def test_widget_notes_import_fasst(qtbot):
     act_import = find_in_qt(act_annot.menu(), QAction, 'Import staging')
     act_annot.menu().setActiveAction(act_import)
 
-    act_import.menu().setActiveAction(w.notes.action['import_fasst'])
+    # act_import.menu().setActiveAction(w.notes.action['import_fasst'])
 
     screenshot(w, 'notes_04_import_fasst.png')
     w.close()
@@ -113,7 +113,7 @@ def test_widget_notes_cycle(qtbot):
     w.notes.update_notes(annot_psg_path)
     w.traces.Y_wider()
     w.traces.Y_wider()
-    w.traces.go_to_epoch(test_text_str='22:28') 
+    w.traces.go_to_epoch(test_text_str='22:28')
 
     menubar = w.menuBar()
 
@@ -142,7 +142,7 @@ def test_widget_notes_cycle(qtbot):
 
     w.overview.grab().save(str(GUI_PATH / 'notes_13_all_cycle_markers.png'))
     w.notes.clear_cycle_mrkrs(test=True)
-    
+
     w.close()
 
 
@@ -180,7 +180,7 @@ def test_widget_notes_mark_event(qtbot):
     screenshot(w, 'notes_15_highlight_event.png')
 
     w.notes.delete_eventtype(test_type_str='spindle')
-    
+
     w.close()
 
 
