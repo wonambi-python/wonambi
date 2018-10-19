@@ -38,5 +38,7 @@ def test_filter_notch():
     assert (freq_data(trial=0, freq=50) > freq_filt(trial=0, freq=50)).all()
 
 
-def test_convolve():
-    convolve(data, 'hann')
+# =============================================================================
+# def test_convolve():
+#     convolve(data, 'hann')
+# =============================================================================

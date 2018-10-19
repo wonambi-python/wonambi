@@ -3,7 +3,7 @@ from re import search, finditer, match
 from datetime import datetime
 
 from numpy import (fromfile,
-                   fromstring,
+                   frombuffer,
                    asmatrix,
                    array,
                    arange,
@@ -198,7 +198,7 @@ class BCI2000:
             for i in range(self.n_samples):
                 f.seek(StatevectorOffset, SEEK_CUR)
                 raw_statevector = f.read(self.statevector_len)
-                all_states.append(fromstring(raw_statevector, dtype='<u1'))
+                all_states.append(frombuffer(raw_statevector, dtype='<u1'))
 
         all_states = vstack(all_states).T
 

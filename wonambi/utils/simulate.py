@@ -194,7 +194,7 @@ def _color_noise(x, s_freq, coef=0):
     m = abs(y)
 
     # frequencies for each fft value
-    freq = linspace(0, s_freq / 2, len(m) / 2 + 1)
+    freq = linspace(0, s_freq / 2, int(len(m) / 2) + 1)
     freq = freq[1:-1]
 
     # create new power spectrum

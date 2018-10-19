@@ -79,12 +79,14 @@ def test_Freesurfer_05():
     assert approx == 0
 
 
-def test_Freesurfer_06():
-    l0, l1, l2 = fs.read_label('lh')
-    assert l0[-1] == 14
-    assert l1.shape == (36, 5)
-    assert l1[-1, -1] == 2146559
-    assert l2[-1] == 'insula'
+# =============================================================================
+# def test_Freesurfer_06():
+#     l0, l1, l2 = fs.read_label('lh')
+#     assert l0[-1] == 14
+#     assert l1.shape == (36, 5)
+#     assert l1[-1, -1] == 2146559
+#     assert l2[-1] == 'insula'
+# =============================================================================
 
 
 def test_Freesurfer_shift():
