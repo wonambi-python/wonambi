@@ -186,6 +186,11 @@ def events_from_csv(source_file):
     ----------
     source_file : str
         path to file CSV file
+        
+    Returns
+    -------
+    instance of wonambi.Graphoelement
+        class with events list
     """
     events = []    
     with open(source_file, 'r', encoding='utf-8') as csvfile:
