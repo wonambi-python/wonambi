@@ -179,13 +179,15 @@ class Spindles(Graphoelement):
         self.events.append(one_spindle)
 
 
-def events_from_csv(source_file):
+def events_from_csv(source_file, stage=[]):
     """Import events from Wonambi event CSV.
     
     Parameters
     ----------
     source_file : str
         path to file CSV file
+    stage : list of str (optional)
+        target stage, eg ['NREM2', 'NREM3'] or ['REM']
         
     Returns
     -------
@@ -193,20 +195,25 @@ def events_from_csv(source_file):
         class with events list
     """
     events = []    
+    stage_cond = True
+    
     with open(source_file, 'r', encoding='utf-8') as csvfile:
         csv_reader = reader(csvfile, delimiter=',')
         
         for row in csv_reader:
             try:
                 int(row[0])
-                one_ev = {'name': row[6],
-                          'start': float(row[1]),
-                          'end': float(row[2]),
-                          'chan': row[7].split(', '),  # always a list
-                          'stage': row[4],
-                          'quality': 'Good'
-                          }
-                events.append(one_ev)
+                if stage:
+                    stage_cond = row[4] in stage
+                if stage_cond:
+                    one_ev = {'name': row[6],
+                              'start': float(row[1]),
+                              'end': float(row[2]),
+                              'chan': row[7].split(', '),  # always a list
+                              'stage': row[4],
+                              'quality': 'Good'
+                              }
+                    events.append(one_ev)
                 
             except ValueError:
                 continue

@@ -309,12 +309,14 @@ class AnalysisDialog(ChannelDialog):
                 'blackmanharris', 'nuttall', 'barthann'])
         freq['detrend'] = FormMenu(['none', 'constant', 'linear'])
         freq['welch_on'] = FormBool("Time-averaged")
+        freq['log_trans']= FormBool('Log-transform')
 
-        flayout = QFormLayout(freq['box_param'])
-        flayout.addRow('Scaling', freq['scaling'])
-        flayout.addRow('Taper', freq['taper'])
-        flayout.addRow('Detrend', freq['detrend'])
-        flayout.addRow(freq['welch_on'])
+        form = QFormLayout(freq['box_param'])
+        form.addRow('Scaling', freq['scaling'])
+        form.addRow('Taper', freq['taper'])
+        form.addRow('Detrend', freq['detrend'])
+        form.addRow(freq['welch_on'])
+        form.addRow(freq['log_trans'])
 
         freq['box_welch'] = QGroupBox("Time averaging")
 
@@ -326,6 +328,7 @@ class AnalysisDialog(ChannelDialog):
         freq['overlap_val'].setSingleStep(0.1)
         freq['overlap_val'].setValue(0.5)
         freq['step_val'] = FormFloat(0.5)
+        freq['centend'] = FormMenu(['mean', 'median'])
 
         grid = QGridLayout(freq['box_welch'])
         grid.addWidget(QLabel('Duration (sec)'), 0, 0)
@@ -334,6 +337,8 @@ class AnalysisDialog(ChannelDialog):
         grid.addWidget(freq['step'], 2, 0)
         grid.addWidget(freq['overlap_val'], 1, 1)
         grid.addWidget(freq['step_val'], 2, 1)
+        grid.addWidget(QLabel('Central tendency'), 3, 0)
+        grid.addWidget(freq['centend'], 3, 1)
 
         freq['box_mtap'] = QGroupBox('Multitaper method (DPSS) smoothing')
 
@@ -1565,6 +1570,7 @@ class AnalysisDialog(ChannelDialog):
         freq = self.frequency
         prep = freq['prep'].get_value()
         scaling = freq['scaling'].get_value()
+        log_trans = freq['log_trans'].get_value()
         #sides = freq['sides'].get_value()
         taper = freq['taper'].get_value()
         halfbandwidth = freq['hbw'].get_value()
@@ -1572,6 +1578,7 @@ class AnalysisDialog(ChannelDialog):
         duration = freq['duration'].get_value()
         overlap = freq['overlap_val'].value()
         step = freq['step_val'].get_value()
+        centend = freq['centend'].get_value()
         detrend = freq['detrend'].get_value()
         norm = freq['norm'].get_value()
         norm_concat = freq['norm_concat'].get_value()
@@ -1664,7 +1671,8 @@ class AnalysisDialog(ChannelDialog):
                                 sides=sides, taper=taper,
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
-                                detrend=detrend, n_fft=n_fft)
+                                detrend=detrend, n_fft=n_fft, 
+                                log_trans=log_trans, centend=centend)
                 except ValueError:
                     msg = ('Value error encountered in frequency '
                            'transformation for normalization reference data.'
@@ -1696,7 +1704,8 @@ class AnalysisDialog(ChannelDialog):
                          str(NW), 'dur:', str(duration), 'overlap:',
                          str(overlap), 'step:', str(step), 'detrend:',
                          str(detrend), 'n_fft:', str(n_fft), 'norm',
-                         str(norm)]))
+                         str(norm), 'log:', str(log_trans), 'central tendency',
+                         str(centend)]))
 
         # Main frequency analysis
         xfreq = []
@@ -1717,7 +1726,8 @@ class AnalysisDialog(ChannelDialog):
                                 sides=sides, taper=taper,
                                 halfbandwidth=halfbandwidth, NW=NW,
                                 duration=duration, overlap=overlap, step=step,
-                                detrend=detrend, n_fft=n_fft)
+                                detrend=detrend, n_fft=n_fft, 
+                                log_trans=log_trans, centend=centend)
             except SyntaxError:
                 msg = 'Value error encountered in frequency transformation.'
                 error_dialog = QErrorMessage(self)

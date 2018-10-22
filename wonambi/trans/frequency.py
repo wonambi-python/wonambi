@@ -4,8 +4,8 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, copy, empty, exp, max, mean, pi,
-                   real, sqrt, swapaxes, zeros)
+from numpy import (arange, array, asarray, copy, empty, exp, log, max, mean, 
+                   median, pi, real, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -21,7 +21,8 @@ lg = getLogger(__name__)
 
 def frequency(data, output='spectraldensity', scaling='power', sides='one',
               taper=None, halfbandwidth=3, NW=None, duration=None,
-              overlap=0.5, step=None, detrend='linear', n_fft=None):
+              overlap=0.5, step=None, detrend='linear', n_fft=None,
+              log_trans=False, centend='mean'):
     """Compute the
     power spectral density (PSD, output='spectraldensity', scaling='power'), or
     energy spectral density (ESD, output='spectraldensity', scaling='energy') or
@@ -66,6 +67,12 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         Length of FFT, in samples. If less than input axis, input is cropped.
         If longer than input axis, input is padded with zeros. If None, FFT
         length set to axis length.
+    log_trans : bool
+        If True, spectral values will be natural log-transformed. The
+        transformation is applied before averaging (or taking the median).
+    centend : str
+        (only if duration is not None). Central tendency measure to use, either
+        mean (arithmetic) or median.
 
     Returns
     -------
@@ -89,6 +96,9 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
 
     It uses sampling frequency as specified in s_freq, it does not
     recompute the sampling frequency based on the time axis.
+    
+    Use of log or median for Welch's method is included based on 
+    recommendations from Izhikevich et al., bioRxiv, 2018.
     """
     if output not in ('spectraldensity', 'complex', 'csd'):
         raise TypeError(f'output can be "spectraldensity", "complex" or "csd",'
@@ -138,8 +148,17 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
                       NW=NW,
                       n_fft=n_fft)
 
+        if log_trans:
+            Sxx = log(Sxx)
+        
         if duration is not None:
-            Sxx = Sxx.mean(axis=-2)
+            if centend == 'mean':
+                Sxx = Sxx.mean(axis=-2)
+            elif centend == 'median':
+                Sxx = median(Sxx, axis=-2)
+            else:
+                raise ValueError('Invalid central tendency measure. '
+                                 'Use mean or median.')
 
         freq.axis['freq'][i] = f
         if output == 'complex':

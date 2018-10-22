@@ -41,18 +41,24 @@ class MatchedEvents:
     def recall(self):
         tp = self.n_tp
         fn = self.n_fn
+        if tp + fn == 0:
+            return 0
         return tp / (tp + fn)
     
     @property
     def precision(self):
         tp = self.n_tp
         fp = self.n_fp
+        if tp + fp == 0:
+            return 0
         return tp / (tp + fp)
     
     @property
     def f1score(self):     
         recall = self.recall
-        precision = self.precision        
+        precision = self.precision
+        if precision + recall == 0:
+            return 0
         return 2 * precision * recall / (precision + recall)
     
     def to_annot(self, annot, category, name, s_freq=512):
@@ -214,29 +220,35 @@ def match_events(detection, standard, threshold):
     # Threshold IU score to yield  True Positive candidates
     iu[iu <= threshold] = 0
     
-    # Find partial matches, round 1
-    det_match1 = argmax(iu, axis=1)
-    std_match1 = argmax(iu, axis=0)
+    # If no events, tp and fp are empty, fn is all events
+    if iu.size == 0:
+        tp = fp = asarray([])
+        fn = arange(len(standard))
+    else:
     
-    # Find full matches, round 1, then remove them from IU
-    tp = zeros(iu.shape, dtype=bool)
-    for i, j in enumerate(std_match1):
-        if det_match1[j] == i:
-            tp[j, i] = True
-            iu[j, :].fill(0)
-            iu[:, i].fill(0)
+        # Find partial matches, round 1
+        det_match1 = argmax(iu, axis=1)
+        std_match1 = argmax(iu, axis=0)
+        
+        # Find full matches, round 1, then remove them from IU
+        tp = zeros(iu.shape, dtype=bool)
+        for i, j in enumerate(std_match1):
+            if det_match1[j] == i:
+                tp[j, i] = True
+                iu[j, :].fill(0)
+                iu[:, i].fill(0)
+        
+        # Round 2
+        det_match2 = argmax(iu, axis=1)
+        std_match2 = argmax(iu, axis=0)
+        
+        for i, j in enumerate(std_match2):
+            if det_match2[j] == i:
+                tp[j, i] = True
     
-    # Round 2
-    det_match2 = argmax(iu, axis=1)
-    std_match2 = argmax(iu, axis=0)
-    
-    for i, j in enumerate(std_match2):
-        if det_match2[j] == i:
-            tp[j, i] = True
-    
-    # Find false positives and false negatives
-    fp = where(logical_and(det_match1 == 0, det_match2 == 0))[0]
-    fn = where(logical_and(std_match1 == 0, std_match2 == 0))[0]
+        # Find false positives and false negatives
+        fp = where(logical_and(det_match1 == 0, det_match2 == 0))[0]
+        fn = where(logical_and(std_match1 == 0, std_match2 == 0))[0]
     
     # Store in MatchedEvents class, which computes statistics
     match = MatchedEvents(tp, fp, fn, detection, standard, threshold)
