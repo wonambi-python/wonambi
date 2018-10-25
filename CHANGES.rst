@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.50**: event scoring agreement stats; median and log in Welch's method
 - **5.49**: event consensus; Brain Vision and BIDS export fixes
 - **5.48**: Martin2013 spindle detection; fixes for Ray2015 and Lacourse2018
 - **5.47**: revamped spindle dialog; spindle detection fixes

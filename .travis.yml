@@ -51,8 +51,6 @@ notifications:
 
 deploy:
  - provider: pages
-   edge:
-     branch: pages-ivar-set
    skip_cleanup: true
    target_branch : master
    local_dir : $HTML_PATH
