@@ -7,8 +7,12 @@ from csv import writer
 from numpy import (amax, amin, asarray, concatenate, in1d, mean, negative, ptp, 
                    reshape, sqrt, square)
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QProgressDialog
+try:
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QProgressDialog
+except ImportError:
+    Qt = None
+    QProgressDialog = None
 
 from .. import __version__
 from .math import math, get_descriptives
