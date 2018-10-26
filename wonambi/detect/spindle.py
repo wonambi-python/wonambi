@@ -1294,18 +1294,20 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
 
     if 'moving' in method:
         dur = method_opt['dur']
-        step = method_opt['step']
+        halfdur = dur / 2
+        step = method_opt['step'] if method_opt['step'] else 1 / s_freq
         n_step = int(around(step * s_freq)) if step else None
-        n_halfdur = int(s_freq * dur / 2)
-        len_dat = len(dat)
-        len_out = int(len_dat / n_step) if n_step else len_dat
-        last = len_dat - 1
+        total_dur = len(dat) / s_freq
+        len_out = int(len(dat) / n_step) if n_step else len(dat)
+        last = len(dat) - 1
         out = zeros((len_out))
         
         if 'moving_covar' == method:            
-            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                win1 = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
-                win2 = dat2[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                win1 = dat[beg:end]
+                win2 = dat2[beg:end]
                 out[i] = mean((win1 - mean(win1)) * (win2 - mean(win2)))
             dat = out
     
@@ -1315,8 +1317,10 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             fft_dur = method_opt['fft_dur']
             nfft = int(s_freq * fft_dur)
             
-            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                windat = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                windat = dat[beg:end]
                 
                 sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
                                        detrend='constant')
@@ -1335,17 +1339,21 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if 'moving_sd' == method:
-            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                win = dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                win = dat[beg:end]
                 out[i] = std(win)
             dat = out
         
         if 'moving_zscore' == method:        
             pcl_range = method_opt['pcl_range']
             
-            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                windat = stddat = dat[max(0, j - n_halfdur):\
-                                      min(last, j + n_halfdur)] 
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                windat = stddat = dat[beg:end]
+                
                 if pcl_range is not None:
                     lo, hi = pcl_range
                     stddat = windat[logical_and(
@@ -1355,9 +1363,10 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if method in ['moving_rms', 'moving_ms']:
-            for i, j in enumerate(arange(0, len_dat, n_step)[:-1]):
-                out[i] = mean(square(
-                    dat[max(0, j - n_halfdur):min(last, j + n_halfdur)]))            
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                out[i] = mean(square(dat[beg:end]))            
             if method == 'moving_rms':
                 out = sqrt(out)
             dat = out
