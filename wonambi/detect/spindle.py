@@ -372,9 +372,10 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
     # Downsample z-score parameters
-    opts.zscore['dur'] /= opts.windowing['step']
-    if opts.zscore['step'] is not None:
-        opts.zscore['step'] /= opts.windowing['step'] 
+    if opts.windowing['step']:
+        opts.zscore['dur'] /= opts.windowing['step']
+        if opts.zscore['step']:
+            opts.zscore['step'] /= opts.windowing['step']
     
     # Absolute sigma power
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
@@ -412,16 +413,19 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     sigma_corr = dat_covar / (dat_sd_broad * dat_sd_sigma)
 
     # Thresholding
-    covar_and_corr = logical_and(sigma_covar >= opts.covar_thresh,
-                                 sigma_corr >= opts.corr_thresh)
-    concensus = logical_and.reduce((abs_sig_pow >= opts.abs_pow_thresh,
-                                    rel_sig_pow >= opts.rel_pow_thresh,
-                                    covar_and_corr))                                    
+    abs_and_cov = logical_and(abs_sig_pow >= opts.abs_pow_thresh,
+                              sigma_covar >= opts.covar_thresh)
+    concensus = logical_and.reduce((rel_sig_pow >= opts.rel_pow_thresh,
+                                    sigma_corr >= opts.corr_thresh,
+                                    abs_and_cov))                                    
     events = detect_events(concensus, 'custom') # at s_freq * 0.1
     
     if events is not None:
-        events = _select_period(events, covar_and_corr)
-        events *= int(around(s_freq * opts.windowing['step'])) # upsample
+        events = _select_period(events, abs_and_cov)
+        
+        if opts.windowing['step']:
+            events = events * (s_freq * opts.windowing['step']) # upsample
+            events = asarray(around(events), dtype=int)
         
         events = _merge_close(dat_orig, events, time, opts.min_interval)
         events = within_duration(events, time, opts.duration)
@@ -1295,15 +1299,20 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     if 'moving' in method:
         dur = method_opt['dur']
         halfdur = dur / 2
-        step = method_opt['step'] if method_opt['step'] else 1 / s_freq
-        n_step = int(around(step * s_freq)) if step else None
         total_dur = len(dat) / s_freq
-        len_out = int(len(dat) / n_step) if n_step else len(dat)
         last = len(dat) - 1
+        
+        if method_opt['step']:
+            step = method_opt['step']
+            len_out = int(len(dat) / (step * s_freq))
+        else:
+            step = 1 / s_freq
+            len_out = len(dat)
+            
         out = zeros((len_out))
         
         if 'moving_covar' == method:            
-            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 win1 = dat[beg:end]
@@ -1317,7 +1326,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             fft_dur = method_opt['fft_dur']
             nfft = int(s_freq * fft_dur)
             
-            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 windat = dat[beg:end]
@@ -1339,7 +1348,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if 'moving_sd' == method:
-            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 win = dat[beg:end]
@@ -1349,7 +1358,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         if 'moving_zscore' == method:        
             pcl_range = method_opt['pcl_range']
             
-            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 windat = stddat = dat[beg:end]
@@ -1363,10 +1372,10 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if method in ['moving_rms', 'moving_ms']:
-            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
-                out[i] = mean(square(dat[beg:end]))            
+                out[i] = mean(square(dat[beg:end]))   
             if method == 'moving_rms':
                 out = sqrt(out)
             dat = out

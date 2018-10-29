@@ -56,7 +56,7 @@ def test_detect_Lacourse2018():
     detsp = DetectSpindle(method='Lacourse2018')
 
     sp = detsp(data)
-    assert len(sp.events) == 4
+    assert len(sp.events) == 6
 
 def test_detect_spindle_FASST():
     detsp = DetectSpindle(method='FASST')
