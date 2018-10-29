@@ -72,6 +72,7 @@ class SpindleDialog(ChannelDialog):
         self.index['f1'] = FormFloat()
         self.index['f2'] = FormFloat()
         self.index['rolloff'] = FormFloat()
+        self.index['tolerance'] = FormFloat()
         self.index['min_dur'] = FormFloat()
         self.index['max_dur'] = FormFloat()
         self.index['interval'] = FormFloat()
@@ -99,12 +100,6 @@ class SpindleDialog(ChannelDialog):
                        self.index['f2'])
         form.addRow('Roll-off (Hz)',
                        self.index['rolloff'])
-        form.addRow('Min. duration (sec)',
-                       self.index['min_dur'])
-        form.addRow('Max. duration (sec)',
-                       self.index['max_dur'])
-        form.addRow('Min. interval (sec)',
-                       self.index['interval'])
         
         form.addRow(self.label[0], self.index['0'])
         form.addRow(self.label[1], self.index['1'])
@@ -113,7 +108,15 @@ class SpindleDialog(ChannelDialog):
         form.addRow(self.label[4], self.index['4'])
         form.addRow(self.label[5], self.index['5'])
 
-
+        form.addRow('Tolerance (sec)',
+                       self.index['tolerance'])
+        form.addRow('Min. duration (sec)',
+                       self.index['min_dur'])
+        form.addRow('Max. duration (sec)',
+                       self.index['max_dur'])
+        form.addRow('Min. interval (sec)',
+                       self.index['interval'])
+        
         box3 = QGroupBox('Options')
 
         self.index['detrend'] = FormBool('Detrend (linear)')
@@ -240,6 +243,7 @@ class SpindleDialog(ChannelDialog):
         
         self.index['f1'].set_value(spin_det.frequency[0])
         self.index['f2'].set_value(spin_det.frequency[1])
+        self.index['tolerance'].set_value(spin_det.tolerance)
         self.index['min_dur'].set_value(spin_det.duration[0])
         self.index['max_dur'].set_value(spin_det.duration[1])        
         self.index['interval'].set_value(spin_det.min_interval)

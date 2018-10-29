@@ -41,6 +41,7 @@ class DetectSpindle:
 
         self.method = method
         self.merge = merge
+        self.tolerance = 0
         self.min_interval = 0
         self.det_thresh_hi = 0
         self.power_peaks = 'interval'
@@ -66,7 +67,7 @@ class DetectSpindle:
                                'freq': self.frequency,
                                }
             self.duration = (0.5, 2)
-            self.min_interval = 1
+            self.tolerance = 1
             self.smooth = {'dur': .04}  # is in fact sigma
             self.det_thresh = 3
             self.sel_thresh = 1
@@ -102,7 +103,6 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (11, 16)
             self.duration = (.5, 3)
-            self.min_interval = 0
             self.rolloff = .4
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
@@ -138,7 +138,6 @@ class DetectSpindle:
                                'order': 20}
             self.det_butter2 = {'freq': (.3, 30),
                                 'order': 10}
-            self.min_interval = 0
             self.windowing = win = {'dur': .3,
                                     'step': .1}
             self.moving_ms = {'dur': win['dur'],
@@ -201,7 +200,6 @@ class DetectSpindle:
                                'freq': self.frequency,
                                }
             self.duration = (0.5, 3)
-            self.min_interval = 0
             self.moving_rms = {'dur': .2,
                                'step': None}
             self.smooth = {'dur': .2,
@@ -371,11 +369,12 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     ----------
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
-    # Downsample z-score parameters
+    # Downsample z-score parameters, tolerance
     if opts.windowing['step']:
-        opts.zscore['dur'] /= opts.windowing['step']
+        opts.zscore['dur'] *= opts.windowing['step']
+        opts.tolerance *= opts.windowing['step']
         if opts.zscore['step']:
-            opts.zscore['step'] /= opts.windowing['step']
+            opts.zscore['step'] *= opts.windowing['step']
     
     # Absolute sigma power
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
@@ -421,14 +420,15 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     events = detect_events(concensus, 'custom') # at s_freq * 0.1
     
     if events is not None:
+        events = _merge_close(dat_sigma, events, time, opts.tolerance)
         events = _select_period(events, abs_and_cov)
         
         if opts.windowing['step']:
             events = events * (s_freq * opts.windowing['step']) # upsample
             events = asarray(around(events), dtype=int)
         
-        events = _merge_close(dat_orig, events, time, opts.min_interval)
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_sigma, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -500,10 +500,11 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
     events = detect_events(dat_det, 'above_thresh', det_value)
     
     if events is not None:
+        events = _merge_close(dat_det, events, time, opts.tolerance)
         events = select_events(dat_det, events, 'above_thresh', sel_value)
         
-        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -564,6 +565,7 @@ def detect_Martin2013(dat_orig, s_freq, time, opts):
     
     if events is not None:
         events *= int(around(s_freq * opts.moving_rms['step'])) # upsample
+        events = _merge_close(dat_filt, events, time, opts.tolerance)
         events = within_duration(events, time, opts.duration)
         events = _merge_close(dat_filt, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
@@ -629,8 +631,9 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
-        events = _merge_close(dat_det, events, time, opts.min_interval)
+        events = _merge_close(dat_det, events, time, opts.tolerance)
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -710,11 +713,11 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
     events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
-        events = _merge_close(dat_det, events, time, opts.min_interval)
-
+        events = _merge_close(dat_det, events, time, opts.tolerance)
         events = select_events(dat_det, events, 'above_thresh', sel_value)
-
+        
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -783,7 +786,8 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     events_env = detect_events(dat_det[idx_env], 'above_thresh', det_value)
     
     if events_env is not None:
-        
+        events_env = _merge_close(dat_det[idx_env], events_env, time[idx_env], 
+                                  opts.tolerance)
         events_env = select_events(dat_det[idx_env], events_env, 
                                    'above_thresh', sel_value)  
         events = idx_env[events_env]
@@ -861,8 +865,9 @@ def detect_Moelle2011(dat_orig, s_freq, time, opts):
     events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
-        events = _merge_close(dat_det, events, time, opts.min_interval)
+        events = _merge_close(dat_det, events, time, opts.tolerance)
         events = within_duration(events, time, opts.duration)
+        events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
@@ -938,6 +943,7 @@ def detect_FASST(dat_orig, s_freq, time, opts, submethod='rms'):
     events = detect_events(dat_det, 'above_thresh', det_value)
 
     if events is not None:
+        events = _merge_close(dat_det, events, time, opts.tolerance)
         events = within_duration(events, time, opts.duration)
         events = _merge_close(dat_det, events, time, opts.min_interval)
         events = remove_straddlers(events, time, s_freq)
@@ -1008,8 +1014,9 @@ def detect_UCSD(dat_orig, s_freq, time, opts):
                                  opts.sel_thresh)
     events = select_events(dat_sel, events, 'above_thresh', sel_value)
 
-    events = _merge_close(dat_det, events, time, opts.min_interval)
+    events = _merge_close(dat_det, events, time, opts.tolerance)
     events = within_duration(events, time, opts.duration)
+    events = _merge_close(dat_det, events, time, opts.min_interval)
     events = remove_straddlers(events, time, s_freq)
 
     events = power_ratio(events, dat_orig, s_freq, opts.frequency,
