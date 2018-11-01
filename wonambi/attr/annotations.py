@@ -88,6 +88,16 @@ PHYSIP_STAGE_KEY = {'0': 'NREM3',
                    '4': 'Wake',
                    '5': 'Artefact'}
 
+BIDS_STAGE_KEY = {'Wake': 'sleep_wake',
+                  'NREM1': 'sleep_N1',
+                  'NREM2': 'sleep_N2',
+                  'NREM3': 'sleep_N3',
+                  'REM': 'sleep_REM',
+                  'Artefact': 'artifact',
+                  'Movement': 'artifact_motion',
+                  'Unknown': '',
+                  'Undefined': ''}
+
 def parse_iso_datetime(date):
     try:
         return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
@@ -1689,8 +1699,53 @@ class Annotations():
 
         if parent is not None:
             progress.close()
+            
+    def to_tsv(self, filename=None):
+        if filename is None:
+            filename = splitext(basename(self.xml_file))[0] + '.tsv'
+        
+        epochs = self.get_epochs()
+        events = self.get_events()
+        cycles = self.rater.find('cycles')
+        abst = self.start_time
+
+        starts = sorted(
+                [float(mrkr.text) for mrkr in cycles.findall('cyc_start')])
+        ends = sorted(
+                [float(mrkr.text) for mrkr in cycles.findall('cyc_end')])
+        
+        with open(filename, 'w') as f:
+            
+            f.write('onset\tduration\tlabel\tchannels\tabsolute_time\t'
+                    'quality\n')
+        
+            for e in epochs:
+                f.write('\t'.join([str(e['start']), str(e['end'] - e['start']), 
+                                  BIDS_STAGE_KEY[e['stage']], 'n/a', 
+                                  _abs_time_str(e['start'], abst), 
+                                  e['quality']]) + '\n')
+                
+            for e in events:
+                f.write('\t'.join([str(e['start']), str(e['end'] - e['start']), 
+                                  e['name'], str(e['chan']), 
+                                  _abs_time_str(e['start'], abst), 
+                                  e['quality']]) + '\n')
+            
+            if cycles is not None:
+                starts = sorted(
+                        [mrkr.text for mrkr in cycles.findall('cyc_start')])
+                ends = sorted(
+                        [mrkr.text for mrkr in cycles.findall('cyc_end')]) 
+                
+                for s in starts:
+                    f.write('\t'.join([s, '0', 'cycle_start', 'n/a', 
+                                       _abs_time_str(s, abst), 'n/a']) + '\n')
+                for e in ends:
+                    f.write('\t'.join([e, '0', 'cycle_end', 'n/a', 
+                                       _abs_time_str(e, abst), 'n/a']) + '\n')
         
 
+        
 def update_annotation_version(xml_file):
     """Update the fields that have changed over different versions.
 
@@ -1724,3 +1779,6 @@ def update_annotation_version(xml_file):
                 '<annotations version="5">', s)
         with open(xml_file, 'w') as f:
             f.write(s)
+
+def _abs_time_str(delay, abs_start, time_str='%Y-%m-%dT%H:%M:%S'):
+    return (abs_start + timedelta(seconds=float(delay))).strftime(time_str)
