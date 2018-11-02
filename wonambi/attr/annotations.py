@@ -4,6 +4,7 @@ from logging import getLogger
 from bisect import bisect_left
 from itertools import groupby
 from csv import reader, writer
+from json import dump
 from datetime import datetime, timedelta
 from numpy import (allclose, around, asarray, clip, diff, isnan, logical_and, 
                    modf, nan)
@@ -1700,9 +1701,35 @@ class Annotations():
         if parent is not None:
             progress.close()
             
-    def to_tsv(self, filename=None):
-        if filename is None:
-            filename = splitext(basename(self.xml_file))[0] + '.tsv'
+    def to_bids(self, tsv_file=None, json_file=None):
+        if tsv_file is None:
+            tsv_file = (splitext(basename(self.xml_file))[0] + 
+                        '_annotations.tsv')
+        if json_file is None:
+            json_file = (splitext(basename(self.xml_file))[0] + 
+                         '_annotations.json')
+        
+        header = {
+                'Description': ("Annotations as marked by visual and/or "
+                                "automatic inspection of the data using "
+                                "Wonambi open source software."),
+                'IntendedFor': self.dataset,
+                'Sources': self.dataset,
+                'Author': self.current_rater,
+                'LabelDescription': {'sleep_wake': 'Wakefulness',
+                                     'sleep_N1': 'Sleep stage N1',
+                                     'sleep_N2': 'Sleep stage N2',
+                                     'sleep_N3': 'Sleep stage N3',
+                                     'sleep_REM': 'Sleep stage REM',
+                                     'artifact': 'Artifact (unspecified)',
+                                     'artifact_motion': ('Artifact due to '
+                                                         'movement'),
+                                     'cycle_start': 'Sleep cycle start',
+                                     'cycle_end': 'Sleep cycle end',
+                                     },
+                'RecordingStartTime': _abs_time_str(0, self.start_time),
+                'EpochDuration': int(self.epoch_length),
+                }
         
         epochs = self.get_epochs()
         events = self.get_events()
@@ -1714,7 +1741,10 @@ class Annotations():
         ends = sorted(
                 [float(mrkr.text) for mrkr in cycles.findall('cyc_end')])
         
-        with open(filename, 'w') as f:
+        with open(json_file, 'w') as f:
+            dump(header, f, indent=' ')
+        
+        with open(tsv_file, 'w') as f:
             
             f.write('onset\tduration\tlabel\tchannels\tabsolute_time\t'
                     'quality\n')
