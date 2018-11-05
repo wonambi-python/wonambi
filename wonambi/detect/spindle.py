@@ -376,12 +376,18 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
         if opts.zscore['step']:
             opts.zscore['step'] *= opts.windowing['step']
     
+
+    
     # Absolute sigma power
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
                                  opts.det_butter)
     dat_det = transform_signal(dat_sigma, s_freq, 'moving_ms', opts.moving_ms)
     dat_det[dat_det <= 0] = 0.000000001
     abs_sig_pow = log10(dat_det)
+    # Option to adapt the absolute threshold, for low-amplitude recordings
+    if opts.abs_pow_thresh < 0:
+        opts.abs_pow_thresh = (mean(abs_sig_pow) - 
+                               opts.abs_pow_thresh * std(abs_sig_pow))
     
     # Relative sigma power
     dat_det = transform_signal(dat_orig, s_freq, 'moving_power_ratio', 

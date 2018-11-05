@@ -90,8 +90,10 @@ def detect_format(filename):
             return EgiMff
         elif list(filename.glob('*.openephys')):
             return OpenEphys
-        elif '.txt' in [x[-4:] for x in listdir(filename)]:
+        elif list(filename.glob('*.txt')):
             return Text
+        #elif '.txt' in [x[-4:] for x in listdir(filename)]:
+        #    return Text
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      str(filename))
