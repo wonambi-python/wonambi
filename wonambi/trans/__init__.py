@@ -15,4 +15,5 @@ from .math import math, get_descriptives
 from .montage import montage
 from .peaks import peaks
 from .reject import rejectbadchan, remove_artf_evts
+from .analyze import export_freq, export_freq_band
 
