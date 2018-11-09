@@ -1219,18 +1219,18 @@ class Annotations():
 
         return output
 
-    def switch(self):
+    def switch(self, time=None):
         """Obtain switch parameter, ie number of times the stage shifts."""
         stag_to_int = {'NREM1': 1, 'NREM2': 2, 'NREM3': 3, 'REM': 5, 'Wake': 0}
-        hypno = [stag_to_int[x['stage']] for x in self.get_epochs() \
+        hypno = [stag_to_int[x['stage']] for x in self.get_epochs(time=time) \
                  if x['stage'] in stag_to_int.keys()]
         
         return sum(asarray(diff(hypno), dtype=bool))
     
-    def slp_frag(self):
+    def slp_frag(self, time=None):
         """Obtain sleep fragmentation parameter, ie number of stage shifts to 
         a lighter stage."""
-        epochs = self.get_epochs()
+        epochs = self.get_epochs(time=time)
         stage_int = {'Wake': 0, 'NREM1': 1, 'NREM2': 2, 'NREM3': 3, 'REM': 2}
         
         hypno_str = [x['stage'] for x in epochs \
@@ -1432,6 +1432,29 @@ class Annotations():
         slcn310 = self.latency_to_consolidated(lights_off, duration=10, 
                                                stage=['NREM3'])
         
+        cycles = self.get_cycles()
+        cyc_stats = []
+        
+        for i, cyc in enumerate(cycles):
+            one_cyc = {}
+            cyc_hypno = [x['stage'] for x in self.get_epochs(time=cyc)]
+            one_cyc['duration'] = {}
+            
+            for stage in ['NREM1', 'NREM2', 'NREM3', 'REM', 'Wake', 'Movement',
+                      'Artefact']:
+                one_cyc['duration'][stage] = cyc_hypno.count(stage) # in epochs
+                        
+            one_cyc['tst'] = sum([one_cyc['duration'][stage] for stage in [
+                    'NREM1', 'NREM2', 'NREM3', 'REM']])
+            one_cyc['tsp'] = one_cyc['tst'] + one_cyc['duration']['Wake']
+            one_cyc['slp_eff'] = one_cyc['tst'] / one_cyc['tsp']
+            one_cyc['switch'] = self.switch(time=cyc)
+            one_cyc['slp_frag'] = self.slp_frag(time=cyc)
+            one_cyc['cyc%tsp'] = one_cyc['tsp'] / total_slp_period
+            
+            cyc_stats.append(one_cyc)
+
+        
         with open(filename, 'w', newline='') as f:
             lg.info('Writing to ' + str(filename))
             cf = writer(f)
@@ -1603,6 +1626,67 @@ class Annotations():
                          'Minutes', slcn310,
                          ('start of first uninterrupted 10-minute period of '
                           'N3 - LOFF')])
+                
+            for i, cyc in enumerate(cycles):
+                one_cyc = cyc_stats[i]
+                
+                cf.writerow([''])
+                cf.writerow([f'Cycle {i + 1}'])
+                cf.writerow(['Cycle % duration', '',
+                             '%', one_cyc['cyc%tsp'] * 100,
+                             '', '', 
+                             'cycle TSP / night TSP'])
+                
+                for stage in ['Wake', 'NREM1', 'NREM2', 'NREM3', 'REM', 
+                              'Artefact', 'Movement']:
+                    cf.writerow([f'{stage} (c{i + 1})', '',
+                             'Epochs', one_cyc['duration'][stage],
+                             'Minutes', 
+                             one_cyc['duration'][stage] / n_ep_per_min,
+                             f'total {stage} duration in cycle {i + 1}'])
+                    
+                cf.writerow([f'Total sleep period (c{i + 1})', 
+                             f'TSP (c{i + 1})',
+                             'Epochs', one_cyc['tsp'],
+                             'Minutes', one_cyc['tsp'] / n_ep_per_min,
+                             f'Wake + N1 + N2 + N3 + REM in cycle {i + 1}'])
+                cf.writerow([f'Total sleep time (c{i + 1})', f'TST (c{i + 1})',
+                             'Epochs', one_cyc['tst'],
+                             'Minutes', one_cyc['tst'] / n_ep_per_min,
+                             f'N1 + N2 + N3 + REM in cycle {i + 1}'])
+                cf.writerow([f'Sleep efficiency (c{i + 1})', f'SE (c{i + 1})',
+                             '%', one_cyc['slp_eff'] * 100,
+                             '', '',
+                             f'TST / TSP in cycle {i + 1}'])
+                    
+                for denom in ['TSP', 'TST']:
+                    for stage in ['Wake', 'NREM1', 'NREM2', 'NREM3', 'REM']:
+                        cf.writerow([f'{stage} % {denom} (c{i + 1})', '', 
+                                     '%', (one_cyc['duration'][stage] / 
+                                           one_cyc[denom.lower()]) * 100, 
+                                     '', '', 
+                                     f'{stage} / {denom} in cycle {i + 1}'])
+                                     
+                cf.writerow([f'Switch (c{i + 1})', '', 
+                             'N', one_cyc['switch'], '', '', 
+                             f'number of stage shifts in cycle {i + 1}'])
+                cf.writerow([f'Switch % (c{i + 1})', '', 
+                             '% epochs', (one_cyc['switch'] * 100 / 
+                                          one_cyc['tsp']), 
+                             '% minutes', (one_cyc['switch'] * 100 * 
+                                           n_ep_per_min / one_cyc['tsp']), 
+                             f'switch / TSP in cycle {i + 1}'])
+                cf.writerow([f'Sleep fragmentation (c{i + 1})', '', 
+                             'N', one_cyc['slp_frag'], '', '', 
+                             'number of shifts to a lighter stage in cycle '
+                             f'{i + 1}'])
+                cf.writerow([f'Sleep fragmentation index (c{i + 1})', 
+                             f'SFI (c{i + 1})', 
+                             '% epochs', (one_cyc['slp_frag'] * 100 / 
+                                          one_cyc['tsp']), 
+                             '% minutes', (one_cyc['slp_frag'] * 100 * 
+                                           n_ep_per_min / one_cyc['tsp']), 
+                             f'sleep fragmentation / TSP in cycle {i + 1}'])
 
         return slp_onset_lat, waso, total_slp_time # for testing
 
