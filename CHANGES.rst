@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.54**: sleep stats by cycle
 - **5.53**: export annotations to BIDS; lacourse normalization option
 - **5.52**: tolerance parameter, fixes for spindle detection
 - **5.51**: Martin2013 and Lacourse2018 fixes

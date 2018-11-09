@@ -1432,7 +1432,7 @@ class Annotations():
         slcn310 = self.latency_to_consolidated(lights_off, duration=10, 
                                                stage=['NREM3'])
         
-        cycles = self.get_cycles()
+        cycles = self.get_cycles() if self.get_cycles() else []
         cyc_stats = []
         
         for i, cyc in enumerate(cycles):
