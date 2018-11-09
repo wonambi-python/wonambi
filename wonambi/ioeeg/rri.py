@@ -3,7 +3,9 @@
 from logging import getLogger
 from numpy import empty, float64
 from datetime import datetime, timedelta
-from dateparser import parse
+#from dateparser import parse
+
+from .utils import DEFAULT_DATETIME
 
 lg = getLogger(__name__)
 
@@ -57,13 +59,13 @@ class RRI:
         with open(self.filename, 'rt') as f:
             head = [next(f) for x in range(12)]
             hdr['subj_id'] = head[0][11:-3]
-            hdr['start_time'] = parse(head[1][16:])
+            hdr['start_time'] = DEFAULT_DATETIME #parse(head[1][16:])
             hdr['recorder'] = head[2][10:]
             hdr['s_freq_time'] = int(head[3][4:])
             t = datetime.strptime(head[4][16:24], '%H:%M:%S')
             hdr['total_dur'] = timedelta(hours=t.hour, minutes=t.minute, 
                seconds=t.second)
-            hdr['export_date'] = parse(head[9][16:])
+            hdr['export_date'] = DEFAULT_DATETIME #parse(head[9][16:])
             hdr['data_type'] = head[10][11:]
             
             for i, _ in enumerate(f):
