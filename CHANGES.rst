@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.56**: sleep statistics by cycle bugfix
 - **5.55**: sleep statistics bugfix
 - **5.54**: sleep stats by cycle
 - **5.53**: export annotations to BIDS; lacourse normalization option

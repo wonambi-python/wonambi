@@ -1633,7 +1633,7 @@ class Annotations():
                 cf.writerow([f'Cycle {i + 1}'])
                 cf.writerow(['Cycle % duration', '',
                              '%', (one_cyc['tsp'] * 100 / 
-                                   total_slp_period * n_ep_per_min),
+                                   total_slp_period / n_ep_per_min),
                              '', '', 
                              'cycle TSP / night TSP'])
                 
