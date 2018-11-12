@@ -1450,7 +1450,6 @@ class Annotations():
             one_cyc['slp_eff'] = one_cyc['tst'] / one_cyc['tsp']
             one_cyc['switch'] = self.switch(time=cyc)
             one_cyc['slp_frag'] = self.slp_frag(time=cyc)
-            one_cyc['cyc%tsp'] = one_cyc['tsp'] / total_slp_period
             
             cyc_stats.append(one_cyc)
 
@@ -1627,13 +1626,14 @@ class Annotations():
                          ('start of first uninterrupted 10-minute period of '
                           'N3 - LOFF')])
                 
-            for i, cyc in enumerate(cycles):
+            for i in range(len(cycles)):
                 one_cyc = cyc_stats[i]
                 
                 cf.writerow([''])
                 cf.writerow([f'Cycle {i + 1}'])
                 cf.writerow(['Cycle % duration', '',
-                             '%', one_cyc['cyc%tsp'] * 100,
+                             '%', (one_cyc['tsp'] * 100 / 
+                                   total_slp_period * n_ep_per_min),
                              '', '', 
                              'cycle TSP / night TSP'])
                 
