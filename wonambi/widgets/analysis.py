@@ -615,8 +615,8 @@ class AnalysisDialog(ChannelDialog):
         el['maxamp'] = FormBool('Max. amplitude (uV)'), FormBool('')
         el['ptp'] = FormBool('Peak-to-peak amplitude (uV)'), FormBool('')
         el['rms'] = FormBool('RMS (uV)'), FormBool('')
-        el['power'] = FormBool('Power (uV**2)'), FormBool('')
-        el['energy'] = FormBool('Energy (uV**2 / s)'), FormBool('')
+        el['power'] = FormBool('Power (uV^2)'), FormBool('')
+        el['energy'] = FormBool('Energy (uV^2s)'), FormBool('')
         el['peakpf'] = FormBool('Peak power frequency (Hz)'), FormBool('')
         el['peakef'] = FormBool('Peak energy frequency (Hz)'), FormBool('')
 
@@ -627,7 +627,7 @@ class AnalysisDialog(ChannelDialog):
         ev['sw']['invert'] = FormBool('Inverted (down-then-up)')
         ev['sw']['prep'] = FormBool('Pre-process')
         ev['sw']['avg_slope'] = FormBool('Average slopes (uV/s)')
-        ev['sw']['max_slope'] = FormBool('Max. slopes (uV/s**2)')
+        ev['sw']['max_slope'] = FormBool('Max. slopes (uV/s^2)')
 
         box_global = QGroupBox('Global')
 

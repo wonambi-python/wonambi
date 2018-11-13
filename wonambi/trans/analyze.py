@@ -182,20 +182,20 @@ def export_event_params(filename, params, count=None, density=None):
                         'Max. amplitude (uV)',
                         'Peak-to-peak amplitude (uV)',
                         'RMS (uV)']
-    param_headings_2 = ['Power (uV**2)',
+    param_headings_2 = ['Power (uV^2)',
                         'Peak power frequency (Hz)',
-                        'Energy (uV**2/s)',
+                        'Energy (uV^2s)',
                         'Peak energy frequency (Hz)']
     slope_headings =   ['Q1 average slope (uV/s)',
                         'Q2 average slope (uV/s)',
                         'Q3 average slope (uV/s)',
                         'Q4 average slope (uV/s)',
                         'Q23 average slope (uV/s)',
-                        'Q1 max. slope (uV/s**2)',
-                        'Q2 max. slope (uV/s**2)',
-                        'Q3 max. slope (uV/s**2)',
-                        'Q4 max. slope (uV/s**2)',
-                        'Q23 max. slope (uV/s**2)']
+                        'Q1 max. slope (uV/s^2)',
+                        'Q2 max. slope (uV/s^2)',
+                        'Q3 max. slope (uV/s^2)',
+                        'Q4 max. slope (uV/s^2)',
+                        'Q23 max. slope (uV/s^2)']
     ordered_params_1 = ['minamp', 'maxamp', 'ptp', 'rms']
     ordered_params_2 = ['power', 'peakpf', 'energy', 'peakef']
 
