@@ -193,7 +193,7 @@ def _read_header(f):
     orig['acquisition_unit'] = ACQUISITION_UNIT.get(acquisition_unit_code,
                                                     str(acquisition_unit_code))
     filetype_code = unpack('H', f.read(2))[0]
-    orig['filetype'] = FILETYPE[filetype_code]
+    orig['filetype'] = FILETYPE.get(filetype_code, 'unknown headbox')
 
     orig['BOData'] = unpack('I', f.read(4))[0]
     orig['n_chan'] = unpack('H', f.read(2))[0]
