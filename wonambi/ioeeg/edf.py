@@ -156,9 +156,9 @@ class Edf:
         self.phys_min = asarray(self.hdr['physical_min'])
         phys_range = asarray(self.hdr['physical_max']) - self.phys_min
         dig_range = asarray(self.hdr['digital_max']) - self.dig_min
-        if phys_range < 0:
+        if (phys_range < 0).any():
             lg.warning('physical_min is higher than physical_max. Check whether the polarity of your recordings is correct')
-        if dig_range < 0:
+        if (dig_range < 0).any():
             lg.warning('digital_min is higher than digital_max. Check whether the polarity of your recordings is correct')
         self.gain = phys_range / dig_range
 

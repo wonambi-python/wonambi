@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.58**: bugfix for edf
 - **5.57**: allows for EDF with a negative physical range and digital range (warning instead of error)
 - **5.56**: sleep statistics by cycle bugfix
 - **5.55**: sleep statistics bugfix
