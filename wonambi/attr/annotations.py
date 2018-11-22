@@ -6,8 +6,8 @@ from itertools import groupby
 from csv import reader, writer
 from json import dump
 from datetime import datetime, timedelta
-from numpy import (allclose, around, asarray, clip, diff, isnan, logical_and, 
-                   modf, nan)
+from numpy import (allclose, arange, around, asarray, clip, diff, isnan, 
+                   logical_and, modf, nan)
 from math import ceil, inf
 from os.path import basename, splitext
 from pathlib import Path
@@ -345,7 +345,8 @@ class Annotations():
         self.save()
 
     def import_staging(self, filename, source, rater_name, rec_start,
-                       staging_start=None, poor=['Artefact'], as_qual=False):
+                       staging_start=None, epoch_length=None,
+                       poor=['Artefact'], as_qual=False):
         """Import staging from an external staging text file.
 
         Parameters
@@ -364,27 +365,17 @@ class Annotations():
         staging_start : datetime (default: None)
             Date and time of staging start. For use when not provided in
             staging file.
+        epoch_length : int
+            duration in s of a scoring epoch
         poor : list of str
             epochs with stage names in this list will be marked as Poor quality
         as_qual : bool
             if True, the staging only be used to mark quality, as per poor
         """            
-        if rater_name not in self.raters:
+        if as_qual and rater_name not in self.raters:            
+            self.parent.statusBar.showMessage('Rater not found.')
+            return
             
-            if as_qual:
-                self.parent.statusBar.showMessage('Rater not found.')
-                return
-            
-            self.add_rater(rater_name, epoch_length=30)
-
-        self.get_rater(rater_name)
-        
-        if not as_qual:
-            stages = self.rater.find('stages')
-            # list is necessary so that it does not remove in place
-            for s in list(stages):
-                stages.remove(s)
-
         if source == 'sandman':
             encoding = 'ISO-8859-1'
         else:
@@ -392,158 +383,200 @@ class Annotations():
 
         with open(filename, 'r', encoding=encoding) as f:
             lines = f.readlines()
-            stages = self.rater.find('stages')
 
-            if source == 'domino':
-                
-                for i, line in enumerate(lines):
-                    if line[0].isdigit():
-                        first_line = i
-                        break
-                
-                if lines[first_line].index(';') > 15:
-                    idx_time = (11, 19)
-                    idx_stage = (25, 26)
-                    stage_key = PHYSIP_STAGE_KEY
-                else:
-                    idx_time = (0, 8)
-                    idx_stage = (14, 16)
-                    stage_key = DOMINO_STAGE_KEY
-                
-                stage_start = datetime.strptime(
-                        lines[first_line][idx_time[0]:idx_time[1]], '%H:%M:%S')
-                stage_day = int(lines[1][12:14])
-                stage_month = int(lines[1][15:17])
-                stage_start_for_delta = stage_start.replace(year=1999,
-                                                            month=stage_month,
-                                                            day=stage_day)
-                rec_start_for_delta = rec_start.replace(year=1999)
-                first_second = int((stage_start_for_delta -
-                                    rec_start_for_delta).total_seconds())
-
-            elif source == 'remlogic':
-                stage_start = datetime.strptime(lines[14][:19],
-                                                '%Y-%m-%dT%H:%M:%S')
-                first_second = int((stage_start - rec_start).total_seconds())
-
-                first_line = 14
-
-                stage_key = {k[-2:]: v for k, v in REMLOGIC_STAGE_KEY.items()}
-                idx_stage = (-6, -4)
-
-            elif source == 'alice':
-                stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
-                dt = rec_start
-
-                # best guess in absence of date
-                if lines[1][11:13] == 'pm' and rec_start.hour < 12:
-                    dt = rec_start - timedelta(days=1)
-                elif lines[1][11:13] == 'am' and rec_start.hour > 12:
-                    dt = rec_start + timedelta
-
-                stage_start = stage_start.replace(year=dt.year,
-                                                  month=dt.month,
-                                                  day=dt.day)
-                first_second = int((stage_start - rec_start).total_seconds())
-
-                first_line = 1
-
-                lines[-1] += '_' # to fill newline position
-                stage_key = ALICE_STAGE_KEY
-                idx_stage = (-3, -1)
-
-            elif source == 'sandman':
-                stage_start = datetime.strptime(lines[4][12:33],
-                                                '%d/%m/%Y %I:%M:%S %p')
-                first_second = int((stage_start - rec_start).total_seconds())
-
-                first_line = 14
-
-                stage_key = SANDMAN_STAGE_KEY
-                idx_stage = (-14, -12)
-
-            elif source == 'compumedics':
-                if staging_start is None:
-                    first_second = 0
-                else:
-                    first_second = int((
-                            staging_start - rec_start).total_seconds())
-
-                first_line = 0
-
-                stage_key = COMPUMEDICS_STAGE_KEY
-                idx_stage = (0, 1)
-                
-            elif source == 'prana':
-                stage_start = datetime.strptime(lines[5][:11], '%d %H:%M:%S')
-                
-                # best guess in absence of date
-                dt = rec_start
-                if stage_start.hour > 12 and rec_start.hour < 12:
-                    dt = rec_start - timedelta(days=1)
-                elif stage_start.hour < 12 and rec_start.hour > 12:
-                    dt = rec_start + timedelta(days=1)                                
-                stage_start = stage_start.replace(year=dt.year,
-                                                  month=dt.month,
-                                                  day=dt.day)                
-                first_second = int((stage_start - rec_start).total_seconds())
-                
-                first_line = 5
-                
-                stage_key = PRANA_STAGE_KEY
-                
-                spacer = next(i for i, j in enumerate(lines[5][30:]) \
-                              if j.strip())
-                idx_stage = (30 + spacer, 30 + spacer + 1)
-
+        if source == 'domino':
+            
+            for i, line in enumerate(lines):
+                if line[0].isdigit():
+                    first_line = i
+                    break
+            
+            if lines[first_line].index(';') > 15:
+                idx_time = (11, 19)
+                idx_stage = (25, 26)
+                stage_key = PHYSIP_STAGE_KEY
             else:
-                raise ValueError('Unknown source program for staging file')
+                idx_time = (0, 8)
+                idx_stage = (14, 16)
+                stage_key = DOMINO_STAGE_KEY
+            
+            stage_start = datetime.strptime(
+                    lines[first_line][idx_time[0]:idx_time[1]], '%H:%M:%S')
+            stage_day = int(lines[1][12:14])
+            stage_month = int(lines[1][15:17])
+            stage_start_for_delta = stage_start.replace(year=1999,
+                                                        month=stage_month,
+                                                        day=stage_day)
+            rec_start_for_delta = rec_start.replace(year=1999)
+            first_second = int((stage_start_for_delta -
+                                rec_start_for_delta).total_seconds())
+            
+            if epoch_length is None:
+                epoch_length = int(lines[5][6:8])
 
-            lg.info('Time offset: ' + str(first_second) + ' sec')
+        elif source == 'remlogic':
+            stage_start = datetime.strptime(lines[14][:19],
+                                            '%Y-%m-%dT%H:%M:%S')
+            first_second = int((stage_start - rec_start).total_seconds())
 
-            if as_qual:
+            first_line = 14
+
+            stage_key = {k[-2:]: v for k, v in REMLOGIC_STAGE_KEY.items()}
+            idx_stage = (-6, -4)
+            
+            if epoch_length is None:
+                epoch_length = int(lines[first_line][-3:-1])
+
+        elif source == 'alice':
+            stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
+            dt = rec_start
+
+            # best guess in absence of date
+            if lines[1][11:13] == 'pm' and rec_start.hour < 12:
+                dt = rec_start - timedelta(days=1)
+            elif lines[1][11:13] == 'am' and rec_start.hour > 12:
+                dt = rec_start + timedelta
+
+            stage_start = stage_start.replace(year=dt.year,
+                                              month=dt.month,
+                                              day=dt.day)
+            first_second = int((stage_start - rec_start).total_seconds())
+
+            first_line = 1
+
+            lines[-1] += '_' # to fill newline position
+            stage_key = ALICE_STAGE_KEY
+            idx_stage = (-3, -1)
+            
+            if epoch_length is None:            
+                epoch_length = 30
+
+        elif source == 'sandman':
+            stage_start = datetime.strptime(lines[4][12:33],
+                                            '%d/%m/%Y %I:%M:%S %p')
+            first_second = int((stage_start - rec_start).total_seconds())
+
+            first_line = 14
+
+            stage_key = SANDMAN_STAGE_KEY
+            idx_stage = (-14, -12)
+            
+            if epoch_length is None: 
+                epoch_length = 30
+
+        elif source == 'compumedics':
+            if staging_start is None:
+                first_second = 0
+            else:
+                first_second = int((
+                        staging_start - rec_start).total_seconds())
+
+            first_line = 0
+
+            stage_key = COMPUMEDICS_STAGE_KEY
+            idx_stage = (0, 1)
+            
+            if epoch_length is None: 
+                epoch_length = 30
+            
+        elif source == 'prana':
+            stage_start = datetime.strptime(lines[5][:11], '%d %H:%M:%S')
+            
+            # best guess in absence of date
+            dt = rec_start
+            if stage_start.hour > 12 and rec_start.hour < 12:
+                dt = rec_start - timedelta(days=1)
+            elif stage_start.hour < 12 and rec_start.hour > 12:
+                dt = rec_start + timedelta(days=1)                                
+            stage_start = stage_start.replace(year=dt.year,
+                                              month=dt.month,
+                                              day=dt.day)                
+            first_second = int((stage_start - rec_start).total_seconds())
+            
+            first_line = 5
+            
+            stage_key = PRANA_STAGE_KEY
+            
+            spacer = next(i for i, j in enumerate(lines[5][30:]) \
+                          if j.strip())
+            idx_stage = (30 + spacer, 30 + spacer + 1)
+            
+            if epoch_length is None:
+                epoch_length = int(lines[3][46:48])
+
+        else:
+            raise ValueError('Unknown source program for staging file')
+
+        offset = first_second % epoch_length
+        lg.info('Time offset: ' + str(offset) + ' sec')
+        
+        if rater_name not in self.raters:
+            self.add_rater(rater_name)
+
+        self.get_rater(rater_name)
+        stages = self.rater.find('stages')
+        
+        if as_qual:
+            
+            for i, one_line in enumerate(lines[first_line:]):                     
                 
-                for i, one_line in enumerate(lines[first_line:]):                     
+                if one_line[idx_stage[0]:-1] in poor:
+                    epoch_beg = first_second + (i * epoch_length)
                     
-                    if one_line[idx_stage[0]:-1] in poor:
-                        epoch_beg = first_second + (i * 30)
-                        
-                        try:
-                            self.set_stage_for_epoch(epoch_beg, 'Poor', 
-                                                     attr='quality', 
-                                                     save=False)
-                        except KeyError:
-                            return 1
-            
-            else:
-            
-                for i, one_line in enumerate(lines[first_line:]):
-                    epoch = SubElement(stages, 'epoch')
-    
-                    start_time = SubElement(epoch, 'epoch_start')
-                    epoch_beg = first_second + (i * 30)
-                    start_time.text = str(epoch_beg)
-    
-                    end_time = SubElement(epoch, 'epoch_end')
-                    end_time.text = str(epoch_beg + 30)
-    
-                    epoch_stage = SubElement(epoch, 'stage')
-    
                     try:
-                        key = one_line[idx_stage[0]:idx_stage[1]]
-                        one_stage = stage_key[key]
-    
+                        self.set_stage_for_epoch(epoch_beg, 'Poor', 
+                                                 attr='quality', 
+                                                 save=False)
                     except KeyError:
-                        one_stage = 'Unknown'
-                        lg.info('Stage not recognized: ' + key)
-    
-                    epoch_stage.text = one_stage
-    
-                    quality = SubElement(epoch, 'quality')
-                    if one_stage in poor:
-                        quality.text = 'Poor'
-                    else:
-                        quality.text = 'Good'
+                        return 1
+        
+        else:
+            # list is necessary so that it does not remove in place
+            for s in list(stages):
+                stages.remove(s)
+        
+            for i in arange(first_second - epoch_length, 0, -epoch_length):
+                epoch = SubElement(stages, 'epoch')
+                
+                start_time = SubElement(epoch, 'epoch_start')
+                epoch_beg = i
+                start_time.text = str(epoch_beg)
+
+                end_time = SubElement(epoch, 'epoch_end')
+                end_time.text = str(epoch_beg + epoch_length)
+
+                epoch_stage = SubElement(epoch, 'stage')
+                epoch_stage.text = 'Unknown'
+                quality = SubElement(epoch, 'quality')
+                quality.text = 'Good'
+            
+            for i, one_line in enumerate(lines[first_line:]):
+                epoch = SubElement(stages, 'epoch')
+
+                start_time = SubElement(epoch, 'epoch_start')
+                epoch_beg = first_second + (i * epoch_length)
+                start_time.text = str(epoch_beg)
+
+                end_time = SubElement(epoch, 'epoch_end')
+                end_time.text = str(epoch_beg + epoch_length)
+
+                epoch_stage = SubElement(epoch, 'stage')
+
+                try:
+                    key = one_line[idx_stage[0]:idx_stage[1]]
+                    one_stage = stage_key[key]
+
+                except KeyError:
+                    one_stage = 'Unknown'
+                    lg.info('Stage not recognized: ' + key)
+
+                epoch_stage.text = one_stage
+
+                quality = SubElement(epoch, 'quality')
+                if one_stage in poor:
+                    quality.text = 'Poor'
+                else:
+                    quality.text = 'Good'
 
         self.save()
     
