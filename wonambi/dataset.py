@@ -7,7 +7,7 @@ from logging import getLogger
 from os import listdir
 from pathlib import Path
 
-from numpy import arange, asarray, empty, int64
+from numpy import arange, asarray, concatenate, empty, int64, zeros
 
 from .ioeeg import (Abf,
                     Edf,
@@ -324,6 +324,10 @@ class Dataset:
             chan = self.header['chan_name']
         if not (isinstance(chan, list) or isinstance(chan, tuple)):
             raise TypeError('Parameter "chan" should be a list')
+        add_ref = False
+        if '_REF' in chan:
+            add_ref = True
+            chan[:] = [x for x in chan if x != '_REF']
         idx_chan = [self.header['chan_name'].index(x) for x in chan]
 
         if begtime is None and begsam is None:
@@ -358,15 +362,21 @@ class Dataset:
         data.axis['time'] = empty(n_trl, dtype='O')
         data.data = empty(n_trl, dtype='O')
 
-        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
-            data.axis['chan'][i] = asarray(chan, dtype='U')
-            data.axis['time'][i] = (arange(one_begsam, one_endsam) /
-                                    self.header['s_freq'])
-
+        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):            
             dataset = self.dataset
             lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,
                      one_endsam))
             dat = dataset.return_dat(idx_chan, one_begsam, one_endsam)
+            chan_in_dat = chan
+            
+            if add_ref:
+                zero_ref = zeros((1, one_endsam - one_begsam))
+                dat = concatenate((dat, zero_ref), axis=0)
+                chan_in_dat.append('_REF')
+            
             data.data[i] = dat
+            data.axis['chan'][i] = asarray(chan_in_dat, dtype='U')
+            data.axis['time'][i] = (arange(one_begsam, one_endsam) /
+                                    self.header['s_freq'])
 
         return data

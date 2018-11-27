@@ -112,7 +112,7 @@ class ChannelsGroup(QWidget):
         self.idx_l0 = QListWidget()
         self.idx_l1 = QListWidget()
 
-        self.add_channels_to_list(self.idx_l0)
+        self.add_channels_to_list(self.idx_l0, add_ref=True)
         self.add_channels_to_list(self.idx_l1)
 
         self.idx_hp = QDoubleSpinBox()
@@ -174,7 +174,7 @@ class ChannelsGroup(QWidget):
 
         self.setLayout(layout)
 
-    def add_channels_to_list(self, l):
+    def add_channels_to_list(self, l, add_ref=False):
         """Create list of channels (one for those to plot, one for ref).
 
         Parameters
@@ -187,6 +187,10 @@ class ChannelsGroup(QWidget):
         l.setSelectionMode(QAbstractItemView.ExtendedSelection)
         for chan in self.chan_name:
             item = QListWidgetItem(chan)
+            l.addItem(item)
+            
+        if add_ref:
+            item = QListWidgetItem('_REF')
             l.addItem(item)
 
     def highlight_channels(self, l, selected_chan):
@@ -232,7 +236,7 @@ class ChannelsGroup(QWidget):
         selectedItems = self.idx_l0.selectedItems()
         selected_chan = [x.text() for x in selectedItems]
         chan_to_plot = []
-        for chan in self.chan_name:
+        for chan in self.chan_name + ['_REF']:
             if chan in selected_chan:
                 chan_to_plot.append(chan)
 

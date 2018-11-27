@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.60**: online reference available as '_REF'
 - **5.59**: fill in epochs before staging start on import
 - **5.58**: bugfix for edf
 - **5.57**: allows for EDF with a negative physical range and digital range (warning instead of error)
