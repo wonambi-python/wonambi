@@ -535,7 +535,7 @@ class Annotations():
             for s in list(stages):
                 stages.remove(s)
         
-            for i in arange(first_second - epoch_length, 0, -epoch_length):
+            for i in arange(offset, first_second - epoch_length, epoch_length):
                 epoch = SubElement(stages, 'epoch')
                 
                 start_time = SubElement(epoch, 'epoch_start')
