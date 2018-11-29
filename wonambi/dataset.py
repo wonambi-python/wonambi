@@ -24,7 +24,6 @@ from .ioeeg import (Abf,
                     OpenEphys,
                     Text,
                     BIDS,
-                    RRI,
                     )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -92,13 +91,7 @@ def detect_format(filename):
         elif list(filename.glob('*.openephys')):
             return OpenEphys
         elif list(filename.glob('*.txt')):
-            #with filename.open('rt') as f:
-            #    first_line = f.readline()
-            #    if '.rr' in first_line[-4:]:
-            #        return RRI
             return Text
-        #elif '.txt' in [x[-4:] for x in listdir(filename)]:
-        #    return Text
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      str(filename))
@@ -137,9 +130,6 @@ def detect_format(filename):
                 return BlackRock
             elif file_header[:6] == b'MATLAB':  # we might need to read more
                 return FieldTrip
-        
-        if filename.suffix.lower() == '.txt':
-            return RRI
         
         else:
             raise UnrecognizedFormat('Unrecognized format for file ' +
