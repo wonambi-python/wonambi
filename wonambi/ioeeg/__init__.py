@@ -17,4 +17,4 @@ from .micromed import Micromed
 from .bci2000 import BCI2000
 from .text import Text
 from .bids import BIDS, write_bids, write_bids_channels
-from .rri import RRI
+from .lyonrri import LyonRRI

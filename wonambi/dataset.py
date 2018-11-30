@@ -4,7 +4,6 @@
 from datetime import timedelta, datetime
 from math import ceil
 from logging import getLogger
-from os import listdir
 from pathlib import Path
 
 from numpy import arange, asarray, concatenate, empty, int64, zeros
@@ -24,7 +23,7 @@ from .ioeeg import (Abf,
                     OpenEphys,
                     Text,
                     BIDS,
-                    RRI,
+                    LyonRRI,
                     )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -92,13 +91,7 @@ def detect_format(filename):
         elif list(filename.glob('*.openephys')):
             return OpenEphys
         elif list(filename.glob('*.txt')):
-            #with filename.open('rt') as f:
-            #    first_line = f.readline()
-            #    if '.rr' in first_line[-4:]:
-            #        return RRI
             return Text
-        #elif '.txt' in [x[-4:] for x in listdir(filename)]:
-        #    return Text
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      str(filename))
@@ -139,7 +132,10 @@ def detect_format(filename):
                 return FieldTrip
         
         if filename.suffix.lower() == '.txt':
-            return RRI
+            with filename.open('rt') as f:
+                first_line = f.readline()
+                if '.rr' in first_line[-4:]:
+                    return LyonRRI
         
         else:
             raise UnrecognizedFormat('Unrecognized format for file ' +
@@ -276,7 +272,7 @@ class Dataset:
         return videos
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
-                  endsam=None):
+                  endsam=None, s_freq=None):
         """Read the data and creates a ChanTime instance
 
         Parameters
@@ -299,6 +295,8 @@ class Dataset:
             first sample (this sample will be included)
         endsam : int
             last sample (this sample will NOT be included)
+        s_freq : int
+            sampling frequency of the data
 
         Returns
         -------
@@ -318,7 +316,7 @@ class Dataset:
         """
         data = ChanTime()
         data.start_time = self.header['start_time']
-        data.s_freq = self.header['s_freq']
+        data.s_freq = s_freq = s_freq if s_freq else self.header['s_freq']
 
         if chan is None:
             chan = self.header['chan_name']
@@ -376,7 +374,6 @@ class Dataset:
             
             data.data[i] = dat
             data.axis['chan'][i] = asarray(chan_in_dat, dtype='U')
-            data.axis['time'][i] = (arange(one_begsam, one_endsam) /
-                                    self.header['s_freq'])
+            data.axis['time'][i] = (arange(one_begsam, one_endsam) / s_freq)
 
         return data

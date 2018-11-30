@@ -272,7 +272,8 @@ class Edf:
         return markers
 
 
-def write_edf(data, filename, subj_id='X X X X', physical_max=1000):
+def write_edf(data, filename, subj_id='X X X X', physical_max=1000, 
+              physical_min=None):
     """Export data to FieldTrip.
 
     Parameters
@@ -307,7 +308,9 @@ def write_edf(data, filename, subj_id='X X X X', physical_max=1000):
     precision = physical_max / DIGITAL_MAX
     lg.info('Data exported to EDF will have precision ' + str(precision))
 
-    physical_min = -1 * physical_max
+    if physical_min is None:
+        physical_min = -1 * physical_max
+    
     dat = data.data[0] / physical_max * DIGITAL_MAX
     dat = dat.astype(EDF_FORMAT)
     dat[dat > DIGITAL_MAX] = DIGITAL_MAX

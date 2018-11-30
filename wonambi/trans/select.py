@@ -622,7 +622,7 @@ def _find_intervals(bundles, duration, step):
         beg, end = bund['times'][0][0], bund['times'][-1][1]
 
         if end - beg >= duration:
-            new_begs = arange(beg, end, step)
+            new_begs = arange(beg, end - duration, step)
 
             for t in new_begs:
                 seg = bund.copy()
