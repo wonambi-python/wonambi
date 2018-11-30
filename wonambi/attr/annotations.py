@@ -76,11 +76,17 @@ FASST_STAGE_KEY = ['Wake',
                    'REM',
                    ]
 
-PRANA_STAGE_KEY = {'0': 'Wake',
+PRANA_STAGE_KEY =  {'0': 'Wake',
                    '1': 'NREM1',
                    '2': 'NREM2',
                    '3': 'NREM3',
                    '5': 'REM'}
+
+DELTAMED_STAGE_KEY = {'1': 'Wake',
+                      '2': 'REM',
+                      '3': 'NREM1',
+                      '4': 'NREM2',
+                      '5': 'NREM3'}
 
 PHYSIP_STAGE_KEY = {'0': 'NREM3',
                    '1': 'NREM2',
@@ -472,13 +478,26 @@ class Annotations():
                         staging_start - rec_start).total_seconds())
 
             first_line = 0
-
             stage_key = COMPUMEDICS_STAGE_KEY
             idx_stage = (0, 1)
             
             if epoch_length is None: 
                 epoch_length = 30
             
+        elif source == 'deltamed':
+            if staging_start is None:
+                first_second = 0
+            else:
+                first_second = int((
+                        staging_start - rec_start).total_seconds())
+
+            first_line = 0
+            stage_key = DELTAMED_STAGE_KEY
+            idx_stage = (-2, -1)
+            
+            if epoch_length is None: 
+                epoch_length = int(lines[0][:lines[0].index('\t')])
+        
         elif source == 'prana':
             stage_start = datetime.strptime(lines[5][:11], '%d %H:%M:%S')
             
@@ -785,9 +804,7 @@ class Annotations():
         event_chan.text = chan
 
         event_qual = SubElement(new_event, 'event_qual')
-        event_qual.text = 'Good' # if the event was marked, it's probably
-        # because the signal quality is good; anyway, it gets checked against
-        # the epoch quality in get_events (JOB)
+        event_qual.text = 'Good' 
 
         self.save()
 

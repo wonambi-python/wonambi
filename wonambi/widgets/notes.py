@@ -407,6 +407,10 @@ class Notes(QTabWidget):
         act = QAction('PRANA', self)
         act.triggered.connect(partial(self.import_staging, 'prana'))
         actions['import_prana'] = act
+        
+        act = QAction('DeltaMed', self)
+        act.triggered.connect(partial(self.import_staging, 'deltamed'))
+        actions['import_deltamed'] = act
 
         act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)
@@ -441,6 +445,11 @@ class Notes(QTabWidget):
         act.triggered.connect(partial(self.import_staging, 'prana', 
                                       as_qual=True))
         actions['import_prana_qual'] = act
+        
+        act = QAction('DeltaMed', self)
+        act.triggered.connect(partial(self.import_staging, 'deltamed', 
+                                      as_qual=True))
+        actions['import_deltamed_qual'] = act
         
         act = QAction('Import Events', self)
         act.triggered.connect(self.import_events)
@@ -1230,7 +1239,7 @@ class Notes(QTabWidget):
         else:
             rater = test_rater
 
-        if source == 'compumedics':
+        if source in ['deltamed', 'compumedics']:
             time_str, ok = QInputDialog.getText(self, 'Staging start time',
                                                 'Enter date and time when '
                                                 'staging \nbegins, using '
