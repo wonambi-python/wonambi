@@ -228,7 +228,8 @@ class Overview(QGraphicsView):
             current_time = (self.start_time +
                             timedelta(seconds=new_position))
             msg = 'Current time: ' + current_time.strftime('%H:%M:%S')
-            self.parent.statusBar().showMessage(msg)
+            msg2 = f' ({new_position} seconds from start)'
+            self.parent.statusBar().showMessage(msg + msg2)
             lg.debug(msg)
         else:
             lg.debug('Updating position at {}'

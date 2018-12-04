@@ -381,8 +381,10 @@ class Annotations():
         if as_qual and rater_name not in self.raters:            
             self.parent.statusBar.showMessage('Rater not found.')
             return
+        checker = None
+        idx_check = None
             
-        if source == 'sandman':
+        if source in ['remlogic', 'sandman']:
             encoding = 'ISO-8859-1'
         else:
             encoding = 'utf-8'
@@ -394,20 +396,20 @@ class Annotations():
             
             for i, line in enumerate(lines):
                 if line[0].isdigit():
-                    first_line = i
+                    idx_first_line = i
                     break
             
-            if lines[first_line].index(';') > 15:
+            if lines[idx_first_line].index(';') > 15:
                 idx_time = (11, 19)
-                idx_stage = (25, 26)
+                idx_stage = slice(25, 26)
                 stage_key = PHYSIP_STAGE_KEY
             else:
                 idx_time = (0, 8)
-                idx_stage = (14, 16)
+                idx_stage = slice(14, 16)
                 stage_key = DOMINO_STAGE_KEY
             
             stage_start = datetime.strptime(
-                    lines[first_line][idx_time[0]:idx_time[1]], '%H:%M:%S')
+                    lines[idx_first_line][idx_time[0]:idx_time[1]], '%H:%M:%S')
             stage_day = int(lines[1][12:14])
             stage_month = int(lines[1][15:17])
             stage_start_for_delta = stage_start.replace(year=1999,
@@ -421,17 +423,45 @@ class Annotations():
                 epoch_length = int(lines[5][6:8])
 
         elif source == 'remlogic':
-            stage_start = datetime.strptime(lines[14][:19],
-                                            '%Y-%m-%dT%H:%M:%S')
+            idx_head = lines.index(
+                    next(l for l in lines if 'Time [hh:mm:ss]' in l))
+            first_line = next(l for l in lines[idx_head:] if 'SLEEP-S' in l)
+            idx_first_line = lines.index(first_line)
+            
+            stage_start_date = _try_parse_datetime(
+                    lines[3][16:lines[3].index('\n')], 
+                    ('%Y/%m/%d', '%d/%m/%Y'))
+            stage_start_time = None
+            try:
+                stage_start_time = datetime.strptime(
+                        first_line[:19], '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                cells = first_line.split('\t')
+                for cell in cells:
+                    try:
+                        stage_start_time = datetime.strptime(cell[-8:], 
+                                                             '%I:%M:%S')
+                        if cell[1] == 'U':
+                            stage_start_time = stage_start_time + timedelta(
+                                    hours=12)
+                    except ValueError:
+                        continue
+                if stage_start_time == None:
+                    raise ValueError('No valid start time found.')
+                    
+            stage_start = datetime.combine(stage_start_date.date(), 
+                                           stage_start_time.time())
+            
             first_second = int((stage_start - rec_start).total_seconds())
 
-            first_line = 14
-
             stage_key = {k[-2:]: v for k, v in REMLOGIC_STAGE_KEY.items()}
-            idx_stage = (-6, -4)
+            idx_stage = slice(-6, -4)
             
             if epoch_length is None:
-                epoch_length = int(lines[first_line][-3:-1])
+                epoch_length = int(first_line[-3:-1])
+                
+            checker = epoch_length
+            idx_check = slice(-3, -1)
 
         elif source == 'alice':
             stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
@@ -448,11 +478,11 @@ class Annotations():
                                               day=dt.day)
             first_second = int((stage_start - rec_start).total_seconds())
 
-            first_line = 1
+            idx_first_line = 1
 
             lines[-1] += '_' # to fill newline position
             stage_key = ALICE_STAGE_KEY
-            idx_stage = (-3, -1)
+            idx_stage = slice(-3, -1)
             
             if epoch_length is None:            
                 epoch_length = 30
@@ -462,10 +492,10 @@ class Annotations():
                                             '%d/%m/%Y %I:%M:%S %p')
             first_second = int((stage_start - rec_start).total_seconds())
 
-            first_line = 14
+            idx_first_line = 14
 
             stage_key = SANDMAN_STAGE_KEY
-            idx_stage = (-14, -12)
+            idx_stage = slice(-14, -12)
             
             if epoch_length is None: 
                 epoch_length = 30
@@ -477,9 +507,9 @@ class Annotations():
                 first_second = int((
                         staging_start - rec_start).total_seconds())
 
-            first_line = 0
+            idx_first_line = 0
             stage_key = COMPUMEDICS_STAGE_KEY
-            idx_stage = (0, 1)
+            idx_stage = slice(0, 1)
             
             if epoch_length is None: 
                 epoch_length = 30
@@ -491,9 +521,9 @@ class Annotations():
                 first_second = int((
                         staging_start - rec_start).total_seconds())
 
-            first_line = 0
+            idx_first_line = 0
             stage_key = DELTAMED_STAGE_KEY
-            idx_stage = (-2, -1)
+            idx_stage = slice(-2, -1)
             
             if epoch_length is None: 
                 epoch_length = int(lines[0][:lines[0].index('\t')])
@@ -512,13 +542,13 @@ class Annotations():
                                               day=dt.day)                
             first_second = int((stage_start - rec_start).total_seconds())
             
-            first_line = 5
+            idx_first_line = 5
             
             stage_key = PRANA_STAGE_KEY
             
             spacer = next(i for i, j in enumerate(lines[5][30:]) \
                           if j.strip())
-            idx_stage = (30 + spacer, 30 + spacer + 1)
+            idx_stage = slice(30 + spacer, 30 + spacer + 1)
             
             if epoch_length is None:
                 epoch_length = int(lines[3][46:48])
@@ -537,9 +567,9 @@ class Annotations():
         
         if as_qual:
             
-            for i, one_line in enumerate(lines[first_line:]):                     
+            for i, one_line in enumerate(lines[idx_first_line:]):                     
                 
-                if one_line[idx_stage[0]:-1] in poor:
+                if one_line[idx_stage] in poor:
                     epoch_beg = first_second + (i * epoch_length)
                     
                     try:
@@ -569,7 +599,11 @@ class Annotations():
                 quality = SubElement(epoch, 'quality')
                 quality.text = 'Good'
             
-            for i, one_line in enumerate(lines[first_line:]):
+            for i, one_line in enumerate(lines[idx_first_line:]):
+                if checker is not None:
+                    if int(one_line[idx_check]) != checker:
+                        continue
+                
                 epoch = SubElement(stages, 'epoch')
 
                 start_time = SubElement(epoch, 'epoch_start')
@@ -582,7 +616,7 @@ class Annotations():
                 epoch_stage = SubElement(epoch, 'stage')
 
                 try:
-                    key = one_line[idx_stage[0]:idx_stage[1]]
+                    key = one_line[idx_stage]
                     one_stage = stage_key[key]
 
                 except KeyError:
@@ -1291,7 +1325,7 @@ class Annotations():
             
         # N3 to REM doesn't count
         n3_to_rem = 0
-        for i, j in enumerate(hypno_str):
+        for i, j in enumerate(hypno_str[:-1]):
             if j == 'NREM3':
                 if hypno_str[i + 1] == 'REM':
                     n3_to_rem += 1
@@ -1946,3 +1980,11 @@ def update_annotation_version(xml_file):
 
 def _abs_time_str(delay, abs_start, time_str='%Y-%m-%dT%H:%M:%S'):
     return (abs_start + timedelta(seconds=float(delay))).strftime(time_str)
+
+def _try_parse_datetime(text, fmts):
+    for fmt in fmts:
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    raise ValueError('No valid date found.')
