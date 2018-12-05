@@ -40,6 +40,7 @@ export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$MINC_BIN_DIR:$PATH
 ## !! note that there is no separate bin/ models/ folder, all is in one. 
 #where AFNI is installed
 AFNI_INSTALLDIR=/usr/local/afni
+AFNI_INSTALLDIR=/Scratch/AFNI/afni_2016-12-02/linux_fedora_21_64
 # add the AFNI binary path to the search path
 PATH=${AFNI_INSTALLDIR}:${PATH}
 # Location of the plugins
