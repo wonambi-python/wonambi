@@ -149,7 +149,8 @@ let g:syntastic_rst_checkers = ['sphinx']
 " syntastic: Python
 " E123: indent
 " E731: do not assign a lambda expression, use a def
-let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123,E731'
+" W503: line break before binary operator 
+let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123,E731,W503'
 
 " TAGBAR:
 nmap <F8> :TagbarToggle<CR>
