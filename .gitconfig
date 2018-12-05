@@ -3,7 +3,7 @@
     name = Gio at UMCU
 
 [alias]
-    wdiff = diff --color-words -w
+    wdiff = diff --color-words -w --word-diff-regex="[^[:space:],]+|[,]+"
     tree = log --graph --pretty='%C(yellow)%t%Creset%x09%C(cyan)%ad%C(reset) %C(auto)%d%C(reset) %s' --date=local --all
     amend = commit -a --amend --no-edit
 
