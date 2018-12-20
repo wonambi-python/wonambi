@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.62**: RemLogic import upgrade; fix for sleep fragmentation
 - **5.61**: HRVanalysis RRI import; DeltaMed staging import; fixes for staging import, epoch selection
 - **5.60**: online reference available as '_REF'
 - **5.59**: fill in epochs before staging start on import
