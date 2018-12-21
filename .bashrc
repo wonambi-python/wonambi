@@ -25,7 +25,6 @@ export FSLDIR PATH
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_6.0.1
 export LOCAL_DIR=$FREESURFER_HOME/local
-export SUBJECTS_DIR=$FREESURFER_HOME/subjects
 export FSFAST_HOME=$FREESURFER_HOME/fsfast
 export MINC_BIN_DIR=$FREESURFER_HOME/mni/bin
 export MINC_LIB_DIR=$FREESURFER_HOME/mni/lib
@@ -34,6 +33,8 @@ export MNI_DIR=$FREESURFER_HOME/mni
 export PERL5LIB=$MINC_LIB_DIR/perl5/5.8.5
 export FSF_OUTPUT_FORMAT=nii.gz
 export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$MINC_BIN_DIR:$PATH
+
+export SUBJECTS_DIR=/Fridge/users/giovanni/projects/freesurfer
 
 #New AFNI path december  2016
 ## This is basically a copy of /etc/afni/afni.sh, without sourcing the users prefs
