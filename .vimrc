@@ -86,6 +86,8 @@ autocmd BufRead,BufNewFile *.yml set shiftwidth=2
 " use spaces, not tabs
 set expandtab
 
+" no wrapping of long line (maybe not in Markdown)
+set nowrap
 " h l continues on the previous and next line
 set whichwrap+=h,l
 
@@ -170,9 +172,12 @@ nmap <Leader>hu <Plug>GitGutterUndoHunk
 " You can jump between hunks with [g and ]g. You can stage and undo hunks with <leader>hs and <leader>hu
 
 " VIM-JEDI, hide top-window with doc
-let g:jedi#show_call_signatures = 0
-let g:jedi#use_tabs_not_buffers = 1
-let g:jedi#smart_auto_mappings = 0
+if has('python3') == 0
+    let g:jedi#auto_initialization = 0
+    let g:jedi#show_call_signatures = 0
+    let g:jedi#use_tabs_not_buffers = 1
+    let g:jedi#smart_auto_mappings = 0
+endif
 
 " FUNCTIONS
 " remove trailing whitespaces
