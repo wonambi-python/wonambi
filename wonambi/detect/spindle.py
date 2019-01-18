@@ -106,7 +106,7 @@ class DetectSpindle:
             self.rolloff = .4
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
-                              'dur': 10.23
+                              'dur': 8
                                }
             self.moving_rms = {'dur': .25,
                                'step': .25}

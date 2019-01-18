@@ -42,7 +42,7 @@ def test_detect_Martin2013():
     detsp = DetectSpindle(method='Martin2013')
     
     sp = detsp(data)
-    assert len(sp.events) == 1
+    assert len(sp.events) == 2
 
 
 def test_detect_Ray2015():
@@ -100,4 +100,4 @@ def test_detect_spindle_to_data():
     assert sp_data(0)[0] == 1
 
     sp_freq = sp.to_data('peak_freq')
-    assert approx(sp_freq(0)[0]) == 13.793103448275861
+    assert approx(sp_freq(0)[0]) == 14.772727272727273
