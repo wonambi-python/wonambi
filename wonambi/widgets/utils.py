@@ -266,11 +266,14 @@ class FormFloat(QLineEdit):
     widgets.
 
     """
-    def __init__(self, default=None):
+    def __init__(self, default=None, maxw=None):
         super().__init__('')
 
         if default is not None:
             self.set_value(default)
+            
+        if maxw is not None:
+            self.setMaximumWidth(maxw)
 
     def get_value(self, default=0):
         """Get float from widget.

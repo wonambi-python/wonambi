@@ -2,11 +2,15 @@
 """
 
 from logging import getLogger
+from fractions import Fraction
+from numpy import arange, array, zeros
+from scipy.signal import resample_poly
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QComboBox,
                              QErrorMessage,
                              QFormLayout,
+                             QGridLayout,
                              QGroupBox,
                              QHBoxLayout,
                              QLabel,
@@ -14,10 +18,10 @@ from PyQt5.QtWidgets import (QComboBox,
                              )
 
 from ..detect import DetectSpindle, DetectSlowWave
-from ..trans import fetch, math
+from ..trans import fetch, math, filter_
 from .modal_widgets import ChannelDialog
 from .notes import SPINDLE_METHODS, SLOW_WAVE_METHODS
-from .utils import FormStr, FormFloat, FormBool, FormMenu
+from .utils import FormStr, FormFloat, FormBool, FormMenu, FormInt
 
 lg = getLogger(__name__)
 
@@ -119,19 +123,17 @@ class SpindleDialog(ChannelDialog):
         
         box3 = QGroupBox('Options')
 
-        self.index['detrend'] = FormBool('Detrend (linear)')
-        self.index['merge'] = FormBool('Merge events across channels')
         self.index['excl_epoch'] = FormBool('Exclude Poor signal epochs')
         self.index['excl_event'] = FormMenu(['none', 'channel-specific', 
                                       'from any channel'])
         self.index['min_seg_dur'] = FormFloat(5)
+        self.index['merge'] = FormBool('Merge events across channels')
 
         self.index['excl_epoch'].set_value(True)
         self.index['merge'].setCheckState(Qt.Unchecked)
         self.index['merge'].setEnabled(False)
 
         form = QFormLayout(box3)
-        form.addRow(self.index['detrend'])
         form.addRow(self.index['excl_epoch'])
         form.addRow('Exclude Artefact events', 
                     self.index['excl_event'])
@@ -139,6 +141,32 @@ class SpindleDialog(ChannelDialog):
                        self.index['min_seg_dur'])
         form.addRow(self.index['merge'])
 
+        box4 = QGroupBox('Pre-processing')
+        
+        self.index['resample'] = FormBool('Resample (polyphase)')
+        self.index['rs_freq'] = FormInt()
+        self.index['prep_filt'] = FormBool('Bandpass filter')
+        self.index['prep_lc'] = FormFloat()
+        self.index['prep_hc'] = FormFloat()
+        self.index['detrend'] = FormBool('Detrend (linear)')
+        
+        rsbox = QHBoxLayout()
+        rsbox.addWidget(self.index['rs_freq'])
+        rsbox.addWidget(QLabel('Hz'))
+        
+        filtbox = QHBoxLayout()
+        filtbox.addWidget(self.index['prep_lc'])
+        filtbox.addWidget(QLabel('-'))
+        filtbox.addWidget(self.index['prep_hc'])
+        filtbox.addWidget(QLabel('Hz'))
+        
+        grid = QGridLayout(box4)
+        #grid.addWidget(self.index['resample'], 0, 0)
+        #grid.addLayout(rsbox, 0, 1)
+        grid.addWidget(self.index['prep_filt'], 1, 0)
+        grid.addLayout(filtbox, 1, 1)
+        grid.addWidget(self.index['detrend'], 2, 0, 1, 2)        
+        
         self.bbox.clicked.connect(self.button_clicked)
 
         btnlayout = QHBoxLayout()
@@ -148,6 +176,7 @@ class SpindleDialog(ChannelDialog):
         vlayout = QVBoxLayout()
         vlayout.addWidget(box1)
         vlayout.addWidget(box3)
+        vlayout.addWidget(box4)
         vlayout.addStretch(1)
         vlayout.addLayout(btnlayout)
 
@@ -225,6 +254,39 @@ class SpindleDialog(ChannelDialog):
                 return
 
             data = data[0]['data']
+            
+# =============================================================================
+#             if params['resample']:                
+#                 rs_freq = params['rs_freq']
+#                 ratio = rs_freq / data.s_freq
+#                 up = Fraction(ratio).numerator
+#                 dn = Fraction(ratio).denominator
+#                 
+#                 rs_dat = zeros((data.number_of('chan')[0], 
+#                                 int(data.number_of('time')[0] * ratio)))
+#                 
+#                 for i in range(data.number_of('chan')[0]):                    
+#                     rs_dat[i, :] = resample_poly(data.data[0][i], up, dn)
+#                          
+#                 data.data[0] = rs_dat
+#                 data.s_freq = rs_freq
+#                 start_time = data.axis['time'][0][0]
+#                 end_time = data.axis['time'][0][-1]
+#                 data.axis['time'][0] = arange(start_time, end_time, 
+#                          1 / rs_freq)
+#                 lg.info(str(data.data.shape))
+#                 lg.info(str(data.data[0].shape))
+#                 lg.info(str(data.data[0][0].shape))
+#                 lg.info(str(data.axis['time'].shape))
+#                 lg.info(str(data.s_freq))
+# =============================================================================
+            
+            if params['prep_filt']:
+                low_cut = params['prep_lc']
+                high_cut = params['prep_hc']
+                data = filter_(data, axis='time', low_cut=low_cut, 
+                               high_cut=high_cut)
+            
             if params['detrend']:
                 data = math(data, operator_name='detrend', axis='time')            
             

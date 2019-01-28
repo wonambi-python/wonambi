@@ -54,7 +54,7 @@ class DetectSpindle:
             self.rolloff = 0.9
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
-                              'dur': 1.18
+                              'dur': 2.56
                               }
             self.duration = (0.3, 3)
             self.det_thresh = 8
@@ -78,7 +78,7 @@ class DetectSpindle:
             self.rolloff = 1.7
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
-                              'dur': 1.18
+                              'dur': 2.36
                                }
             self.duration = (0.5, 3)
             self.moving_rms = {'dur': .2,
@@ -101,12 +101,12 @@ class DetectSpindle:
 
         elif method == 'Martin2013':
             if self.frequency is None:
-                self.frequency = (11, 16)
+                self.frequency = (11.5, 14.5)
             self.duration = (.5, 3)
             self.rolloff = .4
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
-                              'dur': 1
+                              'dur': 8
                                }
             self.moving_rms = {'dur': .25,
                                'step': .25}
