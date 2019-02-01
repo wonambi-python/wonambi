@@ -74,10 +74,7 @@ class Graphoelement:
         name : str
             name for the event type        
         """
-        for one_ev in self.events:
-            annot.add_event(name,
-                            (one_ev['start'], one_ev['end']),
-                            chan=one_ev['chan'])
+        annot.add_events(name, self.events)
 
 
 class Ripple(Graphoelement):

@@ -2,7 +2,7 @@
 """
 from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, around, asarray, 
-                   concatenate, cos, diff, exp, empty, floor, histogram, 
+                   concatenate, cos, diff, exp, empty, histogram, 
                    hstack, insert, invert, log10, logical_and, mean, median, 
                    nan, ones, percentile, pi, ptp, real, sqrt, square, std, 
                    vstack, where, zeros)
@@ -103,10 +103,10 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (11.5, 14.5)
             self.duration = (.5, 3)
-            self.rolloff = .4
+            self.rolloff = 1.1
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
-                              'dur': 8
+                              'dur': 2.56
                                }
             self.moving_rms = {'dur': .25,
                                'step': .25}
@@ -137,7 +137,7 @@ class DetectSpindle:
             self.det_butter = {'freq': self.frequency,
                                'order': 20}
             self.det_butter2 = {'freq': (.3, 30),
-                                'order': 10}
+                                'order': 5}
             self.windowing = win = {'dur': .3,
                                     'step': .1}
             self.moving_ms = {'dur': win['dur'],

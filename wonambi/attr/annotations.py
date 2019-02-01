@@ -551,7 +551,14 @@ class Annotations():
             idx_stage = slice(30 + spacer, 30 + spacer + 1)
             
             if epoch_length is None:
-                epoch_length = int(lines[3][46:48])
+                idx_epoch_length = None
+                for i,j in enumerate(lines[3]):
+                    if j.isdigit():
+                        idx_epoch_length = i, i + lines[3][i:].index(' ')
+                        epoch_length = int(lines[3][slice(*idx_epoch_length)])
+                        break
+                if idx_epoch_length is None:
+                    epoch_length = 30
 
         else:
             raise ValueError('Unknown source program for staging file')
@@ -842,6 +849,34 @@ class Annotations():
 
         self.save()
 
+    def add_events(self, name, event_list):
+        """Add series of events. Faster than calling add_event in a loop.
+        """
+        if name not in self.event_types:
+            self.add_event_type(name)
+
+        events = self.rater.find('events')
+        pattern = "event_type[@type='" + name + "']"
+        event_type = events.find(pattern)
+
+        for evt in event_list:
+            new_event = SubElement(event_type, 'event')
+            event_start = SubElement(new_event, 'event_start')
+            event_start.text = str(evt['start'])
+            event_end = SubElement(new_event, 'event_end')
+            event_end.text = str(evt['end'])
+    
+            chan = evt['chan']
+            if isinstance(chan, (tuple, list)):
+                chan = ', '.join(chan)
+            event_chan = SubElement(new_event, 'event_chan')
+            event_chan.text = chan
+    
+            event_qual = SubElement(new_event, 'event_qual')
+            event_qual.text = 'Good' 
+
+        self.save()
+    
     def remove_event(self, name=None, time=None, chan=None):
         """get events inside window."""
         events = self.rater.find('events')
