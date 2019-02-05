@@ -24,7 +24,7 @@ install:
  # install requirements
  - pip install numpy scipy
  - pip install $OPT_DEP
- - pip install "pytest=3.6"
+ - pip install "pytest==3.6"
  - pip install pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme
  - pip install -e .
