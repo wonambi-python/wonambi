@@ -68,6 +68,13 @@ export PATH=~/tools/bin:$PATH
 # custom firefox
 export PATH=~/tools/bin/firefox:$PATH
 
+# custom SQL schema
+export PATH=~/tools/bin/schemacrawler:$PATH
+
+sql_schema(){
+    schemacrawler.sh -server sqlite -database "$1" -password= -command=schema -outputformat=png -outputfile=sql_schema.png
+}
+
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
 
