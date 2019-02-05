@@ -1435,30 +1435,13 @@ class Notes(QTabWidget):
             return
         
         if not keep_name:
-            name, ok = self.new_eventtype()
-            
+            name, ok = self.new_eventtype()            
             if not ok:
-                return
-
-        progress = QProgressDialog('Saving events', 'Abort',
-                                       0, len(markers), self)
-        progress.setWindowModality(Qt.ApplicationModal)
-        
-        for i, mrk in enumerate(markers):
-            progress.setValue(i)
-            
-            if keep_name:
-                name = mrk['name']
+                return            
+        else:
+            name = None
                 
-            self.annot.add_event(name, (mrk['start'], mrk['end']), chan='')
-            
-            if progress.wasCanceled():
-                msg = ('Conversion interrupted. Not all events were saved '
-                       'to the Annotations File.')
-                self.parent.statusBar().showMessage(msg)
-                return
-            
-        progress.setValue(i + 1)
+        self.annot.add_events(markers, name=name, chan='')
         
         if keep_name:
             self.display_eventtype()
@@ -1583,7 +1566,7 @@ class Notes(QTabWidget):
         events = detector(data, parent=self)
 
         if events:
-            self.annot.add_events(label, events)
+            self.annot.add_events(events, name=label)
 
         self.update_annotations()
 
@@ -1827,9 +1810,7 @@ class MergeDialog(QDialog):
             for etype in evt_types:
                 self.parent.notes.annot.remove_event_type(etype)
 
-            for ev in events:
-                self.parent.notes.add_event(name, (ev['start'], ev['end']),
-                                            ev['chan'])
+            self.parent.notes.add_events(events, name=name, chan=None)
 
             self.parent.notes.display_eventtype()
             n_eventtype = self.parent.notes.idx_eventtype.count()

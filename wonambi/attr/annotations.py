@@ -849,8 +849,18 @@ class Annotations():
 
         self.save()
 
-    def add_events(self, name, event_list):
+    def add_events(self, event_list, name=None, chan=None):
         """Add series of events. Faster than calling add_event in a loop.
+        Parameters
+        ----------
+        event_list : list of dict
+            each dict is an event with 'start' and 'end' times
+        name : str, optional
+            save events to this event type. If None, channel will be
+            read from the event list dict under 'name' 
+        chan : str or list of str, optional
+            save events to this or these channel(s). If None, channel will be
+            read from the event list dict under 'chan'        
         """
         if name not in self.event_types:
             self.add_event_type(name)
@@ -866,7 +876,8 @@ class Annotations():
             event_end = SubElement(new_event, 'event_end')
             event_end.text = str(evt['end'])
     
-            chan = evt['chan']
+            if chan is None:
+                chan = evt['chan']
             if isinstance(chan, (tuple, list)):
                 chan = ', '.join(chan)
             event_chan = SubElement(new_event, 'event_chan')

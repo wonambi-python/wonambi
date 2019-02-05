@@ -64,7 +64,7 @@ class Graphoelement:
         data.data[0] = asarray(values)
         return data
     
-    def to_annot(self, annot, name):
+    def to_annot(self, annot, name=None, chan=None):
         """Write events to Annotations file.
         
         Parameters
@@ -74,7 +74,7 @@ class Graphoelement:
         name : str
             name for the event type        
         """
-        annot.add_events(name, self.events)
+        annot.add_events(self.events, name=name, chan=None)
 
 
 class Ripple(Graphoelement):
