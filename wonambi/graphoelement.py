@@ -74,7 +74,7 @@ class Graphoelement:
         name : str
             name for the event type        
         """
-        annot.add_events(self.events, name=name, chan=None)
+        annot.add_events(self.events, name=name, chan=chan)
 
 
 class Ripple(Graphoelement):
@@ -174,6 +174,28 @@ class Spindles(Graphoelement):
                        'peak_time': None,
                        }
         self.events.append(one_spindle)
+
+class Arousals(Graphoelement):
+    """Class containing all the arousals in one dataset.
+
+    Attributes
+    ----------
+    events : list of dict
+        list of arousals, where each arousal contains:
+            - start_time : float
+                start time of the arousal
+            - end_time : float
+                end time of the arousal
+            - chan': str
+                channel label
+    """
+    def __init__(self):
+        super().__init__()
+        one_arousal = {'start_time': None,
+                       'end_time': None,
+                       'chan': [],
+                       }
+        self.events.append(one_arousal)
 
 
 def events_from_csv(source_file, stage=[]):

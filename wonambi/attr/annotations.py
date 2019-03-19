@@ -876,12 +876,13 @@ class Annotations():
             event_end = SubElement(new_event, 'event_end')
             event_end.text = str(evt['end'])
     
+            one_chan = chan
             if chan is None:
-                chan = evt['chan']
-            if isinstance(chan, (tuple, list)):
-                chan = ', '.join(chan)
+                one_chan = evt['chan']
+            if isinstance(one_chan, (tuple, list)):
+                one_chan = ', '.join(chan)
             event_chan = SubElement(new_event, 'event_chan')
-            event_chan.text = chan
+            event_chan.text = one_chan
     
             event_qual = SubElement(new_event, 'event_qual')
             event_qual.text = 'Good' 
@@ -1501,6 +1502,11 @@ class Annotations():
         float or None
             If there are no epochs scored as sleep, returns None. Otherwise,
             returns the sleep onset latency, for testing purposes.
+            
+        Note
+        ----
+        Total dark time and sleep efficiency does NOT subtract epochs marked as
+        Undefined or Unknown.
         """
         epochs = self.get_epochs()
         ep_starts = [i['start'] for i in epochs]

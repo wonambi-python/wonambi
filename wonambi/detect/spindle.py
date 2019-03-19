@@ -5,11 +5,11 @@ from numpy import (absolute, arange, argmax, argmin, around, asarray,
                    concatenate, cos, diff, exp, empty, histogram, 
                    hstack, insert, invert, log10, logical_and, mean, median, 
                    nan, ones, percentile, pi, ptp, real, sqrt, square, std, 
-                   vstack, where, zeros)
+                   sum, vstack, where, zeros)
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
                           fftconvolve, hilbert, periodogram, remez, 
-                          sosfiltfilt, tukey)
+                          sosfiltfilt, spectrogram, tukey)
 from scipy.fftpack import next_fast_len
 try:
     from PyQt5.QtCore import Qt
@@ -37,7 +37,7 @@ class DetectSpindle:
         min and max duration of spindles
     """
     def __init__(self, method='Moelle2011', frequency=None, duration=None,
-                 merge=True):
+                 merge=False):
 
         self.method = method
         self.merge = merge
@@ -293,6 +293,7 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_Ray2015(dat_orig,
                                                             data.s_freq,
                                                             time, self)
+                
             elif self.method == 'Lacourse2018':
                 sp_in_chan, values, density = detect_Lacourse2018(dat_orig,
                                                                   data.s_freq,
@@ -308,7 +309,8 @@ class DetectSpindle:
                 sp_in_chan, values, density = detect_FASST(dat_orig,
                                                            data.s_freq,
                                                            time, self,
-                                                           submethod='rms')            
+                                                           submethod='rms')
+                
             elif self.method == 'Concordia':
                 sp_in_chan, values, density = detect_Concordia(dat_orig,
                                                                data.s_freq,
@@ -1301,6 +1303,15 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         b, a = butter(N, Wn, btype='lowpass')
         dat = filtfilt(b, a, dat)
     
+    if 'high_butter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+        nyquist = s_freq / 2
+        
+        Wn = freq / nyquist
+        b, a = butter(N, Wn, btype='highpass')
+        dat = filtfilt(b, a, dat)
+    
     if 'morlet' == method:
         f0 = method_opt['f0']
         sd = method_opt['sd']
@@ -1350,8 +1361,6 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 f1 = asarray([abs(x - freq1[1]) for x in sf]).argmin()
                 pow1 = sum(psd[f0:f1])
                 
-                sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
-                                       detrend='constant')
                 f0 = asarray([abs(x - freq2[0]) for x in sf]).argmin()
                 f1 = asarray([abs(x - freq2[1]) for x in sf]).argmin()
                 pow2 = sum(psd[f0:f1])
@@ -1432,6 +1441,14 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         sos = butter(N, Wn, btype='bandpass', output='sos')
         dat = sosfiltfilt(sos, dat)
         
+    if 'spectrogram' == method:
+        nperseg = method_opt['dur'] * s_freq
+        noverlap = method_opt['step'] * s_freq
+        detrend = method_opt['detrend']
+        
+        dat = spectrogram(dat, fs=s_freq, nperseg=nperseg, noverlap=noverlap, 
+                          detrend=detrend)
+    
     if 'wavelet_real' == method:
         freqs = method_opt['freqs']
         dur = method_opt['dur']
@@ -1671,7 +1688,7 @@ def within_duration(events, time, limits):
     Parameters
     ----------
     events : ndarray (dtype='int')
-        N x 3 matrix with start, peak, end samples
+        N x M matrix with start sample first and end samples last on M
     time : ndarray (dtype='float')
         vector with time points
     limits : tuple of float
@@ -1680,15 +1697,15 @@ def within_duration(events, time, limits):
     Returns
     -------
     ndarray (dtype='int')
-        N x 3 matrix with start , peak, end samples
+        N x M matrix with start sample first and end samples last on M
     """
     min_dur = max_dur = ones(events.shape[0], dtype=bool)
     
     if limits[0] is not None:
-        min_dur = time[events[:, 2] - 1] - time[events[:, 0]] >= limits[0]
+        min_dur = time[events[:, -1] - 1] - time[events[:, 0]] >= limits[0]
     
     if limits[1] is not None:
-        max_dur = time[events[:, 2] - 1] - time[events[:, 0]] <= limits[1]
+        max_dur = time[events[:, -1] - 1] - time[events[:, 0]] <= limits[1]
 
     return events[min_dur & max_dur, :]
 

@@ -33,7 +33,7 @@ before_script:
   - "export DISPLAY=:99.0"
 
 script:
- - python -c "import vispy; print(vispy.sys_info()); exit()"
+# - python -c "import vispy; print(vispy.sys_info()); exit()"
  - python setup_wonambi.py --tests
 
  # test without optional requirements (append .coverage)
