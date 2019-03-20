@@ -36,6 +36,8 @@ class OpenEphys:
     ----------
     filename : Path
         Full path for the EDF file
+    session : int
+        session number (starting at 1, based on open-ephys convention)
 
     Attributes
     ----------
@@ -46,10 +48,17 @@ class OpenEphys:
     gain : 1D array
         gain to convert digital to microvolts (one value per channel)
     """
-    def __init__(self, filename):
+    def __init__(self, filename, session=1):
+
+        if session == 1:
+            self.session = ''
+        else:
+            self.session = f'_{session:d}'
+
         self.filename = filename.resolve()
-        self.openephys_file = filename / 'Continuous_Data.openephys'
-        self.settings_xml = filename / 'settings.xml'
+        self.openephys_file = filename / f'Continuous_Data{self.session}.openephys'
+        self.settings_xml = filename / f'settings{self.session}.xml'
+        self.messages = filename / f'messages{self.session}.events'
 
     def return_hdr(self):
         """Return the header for further use.
