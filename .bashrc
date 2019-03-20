@@ -81,4 +81,7 @@ PS1='[\u@\h:\w]\$ '
 # use all colors in MATE terminal
 TERM=xterm-256color
 
+# remember history from all the terminals
+export PROMPT_COMMAND='history -a'
+
 alias flywheel="fw login $FLYWHEEL_TOKEN"
