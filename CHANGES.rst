@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.66**: fixes for spindle detection. NOTE: spindle detection no longer merges across channels by default
 - **5.65**: fix for event writing
 - **5.64**: much faster event detection; spindle detection tweaks (Ferrarelli, Moelle, Martin)
 - **5.63**: tweaks for filters in Ferrarelli, Moelle and Martin spindle detectors
