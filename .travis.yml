@@ -8,7 +8,7 @@ env:
   global:
    - DOWNLOADS=$HOME/downloads
    - HTML_PATH=docs/build/html
-   - OPT_DEP='nibabel pyqt5==5.12.1 vispy h5py fooof bidso'
+   - OPT_DEP='nibabel pyqt5==5.11.3 vispy h5py fooof bidso'
 
 cache: 
  - directories:
