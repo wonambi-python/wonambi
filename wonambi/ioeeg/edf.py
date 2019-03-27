@@ -160,6 +160,10 @@ class Edf:
             lg.warning('physical_min is higher than physical_max. Check whether the polarity of your recordings is correct')
         if (dig_range < 0).any():
             lg.warning('digital_min is higher than digital_max. Check whether the polarity of your recordings is correct')
+        if sum(self.dig_min) == 0:
+            lg.warning('digital_min is zero. Setting to -32767.')
+            self.dig_min = ones(self.dig_min.shape) * -32767.0
+            dig_range = 2 * 32767.0
         self.gain = phys_range / dig_range
 
         subj_id = self.hdr['subject_id']
