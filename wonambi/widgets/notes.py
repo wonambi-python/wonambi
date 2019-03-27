@@ -451,9 +451,13 @@ class Notes(QTabWidget):
                                       as_qual=True))
         actions['import_deltamed_qual'] = act
         
-        act = QAction('Import Events', self)
-        act.triggered.connect(self.import_events)
-        actions['imp_evt_csv'] = act
+        act = QAction('Wonambi', self)
+        act.triggered.connect(partial(self.import_events, 'wonambi'))
+        actions['import_events_wonambi'] = act
+        
+        act = QAction('RemLogic', self)
+        act.triggered.connect(partial(self.import_events, 'remlogic'))
+        actions['import_events_remlogic'] = act
 
         act = QAction('CSV', self)
         act.triggered.connect(partial(self.export, xformat='csv'))
@@ -1591,21 +1595,31 @@ class Notes(QTabWidget):
 
         self.annot.export(filename, xformat=xformat)
 
-    def import_events(self):
-        """action: import events from Wonambi CSV event export."""
+    def import_events(self, source='wonambi'):
+        """action: import events from text file (Wonambi or RemLogic)."""
         if self.annot is None:  # remove if buttons are disabled
             self.parent.statusBar().showMessage('No score file loaded')
             return
 
+        if 'wonambi' == source:
+            format_str = 'CSV File (*.csv)'
+            rec_start = None
+        
+        elif 'remlogic' == source:
+            format_str = 'Text file (*.txt)'
+            rec_start = self.parent.info.dataset.header['start_time']
+            
+        
         fn, _ = QFileDialog.getOpenFileName(self, 'Import events',
-                                            None, 'CSV File (*.csv)')
+                                            None, format_str)
         
         if fn == '':
             return
         
         fn = Path(fn).resolve()
 
-        self.annot.import_events(fn, parent=self.parent)
+        self.annot.import_events(fn, source=source, rec_start=rec_start,
+                                 parent=self.parent)
         self.display_notes()        
     
     def export_sleeps_stats(self):

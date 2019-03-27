@@ -285,7 +285,9 @@ def create_menubar(MAIN):
     submenu_import_qual.addAction(actions['import_remlogic_qual'])
     submenu_import_qual.addAction(actions['import_sandman_qual'])
     
-    menu_annot.addAction(actions['imp_evt_csv'])
+    submenu_import_event = menu_annot.addMenu('Import Events')
+    submenu_import_event.addAction(actions['import_events_wonambi'])
+    submenu_import_event.addAction(actions['import_events_remlogic'])
     menu_annot.addSeparator()
     
     submenu_export_staging = menu_annot.addMenu('Export Staging')

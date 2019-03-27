@@ -381,8 +381,8 @@ class Annotations():
         if as_qual and rater_name not in self.raters:            
             self.parent.statusBar.showMessage('Rater not found.')
             return
-        checker = None
-        idx_check = None
+        clue = None # used in some instances to pick out epochs from other evts
+        idx_clue = None
             
         if source in ['remlogic', 'sandman']:
             encoding = 'ISO-8859-1'
@@ -423,9 +423,11 @@ class Annotations():
                 epoch_length = int(lines[5][6:8])
 
         elif source == 'remlogic':
+            clue = 'SLEEP-' # signifies an epoch (as opposed to an event)
+            idx_clue = slice(-18, -6)            
             idx_head = lines.index(
                     next(l for l in lines if 'Time [hh:mm:ss]' in l))
-            first_line = next(l for l in lines[idx_head:] if 'SLEEP-S' in l)
+            first_line = next(l for l in lines[idx_head:] if clue in l)
             idx_first_line = lines.index(first_line)
             
             stage_start_date = _try_parse_datetime(
@@ -458,10 +460,7 @@ class Annotations():
             idx_stage = slice(-6, -4)
             
             if epoch_length is None:
-                epoch_length = int(first_line[-3:-1])
-                
-            checker = epoch_length
-            idx_check = slice(-3, -1)
+                epoch_length = int(first_line[-3:-1])                            
 
         elif source == 'alice':
             stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
@@ -606,15 +605,16 @@ class Annotations():
                 quality = SubElement(epoch, 'quality')
                 quality.text = 'Good'
             
+            idx_epoch = 0
             for i, one_line in enumerate(lines[idx_first_line:]):
-                if checker is not None:
-                    if int(one_line[idx_check]) != checker:
+                if clue is not None:
+                    if clue not in one_line[idx_clue]:
                         continue
                 
                 epoch = SubElement(stages, 'epoch')
 
                 start_time = SubElement(epoch, 'epoch_start')
-                epoch_beg = first_second + (i * epoch_length)
+                epoch_beg = first_second + (idx_epoch * epoch_length)
                 start_time.text = str(epoch_beg)
 
                 end_time = SubElement(epoch, 'epoch_end')
@@ -637,7 +637,9 @@ class Annotations():
                     quality.text = 'Poor'
                 else:
                     quality.text = 'Good'
-
+                    
+                idx_epoch += 1
+                    
         self.save()
     
     def add_bookmark(self, name, time, chan=''):
@@ -1873,21 +1875,30 @@ class Annotations():
                                    ', '.join(ev['chan']),
                                    ])
             
-    def import_events(self, source_file, parent=None):
+    def import_events(self, filename, source='wonambi', rec_start=None, 
+                      parent=None):
         """Import events from Wonambi CSV event export and write to annot.
         
         Parameters
         ----------
-        source_file : str
-            path to file CSV file
+        filename : str
+            path to file
+        source : str
+            source program: 'wonambi' or 'remlogic'
+        rec_start : datetime
+            Date and time (year, month, day, hour, minute, second) of recording
+            start. Year is ignored (New Year's Eve celebratory recordings
+            unsupported.) Only required for remlogic.
         parent : QWidget
             for GUI progress bar
         """
         events = []
         
-        with open(source_file, 'r', encoding='utf-8') as csvfile:
-            csv_reader = reader(csvfile, delimiter=',')
-            
+        if 'wonambi' == source:
+        
+            with open(filename, 'r', encoding='utf-8') as csvfile:
+                csv_reader = reader(csvfile, delimiter=',')
+                
             for row in csv_reader:
                 try:
                     int(row[0])
@@ -1903,20 +1914,62 @@ class Annotations():
                 except ValueError:
                     continue
                 
+        elif 'remlogic' == source:
+    
+            with open(filename, 'r', encoding='ISO-8859-1') as f:
+                lines = f.readlines()
+                
+            idx_header = lines.index(next(
+                    l for l in lines if 'Time [hh:mm:ss]' in l))
+            header = lines[idx_header].split('\t')
+            header = [s.strip() for s in header] # remove trailing newline
+            idx_time = header.index('Time [hh:mm:ss]')
+            idx_evt = header.index('Event')
+            idx_dur = header.index('Duration[s]')
+            
+            # Find staging start date
+            stage_start_date = _try_parse_datetime(
+                    lines[3][16:lines[3].index('\n')], 
+                    ('%Y/%m/%d', '%d/%m/%Y'))
+            
+            # Events loop
+            for l in lines[idx_header + 1:]:
+                cells = l.split('\t')
+                one_evttype = cells[idx_evt]
+                
+                # skip epoch staging
+                if 'SLEEP-' in one_evttype:
+                    continue
+                
+                clock_start = _remlogic_time(cells[idx_time], stage_start_date)
+                start = float((clock_start - rec_start).total_seconds())
+                
+                one_ev = {'name': one_evttype,
+                          'start': start,
+                          'end': start + float(cells[idx_dur]),
+                          'chan': '',
+                          'stage': '',
+                          'quality': 'Good'
+                              }
+                events.append(one_ev)
+                
+        else:
+            raise ValueError('Unknown source program for events file')
+            
+        if parent is not None:
+            progress = QProgressDialog('Saving events', 'Abort',
+                               0, len(events) - 1, parent)
+            progress.setWindowModality(Qt.ApplicationModal)
+            
+        for i, one_ev in enumerate(events):
+            self.add_event(one_ev['name'],
+                            (one_ev['start'], one_ev['end']),
+                            chan=one_ev['chan'])
+            
             if parent is not None:
-                progress = QProgressDialog('Saving events', 'Abort',
-                                   0, len(events) - 1, parent)
-                progress.setWindowModality(Qt.ApplicationModal)
-                
-            for i, one_ev in enumerate(events):
-                self.add_event(one_ev['name'],
-                                (one_ev['start'], one_ev['end']),
-                                chan=one_ev['chan'])
-                
-                if parent is not None:
-                    progress.setValue(i)                    
-                    if progress.wasCanceled():
-                        return
+                progress.setValue(i)                    
+                if progress.wasCanceled():
+                    return
 
         if parent is not None:
             progress.close()
@@ -2040,3 +2093,30 @@ def _try_parse_datetime(text, fmts):
         except ValueError:
             pass
     raise ValueError('No valid date found.')
+    
+def _remlogic_time(time_cell, date):
+    """Reads RemLogic time string to datetime
+    
+    Parameters
+    ----------
+    time_cell : str
+        entire time cell from text file
+    date : datetime
+        start date from text file
+        
+    Returns
+    -------
+    datetime
+        date and time
+    """
+    stage_start_time = datetime.strptime(time_cell[-8:], '%I:%M:%S')
+    start = datetime.combine(date.date(), stage_start_time.time())
+    
+    if time_cell[1] == 'U':
+        start = start + timedelta(hours=12)
+    elif time_cell[-8:-10] == '12':
+        start = start + timedelta(hours=12)
+    else:
+        start = start + timedelta(hours=24)
+        
+    return start
