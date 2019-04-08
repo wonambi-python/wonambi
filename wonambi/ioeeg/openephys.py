@@ -58,7 +58,8 @@ class OpenEphys:
         self.filename = filename.resolve()
         self.openephys_file = filename / f'Continuous_Data{self.session}.openephys'
         self.settings_xml = filename / f'settings{self.session}.xml'
-        self.messages = filename / f'messages{self.session}.events'
+        self.messages_file = filename / f'messages{self.session}.events'
+        self.events_file = filename / f'all_channels{self.session}.events'
 
     def return_hdr(self):
         """Return the header for further use.
