@@ -78,41 +78,45 @@ def detect_format(filename):
     Returns
     -------
     class used to read the data.
+
+    list : indices of sessions
     """
+    sessions = [1, ]  # start counting from 1
     filename = Path(filename)
 
     if filename.is_dir():
         if list(filename.glob('*.stc')) and list(filename.glob('*.erd')):
-            return Ktlx
+            return Ktlx, sessions
         elif (filename / 'patient.info').exists():
-            return Moberg
+            return Moberg, sessions
         elif (filename / 'info.xml').exists():
-            return EgiMff
+            return EgiMff, sessions
         elif list(filename.glob('*.openephys')):
-            return OpenEphys
+            sessions = _count_openephys_sessions(filename)
+            return OpenEphys, sessions
         elif list(filename.glob('*.txt')):
-            return Text
+            return Text, sessions
         else:
             raise UnrecognizedFormat('Unrecognized format for directory ' +
                                      str(filename))
     else:
         if filename.suffix == '.won':
-            return Wonambi
+            return Wonambi, sessions
 
         if filename.suffix.lower() == '.trc':
-            return Micromed
+            return Micromed, sessions
 
         if filename.suffix == '.set':
-            return EEGLAB
+            return EEGLAB, sessions
 
         if filename.suffix == '.edf':
-            return Edf
+            return Edf, sessions
 
         if filename.suffix == '.abf':
-            return Abf
+            return Abf, sessions
 
         if filename.suffix == '.vhdr' or filename.suffix == '.eeg':
-            return BrainVision
+            return BrainVision, sessions
 
         if filename.suffix == '.dat':  # very general
             try:
@@ -122,21 +126,21 @@ def detect_format(filename):
                 pass
 
             else:
-                return BCI2000
+                return BCI2000, sessions
 
         with filename.open('rb') as f:
             file_header = f.read(8)
             if file_header in (b'NEURALCD', b'NEURALSG', b'NEURALEV'):
-                return BlackRock
+                return BlackRock, sessions
             elif file_header[:6] == b'MATLAB':  # we might need to read more
-                return FieldTrip
-        
+                return FieldTrip, sessions
+
         if filename.suffix.lower() == '.txt':
             with filename.open('rt') as f:
                 first_line = f.readline()
                 if '.rr' in first_line[-4:]:
-                    return LyonRRI
-        
+                    return LyonRRI, sessions
+
         else:
             raise UnrecognizedFormat('Unrecognized format for file ' +
                                      str(filename))
@@ -188,7 +192,7 @@ class Dataset:
     differences, for example, if the argument points to a file within a
     directory, or if the file is mapped to memory.
     """
-    def __init__(self, filename, IOClass=None, bids=False):
+    def __init__(self, filename, IOClass=None, session=None, bids=False):
         self.filename = Path(filename)
 
         if bids:
@@ -197,9 +201,20 @@ class Dataset:
         if IOClass is not None:
             self.IOClass = IOClass
         else:
-            self.IOClass = detect_format(filename)
+            self.IOClass, sessions = detect_format(filename)
 
-        self.dataset = self.IOClass(self.filename)
+        if self.IOClass in (OpenEphys, ):
+            if session is None:
+                session = 1
+                if len(sessions) > 1:
+                    lg.warning(f'Multiple sessions in the dataset, selecting the first one. You can specify the session with "session="')
+
+            lg.debug(f'Reading session {session}')
+            self.dataset = self.IOClass(self.filename, session=session)
+
+        else:
+            self.dataset = self.IOClass(self.filename)
+
         output = self.dataset.return_hdr()
         hdr = {}
         hdr['subj_id'] = output[0]
@@ -360,20 +375,38 @@ class Dataset:
         data.axis['time'] = empty(n_trl, dtype='O')
         data.data = empty(n_trl, dtype='O')
 
-        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):            
+        for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
             dataset = self.dataset
             lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,
                      one_endsam))
             dat = dataset.return_dat(idx_chan, one_begsam, one_endsam)
             chan_in_dat = chan
-            
+
             if add_ref:
                 zero_ref = zeros((1, one_endsam - one_begsam))
                 dat = concatenate((dat, zero_ref), axis=0)
                 chan_in_dat.append('_REF')
-            
+
             data.data[i] = dat
             data.axis['chan'][i] = asarray(chan_in_dat, dtype='U')
             data.axis['time'][i] = (arange(one_begsam, one_endsam) / s_freq)
 
         return data
+
+
+def _count_openephys_sessions(filename):
+    """Open-ephys can have multiple sessions. We count how many files are in
+    the format:
+      - Continuous_Data.openephys
+      - Continuous_Data_2.openephys
+      - Continuous_Data_3.openephys
+    """
+    sessions = []
+    for f in filename.glob('*.openephys'):
+        session_number = f.stem[16:]
+        if session_number == '':
+            sessions.append(1)
+        else:
+            sessions.append(int(session_number))
+
+    return sorted(sessions)

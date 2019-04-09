@@ -22,9 +22,11 @@ from PyQt5.QtWidgets import (QAbstractItemView,
                              )
 
 from .. import Dataset
+from ..dataset import detect_format
 from ..ioeeg import write_wonambi, write_edf
 from .utils import (short_strings, ICON, keep_recent_datasets,
-                    choose_file_or_dir, FormBool, FormFloat, FormMenu)
+                    choose_file_or_dir, select_session, FormBool, FormFloat,
+                    FormMenu)
 
 lg = getLogger(__name__)
 settings = QSettings("wonambi", "wonambi")
@@ -214,7 +216,13 @@ class Info(QWidget):
                                             basename(filename))
         lg.info('Reading dataset: ' + str(filename))
         self.filename = filename # temp
-        self.dataset = Dataset(filename) #temp
+        IOClass, sessions = detect_format(filename)
+        if len(sessions) > 1:
+            session = select_session(sessions)
+            self.dataset = Dataset(filename, session=session + 1) #temp
+        else:
+            self.dataset = Dataset(filename) #temp
+
 #==============================================================================
 #         try:
 #             self.filename = filename
@@ -339,7 +347,7 @@ class ExportDatasetDialog(QDialog):
 
     def create_dialog(self):
         """Create the dialog."""
-        self.bbox = QDialogButtonBox(QDialogButtonBox.Ok | 
+        self.bbox = QDialogButtonBox(QDialogButtonBox.Ok |
                 QDialogButtonBox.Cancel)
         self.idx_ok = self.bbox.button(QDialogButtonBox.Ok)
         self.idx_cancel = self.bbox.button(QDialogButtonBox.Cancel)
