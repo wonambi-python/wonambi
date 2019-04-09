@@ -8,9 +8,10 @@ might change in the future.
 from datetime import datetime
 from logging import getLogger
 from struct import unpack, calcsize
+from re import search, match
 from xml.etree import ElementTree
 
-from numpy import array, ones, empty, NaN
+from numpy import array, ones, empty, NaN, fromfile, unique
 
 from .edf import _select_blocks
 
@@ -139,11 +140,11 @@ class OpenEphys:
     def return_markers(self):
         """Read the markers from the .events file
 
-        TODO
-        ----
-        read markers from openephys
         """
-        return []
+        mrk_offset, mrk_sfreq, messages = _read_messages_events(self.messages_file)
+        events = _read_all_channels_events(self.events_file, mrk_offset, mrk_sfreq)
+
+        return messages + events
 
 
 def _read_block_continuous(f, i_block):
@@ -300,3 +301,61 @@ def _check_header(channel_file, s_freq):
     assert int(hdr['sampleRate']) == s_freq
 
     return float(hdr['bitVolts'])
+
+
+def _read_messages_events(messages_file):
+    messages = []
+    read_header = True
+    with messages_file.open() as f:
+        for l in f:
+            if read_header:
+                m = search(r'start time: (\d+)@(\d+)Hz', l)
+                if m:
+                    offset = int(m.group(1))
+                    s_freq = int(m.group(2))
+                    read_header = False
+            else:
+                m = match(r'(\d+) (.+)', l)
+                if m:
+                    time = int(m.group(1))
+                    messages.append({
+                        'name': m.group(2),
+                        'start': (time - offset) / s_freq,
+                        'end': (time - offset) / s_freq,
+                        'chan': None,
+                    })
+
+    return offset, s_freq, messages
+
+
+def _read_all_channels_events(events_file, offset, s_freq):
+
+    file_read = [
+        ('timestamps', '<i8'),
+        ('sampleNum', '<i2'),
+        ('eventType', '<u1'),
+        ('nodeId', '<u1'),
+        ('eventId', '<u1'),
+        ('channel', '<u1'),
+        ('recordingNumber', '<u2'),
+        ]
+
+    with events_file.open('rb') as f:
+        f.seek(HDR_LENGTH)
+        evt = fromfile(f, file_read)
+
+    mrk = []
+    for evt_type in unique(evt['eventType']):
+        timestamps = evt[evt['eventType'] == evt_type]['timestamps']
+        onsets = timestamps[::2]
+        offsets = timestamps[1::2]
+
+        for i_on, i_off in zip(onsets, offsets):
+            mrk.append({
+                'name': str(evt_type),
+                'start': (i_on - offset) / s_freq,
+                'end': (i_off - offset) / s_freq,
+                'chan': None,
+            })
+
+    return mrk
