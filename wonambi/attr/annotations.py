@@ -851,7 +851,7 @@ class Annotations():
 
         self.save()
 
-    def add_events(self, event_list, name=None, chan=None):
+    def add_events(self, event_list, name=None, chan=None, parent=None):
         """Add series of events. Faster than calling add_event in a loop.
         Parameters
         ----------
@@ -870,8 +870,13 @@ class Annotations():
         events = self.rater.find('events')
         pattern = "event_type[@type='" + name + "']"
         event_type = events.find(pattern)
+        
+        if parent is not None:
+            progress = QProgressDialog('Saving events', 'Abort',
+                               0, len(events) - 1, parent)
+            progress.setWindowModality(Qt.ApplicationModal)
 
-        for evt in event_list:
+        for i, evt in enumerate(event_list):
             new_event = SubElement(event_type, 'event')
             event_start = SubElement(new_event, 'event_start')
             event_start.text = str(evt['start'])
@@ -888,8 +893,16 @@ class Annotations():
     
             event_qual = SubElement(new_event, 'event_qual')
             event_qual.text = 'Good' 
+            
+            if parent is not None:
+                progress.setValue(i)                    
+                if progress.wasCanceled():
+                    return
 
         self.save()
+        
+        if parent is not None:
+            progress.close()
     
     def remove_event(self, name=None, time=None, chan=None):
         """get events inside window."""
@@ -1899,80 +1912,65 @@ class Annotations():
             with open(filename, 'r', encoding='utf-8') as csvfile:
                 csv_reader = reader(csvfile, delimiter=',')
                 
-            for row in csv_reader:
-                try:
-                    int(row[0])
-                    one_ev = {'name': row[6],
-                              'start': float(row[1]),
-                              'end': float(row[2]),
-                              'chan': row[7].split(', '),  # always a list
-                              'stage': row[4],
-                              'quality': 'Good'
-                              }
-                    events.append(one_ev)
-                    
-                except ValueError:
-                    continue
+                for row in csv_reader:
+                    try:
+                        int(row[0])
+                        one_ev = {'name': row[6],
+                                  'start': float(row[1]),
+                                  'end': float(row[2]),
+                                  'chan': row[7].split(', '),  # always a list
+                                  'stage': row[4],
+                                  'quality': 'Good'
+                                  }
+                        events.append(one_ev)
+                        
+                    except ValueError:
+                        continue
                 
         elif 'remlogic' == source:
     
             with open(filename, 'r', encoding='ISO-8859-1') as f:
                 lines = f.readlines()
                 
-            idx_header = lines.index(next(
-                    l for l in lines if 'Time [hh:mm:ss]' in l))
-            header = lines[idx_header].split('\t')
-            header = [s.strip() for s in header] # remove trailing newline
-            idx_time = header.index('Time [hh:mm:ss]')
-            idx_evt = header.index('Event')
-            idx_dur = header.index('Duration[s]')
-            
-            # Find staging start date
-            stage_start_date = _try_parse_datetime(
-                    lines[3][16:lines[3].index('\n')], 
-                    ('%Y/%m/%d', '%d/%m/%Y'))
-            
-            # Events loop
-            for l in lines[idx_header + 1:]:
-                cells = l.split('\t')
-                one_evttype = cells[idx_evt]
+                idx_header = lines.index(next(
+                        l for l in lines if 'Time [hh:mm:ss]' in l))
+                header = lines[idx_header].split('\t')
+                header = [s.strip() for s in header] # remove trailing newline
+                idx_time = header.index('Time [hh:mm:ss]')
+                idx_evt = header.index('Event')
+                idx_dur = header.index('Duration[s]')
                 
-                # skip epoch staging
-                if 'SLEEP-' in one_evttype:
-                    continue
+                # Find staging start date
+                stage_start_date = _try_parse_datetime(
+                        lines[3][16:lines[3].index('\n')], 
+                        ('%Y/%m/%d', '%d/%m/%Y'))
                 
-                clock_start = _remlogic_time(cells[idx_time], stage_start_date)
-                start = float((clock_start - rec_start).total_seconds())
-                
-                one_ev = {'name': one_evttype,
-                          'start': start,
-                          'end': start + float(cells[idx_dur]),
-                          'chan': '',
-                          'stage': '',
-                          'quality': 'Good'
-                              }
-                events.append(one_ev)
+                # Events loop
+                for l in lines[idx_header + 1:]:
+                    cells = l.split('\t')
+                    one_evttype = cells[idx_evt]
+                    
+                    # skip epoch staging
+                    if 'SLEEP-' in one_evttype:
+                        continue
+                    
+                    clock_start = _remlogic_time(cells[idx_time], 
+                                                 stage_start_date)
+                    start = float((clock_start - rec_start).total_seconds())
+                    
+                    one_ev = {'name': one_evttype,
+                              'start': start,
+                              'end': start + float(cells[idx_dur]),
+                              'chan': '',
+                              'stage': '',
+                              'quality': 'Good'
+                                  }
+                    events.append(one_ev)
                 
         else:
             raise ValueError('Unknown source program for events file')
             
-        if parent is not None:
-            progress = QProgressDialog('Saving events', 'Abort',
-                               0, len(events) - 1, parent)
-            progress.setWindowModality(Qt.ApplicationModal)
-            
-        for i, one_ev in enumerate(events):
-            self.add_event(one_ev['name'],
-                            (one_ev['start'], one_ev['end']),
-                            chan=one_ev['chan'])
-            
-            if parent is not None:
-                progress.setValue(i)                    
-                if progress.wasCanceled():
-                    return
-
-        if parent is not None:
-            progress.close()
+        self.add_events(events, parent=parent)
             
     def to_bids(self, tsv_file=None, json_file=None):
         if tsv_file is None:

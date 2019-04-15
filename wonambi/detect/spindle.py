@@ -154,6 +154,8 @@ class DetectSpindle:
                                  'step': win['step']}
             self.moving_sd = {'dur': win['dur'],
                               'step': win['step']}
+            self.smooth = {'dur': 0.3,
+                           'win': 'flat'}
             self.abs_pow_thresh = 1.25
             self.rel_pow_thresh = 1.6
             self.covar_thresh = 1.3
@@ -372,12 +374,15 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
     # Downsample z-score parameters, tolerance
-    if opts.windowing['step']:
+    step = opts.windowing['step']
+    if step:
+        ds_freq = int(1 / step) # downsampled sampling frequency
         opts.zscore['dur'] *= opts.windowing['step']
         opts.tolerance *= opts.windowing['step']
         if opts.zscore['step']:
             opts.zscore['step'] *= opts.windowing['step']
-    
+    else:
+        ds_freq = s_freq
 
     
     # Absolute sigma power
@@ -390,6 +395,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     if opts.abs_pow_thresh < 0:
         opts.abs_pow_thresh = (mean(abs_sig_pow) - 
                                opts.abs_pow_thresh * std(abs_sig_pow))
+    abs_sig_pow = transform_signal(abs_sig_pow, ds_freq, 'smooth', opts.smooth)
     
     # Relative sigma power
     dat_det = transform_signal(dat_orig, s_freq, 'moving_power_ratio', 
@@ -398,6 +404,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_det = log10(dat_det)
     rel_sig_pow = transform_signal(dat_det, s_freq, 'moving_zscore', 
                                    opts.zscore)
+    rel_sig_pow = transform_signal(rel_sig_pow, ds_freq, 'smooth', opts.smooth)
     
     # Sigma covariance
     dat_broad = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
@@ -409,6 +416,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_det = log10(dat_det + 1) # add 1 to avoid -inf
     sigma_covar = transform_signal(dat_det, s_freq, 'moving_zscore', 
                                    opts.zscore)
+    sigma_covar = transform_signal(sigma_covar, ds_freq, 'smooth', opts.smooth)
     
     # Sigma correlation
     dat_sd_broad = transform_signal(dat_broad, s_freq, 'moving_sd', 
@@ -418,6 +426,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_sd_broad[dat_sd_broad == 0] = 0.000000001
     dat_sd_sigma[dat_sd_sigma == 0] = 0.000000001
     sigma_corr = dat_covar / (dat_sd_broad * dat_sd_sigma)
+    sigma_corr = transform_signal(sigma_corr, ds_freq, 'smooth', opts.smooth)
 
     # Thresholding
     abs_and_cov = logical_and(abs_sig_pow >= opts.abs_pow_thresh,
