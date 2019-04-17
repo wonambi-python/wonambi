@@ -155,7 +155,7 @@ class DetectSpindle:
             self.moving_sd = {'dur': win['dur'],
                               'step': win['step']}
             self.smooth = {'dur': 0.3,
-                           'win': 'flat'}
+                           'win': 'flat_left'}
             self.abs_pow_thresh = 1.25
             self.rel_pow_thresh = 1.6
             self.covar_thresh = 1.3
@@ -1429,9 +1429,15 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         dur = method_opt['dur']
         win = method_opt['win']
         
-        if 'flat' == win:
+        if 'flat' in win:
             flat = ones(int(dur * s_freq))
             H = flat / sum(flat)
+            
+            if 'flat_left' == win:
+                H = concatenate((H, zeros(len(H))))
+            elif 'flat_right' == win:
+                H = concatenate((zeros(len(H) - 1), H))
+            
         elif 'triangle' == win:
             T = int(dur * s_freq / 2)
             a = arange(T, 0, -1)

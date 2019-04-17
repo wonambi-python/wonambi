@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.68**: fixes for event import and Lacourse2018 spindle detector
 - **5.67**: remlogic event import
 - **5.66**: fixes for spindle detection. NOTE: spindle detection no longer merges across channels by default
 - **5.65**: fix for event writing
