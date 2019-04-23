@@ -55,7 +55,8 @@ AFNI_TTATLAS_DATASET=/usr/share/afni/atlases
 #
 # Suppress warning for missing mpeg output
 AFNI_IMSAVE_WARNINGS=NO
-export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DATASET
+AFNI_NIFTI_TYPE_WARN=NO
+export PATH AFNI_PLUGINPATH AFNI_MODELPATH AFNI_IMSAVE_WARNINGS AFNI_TTATLAS_DATASET AFNI_NIFTI_TYPE_WARN
 # ln -s /usr/lib/x86_64-linux-gnu/libgsl.so  /home/giovanni/tools/lib/libgsl.so.0
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/giovanni/tools/lib
 
