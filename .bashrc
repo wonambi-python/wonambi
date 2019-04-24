@@ -76,9 +76,6 @@ sql_schema(){
     schemacrawler.sh -server sqlite -database "$1" -password= -command=schema -outputformat=png -outputfile=sql_schema.png
 }
 
-# hide conda and venv
-PS1='[\u@\h:\w]\$ '
-
 # use all colors in MATE terminal
 TERM=xterm-256color
 
@@ -101,4 +98,7 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+
+# hide conda and venv
+PS1='[\u@\h:\w]\$ '
 
