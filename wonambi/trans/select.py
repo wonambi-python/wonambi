@@ -311,7 +311,7 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
 def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
           cycle=None, chan_full=None, epoch=None, epoch_dur=30,
           epoch_overlap=0, epoch_step=None, reject_epoch=False,
-          reject_artf=False, min_dur=0):
+          reject_artf=False, min_dur=0, buffer=0):
     """Create instance of Segments for analysis, complete with info about
     stage, cycle, channel, event type. Segments contains only metadata until
     .read_data is called.
@@ -368,6 +368,8 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         If None, Artefact events are ignored.
     min_dur : float
         Minimum duration of segments returned, in seconds.
+    buffer : float
+        adds this many seconds of signal before and after each segment
 
     Returns
     -------
@@ -375,7 +377,7 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         metadata for all analysis segments
     """
     bundles = get_times(annot, evt_type=evt_type, stage=stage, cycle=cycle,
-                        chan=chan_full, exclude=reject_epoch)
+                        chan=chan_full, exclude=reject_epoch, buffer=buffer)
 
     # Remove artefacts
     if reject_artf and bundles:
@@ -412,7 +414,7 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
 
 
 def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
-              exclude=False):
+              exclude=False, buffer=0):
     """Get start and end times for selected segments of data, bundled
     together with info.
 
@@ -435,6 +437,8 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
         Exclude epochs by quality. If True, epochs marked as 'Poor' quality
         or staged as 'Artefact' will be rejected (and the signal segmented
         in consequence). Has no effect on event selection.
+    buffer : float
+        adds this many seconds of signal before and after each segment
 
     Returns
     -------
@@ -457,6 +461,7 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
     signal.
     """
     getter = annot.get_epochs
+    last = annot.last_second
 
     if stage is None:
         stage = (None,)
@@ -493,7 +498,9 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
                     evochs = getter(name=et, time=cyc, chan=(ch,),
                                     stage=st_input, qual=qual)
                     if evochs:
-                        times = [(e['start'], e['end']) for e in evochs]
+                        times = [(
+                                max(e['start'] - buffer, 0), 
+                                min(e['end'] + buffer, last)) for e in evochs]
                         times = sorted(times, key=lambda x: x[0])
                         one_bundle = {'times': times,
                                       'stage': ss,
