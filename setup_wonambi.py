@@ -8,7 +8,7 @@ from ssl import create_default_context, CERT_NONE
 from subprocess import run
 from sys import exit
 from urllib.request import urlopen
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 
 parser = ArgumentParser(prog='setup_wonambi',
@@ -244,10 +244,15 @@ def _get_files():
             else:
                 print('Extracting file ' + remote['zipped'] + ' to ' +
                       str(final_file))
+                try:
+                    ZipFile(str(temp_file))
+                except(BadZipFile):
+                    _fix_bad_zip_file(str(temp_file))
                 with ZipFile(str(temp_file)) as zf:
                     extracted = Path(
                         zf.extract(remote['zipped'], path=str(DOWNLOADS_PATH)))
                     extracted.rename(final_file)
+                
 
     return 0
 
@@ -332,6 +337,17 @@ def _urlretrieve(url, filename):
     with urlopen(url, context=ctx) as u, filename.open('wb') as f:
             f.write(u.read())
 
+def _fix_bad_zip_file(zip_file):  
+    f = open(zip_file, 'r+b')  
+    data = f.read()  
+    pos = data.find('\x50\x4b\x05\x06') # End of central directory signature  
+    if (pos > 0):  
+        self._log("Truncating file at location " + str(pos + 22)+ ".")  
+        f.seek(pos + 22)   # size of 'ZIP end of central directory record' 
+        f.truncate()  
+        f.close()  
+    else:  
+        raise BadZipFile('File is truncated.')
 
 if __name__ == '__main__':
     returncode = 0
