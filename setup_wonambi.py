@@ -65,7 +65,7 @@ REMOTE_FILES = [
      'zipped': None,
      },
     {'filename': 'PSG.edf',
-     'url': 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/SC4041E0-PSG.edf',
+     'url': 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/SC4031E0-PSG.edf',
      'cached': 'SC4031E0-PSG.edf',
      'zipped': None,
      },
