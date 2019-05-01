@@ -1555,8 +1555,10 @@ class Annotations():
         total_dark_time = (lights_on - lights_off) / 60
         #slp_period_time = (wake_up[1]['start'] - slp_onset[1]['start']) / 60
         slp_onset_lat = (slp_onset[1]['start'] - lights_off) / 60
-        waso = hypno[slp_onset[0]:wake_up[0]].count('Wake') / n_ep_per_min
-        wake = waso + slp_onset_lat
+        waso = hypno[slp_onset[0]:wake_up[0]].count('Wake') / n_ep_per_min        
+        wake_mor = (lights_on - wake_up[1]['start']) / 60
+            #APwake = waso + slp_onset_lat
+        waso_total = sum((waso, wake_mor))        
         total_slp_period = sum((waso, duration['NREM1'], duration['NREM2'],
                                   duration['NREM3'], duration['REM']))
         total_slp_time = total_slp_period - waso
@@ -1633,18 +1635,26 @@ class Annotations():
                          'Epochs', total_dark_time * n_ep_per_min, 
                          'Minutes', total_dark_time, 
                          'LON - LOFF'])
+            cf.writerow(['Wake duration', 'W', 
+                         'Epochs', duration['Wake'] * n_ep_per_min,
+                         'Minutes', duration['Wake'],
+                         'total Wake duration between LOFF and LON'])
             cf.writerow(['Sleep latency', 'SL', 
                          'Epochs', slp_onset_lat * n_ep_per_min, 
                          'Minutes', slp_onset_lat, 
                          'LON - SO'])
-            cf.writerow(['Wake', 'W', 
-                         'Epochs', wake * n_ep_per_min, 
-                         'Minutes', wake,
-                         'total wake duration between LOFF and LON'])
             cf.writerow(['Wake after sleep onset', 'WASO', 
                          'Epochs', waso * n_ep_per_min, 
                          'Minutes', waso, 
                          'W - SL'])
+            cf.writerow(['Wake, morning', 'Wmor', 
+                         'Epochs', wake_mor * n_ep_per_min, 
+                         'Minutes', wake_mor, 
+                         'total W-SL-WASO']) 
+            cf.writerow(['WASO total', 'WASOT', 
+                         'Epochs', waso_total * n_ep_per_min, 
+                         'Minutes', waso_total, 
+                         'WASO + Wmor'])                  
             cf.writerow(['N1 duration', '',
                          'Epochs', duration['NREM1'] * n_ep_per_min,
                          'Minutes', duration['NREM1'],
@@ -1682,62 +1692,92 @@ class Annotations():
             cf.writerow(['Sleep efficiency', 'SE', 
                          '%', slp_eff * 100, 
                          '', '',
-                         'TST / TDT'])
+                         'TST / TDT * 100'])
+            cf.writerow(['W % TiB', '',
+                         '%', duration['Wake'] * 100 / total_dark_time,
+                         '', '',
+                         'W / TDT * 100'])
+            cf.writerow(['N1 % TiB', '',
+                         '%', duration['NREM1'] * 100 / total_dark_time,
+                         '', '',
+                         'N1 / TDT * 100'])
+            cf.writerow(['N2 % TiB', '',
+                         '%', duration['NREM2'] * 100 / total_dark_time,
+                         '', '',
+                         'N2 / TDT * 100'])
+            cf.writerow(['N3 % TiB', '',
+                         '%', duration['NREM3'] * 100 / total_dark_time,
+                         '', '',
+                         'N3 / TDT * 100'])
+            cf.writerow(['REM % TiB', '',
+                         '%', duration['REM'] * 100 / total_dark_time,
+                         '', '',
+                         'REM / TDT * 100'])                
             cf.writerow(['W % TSP', '',
                          '%', waso * 100 / total_slp_period,
                          '', '',
-                         'WASO / TSP'])
+                         'WASO / TSP * 100'])
             cf.writerow(['N1 % TSP', '',
                          '%', duration['NREM1'] * 100 / total_slp_period,
                          '', '',
-                         'N1 / TSP'])
+                         'N1 / TSP * 100'])
             cf.writerow(['N2 % TSP', '',
                          '%', duration['NREM2'] * 100 / total_slp_period,
                          '', '',
-                         'N2 / TSP'])
+                         'N2 / TSP * 100'])
             cf.writerow(['N3 % TSP', '',
                          '%', duration['NREM3'] * 100 / total_slp_period,
                          '', '',
-                         'N3 / TSP'])
+                         'N3 / TSP * 100'])
             cf.writerow(['REM % TSP', '',
                          '%', duration['REM'] * 100 / total_slp_period,
                          '', '',
-                         'REM / TSP'])
+                         'REM / TSP * 100'])
             cf.writerow(['N1 % TST', '',
                          '%', duration['NREM1'] * 100 / total_slp_time,
                          '', '',
-                         'N1 / TST'])
+                         'N1 / TST * 100'])
             cf.writerow(['N2 % TST', '',
                          '%', duration['NREM2'] * 100 / total_slp_time,
                          '', '',
-                         'N2 / TST'])
+                         'N2 / TST * 100'])
             cf.writerow(['N3 % TST', '',
                          '%', duration['NREM3'] * 100 / total_slp_time,
                          '', '',
-                         'N3 / TST'])
+                         'N3 / TST * 100'])
             cf.writerow(['REM % TST', '',
                          '%', duration['REM'] * 100 / total_slp_time,
                          '', '',
-                         'REM / TST'])
+                         'REM / TST * 100'])
             cf.writerow(['Switch', '',
                          'N', switch,
                          '', '', 
                          'number of stage shifts'])
-            cf.writerow(['Switch %', '',
-                         '% epochs', 
-                         switch * 100 / total_slp_period / n_ep_per_min,
-                         '% minutes', switch * 100 / total_slp_period,
+            cf.writerow(['Switch index', '',
+                         'N per epoch', 
+                         switch / total_slp_period / n_ep_per_min,
+                         'N per minute', switch / total_slp_period,
                          'switch / TSP'])
+            cf.writerow(['Switch index H', '',
+                         'N per hour', 
+                         switch / (total_slp_period / 60),
+                         '','',                                     
+                         'switch / (TSP / 60)'])                
             cf.writerow(['Sleep fragmentation', '',
                          'N', slp_frag,
                          '', '', 
                          ('number of shifts to a lighter stage '
                           '(W > N1 > N2 > N3; W > N1 > REM)')])
             cf.writerow(['Sleep fragmentation index', 'SFI', 
-                         '% epochs', 
-                         slp_frag * 100 / total_slp_time / n_ep_per_min, 
-                         '% minutes', slp_frag * 100 / total_slp_time,
+                         'N per epoch', 
+                         slp_frag / total_slp_time / n_ep_per_min, 
+                         'N per minute', slp_frag / total_slp_time,
                          'sleep fragmentation / TST'])
+            cf.writerow(['Sleep fragmentation index H', 'SFI H', 
+                         'N per hour', 
+                         slp_frag / (total_slp_time / 60), 
+                         '', '',
+                         'sleep fragmentation / TST / 60'])                
             cf.writerow(['Sleep latency to N1', 'SLN1', 
                          'Epochs', latency['NREM1'] * n_ep_per_min, 
                          'Minutes', latency['NREM1'],
@@ -1822,9 +1862,9 @@ class Annotations():
                              'N', one_cyc['switch'], '', '', 
                              f'number of stage shifts in cycle {i + 1}'])
                 cf.writerow([f'Switch % (c{i + 1})', '', 
-                             '% epochs', (one_cyc['switch'] * 100 / 
+                             '% epochs', (one_cyc['switch'] / 
                                           one_cyc['tsp']), 
-                             '% minutes', (one_cyc['switch'] * 100 * 
+                             '% minutes', (one_cyc['switch'] * 
                                            n_ep_per_min / one_cyc['tsp']), 
                              f'switch / TSP in cycle {i + 1}'])
                 cf.writerow([f'Sleep fragmentation (c{i + 1})', '', 
@@ -1833,9 +1873,9 @@ class Annotations():
                              f'{i + 1}'])
                 cf.writerow([f'Sleep fragmentation index (c{i + 1})', 
                              f'SFI (c{i + 1})', 
-                             '% epochs', (one_cyc['slp_frag'] * 100 / 
+                             '% epochs', (one_cyc['slp_frag'] / 
                                           one_cyc['tsp']), 
-                             '% minutes', (one_cyc['slp_frag'] * 100 * 
+                             '% minutes', (one_cyc['slp_frag'] * 
                                            n_ep_per_min / one_cyc['tsp']), 
                              f'sleep fragmentation / TSP in cycle {i + 1}'])
 
