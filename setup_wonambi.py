@@ -340,7 +340,7 @@ def _urlretrieve(url, filename):
 def _fix_bad_zip_file(zip_file):  
     f = open(zip_file, 'rb')  
     data = f.read()  
-    pos = data.find('\x50\x4b\x05\x06') # End of central directory signature  
+    pos = data.find(b'\x50\x4b\x05\x06') # End of central directory signature  
     if (pos > 0):  
         f.seek(pos + 22)   # size of 'ZIP end of central directory record' 
         f.truncate()  
