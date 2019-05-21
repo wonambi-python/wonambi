@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.70**: remlogic staging import fix
 - **5.69**: changes to sleep statistics; buffer option in fetch
 - **5.68**: fixes for event import and Lacourse2018 spindle detector
 - **5.67**: remlogic event import

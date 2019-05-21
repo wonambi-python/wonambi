@@ -427,7 +427,9 @@ class Annotations():
             idx_clue = slice(-18, -6)            
             idx_head = lines.index(
                     next(l for l in lines if 'Time [hh:mm:ss]' in l))
-            first_line = next(l for l in lines[idx_head:] if clue in l)
+            first_line = next(l for l in lines[idx_head:] \
+                              if clue in l[idx_clue] \
+                              and 'SLEEP-RM' not in l[-18:])
             idx_first_line = lines.index(first_line)
             
             stage_start_date = _try_parse_datetime(
