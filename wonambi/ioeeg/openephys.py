@@ -84,7 +84,10 @@ class OpenEphys:
 
         start_time = _read_date(self.settings_xml)
 
-        s_freq, channels = _read_openephys(self.openephys_file)
+        recordings = _read_openephys(self.openephys_file)
+        s_freq = recordings[0]['s_freq']
+        channels = recordings[0]['channels']
+        segments, messages = _read_messages_events(self.messages_file)
 
         # only use channels that are actually in the folder
         chan_name = []
@@ -141,7 +144,6 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        mrk_offset, mrk_sfreq, messages = _read_messages_events(self.messages_file)
         events = _read_all_channels_events(self.events_file, mrk_offset, mrk_sfreq)
 
         return messages + events
@@ -189,17 +191,27 @@ def _read_openephys(openephys_file):
         sampling frequency
     list of dict
         list of channels containing the label, the filename and the gain
+        
+    TODO
+    ----
+    Check that all the recordings have the same channels and frequency
     """
     root = ElementTree.parse(openephys_file).getroot()
 
-    channels = []
+    recordings = []
     for recording in root:
-        s_freq = float(recording.attrib['samplerate'])
+        recordings.append({
+            's_freq': float(recording.attrib['samplerate']),
+            'number': int(recording.attrib['number']),
+            'channels': [],
+        })
+        channels = []
         for processor in recording:
             for channel in processor:
                 channels.append(channel.attrib)
+        recordings[-1]['channels'] = channels
 
-    return s_freq, channels
+    return recordings
 
 
 def _read_date(settings_file):
@@ -220,6 +232,8 @@ def _read_date(settings_file):
     The start time is present in the header of each file. This might be useful
     if 'settings.xml' is not present.
     """
+    import locale
+    locale.setlocale(locale.LC_TIME, 'en_US.utf-8')
     root = ElementTree.parse(settings_file).getroot()
     for e0 in root:
         if e0.tag == 'INFO':
