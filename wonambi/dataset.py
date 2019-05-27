@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 from math import ceil
 from logging import getLogger
 from pathlib import Path
+from xml.etree import ElementTree
 
 from numpy import arange, asarray, concatenate, empty, int64, zeros
 
@@ -408,5 +409,12 @@ def _count_openephys_sessions(filename):
             sessions.append(1)
         else:
             sessions.append(int(session_number))
+
+    if len(sessions) == 1:
+        root = ElementTree.parse(f).getroot()
+        sessions = []
+        for recording in root:
+            sessions.append(
+                int(recording.attrib['number']))
 
     return sorted(sessions)

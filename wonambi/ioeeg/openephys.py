@@ -305,27 +305,32 @@ def _check_header(channel_file, s_freq):
 
 def _read_messages_events(messages_file):
     messages = []
-    read_header = True
+    segments = []
+
     with messages_file.open() as f:
         for l in f:
-            if read_header:
-                m = search(r'start time: (\d+)@(\d+)Hz', l)
-                if m:
-                    offset = int(m.group(1))
-                    s_freq = int(m.group(2))
-                    read_header = False
-            else:
-                m = match(r'(\d+) (.+)', l)
-                if m:
-                    time = int(m.group(1))
-                    messages.append({
-                        'name': m.group(2),
-                        'start': (time - offset) / s_freq,
-                        'end': (time - offset) / s_freq,
-                        'chan': None,
-                    })
 
-    return offset, s_freq, messages
+            m_time = search(r'\d+ Software time: \d+@(\d+)Hz', l)
+            m_start = search(r'start time: (\d+)@(\d+)Hz', l)
+            m_event = match(r'(\d+) (.+)', l)
+
+            if m_time:
+                s_freq = int(m_time.group(1))
+            elif m_start:
+                segments.append({
+                    'offset': int(m_start.group(1)),
+                    's_freq': int(m_start.group(2)),
+                    })
+            elif m_event:
+                time = int(m_event.group(1))
+                messages.append({
+                    'name': m_event.group(2),
+                    'start': time / s_freq,
+                    'end': time / s_freq,
+                    'chan': None,
+                })
+
+    return segments, messages
 
 
 def _read_all_channels_events(events_file, offset, s_freq):
