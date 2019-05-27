@@ -144,9 +144,9 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        events = _read_all_channels_events(self.events_file, mrk_offset, mrk_sfreq)
+        # events = _read_all_channels_events(self.events_file, mrk_offset, mrk_sfreq)
 
-        return messages + events
+        return []
 
 
 def _read_block_continuous(f, i_block):
