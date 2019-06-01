@@ -8,6 +8,7 @@ might change in the future.
 from datetime import datetime
 from logging import getLogger
 from struct import unpack, calcsize
+from math import ceil
 from re import search, match
 from xml.etree import ElementTree
 
@@ -378,3 +379,26 @@ def _read_all_channels_events(events_file, offset, s_freq):
             })
 
     return mrk
+
+
+def _prepare_blocks(segments):
+
+    blocks_dat = []
+    blocks_disk = []
+
+    for seg in segments:
+        n_blocks = ceil(seg['length'] / BLK_LENGTH)
+        for i_blk in range(n_blocks):
+            blocks_dat.append([
+                i_blk * BLK_LENGTH + seg['start'],
+                i_blk * BLK_LENGTH + BLK_LENGTH + seg['start'],
+            ])
+            blocks_disk.append([
+                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE,
+                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE + BLK_LENGTH,
+            ])
+
+    blocks_dat = array(blocks_dat)
+    blocks_disk = array(blocks_disk)
+
+    return blocks_dat, blocks_disk
