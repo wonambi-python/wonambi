@@ -12,9 +12,7 @@ from math import ceil
 from re import search, match
 from xml.etree import ElementTree
 
-from numpy import array, ones, empty, NaN, fromfile, unique
-
-from .edf import _select_blocks
+from numpy import array, empty, NaN, fromfile, unique, where
 
 lg = getLogger(__name__)
 
@@ -90,6 +88,12 @@ class OpenEphys:
         channels = recordings[0]['channels']
         segments, messages = _read_messages_events(self.messages_file)
 
+        for i in range(len(self.segments) - 1):
+            self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * 1024)
+            self.segments[i]['data_offset'] = self.offsets[i]
+
+        self.segments[-1]['data_offset'] = self.offsets[-1]
+
         # only use channels that are actually in the folder
         chan_name = []
         self.channels = []
@@ -104,10 +108,14 @@ class OpenEphys:
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
 
+        file_length = (channel_filename.stat().st_size - HDR_LENGTH)
+        self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * 1024)
+
+        for seg in self.segments:
+            seg['end'] = seg['start'] + seg['length']
+
         self.gain = array(gain)
         n_blocks, n_samples = _read_n_samples(self.channels[0])
-
-        self.blocks = ones(n_blocks, dtype='int') * BLK_LENGTH
 
         orig = {}
 
@@ -130,14 +138,28 @@ class OpenEphys:
         2D array
             chan X samples recordings
         """
-        dat = empty((len(chan), endsam - begsam))
+        data_length = endsam - begsam
+        dat = empty((len(chan), data_length))
         dat.fill(NaN)
 
+        blocks_dat, blocks_disk = _prepare_blocks(self.segments)
+
+        all_blocks = _select_blocks(blocks_dat, begsam, endsam)
         for i_chan, sel_chan in enumerate(chan):
             with self.channels[sel_chan].open('rb') as f:
-                for i_dat, blk, i_blk in _select_blocks(self.blocks, begsam, endsam):
-                    dat_in_rec = _read_block_continuous(f, blk)
-                    dat[i_chan, i_dat[0]:i_dat[1]] = dat_in_rec[i_blk[0]:i_blk[1]]
+                for i_block in all_blocks:
+                    i_dat = blocks_dat[i_block, :] - begsam
+                    i_disk = blocks_disk[i_block, :]
+
+                    f.seek(i_disk[0])
+                    # read whole block
+                    x = array(unpack(DAT_FMT, f.read(i_disk[1] - i_disk[0])))
+                    beg_dat = max(i_dat[0], 0)
+                    end_dat = min(i_dat[1], data_length)
+                    beg_x = max(0, - i_dat[0])
+                    segment_length = min(i_dat[1], data_length) - i_dat[0]
+                    end_x = min(len(x), segment_length)
+                    dat[i_chan, beg_dat:end_dat] = x[beg_x:end_x]
 
         return dat * self.gain[chan, None]
 
@@ -394,11 +416,18 @@ def _prepare_blocks(segments):
                 i_blk * BLK_LENGTH + BLK_LENGTH + seg['start'],
             ])
             blocks_disk.append([
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE,
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE + BLK_LENGTH,
+                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE,
+                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE + DAT_FMT_SIZE,
             ])
 
     blocks_dat = array(blocks_dat)
     blocks_disk = array(blocks_disk)
 
+    blocks_disk
+
     return blocks_dat, blocks_disk
+
+
+def _select_blocks(blocks_dat, begsam, endsam):
+    all_blocks = ((blocks_dat[:, 1] - begsam) > 0) & ((endsam - blocks_dat[:, 0]) > 0)
+    return where(all_blocks)[0]
