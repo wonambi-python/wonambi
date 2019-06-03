@@ -35,7 +35,7 @@ class OpenEphys:
     Parameters
     ----------
     filename : Path
-        Full path for the EDF file
+        Full path for the OpenEphys folder
     session : int
         session number (starting at 1, based on open-ephys convention)
 
@@ -89,7 +89,7 @@ class OpenEphys:
         segments, messages = _read_messages_events(self.messages_file)
 
         for i in range(len(self.segments) - 1):
-            self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * 1024)
+            self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * BLK_LENGTH)
             self.segments[i]['data_offset'] = self.offsets[i]
 
         self.segments[-1]['data_offset'] = self.offsets[-1]
@@ -100,6 +100,7 @@ class OpenEphys:
         gain = []
         for chan in channels:
             channel_filename = (self.filename / chan['filename'])
+
             if channel_filename.exists():
                 chan_name.append(chan['name'])
                 self.channels.append(channel_filename)
@@ -109,13 +110,13 @@ class OpenEphys:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
 
         file_length = (channel_filename.stat().st_size - HDR_LENGTH)
-        self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * 1024)
+        self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * BLK_LENGTH)
 
         for seg in self.segments:
             seg['end'] = seg['start'] + seg['length']
 
         self.gain = array(gain)
-        n_blocks, n_samples = _read_n_samples(self.channels[0])
+        n_samples = self.segments[-1]['end']
 
         orig = {}
 
@@ -167,10 +168,8 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        # events = _read_all_channels_events(self.events_file, mrk_offset, mrk_sfreq)
-
-        return []
-
+        all_markers = self.messages + _segments_to_markers(self.segments)
+        return sorted(all_markers, key=lambda x: x['start'])
 
 def _read_block_continuous(f, i_block):
     """Read a single block / record completely
@@ -214,7 +213,7 @@ def _read_openephys(openephys_file):
         sampling frequency
     list of dict
         list of channels containing the label, the filename and the gain
-        
+
     TODO
     ----
     Check that all the recordings have the same channels and frequency
@@ -339,6 +338,24 @@ def _check_header(channel_file, s_freq):
 
     return float(hdr['bitVolts'])
 
+
+def _segments_to_markers(segments):
+    mrk = []
+    for i, seg in enumerate(segments):
+        mrk.append({
+            'name': f'START RECORDING #{i}',
+            'chan': None,
+            'start': seg['start'] / seg['s_freq'],
+            'end': seg['start'] / seg['s_freq'],
+        })
+        mrk.append({
+            'name': f'END RECORDING #{i}',
+            'chan': None,
+            'start': seg['end'] / seg['s_freq'],
+            'end': seg['end'] / seg['s_freq'],
+        })
+
+    return mrk
 
 def _read_messages_events(messages_file):
     messages = []
