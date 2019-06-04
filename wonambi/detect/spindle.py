@@ -74,7 +74,7 @@ class DetectSpindle:
 
         elif method == 'Moelle2011':
             if self.frequency is None:
-                self.frequency = (9, 15)
+                self.frequency = (12, 15)
             self.rolloff = 1.7
             self.det_remez = {'freq': self.frequency,
                               'rolloff': self.rolloff,
@@ -794,21 +794,24 @@ def detect_Ferrarelli2007(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'abs')
     
     idx_env = peaks_in_time(dat_det)
-    idx_peak = idx_env[peaks_in_time(dat_det[idx_env])]
+    envelope = dat_det[idx_env]
+    idx_peak = idx_env[peaks_in_time(envelope)] # in raw data time
+    idx_trough = peaks_in_time(envelope, troughs=True) # in envelope time
+    troughs = ones(len(envelope)) * -1
+    troughs[idx_trough] = envelope[idx_trough] # all non-trough values are -1
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
     sel_value = define_threshold(dat_det[idx_peak], s_freq, 'histmax', 
                                  opts.sel_thresh, nbins=120)
     
-    events_env = detect_events(dat_det[idx_env], 'above_thresh', det_value)
+    events_env = detect_events(envelope, 'above_thresh', det_value)
     
     if events_env is not None:
-        events_env = _merge_close(dat_det[idx_env], events_env, time[idx_env], 
+        events_env = _merge_close(envelope, events_env, time[idx_env], 
                                   opts.tolerance)
-        events_env = select_events(dat_det[idx_env], events_env, 
-                                   'above_thresh', sel_value)  
+        events_env = select_events(troughs, events_env, 
+                                   'Ferrarelli2007', sel_value)  
         events = idx_env[events_env]
-
         # merging is necessary, because detected spindles may overlap if the
         # signal envelope does not dip below sel_thresh between two peaks above 
         # det_thresh
@@ -1550,7 +1553,7 @@ def peaks_in_time(dat, troughs=False):
     
     target = -1 if not troughs else 1
         
-    return where(flipping == target)[0]
+    return where(flipping == target)[0] + 1
 
 
 def detect_events(dat, method, value=None):
@@ -1629,7 +1632,7 @@ def select_events(dat, detected, method, value):
     detected : ndarray (dtype='int')
         N x 3 matrix with start, peak, end samples
     method : str
-        'above_thresh', 'below_thresh'
+        'above_thresh', 'below_thresh', 'below_thresh_positive'
     value : float
         for 'threshold', it's the value of threshold for the spindle selection.
 
@@ -1645,7 +1648,12 @@ def select_events(dat, detected, method, value):
     elif method == 'below_thresh':
         below_sel = dat <= value
         detected = _select_period(detected, below_sel)
-
+    elif method == 'Ferrarelli2007':
+        below_sel = dat <= value
+        positive = dat >= 0
+        below_sel_positive = invert(logical_and(below_sel, positive))
+        detected = _select_period(detected, below_sel_positive)
+    
     return detected
 
 
