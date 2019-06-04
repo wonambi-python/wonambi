@@ -11,7 +11,7 @@ data = d.read_data(chan=('EEG Fpz-Cz', 'EEG Pz-Oz'), begtime=35790, endtime=3582
 
 def test_detect_spindle_Moelle2011():
     detsp = DetectSpindle()
-    assert repr(detsp) == 'detsp_Moelle2011_09-15Hz_00.5-03.0s'
+    assert repr(detsp) == 'detsp_Moelle2011_12-15Hz_00.5-03.0s'
 
     sp = detsp(data)
     assert len(sp.events) == 4
@@ -28,7 +28,7 @@ def test_detect_spindle_Wamsley2012():
     detsp = DetectSpindle(method='Wamsley2012')
 
     sp = detsp(data)
-    assert len(sp.events) == 2
+    assert len(sp.events) == 4
 
 
 def test_detect_spindle_Ferrarelli2007():
@@ -100,4 +100,4 @@ def test_detect_spindle_to_data():
     assert sp_data(0)[0] == 2
 
     sp_freq = sp.to_data('peak_freq')
-    assert approx(sp_freq(0)[0]) == 14.41115702479339
+    assert approx(sp_freq(0)[0]) == 14.151831564532694

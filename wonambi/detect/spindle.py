@@ -91,8 +91,8 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (12, 15)
             self.det_wavelet = {'f0': mean(self.frequency),
-                                'sd': .5,
-                                'dur': 2,
+                                'sd': .75,
+                                'dur': 1.,
                                 }
             self.duration = (0.3, 3)
             self.smooth = {'dur': .1,
@@ -1348,7 +1348,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         out = zeros((len_out))
         
         if 'moving_covar' == method:            
-            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 win1 = dat[beg:end]
@@ -1362,7 +1362,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             fft_dur = method_opt['fft_dur']
             nfft = int(s_freq * fft_dur)
             
-            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 windat = dat[beg:end]
@@ -1382,7 +1382,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if 'moving_sd' == method:
-            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 win = dat[beg:end]
@@ -1392,7 +1392,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         if 'moving_zscore' == method:        
             pcl_range = method_opt['pcl_range']
             
-            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 windat = stddat = dat[beg:end]
@@ -1406,7 +1406,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
         
         if method in ['moving_rms', 'moving_ms']:
-            for i, j in enumerate(arange(0, total_dur, step)[:-2]):
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 out[i] = mean(square(dat[beg:end]))   
