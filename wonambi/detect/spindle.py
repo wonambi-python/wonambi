@@ -373,25 +373,21 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     ----------
     Lacourse, K. et al. J. Neurosci. Meth. (2018).
     """
-    # Downsample z-score parameters, tolerance
+    # Prepare downsampling
     step = opts.windowing['step']
     if step:
         ds_freq = int(1 / step) # downsampled sampling frequency
-        opts.zscore['dur'] *= opts.windowing['step']
-        opts.tolerance *= opts.windowing['step']
-        if opts.zscore['step']:
-            opts.zscore['step'] *= opts.windowing['step']
+        opts.tolerance *= step
     else:
         ds_freq = s_freq
-
     
     # Absolute sigma power
     dat_sigma = transform_signal(dat_orig, s_freq, 'double_sosbutter', 
                                  opts.det_butter)
     dat_det = transform_signal(dat_sigma, s_freq, 'moving_ms', opts.moving_ms)
-    dat_det[dat_det <= 0] = 0.000000001
+    dat_det[dat_det <= 0] = 0.000000001 # arbitrarily small value
     abs_sig_pow = log10(dat_det)
-    # Option to adapt the absolute threshold, for low-amplitude recordings
+        # Option to adapt the absolute threshold, for low-amplitude recordings
     if opts.abs_pow_thresh < 0:
         opts.abs_pow_thresh = (mean(abs_sig_pow) - 
                                opts.abs_pow_thresh * std(abs_sig_pow))
@@ -402,7 +398,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
                                opts.moving_power_ratio)
     dat_det[dat_det <= 0] = 0.000000001
     dat_det = log10(dat_det)
-    rel_sig_pow = transform_signal(dat_det, s_freq, 'moving_zscore', 
+    rel_sig_pow = transform_signal(dat_det, ds_freq, 'moving_zscore', 
                                    opts.zscore)
     rel_sig_pow = transform_signal(rel_sig_pow, ds_freq, 'smooth', opts.smooth)
     
@@ -414,7 +410,7 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     dat_det = dat_covar.copy()
     dat_det[dat_det < 0] = 0 # negative covariances are discarded
     dat_det = log10(dat_det + 1) # add 1 to avoid -inf
-    sigma_covar = transform_signal(dat_det, s_freq, 'moving_zscore', 
+    sigma_covar = transform_signal(dat_det, ds_freq, 'moving_zscore', 
                                    opts.zscore)
     sigma_covar = transform_signal(sigma_covar, ds_freq, 'smooth', opts.smooth)
     
@@ -438,10 +434,10 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     
     if events is not None:
         events = _merge_close(dat_sigma, events, time, opts.tolerance)
-        events = _select_period(events, abs_and_cov)
+        events = _select_period(events, abs_and_cov) + 1
         
-        if opts.windowing['step']:
-            events = events * (s_freq * opts.windowing['step']) # upsample
+        if step:
+            events = events * (s_freq * step) # upsample
             events = asarray(around(events), dtype=int)
         
         events = within_duration(events, time, opts.duration)
@@ -1391,6 +1387,9 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         
         if 'moving_zscore' == method:        
             pcl_range = method_opt['pcl_range']
+            if pcl_range is not None:
+                lo = percentile(dat, pcl_range[0])
+                hi = percentile(dat, pcl_range[1])
             
             for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
@@ -1398,10 +1397,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 windat = stddat = dat[beg:end]
                 
                 if pcl_range is not None:
-                    lo, hi = pcl_range
-                    stddat = windat[logical_and(
-                                            windat > percentile(windat, lo),
-                                            windat < percentile(windat, hi))]
+                    stddat = windat[logical_and(windat > lo, windat < hi)]
                 out[i] = (dat[i] - mean(windat)) / std(stddat)
             dat = out
         
