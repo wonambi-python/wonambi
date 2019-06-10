@@ -860,13 +860,12 @@ class Annotations():
         event_list : list of dict
             each dict is an event with 'start' and 'end' times
         name : str, optional
-            save events to this event type. If None, channel will be
-            read from the event list dict under 'name' 
+            save events to this event type. 
         chan : str or list of str, optional
             save events to this or these channel(s). If None, channel will be
             read from the event list dict under 'chan'        
         """
-        if name not in self.event_types:
+        if name is not None and name not in self.event_types:
             self.add_event_type(name)
 
         events = self.rater.find('events')
@@ -889,7 +888,7 @@ class Annotations():
             if chan is None:
                 one_chan = evt['chan']
             if isinstance(one_chan, (tuple, list)):
-                one_chan = ', '.join(chan)
+                one_chan = ', '.join(one_chan)
             event_chan = SubElement(new_event, 'event_chan')
             event_chan.text = one_chan
     
