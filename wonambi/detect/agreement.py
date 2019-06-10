@@ -134,9 +134,9 @@ def consensus(events, threshold, s_freq, min_duration=None):
     instance of wonambi.Graphoelement
         events merged by consensus
     """
-    chan = events[0][0]['chan']
-    beg = min([one_rater[0]['start'] for one_rater in events])
-    end = max([one_rater[-1]['end'] for one_rater in events])
+    chan = [one_rater[0]['chan'] for one_rater in events if one_rater][0]
+    beg = min([one_rater[0]['start'] for one_rater in events if one_rater])
+    end = max([one_rater[-1]['end'] for one_rater in events if one_rater])
     n_samples = int((end - beg) * s_freq)
     times = arange(beg, end + 1/s_freq, 1/s_freq)
     
