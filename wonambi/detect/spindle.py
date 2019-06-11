@@ -91,8 +91,9 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (12, 15)
             self.det_wavelet = {'f0': mean(self.frequency),
-                                'sd': .75,
+                                'sd': .8,
                                 'dur': 1.,
+                                'output': 'complex'
                                 }
             self.duration = (0.3, 3)
             self.smooth = {'dur': .1,
@@ -635,8 +636,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     ----------
     Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
     """
-    dat_det = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
-    dat_det = real(dat_det ** 2) ** 2
+    dat_wav = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
+    dat_det = real(dat_wav ** 2) ** 2
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
     det_value = define_threshold(dat_det, s_freq, 'mean', opts.det_thresh)
@@ -651,8 +652,8 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, powers, dat_det,
-                                   dat_orig, time, s_freq)
+        sp_in_chan = make_spindles(events, power_peaks, powers, 
+                                   absolute(dat_wav), dat_orig, time, s_freq)
 
     else:
         lg.info('No spindle found')
@@ -1324,9 +1325,12 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         f0 = method_opt['f0']
         sd = method_opt['sd']
         dur = method_opt['dur']
+        output = method_opt['output']
 
         wm = _wmorlet(f0, sd, s_freq, dur)
-        dat = absolute(fftconvolve(dat, wm, mode='same'))
+        dat = fftconvolve(dat, wm, mode='same')
+        if 'absolute' == output:
+            dat = absolute(dat)            
 
     if 'moving' in method:
         dur = method_opt['dur']
