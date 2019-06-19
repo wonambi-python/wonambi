@@ -82,10 +82,11 @@ class OpenEphys:
         subj_id = self.filename.stem  # use directory name as subject name
 
         start_time = _read_date(self.settings_xml)
+        self.recordings = _read_openephys(self.openephys_file)
+        s_freq = self.recordings[0]['s_freq']
+        self.s_freq = s_freq
+        channels = self.recordings[0]['channels']
 
-        recordings = _read_openephys(self.openephys_file)
-        s_freq = recordings[0]['s_freq']
-        channels = recordings[0]['channels']
         segments, messages = _read_messages_events(self.messages_file)
 
         for i in range(len(self.segments) - 1):
@@ -168,7 +169,11 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        all_markers = self.messages + _segments_to_markers(self.segments)
+        all_markers = (
+            self.messages
+            + _segments_to_markers(self.segments)
+            + _read_all_channels_events(self.events_file, 0, self.s_freq)
+            )
         return sorted(all_markers, key=lambda x: x['start'])
 
 def _read_block_continuous(f, i_block):
