@@ -181,7 +181,10 @@ def _read_header(f):
     orig['surname'] = f.read(22).decode('utf-8').strip()
     orig['name'] = f.read(20).decode('utf-8').strip()
     month, day, year = unpack('bbb', f.read(3))
-    orig['date_of_birth'] = date(year + 1900, month, day)
+    try:
+        orig['date_of_birth'] = date(year + 1900, month, day)
+    except ValueError:
+        orig['date_of_birth'] = None
     f.seek(19, SEEK_CUR)
 
     # recording
