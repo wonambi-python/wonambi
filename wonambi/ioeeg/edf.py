@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, time, date
 from pathlib import Path
 from re import findall, finditer
 from struct import pack
+from fractions import Fraction
 
 from numpy import (abs,
                    asarray,
@@ -18,6 +19,7 @@ from numpy import (abs,
                    newaxis,
                    repeat,
                    )
+from scipy.signal import resample_poly
 
 from .utils import decode, _select_blocks, DEFAULT_DATETIME
 
@@ -237,9 +239,14 @@ class Edf:
             f.seek(offset)
             x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
 
-            ratio = int(self.max_smp / n_smp_per_chan)
-            dat_in_rec[i_ch_in_dat, :] = repeat(x, ratio)
-            i_ch_in_dat += 1
+            ratio = self.max_smp / n_smp_per_chan            
+            if ratio.is_integer():
+                dat_in_rec[i_ch_in_dat, :] = repeat(x, int(ratio))                
+            else:
+                fract = round(Fraction(ratio), 2)
+                up, down = fract.numerator, fract.denominator
+                dat_in_rec[i_ch_in_dat, :] = resample_poly(x, up, down)
+            i_ch_in_dat += 1                
 
         return dat_in_rec
 

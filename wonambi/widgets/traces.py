@@ -474,7 +474,7 @@ class Traces(QGraphicsView):
                 # trace
                 dat = (self.data(trial=0, chan=chan_name) *
                        self.parent.value('y_scale'))
-                dat *= -1  # flip data, upside down
+                dat *= -1  # flip data, upside down (because y grows downward)
                 path = self.scene.addPath(Path(self.data.axis['time'][0],
                                                dat))
                 path.setPen(QPen(QColor(one_grp['color']), LINE_WIDTH))

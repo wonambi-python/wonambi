@@ -41,6 +41,7 @@ REMLOGIC_STAGE_KEY = {'SLEEP-S0': 'Wake',
                       'SLEEP-S1': 'NREM1',
                       'SLEEP-S2': 'NREM2',
                       'SLEEP-S3': 'NREM3',
+                      'SLEEP-S4': 'NREM3',
                       'SLEEP-REM': 'REM',
                       'SLEEP-UNSCORED': 'Undefined'}
 
@@ -383,6 +384,7 @@ class Annotations():
             return
         clue = None # used in some instances to pick out epochs from other evts
         idx_clue = None
+        redherring = None
             
         if source in ['remlogic', 'sandman']:
             encoding = 'ISO-8859-1'
@@ -424,6 +426,7 @@ class Annotations():
 
         elif source == 'remlogic':
             clue = 'SLEEP-' # signifies an epoch (as opposed to an event)
+            redherring = 'SPINDLE'
             idx_clue = slice(-18, -6)            
             idx_head = lines.index(
                     next(l for l in lines if 'Time [hh:mm:ss]' in l))
@@ -611,6 +614,9 @@ class Annotations():
             for i, one_line in enumerate(lines[idx_first_line:]):
                 if clue is not None:
                     if clue not in one_line[idx_clue]:
+                        continue
+                if redherring is not None:
+                    if redherring in one_line:
                         continue
                 
                 epoch = SubElement(stages, 'epoch')
