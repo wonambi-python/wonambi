@@ -148,8 +148,8 @@ class Micromed:
         vid = self._videos
 
         # remove empty rows
-        DTYPE_MAX = iinfo(vid.dtype['delay']).max
-        vid = vid[vid['delay'] != DTYPE_MAX]
+        DTYPE_MAX = iinfo(vid.dtype['duration']).max
+        vid = vid[vid['duration'] != DTYPE_MAX]
 
         if vid.shape[0] == 0:
             raise OSError('No videos for this dataset')
@@ -157,7 +157,6 @@ class Micromed:
         if vid.shape[0] > 1:
             raise NotImplementedError('Currently it handles only one video.')
 
-        # TODO: to test if delay is positive or negative
         video_beg = begtime + vid['delay'].item() / 1000
         video_end = endtime + vid['delay'].item() / 1000
 
@@ -182,7 +181,10 @@ def _read_header(f):
     orig['surname'] = f.read(22).decode('utf-8').strip()
     orig['name'] = f.read(20).decode('utf-8').strip()
     month, day, year = unpack('bbb', f.read(3))
-    orig['date_of_birth'] = date(year + 1900, month, day)
+    try:
+        orig['date_of_birth'] = date(year + 1900, month, day)
+    except ValueError:
+        orig['date_of_birth'] = None
     f.seek(19, SEEK_CUR)
 
     # recording
@@ -259,7 +261,7 @@ def _read_header(f):
 
     pos, length = zones['DVIDEO']
     f.seek(pos, 0)
-    DTYPE = dtype([('delay', 'u4'), ('duration', 'u4'), ('file_ext', 'u4'), ('empty', 'u4')])
+    DTYPE = dtype([('delay', 'i4'), ('duration', 'u4'), ('file_ext', 'u4'), ('empty', 'u4')])
     dvideo = fromfile(f, dtype=DTYPE, count=int(length / DTYPE.itemsize))
 
     # events

@@ -44,6 +44,7 @@ SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 IO_PATH = SAMPLE_PATH / 'io'
 brainvision_dir = IO_PATH / 'brainvision'
 openephys_dir = IO_PATH / 'openephys'
+openephys_dir = Path('/Fridge/users/giovanni/recordings/UMCU/bair_rats/data/20190527_test_markers/2019-05-27_11-47-15')
 ktlx_file = IO_PATH / 'xltek'
 mff_file = IO_PATH / 'egi.mff'
 moberg_file = IO_PATH / 'moberg'

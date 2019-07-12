@@ -271,7 +271,7 @@ class FormFloat(QLineEdit):
 
         if default is not None:
             self.set_value(default)
-            
+
         if maxw is not None:
             self.setMaximumWidth(maxw)
 
@@ -748,6 +748,36 @@ def choose_file_or_dir():
         return 'abort'
 
 
+def select_session(sessions):
+    """Select one session out of a list of sessions.
+
+    Parameters
+    ----------
+    sessions : list
+        list of integers
+
+    Returns
+    -------
+    None or int
+        index of the session being chosen
+    """
+    question = QMessageBox(QMessageBox.Question, 'Open Dataset',
+                           'Select one session')
+
+    buttons = []
+    for sess in sessions:
+        buttons.append(
+            question.addButton('Session ' + str(sess), QMessageBox.ActionRole))
+    button_cancel = question.addButton(QMessageBox.Cancel)
+    question.exec_()
+
+    response = question.clickedButton()
+    if response == button_cancel:
+        return
+    else:
+        return buttons.index(response)
+
+
 def short_strings(s, max_length=MAX_LENGTH):
     if len(s) > max_length:
         max_length -= 3  # dots
@@ -816,9 +846,9 @@ def freq_from_str(freq_str):
                 one_band = i[1:-1].split('-')
                 one_band = float(one_band[0]), float(one_band[1])
                 freq.append(one_band)
-    
+
         elif freq_str[0] == '(' and freq_str[-1] == ')':
-    
+
             if len(as_list) == 4:
                 start = float(as_list[0])
                 stop = float(as_list[1])
@@ -829,9 +859,9 @@ def freq_from_str(freq_str):
                     freq.append((i - halfwidth, i + halfwidth))
             else:
                 return None
-    
+
         else:
-            return None           
+            return None
     except:
         return None
 

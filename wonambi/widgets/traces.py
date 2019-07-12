@@ -292,27 +292,27 @@ class Traces(QGraphicsView):
         act.setShortcut('s')
         act.triggered.connect(self.next_event)
         actions['next_event'] = act
-        
+
         act = QAction('Delete Event and Go to Next', self)
         act.setShortcut('d')
         act.triggered.connect(partial(self.next_event, True))
         actions['del_and_next_event'] = act
-        
+
         act = QAction('Next Event of Same Type', self)
         act.setCheckable(True)
         act.setChecked(True)
         actions['next_of_same_type'] = act
-        
+
         act = QAction('Change Event Type', self)
         act.setShortcut('e')
         act.triggered.connect(self.change_event_type)
         actions['change_event_type'] = act
-        
+
         act = QAction('Centre Window Around Event', self)
         act.setCheckable(True)
         act.setChecked(True)
         actions['centre_event'] = act
-        
+
         act = QAction('Full-length Markers', self)
         act.setCheckable(True)
         act.setChecked(True)
@@ -618,7 +618,7 @@ class Traces(QGraphicsView):
                     item.setRotation(-90)
                     self.scene.addItem(item)
                     self.idx_annot_labels.append(item)
-                    mrk_dur = amax((mrk_end - mrk_start, 
+                    mrk_dur = amax((mrk_end - mrk_start,
                                   self.parent.value('min_marker_display_dur')))
 
                     item = RectMarker(mrk_start, 0, mrk_dur,
@@ -633,7 +633,7 @@ class Traces(QGraphicsView):
                     chan_idx_in_mrk = in1d(self.chan, annot['chan'])
                     y_annot = asarray(self.chan_pos)[chan_idx_in_mrk]
                     y_annot -= y_distance / 2
-                    mrk_dur = amax((mrk_end - mrk_start, 
+                    mrk_dur = amax((mrk_end - mrk_start,
                                   self.parent.value('min_marker_display_dur')))
 
                     for y in y_annot:
@@ -780,7 +780,7 @@ class Traces(QGraphicsView):
             it contains the position that was clicked.
         """
         if not self.scene:
-            return            
+            return
 
         if self.event_sel or self.current_event:
             self.parent.notes.idx_eventtype.setCurrentText(self.current_etype)
@@ -792,7 +792,7 @@ class Traces(QGraphicsView):
             self.scene.removeItem(self.highlight)
             self.highlight = None
             self.parent.statusBar().showMessage('')
-            return        
+            return
 
         self.ready = False
         self.event_sel = None
@@ -876,7 +876,7 @@ class Traces(QGraphicsView):
         if self.idx_info in self.scene.items():
             self.scene.removeItem(self.idx_info)
 
-        duration = '{0:0.2f}s'.format(abs(xy_scene.x() - self.sel_xy[0]))
+        duration = '{0:0.3f}s'.format(abs(xy_scene.x() - self.sel_xy[0]))
 
         # get y-size, based on scaling too
         y = abs(xy_scene.y() - self.sel_xy[1])
@@ -951,14 +951,14 @@ class Traces(QGraphicsView):
 
                 elif chk_event and start != end:
                     eventtype = self.parent.notes.idx_eventtype.currentText()
-                    
+
                     # if dragged across > 1.5 chan, event is marked on all chan
                     if abs(y_in_scene - self.sel_xy[1]) > 1.5 * y_distance:
                         chan = ''
                     else:
                         chan_idx = int(floor(self.sel_xy[1] / y_distance))
                         chan = self.chan[chan_idx]
-                        
+
                     self.parent.notes.add_event(eventtype, time, chan)
 
         else:  # normal selection
@@ -1006,10 +1006,10 @@ class Traces(QGraphicsView):
             self.current_etype = None
             self.current_event = None
             self.display_annotations
-    
+
     def highlight_event(self, annot):
         """Highlight an annotation on the trace.
-        
+
         Parameters
         ----------
         annot : intance of wonambi.widgets.utils.RectMarker
@@ -1019,14 +1019,14 @@ class Traces(QGraphicsView):
         end = beg + annot.marker.width()
         window_start = self.parent.value('window_start')
         window_length = self.parent.value('window_length')
-        events = self.parent.notes.get_selected_events((window_start, 
+        events = self.parent.notes.get_selected_events((window_start,
                                                 window_start + window_length))
         ev = [x for x in events if (x['start'] == annot.marker.x() or \
                                     x['end'] == annot.marker.y())]
-        
+
         if ev:
             annot_name = ev[0]['name']
-            
+
             msg = "Event of type '{}' from {} to {}".format(
                     annot_name, beg, end)
             self.current_etype = self.parent.notes.idx_eventtype.currentText()
@@ -1035,7 +1035,7 @@ class Traces(QGraphicsView):
         else:
             msg = "Marker from {} to {}".format(beg, end)
         self.parent.statusBar().showMessage(msg)
-            
+
         highlight = self.highlight = RectMarker(annot.marker.x(),
                                                annot.marker.y(),
                                                annot.marker.width(),
@@ -1043,8 +1043,8 @@ class Traces(QGraphicsView):
                                                zvalue=-5,
                                                color=QColor(255, 255, 51))
         self.scene.addItem(highlight)
-        self.event_sel = annot        
-    
+        self.event_sel = annot
+
     def next_event(self, delete=False):
         """Go to next event."""
         if delete:
@@ -1055,69 +1055,69 @@ class Traces(QGraphicsView):
             response = msgbox.exec_()
             if response == QMessageBox.No:
                 return
-        
+
         event_sel = self.event_sel
         if event_sel is None:
             return
-        
+
         notes = self.parent.notes
-        
+
         if not self.current_event_row:
             row = notes.find_row(event_sel.marker.x(),
                             event_sel.marker.x() + event_sel.marker.width())
         else:
             row = self.current_event_row
-            
+
         same_type = self.action['next_of_same_type'].isChecked()
         if same_type:
             target = notes.idx_annot_list.item(row, 2).text()
-        
-        if delete:            
+
+        if delete:
             notes.delete_row()
-            msg = 'Deleted event from {} to {}.'.format(event_sel.marker.x(), 
+            msg = 'Deleted event from {} to {}.'.format(event_sel.marker.x(),
                             event_sel.marker.x() + event_sel.marker.width())
             self.parent.statusBar().showMessage(msg)
             row -= 1
-        
+
         if row + 1 == notes.idx_annot_list.rowCount():
             return
-        
+
         if not same_type:
             next_row = row + 1
         else:
             next_row = None
             types = notes.idx_annot_list.property('name')[row + 1:]
-            
+
             for i, ty in enumerate(types):
                 if ty == target:
                     next_row = row + 1 + i
                     break
-                    
+
             if next_row is None:
-                return                
-                    
+                return
+
         self.current_event_row = next_row
         notes.go_to_marker(next_row, 0, 'annot')
-        notes.idx_annot_list.setCurrentCell(next_row, 0)             
-    
+        notes.idx_annot_list.setCurrentCell(next_row, 0)
+
     def change_event_type(self):
-        """Action: change highlighted event's type by cycling through event 
+        """Action: change highlighted event's type by cycling through event
         type list."""
         if self.current_event is None:
             return
-        
+
         hl_params = self.highlight.params
         self.scene.removeItem(self.highlight)
 
         ev = self.current_event
-        new_name = self.parent.notes.change_event_type(name=ev['name'], 
+        new_name = self.parent.notes.change_event_type(name=ev['name'],
                                                        time=(ev['start'],
-                                                             ev['end']), 
+                                                             ev['end']),
                                                        chan=ev['chan'])
         msg = "Event from {} to {} changed type from '{}' to '{}'".format(
                 ev['start'], ev['end'], ev['name'], new_name)
         ev['name'] = new_name
-        
+
         self.current_event = ev
         self.current_etype = new_name
         #self.event_sel = True
@@ -1126,7 +1126,7 @@ class Traces(QGraphicsView):
         self.display_annotations()
         self.highlight = RectMarker(*hl_params)
         self.scene.addItem(self.highlight)
-    
+
     def resizeEvent(self, event):
         """Resize scene so that it fits the whole widget.
 

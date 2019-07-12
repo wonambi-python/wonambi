@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 5
 ----------
+- **5.72**: openephys; resampling by a fraction for display; fixes for remlogic staging import
 - **5.71**: fixes for spindle detectors: Moelle2011, Ferrarelli2007, Wamsley2012, Lacourse2018
 - **5.70**: remlogic staging import fix
 - **5.69**: changes to sleep statistics; buffer option in fetch
