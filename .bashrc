@@ -76,6 +76,12 @@ sql_schema(){
     schemacrawler.sh -server sqlite -database "$1" -password= -command=schema -outputformat=png -outputfile=sql_schema.png
 }
 
+# BIDS validator
+
+bids(){
+    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator /data
+}
+
 # use all colors in MATE terminal
 TERM=xterm-256color
 
