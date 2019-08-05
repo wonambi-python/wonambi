@@ -361,11 +361,12 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         If True, epochs marked as 'Poor' quality or staged as 'Artefact' will
         be rejected (and the signal segmented in consequence). Has no effect on
         event selection.
-    reject_artf : bool
+    reject_artf : bool or str or list of str
         If True, excludes events marked as 'Artefact'. If chan_full is 
         specified, only artefacts marked on a given channel are removed from 
         that channel. Signal is segmented in consequence. 
         If None, Artefact events are ignored.
+        If str or list of str, will reject the specified event types only.
     min_dur : float
         Minimum duration of segments returned, in seconds.
     buffer : float
@@ -380,10 +381,15 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
                         chan=chan_full, exclude=reject_epoch, buffer=buffer)
 
     # Remove artefacts
-    if reject_artf and bundles:
+    if bundles and reject_artf is not False:
+        if isinstance(reject_artf, bool):
+            evt_type_name = None
+        else:
+            evt_type_name = reject_artf
+        
         for bund in bundles:
             bund['times'] = remove_artf_evts(bund['times'], annot, 
-                bund['chan'], min_dur=0)
+                chan=bund['chan'], name=evt_type_name, min_dur=0)
 
     # Divide bundles into segments to be concatenated
     if bundles:
