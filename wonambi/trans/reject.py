@@ -10,7 +10,7 @@ def rejectbadchan():
     """
     pass
 
-def remove_artf_evts(times, annot, chan=None, min_dur=0.1):
+def remove_artf_evts(times, annot, chan=None, name=None, min_dur=0.1):
     """Correct times to remove events marked 'Artefact'.
 
     Parameters
@@ -23,6 +23,9 @@ def remove_artf_evts(times, annot, chan=None, min_dur=0.1):
         full name of channel on which artefacts were marked. Channel format is 
         'chan_name (group_name)'. If None, artefacts from any channel will be
         removed.
+    name : str or list of str, optional
+        name of the event type(s) to be rejected. If None, defaults to 
+        'Artefact'.
     min_dur : float
         resulting segments, after concatenation, are rejected if shorter than
         this duration
@@ -38,9 +41,22 @@ def remove_artf_evts(times, annot, chan=None, min_dur=0.1):
     end = times[-1][-1]
     chan = (chan, '') if chan else None # '' is for channel-global artefacts
     
-    artefact = annot.get_events(name='Artefact', time=(beg, end), chan=chan,
-                                qual='Good')
-        
+    if name is not None:
+        if isinstance(name, list):
+            evt_type_list = name
+        elif isinstance(name, str):
+            evt_type_list = []
+        else:
+            raise TypeError(
+                    "Argument 'name' must be str, list of str, or None.")
+    else:
+        evt_type_list = ['Artefact']            
+    
+    artefact = []
+    for evt_type in evt_type_list:
+        artefact.extend(annot.get_events(name=evt_type, time=(beg, end), 
+                                         chan=chan))
+            
     if artefact:
         new_times = []
         
