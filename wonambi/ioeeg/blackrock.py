@@ -3,6 +3,7 @@ from logging import getLogger, NOTSET, WARNING, disable
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from os.path import splitext
 from struct import unpack
+from pathlib import Path
 
 from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones,
                    reshape, where)
@@ -24,7 +25,7 @@ class BlackRock:
 
     """
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = Path(filename)
         self.markers = []
 
         self.BOData = None
@@ -238,8 +239,6 @@ def _read_neuralsg(filename):
         f.seek(28)
         time = unpack('<' + 'H' * 8, f.read(16))
 
-    hdr['DateTimeRaw'] = time
-    lg.warning('DateTime is in local time')
     hdr['DateTime'] = datetime(time[0], time[1], time[3],
                                time[4], time[5], time[6], time[7] * 1000)
 
@@ -273,11 +272,17 @@ def _read_neuralcd(filename):
         hdr['SamplingFreq'] = int(hdr['TimeRes'] /
                                   unpack('<i', BasicHdr[278:282])[0])
         time = unpack('<' + 'H' * 8, BasicHdr[286:302])
-        hdr['DateTimeRaw'] = time
-        lg.warning('DateTime is in UTC time')
-        hdr['DateTime'] = datetime(time[0], time[1], time[3], time[4], time[5],
+        lg.info('The date/time from the header is stored in UTC, which is stored in DateTimeUTC')
+        hdr['DateTimeUTC'] = datetime(time[0], time[1], time[3], time[4], time[5],
                                    time[6], time[7] * 1000,
                                    tzinfo=timezone.utc)
+        try:
+            lg.debug('Trying to get date/time from filename')
+            hdr['DateTime'] = datetime.strptime(filename.stem[:15], '%Y%m%d-%H%M%S')
+        except Exception:
+            lg.warning('Cannot decode date/time from filename, using UTC time from header')
+            hdr['DateTime'] = hdr['DateTimeUTC']
+
         hdr['ChannelCount'] = unpack('<I', BasicHdr[302:306])[0]
 
         ExtHdrLength = 66
@@ -428,11 +433,17 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
         hdr['SampleRes'] = unpack('<I', BasicHdr[i0:i1])[0]
         i0, i1 = i1, i1 + 16
         time = unpack('<' + 'H' * 8, BasicHdr[i0:i1])
-        hdr['DateTimeRaw'] = time
-        lg.warning('DateTime is in local time with Central version <= 6.03'
-                   ' and in UTC with Central version > 6.05')
-        hdr['DateTime'] = datetime(time[0], time[1], time[3],
-                                   time[4], time[5], time[6], time[7] * 1000)
+        lg.debug('DateTime is in local time with Central version <= 6.03'
+                 ' and in UTC with Central version > 6.05')
+        hdr['DateTimeUTC'] = datetime(time[0], time[1], time[3],
+                                      time[4], time[5], time[6], time[7] * 1000)
+        try:
+            lg.debug('Trying to get date/time from filename')
+            hdr['DateTime'] = datetime.strptime(filename.stem[:15], '%Y%m%d-%H%M%S')
+        except Exception:
+            lg.warning('Cannot decode date/time from filename, using (probable) UTC time from header')
+            hdr['DateTime'] = hdr['DateTimeUTC']
+
         i0, i1 = i1, i1 + 32
         # hdr['Application'] = _str(BasicHdr[i0:i1].decode('utf-8'))
         i0, i1 = i1, i1 + 256
