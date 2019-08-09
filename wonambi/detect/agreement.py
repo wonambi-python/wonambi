@@ -1,7 +1,7 @@
 """Module for agreement and consensus analysis between raters"""
 
 from numpy import (arange, argmax, asarray, concatenate, diff, invert, 
-                   logical_and, maximum, mean, minimum, newaxis, repeat, 
+                   logical_and, maximum, mean, minimum, newaxis, ones, repeat, 
                    sum, vstack, where, zeros)
 
 from .. import Graphoelement
@@ -108,7 +108,7 @@ class MatchedEvents:
         self.to_annot(annot, 'fn', names[3])
 
 
-def consensus(events, threshold, s_freq, min_duration=None):
+def consensus(events, threshold, s_freq, min_duration=None, weights=None):
     """Take two or more event lists and output a merged list based on 
     consensus.
     
@@ -139,13 +139,15 @@ def consensus(events, threshold, s_freq, min_duration=None):
     end = max([one_rater[-1]['end'] for one_rater in events if one_rater])
     n_samples = int((end - beg) * s_freq)
     times = arange(beg, end + 1/s_freq, 1/s_freq)
+    if weights is None:
+        weights = ones(len(events))
     
     positives = zeros((len(events), n_samples))
-    for i, one_rater in enumerate(events):
+    for i, (one_rater, wt) in enumerate(zip(events, weights)):
         for ev in one_rater:
             n_start = int((ev['start'] - beg) * s_freq)
             n_end = int((ev['end'] - beg) * s_freq)
-            positives[i, n_start:n_end].fill(1)
+            positives[i, n_start:n_end].fill(wt)
                 
     consensus = mean(positives, axis=0)
     consensus[consensus >= threshold] = 1
