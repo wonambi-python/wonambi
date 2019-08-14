@@ -181,32 +181,6 @@ class OpenEphys:
             )
         return sorted(all_markers, key=lambda x: x['start'])
 
-def _read_block_continuous(f, i_block):
-    """Read a single block / record completely
-
-    Parameters
-    ----------
-    f : file handle
-        handle to a file opened with 'rb'
-    i_block : int
-        index of the block to read
-
-    Returns
-    -------
-    1D array
-        data inside a block for one channel
-
-    Notes
-    -----
-    It skips the timestamp information (it's assumed to be continuous) and the
-    control characters. Maybe it might be useful to check the control
-    characters but it will slow down the execution.
-    """
-    f.seek(HDR_LENGTH + i_block * BLK_SIZE + BEG_BLK_SIZE)
-    v = unpack(DAT_FMT, f.read(DAT_FMT_SIZE))
-
-    return array(v)
-
 
 def _read_openephys(openephys_file):
     """Read the channel labels and their respective files from the
@@ -274,26 +248,6 @@ def _read_date(settings_file):
                     break
 
     return datetime.strptime(e1.text, '%d %b %Y %H:%M:%S')
-
-
-def _read_n_samples(channel_file):
-    """Calculate the number of samples based on the file size
-
-    Parameters
-    ----------
-    channel_file : Path
-        path to single filename with the header
-
-    Returns
-    -------
-    int
-        number of blocks (i.e. records, in which the data is cut)
-    int
-        number of samples
-    """
-    n_blocks = int((channel_file.stat().st_size - HDR_LENGTH) / BLK_SIZE)
-    n_samples = n_blocks * BLK_LENGTH
-    return n_blocks, n_samples
 
 
 def _read_header(filename):
