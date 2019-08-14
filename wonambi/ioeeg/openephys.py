@@ -7,6 +7,7 @@ might change in the future.
 """
 from datetime import datetime
 from logging import getLogger
+import locale
 from struct import unpack, calcsize
 from math import ceil
 from re import search, match
@@ -82,12 +83,16 @@ class OpenEphys:
         subj_id = self.filename.stem  # use directory name as subject name
 
         start_time = _read_date(self.settings_xml)
+
         self.recordings = _read_openephys(self.openephys_file)
         s_freq = self.recordings[0]['s_freq']
         self.s_freq = s_freq
         channels = self.recordings[0]['channels']
 
         segments, messages = _read_messages_events(self.messages_file)
+        self.segments = segments
+        self.messages = messages
+        self.offsets = [int(x['channels'][0]['position']) for x in self.recordings]
 
         for i in range(len(self.segments) - 1):
             self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * BLK_LENGTH)
@@ -110,7 +115,7 @@ class OpenEphys:
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
 
-        file_length = (channel_filename.stat().st_size - HDR_LENGTH)
+        file_length = channel_filename.stat().st_size
         self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * BLK_LENGTH)
 
         for seg in self.segments:
@@ -259,8 +264,8 @@ def _read_date(settings_file):
     The start time is present in the header of each file. This might be useful
     if 'settings.xml' is not present.
     """
-    import locale
     locale.setlocale(locale.LC_TIME, 'en_US.utf-8')
+
     root = ElementTree.parse(settings_file).getroot()
     for e0 in root:
         if e0.tag == 'INFO':
@@ -365,27 +370,35 @@ def _segments_to_markers(segments):
 def _read_messages_events(messages_file):
     messages = []
     segments = []
+    header = True
 
     with messages_file.open() as f:
         for l in f:
 
-            m_time = search(r'\d+ Software time: \d+@(\d+)Hz', l)
+            m_time = search(r'\d+ Software time: \d+@\d+Hz', l)
             m_start = search(r'start time: (\d+)@(\d+)Hz', l)
             m_event = match(r'(\d+) (.+)', l)
 
             if m_time:
-                s_freq = int(m_time.group(1))
+                continue   # ignore Software time
+
             elif m_start:
+                if header:
+                    offset = int(m_start.group(1))
+                    s_freq = int(m_start.group(2))
+                    header = False
+
                 segments.append({
-                    'offset': int(m_start.group(1)),
+                    'start': int(m_start.group(1)) - offset,
                     's_freq': int(m_start.group(2)),
                     })
+
             elif m_event:
                 time = int(m_event.group(1))
                 messages.append({
                     'name': m_event.group(2),
-                    'start': time / s_freq,
-                    'end': time / s_freq,
+                    'start': (time - offset) / s_freq,
+                    'end': (time - offset) / s_freq,
                     'chan': None,
                 })
 
