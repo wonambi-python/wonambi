@@ -10,6 +10,12 @@ Active channels are selected in the left-hand column.
 
 .. image:: images/channels_01_onegroup.png
 
+
+* If you click on a single item, the selection is cleared and the new item selected. 
+* Multiple consecutive items can be selected by dragging the mouse over them.
+* If you press the Ctrl key when clicking on an item, the clicked item gets toggled and all other items are left untouched. In this way you can add one single channel to the selection or remove one single channel from the selection.
+* If you press the Shift key while clicking on an item, all items between the current item and the clicked item are selected or unselected, depending on the state of the clicked item. 
+
 By clicking on ``New`` you can create a second channel group, e.g. called `eog`.
 
 .. image:: images/channels_02_eog.png
@@ -76,5 +82,5 @@ then, the previously saved channel groups will be shown directly:
 .. image:: images/channels_14_loaded.png
 
 .. NOTE::
-   You can reuse a same channel montage file as long as the labels are the same.
+   You can reuse the same channel montage file as long as the channel labels are the same.
 
