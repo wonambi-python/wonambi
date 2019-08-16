@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 6
+----------
+- **6.01**: move all the test files in one location
+
 Version 5
 ----------
 - **5.73**: handle multiple videos for micromed

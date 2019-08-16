@@ -8,6 +8,7 @@ env:
   global:
    - DOWNLOADS=$HOME/downloads
    - HTML_PATH=docs/build/html
+   # it's necessary to use pyqt5 because that is the version compatible with travis/qt
    - OPT_DEP='nibabel pyqt5==5.11.3 vispy h5py fooof bidso'
 
 cache: 
