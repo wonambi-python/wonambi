@@ -51,7 +51,7 @@ mff_file = IO_PATH / 'egi.mff'
 micromed_file = IO_PATH / 'micromed' / 'micromed.TRC'
 moberg_file = IO_PATH / 'moberg'
 openephys_dir = IO_PATH / 'openephys' / '2019-05-27_11-47-15'
-ktlx_file = IO_PATH / 'xltek'
+ktlx_file = IO_PATH / 'xltek' / 'Video_Demo'
 hdf5_file = IO_PATH / 'fieldtrip_hdf5.mat'
 
 # Folder where to export data
