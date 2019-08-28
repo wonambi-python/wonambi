@@ -176,7 +176,7 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        offset_events = self.segments[self.id_session]['markers_offset']
+        offset_events = self.segments[0]['markers_offset']
         all_markers = (
             self.messages
             + _segments_to_markers(self.segments)
