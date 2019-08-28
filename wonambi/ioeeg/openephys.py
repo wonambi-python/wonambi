@@ -51,6 +51,8 @@ class OpenEphys:
     """
     def __init__(self, filename, session=1):
 
+        self.id_session = session - 1  # zeroth-based for python
+
         if session == 1:
             self.session = ''
         else:
@@ -174,10 +176,11 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
+        offset_events = self.segments[self.id_session]['markers_offset']
         all_markers = (
             self.messages
             + _segments_to_markers(self.segments)
-            + _read_all_channels_events(self.events_file, 0, self.s_freq)
+            + _read_all_channels_events(self.events_file, offset_events, self.s_freq)
             )
         return sorted(all_markers, key=lambda x: x['start'])
 
@@ -345,6 +348,7 @@ def _read_messages_events(messages_file):
                 segments.append({
                     'start': int(m_start.group(1)) - offset,
                     's_freq': int(m_start.group(2)),
+                    'markers_offset': offset,  # useful to realign markers
                     })
 
             elif m_event:

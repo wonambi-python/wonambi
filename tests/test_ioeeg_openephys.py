@@ -17,7 +17,7 @@ def test_openephys_markers():
 
     assert len(markers) == 10
     assert markers[0]['name'] == 'START RECORDING #0'
-    assert markers[7]['end'] == 110.762
+    assert markers[7]['end'] == 95.402
     assert markers[-1]['name'] == 'END RECORDING #1'
 
 
