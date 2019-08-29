@@ -51,8 +51,6 @@ class OpenEphys:
     """
     def __init__(self, filename, session=1):
 
-        self.id_session = session - 1  # zeroth-based for python
-
         if session == 1:
             self.session = ''
         else:
@@ -151,18 +149,18 @@ class OpenEphys:
         dat = empty((len(chan), data_length))
         dat.fill(NaN)
 
-        blocks_dat, blocks_disk = _prepare_blocks(self.segments)
+        blocks_dat, blocks_offset = _prepare_blocks(self.segments)
 
         all_blocks = _select_blocks(blocks_dat, begsam, endsam)
         for i_chan, sel_chan in enumerate(chan):
             with self.channels[sel_chan].open('rb') as f:
                 for i_block in all_blocks:
                     i_dat = blocks_dat[i_block, :] - begsam
-                    i_disk = blocks_disk[i_block, :]
+                    i_disk = blocks_offset[i_block].item()
 
-                    f.seek(i_disk[0])
+                    f.seek(i_disk)
                     # read whole block
-                    x = array(unpack(DAT_FMT, f.read(i_disk[1] - i_disk[0])))
+                    x = array(unpack(DAT_FMT, f.read(DAT_FMT_SIZE)))
                     beg_dat = max(i_dat[0], 0)
                     end_dat = min(i_dat[1], data_length)
                     beg_x = max(0, - i_dat[0])
@@ -332,12 +330,12 @@ def _read_messages_events(messages_file):
     with messages_file.open() as f:
         for l in f:
 
-            m_time = search(r'\d+ Software time: \d+@\d+Hz', l)
+            m_time = search(r'\d+ Software time: (\d+)@\d+Hz', l)
             m_start = search(r'start time: (\d+)@(\d+)Hz', l)
             m_event = match(r'(\d+) (.+)', l)
 
             if m_time:
-                continue   # ignore Software time
+                offset_events = int(m_time.group(1))
 
             elif m_start:
                 if header:
@@ -348,7 +346,7 @@ def _read_messages_events(messages_file):
                 segments.append({
                     'start': int(m_start.group(1)) - offset,
                     's_freq': int(m_start.group(2)),
-                    'markers_offset': offset,  # useful to realign markers
+                    'markers_offset': offset_events,  # useful to realign markers
                     })
 
             elif m_event:
@@ -399,7 +397,7 @@ def _read_all_channels_events(events_file, offset, s_freq):
 def _prepare_blocks(segments):
 
     blocks_dat = []
-    blocks_disk = []
+    blocks_offset = []
 
     for seg in segments:
         n_blocks = ceil(seg['length'] / BLK_LENGTH)
@@ -408,17 +406,14 @@ def _prepare_blocks(segments):
                 i_blk * BLK_LENGTH + seg['start'],
                 i_blk * BLK_LENGTH + BLK_LENGTH + seg['start'],
             ])
-            blocks_disk.append([
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE,
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE + DAT_FMT_SIZE,
+            blocks_offset.append([
+                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE,
             ])
 
     blocks_dat = array(blocks_dat)
-    blocks_disk = array(blocks_disk)
+    blocks_offset = array(blocks_offset)
 
-    blocks_disk
-
-    return blocks_dat, blocks_disk
+    return blocks_dat, blocks_offset
 
 
 def _select_blocks(blocks_dat, begsam, endsam):
