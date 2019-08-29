@@ -117,6 +117,7 @@ class OpenEphys:
 
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
+        self.gain = array(gain)
 
         file_length = channel_filename.stat().st_size
         self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * BLK_LENGTH)
@@ -124,12 +125,11 @@ class OpenEphys:
         for seg in self.segments:
             seg['end'] = seg['start'] + seg['length']
 
-        self.gain = array(gain)
-        n_samples = self.segments[-1]['end']
-
         # the first timestamp should be the same for all the channels
         assert len(set(first_timestamps)) == 1
         self.first_timestamp = first_timestamps[0]
+
+        n_samples = self.segments[-1]['end'] + self.first_timestamp
 
         orig = {}
 
@@ -184,11 +184,10 @@ class OpenEphys:
         """Read the markers from the .events file
 
         """
-        offset_events = self.segments[0]['markers_offset']
         all_markers = (
             self.messages
-            + _segments_to_markers(self.segments)
-            + _read_all_channels_events(self.events_file, offset_events, self.s_freq)
+            + _segments_to_markers(self.segments, self.first_timestamp)
+            + _read_all_channels_events(self.events_file, self.s_freq)
             )
         return sorted(all_markers, key=lambda x: x['start'])
 
@@ -322,20 +321,20 @@ def _check_header(channel_file, s_freq):
     return float(hdr['bitVolts']), first_timestamp
 
 
-def _segments_to_markers(segments):
+def _segments_to_markers(segments, first_timestamp):
     mrk = []
     for i, seg in enumerate(segments):
         mrk.append({
             'name': f'START RECORDING #{i}',
             'chan': None,
-            'start': seg['start'] / seg['s_freq'],
-            'end': seg['start'] / seg['s_freq'],
+            'start': (seg['start'] + first_timestamp) / seg['s_freq'],
+            'end': (seg['start'] + first_timestamp) / seg['s_freq'],
         })
         mrk.append({
             'name': f'END RECORDING #{i}',
             'chan': None,
-            'start': seg['end'] / seg['s_freq'],
-            'end': seg['end'] / seg['s_freq'],
+            'start': (seg['end'] + first_timestamp) / seg['s_freq'],
+            'end': (seg['end'] + first_timestamp) / seg['s_freq'],
         })
 
     return mrk
@@ -353,7 +352,7 @@ def _read_messages_events(messages_file):
             m_event = match(r'(\d+) (.+)', l)
 
             if m_time:
-                offset_events = int(m_time.group(1))
+                pass
 
             elif m_start:
                 if header:
@@ -364,7 +363,6 @@ def _read_messages_events(messages_file):
                 segments.append({
                     'start': int(m_start.group(1)) - offset,
                     's_freq': int(m_start.group(2)),
-                    'markers_offset': offset_events,  # useful to realign markers
                     })
 
             elif m_event:
@@ -379,7 +377,7 @@ def _read_messages_events(messages_file):
     return segments, messages
 
 
-def _read_all_channels_events(events_file, offset, s_freq):
+def _read_all_channels_events(events_file, s_freq):
 
     file_read = [
         ('timestamps', '<i8'),
@@ -404,8 +402,8 @@ def _read_all_channels_events(events_file, offset, s_freq):
         for i_on, i_off in zip(onsets, offsets):
             mrk.append({
                 'name': str(evt_type),
-                'start': (i_on - offset) / s_freq,
-                'end': (i_off - offset) / s_freq,
+                'start': i_on / s_freq,
+                'end': i_off / s_freq,
                 'chan': None,
             })
 

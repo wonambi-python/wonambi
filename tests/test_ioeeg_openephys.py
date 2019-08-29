@@ -17,7 +17,8 @@ def test_openephys_markers():
 
     assert len(markers) == 10
     assert markers[0]['name'] == 'START RECORDING #0'
-    assert markers[7]['end'] == 95.402
+    assert markers[7]['name'] == '5'
+    assert markers[7]['end'] == 110.762
     assert markers[-1]['name'] == 'END RECORDING #1'
 
 
@@ -36,16 +37,16 @@ def test_openephys_read():
     mrks = self.return_markers()
 
     # before beginning
-    dat = self.return_dat([0, ], -20, -10)
+    dat = self.return_dat([0, ], -20 + self.first_timestamp, -10 + self.first_timestamp)
     assert isnan(dat[0, :]).all()
 
     # beginning
-    dat = self.return_dat([0, ], -5, 5)
+    dat = self.return_dat([0, ], -5 + self.first_timestamp, 5 + self.first_timestamp)
     assert isnan(dat[0, :5]).all()
     assert not isnan(dat[0, 5:]).any()
 
     # values
-    dat = self.return_dat([0, ], 1020, 1030)
+    dat = self.return_dat([0, ], 1020 + self.first_timestamp, 1030 + self.first_timestamp)
     assert dat[0, :].sum() == -19438.575
 
     # end of first segment
