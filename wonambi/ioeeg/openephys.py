@@ -104,13 +104,16 @@ class OpenEphys:
         chan_name = []
         self.channels = []
         gain = []
+        first_timestamps = []
         for chan in channels:
             channel_filename = (self.filename / chan['filename'])
 
             if channel_filename.exists():
                 chan_name.append(chan['name'])
                 self.channels.append(channel_filename)
-                gain.append(_check_header(channel_filename, s_freq))
+                ch_gain, ch_timestamp = _check_header(channel_filename, s_freq)
+                gain.append(ch_gain)
+                first_timestamps.append(ch_timestamp)
 
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
@@ -123,6 +126,10 @@ class OpenEphys:
 
         self.gain = array(gain)
         n_samples = self.segments[-1]['end']
+
+        # the first timestamp should be the same for all the channels
+        assert len(set(first_timestamps)) == 1
+        self.first_timestamp = first_timestamps[0]
 
         orig = {}
 
@@ -145,6 +152,9 @@ class OpenEphys:
         2D array
             chan X samples recordings
         """
+        begsam -= self.first_timestamp
+        endsam -= self.first_timestamp
+
         data_length = endsam - begsam
         dat = empty((len(chan), data_length))
         dat.fill(NaN)
@@ -158,8 +168,8 @@ class OpenEphys:
                     i_dat = blocks_dat[i_block, :] - begsam
                     i_disk = blocks_offset[i_block].item()
 
+                    # read only data (no timestamp or record marker)
                     f.seek(i_disk)
-                    # read whole block
                     x = array(unpack(DAT_FMT, f.read(DAT_FMT_SIZE)))
                     beg_dat = max(i_dat[0], 0)
                     end_dat = min(i_dat[1], data_length)
@@ -263,6 +273,9 @@ def _read_header(filename):
     -------
     dict
         header
+    int
+        the timestamp of the first sample in the data. It's like an offset for
+        the data. It's necessary to align with the clock time and the markers.
     """
     with filename.open('rb') as f:
         h = f.read(HDR_LENGTH).decode()
@@ -275,7 +288,9 @@ def _read_header(filename):
                 value = value.strip()[:-1]
                 header[key] = value
 
-    return header
+        first_timestamp = unpack('q', f.read(8))[0]
+
+    return header, first_timestamp
 
 
 def _check_header(channel_file, s_freq):
@@ -294,14 +309,17 @@ def _check_header(channel_file, s_freq):
     int
         gain from digital to microvolts (the same information is stored in
         the Continuous_Data.openephys but I trust the header for each file more.
+    int
+        the timestamp of the first sample in the data. It's like an offset for
+        the data. It's necessary to align with the clock time and the markers.
     """
-    hdr = _read_header(channel_file)
+    hdr, first_timestamp = _read_header(channel_file)
 
     assert int(hdr['header_bytes']) == HDR_LENGTH
     assert int(hdr['blockLength']) == BLK_LENGTH
     assert int(hdr['sampleRate']) == s_freq
 
-    return float(hdr['bitVolts'])
+    return float(hdr['bitVolts']), first_timestamp
 
 
 def _segments_to_markers(segments):
