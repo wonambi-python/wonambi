@@ -725,8 +725,6 @@ class Traces(QGraphicsView):
 
     def X_more(self):
         """Zoom in on the x-axis."""
-        if self.parent.value('window_length') < 0.3:
-            return
         self.parent.value('window_length',
                           self.parent.value('window_length') * 2)
         self.parent.overview.update_position()
