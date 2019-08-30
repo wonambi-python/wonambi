@@ -172,8 +172,8 @@ class ChannelsGroup(QWidget):
         l_form.addRow('Notch Filter', self.idx_notch)
 
         r_form = QFormLayout()
-        r_form.addRow('Scaling', self.idx_scale)
         r_form.addRow('Reference', self.idx_reref)
+        r_form.addRow('Scaling', self.idx_scale)
         r_form.addRow('Demean', self.idx_demean)
 
         l0_layout = QVBoxLayout()

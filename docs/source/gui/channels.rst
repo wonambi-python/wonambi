@@ -29,12 +29,22 @@ and low-pass filter:
 .. image:: images/channels_04_lp.png
 
 .. NOTE::
-   ``0.0 Hz`` means that the (high-pass or low-pass) filter won't be applied.
-   
+   ``0.0 Hz`` means that the (high-pass, low-pass or notch) filter won't be applied.
+
+You can also apply the notch filter. Depending on your power line frequency, enter `60` (mostly North and Central America) or `50` (rest of the world).
+
+.. image:: images/channels_05_notch.png
+
+.. NOTE::
+   Because the frequency for the notch filter depends on the country you're in, you should probably enter the default value for the notch filter in the Settings.
 
 You can also modify the scaling, e.g. if the amplitude of a channel group is too small, you can double the size:
 
 .. image:: images/channels_05_scale.png
+
+You can remove the mean for each channel individually.
+
+.. image:: images/channels_05_demean.png
 
 For each channel group, you can specify how to reference the channels, on-line. You can select the individual channels from the right-hand column. If you select more than one reference channel, their average will be taken as the reference:
 
