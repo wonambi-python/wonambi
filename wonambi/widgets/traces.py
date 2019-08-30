@@ -550,13 +550,13 @@ class Traces(QGraphicsView):
                 mrk_start = max((mrk['start'], window_start))
                 mrk_end = min((mrk['end'], window_end))
                 color = QColor(self.parent.value('marker_color'))
+                h_annot = len(self.idx_label) * y_distance
 
-                item = QGraphicsRectItem(mrk_start, 0,
-                                         mrk_end - mrk_start,
-                                         len(self.idx_label) * y_distance)
-                item.setPen(color)
-                item.setBrush(color)
-                item.setZValue(-9)
+                mrk_dur = amax((mrk_end - mrk_start,
+                                self.parent.value('min_marker_display_dur')))
+                item = RectMarker(mrk_start, 0, mrk_dur,
+                                  h_annot, zvalue=-9,
+                                  color=color)
                 self.scene.addItem(item)
 
                 item = TextItem_with_BG(color.darker(200))
