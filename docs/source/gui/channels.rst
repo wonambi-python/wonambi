@@ -42,7 +42,8 @@ You can also modify the scaling, e.g. if the amplitude of a channel group is too
 
 .. image:: images/channels_05_scale.png
 
-You can remove the mean for each channel individually.
+You can remove the mean for each channel group individually. 
+Removing the mean might be useful if your data has a constant offset.
 
 .. image:: images/channels_05_demean.png
 
