@@ -724,15 +724,21 @@ class Traces(QGraphicsView):
         self.parent.overview.update_position(window_start)
 
     def X_more(self):
-        """Zoom in on the x-axis."""
-        self.parent.value('window_length',
-                          self.parent.value('window_length') * 2)
+        """Zoom out on the x-axis."""
+        new_length = self.parent.value('window_length') * 2
+        self.parent.value('window_length', new_length)
+        new_start = self.parent.value('window_start') - new_length / 4
+        self.parent.value('window_start', new_start)
+
         self.parent.overview.update_position()
 
     def X_less(self):
-        """Zoom out on the x-axis."""
-        self.parent.value('window_length',
-                          self.parent.value('window_length') / 2)
+        """Zoom in on the x-axis."""
+        new_length = self.parent.value('window_length') / 2
+        self.parent.value('window_length', new_length)
+        new_start = self.parent.value('window_start') + new_length / 2
+        self.parent.value('window_start', new_start)
+
         self.parent.overview.update_position()
 
     def X_length(self, new_window_length):
