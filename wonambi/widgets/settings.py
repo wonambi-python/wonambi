@@ -27,8 +27,10 @@ settings = QSettings("wonambi", "scroll_data")
 DEFAULTS = {}
 DEFAULTS['channels'] = {'hp': .5,
                         'lp': 45,
+                        'notch': 60,
                         'color': 'black',
                         'scale': 1,
+                        'demean': True,
                         }
 DEFAULTS['overview'] = {'timestamp_steps': 60 * 60,
                         'overview_scale': 30,

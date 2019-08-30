@@ -5,12 +5,14 @@ from json import dump, load
 from logging import getLogger
 from os.path import splitext
 
+from PyQt5.Qt import Qt
 from PyQt5.QtGui import (QColor,
                          )
 
 from PyQt5.QtWidgets import (QAbstractItemView,
                              QAction,
                              QColorDialog,
+                             QCheckBox,
                              QDoubleSpinBox,
                              QFileDialog,
                              QFormLayout,
@@ -29,7 +31,7 @@ from PyQt5.QtWidgets import (QAbstractItemView,
 
 
 from .settings import Config
-from .utils import FormFloat, FormStr
+from .utils import FormFloat, FormStr, FormBool
 
 lg = getLogger(__name__)
 
@@ -44,14 +46,18 @@ class ConfigChannels(Config):
 
         self.index['hp'] = FormFloat()
         self.index['lp'] = FormFloat()
+        self.index['notch'] = FormFloat()
         self.index['color'] = FormStr()
         self.index['scale'] = FormFloat()
+        self.index['demean'] = FormBool('')
 
         form_layout = QFormLayout()
         form_layout.addRow('Default High-Pass Filter', self.index['hp'])
         form_layout.addRow('Default Low-Pass Filter', self.index['lp'])
+        form_layout.addRow('Default Notch Filter', self.index['notch'])
         form_layout.addRow('Default Color', self.index['color'])
         form_layout.addRow('Default Scale', self.index['scale'])
+        form_layout.addRow('Default Demeaning', self.index['demean'])
         box0.setLayout(form_layout)
 
         main_layout = QVBoxLayout()
@@ -135,6 +141,16 @@ class ChannelsGroup(QWidget):
         self.idx_lp.setMaximum(s_freq / 2)
         self.idx_lp.setToolTip('0 means no filter')
 
+        self.idx_notch = QDoubleSpinBox()
+        notch = config_value['notch']
+        if notch is None:
+            notch = 0
+        self.idx_notch.setValue(notch)
+        self.idx_notch.setSuffix(' Hz')
+        self.idx_notch.setDecimals(1)
+        self.idx_notch.setMaximum(s_freq / 2)
+        self.idx_notch.setToolTip('50Hz or 60Hz depending on the power line frequency. 0 means no filter')
+
         self.idx_scale = QDoubleSpinBox()
         self.idx_scale.setValue(config_value['scale'])
         self.idx_scale.setSuffix('x')
@@ -144,13 +160,21 @@ class ChannelsGroup(QWidget):
 
         self.idx_color = QColor(config_value['color'])
 
+        self.idx_demean = QCheckBox()
+        if config_value['demean']:
+            self.idx_demean.setCheckState(Qt.Checked)
+        else:
+            self.idx_demean.setCheckState(Qt.Unchecked)
+
         l_form = QFormLayout()
         l_form.addRow('High-Pass', self.idx_hp)
         l_form.addRow('Low-Pass', self.idx_lp)
+        l_form.addRow('Notch Filter', self.idx_notch)
 
         r_form = QFormLayout()
         r_form.addRow('Scaling', self.idx_scale)
         r_form.addRow('Reference', self.idx_reref)
+        r_form.addRow('Demean', self.idx_demean)
 
         l0_layout = QVBoxLayout()
         l0_layout.addWidget(QLabel('Active'))
@@ -188,7 +212,7 @@ class ChannelsGroup(QWidget):
         for chan in self.chan_name:
             item = QListWidgetItem(chan)
             l.addItem(item)
-            
+
         if add_ref:
             item = QListWidgetItem('_REF')
             l.addItem(item)
@@ -257,15 +281,24 @@ class ChannelsGroup(QWidget):
         else:
             high_cut = lp
 
+        notch_val = self.idx_notch.value()
+        if notch_val == 0:
+            notch = None
+        else:
+            notch = notch_val
+
         scale = self.idx_scale.value()
+        demean = self.idx_demean.isChecked()
 
         group_info = {'name': self.group_name,
                       'chan_to_plot': chan_to_plot,
                       'ref_chan': ref_chan,
                       'hp': low_cut,
                       'lp': high_cut,
+                      'notch': notch,
                       'scale': float(scale),
-                      'color': self.idx_color
+                      'color': self.idx_color,
+                      'demean': demean,
                       }
 
         return group_info

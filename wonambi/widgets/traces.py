@@ -354,7 +354,6 @@ class Traces(QGraphicsView):
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
 
-
     def display(self):
         """Display the recordings."""
         if self.data is None:
@@ -1217,12 +1216,16 @@ def _create_data_to_plot(data, chan_groups):
         if one_grp['lp'] is not None:
             data1 = filter_(data1, high_cut=one_grp['lp'])
 
+        if one_grp['notch'] is not None:
+            data1 = filter_(data1, ftype='notch', notchfreq=one_grp['notch'])
+
         for chan in one_grp['chan_to_plot']:
             chan_grp_name = chan + ' (' + one_grp['name'] + ')'
             all_chan_grp_name.append(chan_grp_name)
 
             dat = data1(chan=chan, trial=0)
-            dat = dat - nanmean(dat)
+            if one_grp['demean']:
+                dat = dat - nanmean(dat)
             output.data[0][i_ch, :] = dat * one_grp['scale']
             i_ch += 1
 
