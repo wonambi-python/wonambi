@@ -52,8 +52,8 @@ DEFAULTS['notes'] = {'marker_show': True,
                      'scoring_window': 30,
                      }
 DEFAULTS['traces'] = {'n_time_labels': 3,
-                      'y_distance': 50.,
-                      'y_scale': 1.,
+                      'y_distance': 50,
+                      'y_scale': 1,
                       'label_ratio': 0.05,
                       'max_s_freq': 30000,
                       'window_start': 0,
@@ -71,6 +71,15 @@ DEFAULTS['settings'] = {'max_dataset_history': 20,
                         'recording_dir': '/home/gio/recordings',
                         }
 DEFAULTS['video'] = {}
+
+# The type of the numbers in DEFAULT is assumed to be float, excluded those below here:
+MUST_BE_INT = [
+    'timestamp_steps',
+    'overview_scale',
+    'scoring_window',
+    'max_dataset_history',
+    'window_step',
+    ]
 
 
 class Settings(QDialog):
@@ -326,8 +335,8 @@ def read_settings(widget, value_name):
     Returns
     -------
     multiple types
-        type depends on the type in the default values.
-
+        type depends on the type in the default values. We make it more flexible
+        so that if the default type is int, it accepts float
     """
     setting_name = widget + '/' + value_name
     default_value = DEFAULTS[widget][value_name]
@@ -335,6 +344,9 @@ def read_settings(widget, value_name):
     default_type = type(default_value)
     if default_type is list:
         default_type = type(default_value[0])
+
+    if value_name not in MUST_BE_INT and default_type is int:
+        default_type = float
 
     val = settings.value(setting_name, default_value, type=default_type)
     return val
