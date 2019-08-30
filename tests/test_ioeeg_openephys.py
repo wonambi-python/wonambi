@@ -28,8 +28,7 @@ def test_openephys_header():
 
     assert start_time.second == 50
     assert len(chan_name) == 19  # some channels were deleted on purpose
-    assert n_samples == 262656
-
+    assert n_samples == 312832
 
 def test_openephys_read():
     self = OpenEphys(filename, session=2)
@@ -46,8 +45,8 @@ def test_openephys_read():
     assert not isnan(dat[0, 5:]).any()
 
     # values
-    dat = self.return_dat([0, ], 1020 + self.first_timestamp, 1030 + self.first_timestamp)
-    assert dat[0, :].sum() == -19438.575
+    dat = self.return_dat([0, ], 60020, 60030)
+    assert dat[0, :].sum() == 49366.2
 
     # end of first segment
     start_seg = [x['start'] for x in mrks if x['name'] == 'END RECORDING #0' ][0]
