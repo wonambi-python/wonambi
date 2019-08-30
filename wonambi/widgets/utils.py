@@ -265,9 +265,15 @@ class FormFloat(QLineEdit):
     """Subclass QLineEdit for float to have a more consistent API across
     widgets.
 
+    Parameters
+    ----------
+    significant_digits : int
+        number of significant digits
+
     """
-    def __init__(self, default=None, maxw=None):
+    def __init__(self, default=None, maxw=None, significant_digits=3):
         super().__init__('')
+        self.significant_digits = significant_digits
 
         if default is not None:
             self.set_value(default)
@@ -306,9 +312,13 @@ class FormFloat(QLineEdit):
         ----------
         value : float
             value for the line edit
-
         """
-        self.setText(str(value))
+        if value == '' or value is None:
+            text = ''
+        else:
+            text = ('{:.' + str(self.significant_digits) + 'f}').format(value)
+
+        self.setText(text)
 
     def connect(self, funct):
         """Call funct when the text was changed.

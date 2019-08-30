@@ -104,8 +104,8 @@ class ConfigTraces(Config):
         form_layout.addRow('Lines at + and - (uV):', self.index['grid_ytick'])
 
         box2 = QGroupBox('Current Window')
-        self.index['window_start'] = FormInt()
-        self.index['window_length'] = FormInt()
+        self.index['window_start'] = FormFloat()
+        self.index['window_length'] = FormFloat()
         self.index['window_step'] = FormInt()
 
         form_layout = QFormLayout()
@@ -339,6 +339,8 @@ class Traces(QGraphicsView):
 
         if not chan_to_read:
             return
+
+        lg.debug(f'Reading data from dataset: begtime={window_start:10.3f}, endtime={window_end:10.3f}, {len(chan_to_read)} channels')
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
