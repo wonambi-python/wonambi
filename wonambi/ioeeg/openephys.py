@@ -117,9 +117,8 @@ class OpenEphys:
             if channel_filename.exists():
                 chan_name.append(chan['name'])
                 self.channels.append(channel_filename)
-                ch_gain, ch_timestamp = _check_header(channel_filename, s_freq)
+                ch_gain = _check_header(channel_filename, s_freq, offset)
                 gain.append(ch_gain)
-                first_timestamps.append(ch_timestamp)
 
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
@@ -291,7 +290,7 @@ def _read_header(filename):
     return header, first_timestamp
 
 
-def _check_header(channel_file, s_freq):
+def _check_header(channel_file, s_freq, offset):
     """For each file, make sure that the header is consistent with the
     information in the text file.
 
@@ -301,6 +300,8 @@ def _check_header(channel_file, s_freq):
         path to single filename with the header
     s_freq : int
         sampling frequency
+    offset : int
+        offset of the first timestamp
 
     Returns
     -------
@@ -316,8 +317,9 @@ def _check_header(channel_file, s_freq):
     assert int(hdr['header_bytes']) == HDR_LENGTH
     assert int(hdr['blockLength']) == BLK_LENGTH
     assert int(hdr['sampleRate']) == s_freq
+    assert first_timestamp == offset
 
-    return float(hdr['bitVolts']), first_timestamp
+    return float(hdr['bitVolts'])
 
 
 def _segments_to_markers(segments, first_timestamp):
