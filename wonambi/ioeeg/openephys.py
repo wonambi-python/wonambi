@@ -13,7 +13,7 @@ from math import ceil
 from re import search, match
 from xml.etree import ElementTree
 
-from numpy import array, empty, NaN, fromfile, unique, where
+from numpy import array, empty, NaN, fromfile, unique, where, arange, hstack, vstack, concatenate
 
 lg = getLogger(__name__)
 
@@ -417,17 +417,16 @@ def _prepare_blocks(segments):
 
     for seg in segments:
         n_blocks = ceil(seg['length'] / BLK_LENGTH)
-        for i_blk in range(n_blocks):
-            blocks_dat.append([
-                i_blk * BLK_LENGTH + seg['start'],
-                i_blk * BLK_LENGTH + BLK_LENGTH + seg['start'],
-            ])
-            blocks_offset.append([
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * BLK_SIZE,
-            ])
 
-    blocks_dat = array(blocks_dat)
-    blocks_offset = array(blocks_offset)
+        blocks_dat.append(vstack((
+            arange(n_blocks) * BLK_LENGTH + seg['start'],
+            arange(n_blocks) * BLK_LENGTH + BLK_LENGTH + seg['start'],
+            )))
+        blocks_offset.append(
+            arange(n_blocks) * BLK_SIZE + seg['data_offset'] + BEG_BLK_SIZE)
+
+    blocks_dat = hstack(blocks_dat).T
+    blocks_offset = concatenate(blocks_offset)
 
     return blocks_dat, blocks_offset
 
