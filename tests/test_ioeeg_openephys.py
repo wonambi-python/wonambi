@@ -2,9 +2,12 @@ from numpy import isnan
 
 from wonambi import Dataset
 from wonambi.dataset import _count_openephys_sessions
+from wonambi.ioeeg import openephys
 from wonambi.ioeeg.openephys import OpenEphys
 
 from .paths import openephys_dir as filename
+
+openephys.IGNORE_EVENTS = []
 
 
 def test_openephys_count_sessions():

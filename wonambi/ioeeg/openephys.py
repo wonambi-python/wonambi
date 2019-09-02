@@ -32,6 +32,9 @@ EVENT_TYPES = {
     3: 'TTL Event',
     5: 'Network Event',
     }
+IGNORE_EVENTS = [
+    'Network Event',
+    ]
 
 
 class OpenEphys:
@@ -404,6 +407,9 @@ def _read_all_channels_events(events_file, s_freq, offset):
                 'end': (i_off - offset) / s_freq,
                 'chan': None,
             })
+
+    # skip some events (like Network Events) which are not very useful
+    mrk = [evt for evt in mrk if not evt['name'] in IGNORE_EVENTS]
 
     return mrk
 
