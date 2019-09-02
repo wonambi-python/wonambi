@@ -90,51 +90,49 @@ class OpenEphys:
         start_time = _read_date(self.settings_xml)
 
         self.recordings = _read_openephys(self.openephys_file)
-        s_freq = self.recordings[0]['s_freq']
-        self.s_freq = s_freq
+        self.s_freq = self.recordings[0]['s_freq']
         channels = self.recordings[0]['channels']
-
-        segments, messages, offset = _read_messages_events(self.messages_file)
-        self.segments = segments
-        self.messages = messages
-        self.main_offset = offset
-
-        self.offsets = [int(x['channels'][0]['position']) for x in self.recordings]
-        for i in range(len(self.segments) - 1):
-            self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * BLK_LENGTH)
-            self.segments[i]['data_offset'] = self.offsets[i]
-
-        self.segments[-1]['data_offset'] = self.offsets[-1]
+        self.segments, self.messages, self.offset = _read_messages_events(self.messages_file)
 
         # only use channels that are actually in the folder
         chan_name = []
         self.channels = []
         gain = []
-        first_timestamps = []
         for chan in channels:
             channel_filename = (self.filename / chan['filename'])
 
             if channel_filename.exists():
                 chan_name.append(chan['name'])
                 self.channels.append(channel_filename)
-                ch_gain = _check_header(channel_filename, s_freq, offset)
+
+                ch_gain = _check_header(channel_filename, self.s_freq, self.offset)
                 gain.append(ch_gain)
 
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
         self.gain = array(gain)
 
+        # read data structure (recordings can have multiple segments)
+        data_offset = [int(x['channels'][0]['position']) for x in self.recordings]
+        for i in range(len(self.segments) - 1):
+            self.segments[i]['length'] = int((data_offset[i + 1] - data_offset[0]) / BLK_SIZE * BLK_LENGTH)
+            self.segments[i]['data_offset'] = data_offset[i]
+
+        self.segments[-1]['data_offset'] = data_offset[-1]
+
         file_length = channel_filename.stat().st_size
-        self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * BLK_LENGTH)
+        self.segments[-1]['length'] = int((file_length - data_offset[-1]) / BLK_SIZE * BLK_LENGTH)
 
         for seg in self.segments:
             seg['end'] = seg['start'] + seg['length']
 
         n_samples = self.segments[-1]['end']
 
+        self.blocks_dat, self.blocks_offset = _prepare_blocks(self.segments)
+
         orig = {}
 
-        return subj_id, start_time, s_freq, chan_name, n_samples, orig
+        return subj_id, start_time, self.s_freq, chan_name, n_samples, orig
 
     def return_dat(self, chan, begsam, endsam):
         """Read the data for some/all of the channels
@@ -157,14 +155,12 @@ class OpenEphys:
         dat = empty((len(chan), data_length))
         dat.fill(NaN)
 
-        blocks_dat, blocks_offset = _prepare_blocks(self.segments)
-
-        all_blocks = _select_blocks(blocks_dat, begsam, endsam)
+        all_blocks = _select_blocks(self.blocks_dat, begsam, endsam)
         for i_chan, sel_chan in enumerate(chan):
             with self.channels[sel_chan].open('rb') as f:
                 for i_block in all_blocks:
-                    i_dat = blocks_dat[i_block, :] - begsam
-                    i_disk = blocks_offset[i_block].item()
+                    i_dat = self.blocks_dat[i_block, :] - begsam
+                    i_disk = self.blocks_offset[i_block].item()
 
                     # read only data (no timestamp or record marker)
                     f.seek(i_disk)
@@ -184,8 +180,8 @@ class OpenEphys:
         """
         all_markers = (
             self.messages
-            + _segments_to_markers(self.segments, self.main_offset)
-            + _read_all_channels_events(self.events_file, self.s_freq, self.main_offset)
+            + _segments_to_markers(self.segments, self.offset)
+            + _read_all_channels_events(self.events_file, self.s_freq, self.offset)
             )
         return sorted(all_markers, key=lambda x: x['start'])
 
@@ -328,14 +324,14 @@ def _segments_to_markers(segments, first_timestamp):
         mrk.append({
             'name': f'START RECORDING #{i}',
             'chan': None,
-            'start': (seg['start']) / seg['s_freq'],
-            'end': (seg['start']) / seg['s_freq'],
+            'start': seg['start'] / seg['s_freq'],
+            'end': seg['start'] / seg['s_freq'],
         })
         mrk.append({
             'name': f'END RECORDING #{i}',
             'chan': None,
-            'start': (seg['end']) / seg['s_freq'],
-            'end': (seg['end']) / seg['s_freq'],
+            'start': seg['end'] / seg['s_freq'],
+            'end': seg['end'] / seg['s_freq'],
         })
 
     return mrk
