@@ -8,6 +8,7 @@ from os.path import dirname, join, realpath
 
 from PyQt5.QtCore import QRectF, QSettings, Qt
 from PyQt5.QtGui import (QBrush,
+                         QPen,
                          QColor,
                          QPainterPath,
                          QPainter,
@@ -124,7 +125,10 @@ class RectMarker(QGraphicsRectItem):
     def paint(self, painter, option, widget):
         color = QColor(self.color)
         painter.setBrush(QBrush(color))
-        painter.setPen(Qt.NoPen)
+        p = QPen()
+        p.setWidth(0)
+        p.setColor(color)
+        painter.setPen(p)
         painter.drawRect(self.marker)
         super().paint(painter, option, widget)
 
