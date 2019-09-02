@@ -28,6 +28,11 @@ BEG_BLK_SIZE = calcsize(BEG_BLK)
 DAT_FMT_SIZE = calcsize(DAT_FMT)
 BLK_SIZE = BEG_BLK_SIZE + DAT_FMT_SIZE + calcsize(END_BLK)
 
+EVENT_TYPES = {
+    3: 'TTL Event',
+    5: 'Network Event',
+    }
+
 
 class OpenEphys:
     """Provide class OpenEphys, which can be used to read the folder
@@ -89,11 +94,12 @@ class OpenEphys:
         self.s_freq = s_freq
         channels = self.recordings[0]['channels']
 
-        segments, messages = _read_messages_events(self.messages_file)
+        segments, messages, offset = _read_messages_events(self.messages_file)
         self.segments = segments
         self.messages = messages
-        self.offsets = [int(x['channels'][0]['position']) for x in self.recordings]
+        self.main_offset = offset
 
+        self.offsets = [int(x['channels'][0]['position']) for x in self.recordings]
         for i in range(len(self.segments) - 1):
             self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * BLK_LENGTH)
             self.segments[i]['data_offset'] = self.offsets[i]
@@ -125,11 +131,7 @@ class OpenEphys:
         for seg in self.segments:
             seg['end'] = seg['start'] + seg['length']
 
-        # the first timestamp should be the same for all the channels
-        assert len(set(first_timestamps)) == 1
-        self.first_timestamp = first_timestamps[0]
-
-        n_samples = self.segments[-1]['end'] + self.first_timestamp
+        n_samples = self.segments[-1]['end']
 
         orig = {}
 
@@ -152,9 +154,6 @@ class OpenEphys:
         2D array
             chan X samples recordings
         """
-        begsam -= self.first_timestamp
-        endsam -= self.first_timestamp
-
         data_length = endsam - begsam
         dat = empty((len(chan), data_length))
         dat.fill(NaN)
@@ -186,8 +185,8 @@ class OpenEphys:
         """
         all_markers = (
             self.messages
-            + _segments_to_markers(self.segments, self.first_timestamp)
-            + _read_all_channels_events(self.events_file, self.s_freq)
+            + _segments_to_markers(self.segments, self.main_offset)
+            + _read_all_channels_events(self.events_file, self.s_freq, self.main_offset)
             )
         return sorted(all_markers, key=lambda x: x['start'])
 
@@ -327,14 +326,14 @@ def _segments_to_markers(segments, first_timestamp):
         mrk.append({
             'name': f'START RECORDING #{i}',
             'chan': None,
-            'start': (seg['start'] + first_timestamp) / seg['s_freq'],
-            'end': (seg['start'] + first_timestamp) / seg['s_freq'],
+            'start': (seg['start']) / seg['s_freq'],
+            'end': (seg['start']) / seg['s_freq'],
         })
         mrk.append({
             'name': f'END RECORDING #{i}',
             'chan': None,
-            'start': (seg['end'] + first_timestamp) / seg['s_freq'],
-            'end': (seg['end'] + first_timestamp) / seg['s_freq'],
+            'start': (seg['end']) / seg['s_freq'],
+            'end': (seg['end']) / seg['s_freq'],
         })
 
     return mrk
@@ -352,6 +351,7 @@ def _read_messages_events(messages_file):
             m_event = match(r'(\d+) (.+)', l)
 
             if m_time:
+                # ignore Software time
                 pass
 
             elif m_start:
@@ -374,10 +374,10 @@ def _read_messages_events(messages_file):
                     'chan': None,
                 })
 
-    return segments, messages
+    return segments, messages, offset
 
 
-def _read_all_channels_events(events_file, s_freq):
+def _read_all_channels_events(events_file, s_freq, offset):
 
     file_read = [
         ('timestamps', '<i8'),
@@ -401,9 +401,9 @@ def _read_all_channels_events(events_file, s_freq):
 
         for i_on, i_off in zip(onsets, offsets):
             mrk.append({
-                'name': str(evt_type),
-                'start': i_on / s_freq,
-                'end': i_off / s_freq,
+                'name': EVENT_TYPES[evt_type],
+                'start': (i_on - offset) / s_freq,
+                'end': (i_off - offset) / s_freq,
                 'chan': None,
             })
 

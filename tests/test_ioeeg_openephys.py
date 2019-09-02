@@ -17,8 +17,8 @@ def test_openephys_markers():
 
     assert len(markers) == 10
     assert markers[0]['name'] == 'START RECORDING #0'
-    assert markers[7]['name'] == '5'
-    assert markers[7]['end'] == 110.762
+    assert markers[7]['name'] == 'Network Event'
+    assert markers[7]['end'] == 95.402
     assert markers[-1]['name'] == 'END RECORDING #1'
 
 
@@ -28,7 +28,8 @@ def test_openephys_header():
 
     assert start_time.second == 50
     assert len(chan_name) == 19  # some channels were deleted on purpose
-    assert n_samples == 312832
+    assert n_samples == 262656
+
 
 def test_openephys_read():
     self = OpenEphys(filename, session=2)
@@ -36,20 +37,20 @@ def test_openephys_read():
     mrks = self.return_markers()
 
     # before beginning
-    dat = self.return_dat([0, ], -20 + self.first_timestamp, -10 + self.first_timestamp)
+    dat = self.return_dat([0, ], -20, -10)
     assert isnan(dat[0, :]).all()
 
     # beginning
-    dat = self.return_dat([0, ], -5 + self.first_timestamp, 5 + self.first_timestamp)
+    dat = self.return_dat([0, ], -5, 5)
     assert isnan(dat[0, :5]).all()
     assert not isnan(dat[0, 5:]).any()
 
     # values
-    dat = self.return_dat([0, ], 60020, 60030)
-    assert dat[0, :].sum() == 49366.2
+    dat = self.return_dat([0, ], 60021, 60032)
+    assert dat[0, :].sum() == -57195.255
 
     # end of first segment
-    start_seg = [x['start'] for x in mrks if x['name'] == 'END RECORDING #0' ][0]
+    start_seg = [x['start'] for x in mrks if x['name'] == 'END RECORDING #0'][0]
     ref = int(start_seg * self.s_freq)
 
     dat = self.return_dat([0, ], ref - 5, ref + 5)
@@ -57,7 +58,7 @@ def test_openephys_read():
     assert isnan(dat[0, 5:]).all()
 
     # beginning of second segment
-    start_seg = [x['start'] for x in mrks if x['name'] == 'START RECORDING #1' ][0]
+    start_seg = [x['start'] for x in mrks if x['name'] == 'START RECORDING #1'][0]
     ref = int(start_seg * self.s_freq)
 
     dat = self.return_dat([0, ], ref - 5, ref + 5)
