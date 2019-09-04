@@ -1,4 +1,5 @@
 from json import dump, load
+from PyQt5.Qt import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QToolBar,
                              QToolButton,
@@ -62,10 +63,20 @@ def test_widget_channels(qtbot):
     w.channels.grab().save(str(GUI_PATH / 'channels_04_lp.png'))
     channelsgroup.idx_lp.setStyleSheet("")
 
+    channelsgroup.idx_notch.setValue(60)
+    channelsgroup.idx_notch.setStyleSheet("background-color: red;")
+    w.channels.grab().save(str(GUI_PATH / 'channels_05_notch.png'))
+    channelsgroup.idx_notch.setStyleSheet("")
+
     channelsgroup.idx_scale.setValue(10)
     channelsgroup.idx_scale.setStyleSheet("background-color: red;")
     w.channels.grab().save(str(GUI_PATH / 'channels_05_scale.png'))
     channelsgroup.idx_scale.setStyleSheet("")
+
+    channelsgroup.idx_demean.setCheckState(Qt.Checked)
+    channelsgroup.idx_demean.setStyleSheet("background-color: red;")
+    w.channels.grab().save(str(GUI_PATH / 'channels_05_demean.png'))
+    channelsgroup.idx_demean.setStyleSheet("")
 
     channelsgroup.idx_l1.setStyleSheet("background-color: red;")
     w.channels.grab().save(str(GUI_PATH / 'channels_06_ref.png'))

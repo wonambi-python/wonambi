@@ -58,52 +58,14 @@ EXPORTED_PATH = TEST_PATH / 'exported'
 VER_PATH = PKG_PATH / 'VERSION'
 CHANGES_PATH = BASE_PATH / 'CHANGES.rst'
 
-REMOTE_FILES = [
-    {'filename': 'axon_abf.abf',
-     'url': 'https://web.gin.g-node.org/NeuralEnsemble/ephy_testing_data/raw/master/axon/File_axon_1.abf',
-     'cached': 'File_axon_1.abf',
-     'zipped': None,
-     },
-    {'filename': 'PSG.edf',
-     'url': 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/SC4031E0-PSG.edf',
-     'cached': 'PSG.edf',
-     'zipped': None,
-     },
-    {'filename': 'edfbrowser_generated_2.edf',
-     'url': 'http://www.teuniz.net/edf_bdf_testfiles/test_generator_2_edfplus.zip',
-     'cached': 'test_generator_2_edfplus.zip',
-     'zipped': 'test_generator_2.edf',
-     },
-    {'filename': 'micromed.TRC',
-     'url': 'https://web.gin.g-node.org/NeuralEnsemble/ephy_testing_data/raw/master/micromed/File_micromed_1.TRC',
-     'cached': 'File_micromed_1.TRC',
-     'zipped': None,
-     },
-    #{'filename': 'blackrock.ns4',
-    # 'url': 'http://blackrockmicro.com/wp-content/uploads/2016/06/sampledata.zip',
-    # 'cached': 'sampledata.zip',
-    # 'zipped': 'sampleData/sampleData.ns4',
-    # },
-    {'filename': 'bci2000.dat',
-     'url': ['svn',
-             'export',
-             'http://www.bci2000.org/svn/trunk/data/samplefiles/eeg3_2.dat',
-             str(DOWNLOADS_PATH / 'eeg3_2.dat'),
-             '--username',
-             environ.get('BCI2000_USER', ''),
-             '--password',
-             environ.get('BCI2000_PASSWORD', ''),
-             '--no-auth-cache',
-             ],
-     'cached': 'eeg3_2.dat',
-     'zipped': None,
-     },
-    {'filename': 'Public',
-     'url': environ.get('DATA_URL'),
-     'cached': 'personal.zip',
-     'zipped': True,
-     },
-    ]
+
+REMOTE_FILES = {
+    'filename': 'wonambi',
+    'url': environ.get('DATA_WONAMBI'),
+    'cached': 'data_wonambi.zip',
+    'zipped': True,
+    }
+
 
 
 def _files_in_downloads():
@@ -198,61 +160,39 @@ def _release(level):
 
 def _get_files():
     """General script to download file from online sources. Each remote file
-    should be specified in the list of dict REMOTE_FILES. Each entry in
+    should be specified in the dict REMOTE_FILES.
     REMOTE_FILES contains:
     filename : the filename which is used by the test scripts
     cached : the filename which is stored in the cache directory
-    url : the remote url. If str, it's a direct download. If it's a list, it's
-    run as a command.
-    zipped : if None, then the file is not zipped. If True, it extracts all
-    the files (but be careful about the folder name). If str, it extracts only
-    that specific file.
-
+    url : the remote url.
+    zipped : if False, then the file is not zipped. If True, it extracts all
+    the files (but be careful about the folder name).
     Returns
     -------
     returncode : int
         code to send to shell (TODO: make sure you get 1 with exceptions)
     """
-    for remote in REMOTE_FILES:
+    final_file = DATA_PATH / REMOTE_FILES['filename']
 
-        final_file = DATA_PATH / remote['filename']
+    if not final_file.exists():
+        temp_file = DOWNLOADS_PATH / REMOTE_FILES['cached']
 
-        if not final_file.exists():
-            temp_file = DOWNLOADS_PATH / remote['cached']
-
-            if not temp_file.exists():
-                if remote['url'] is None:
-                    print('missing URL, please contact developers')
-                    return 1
-
-                elif isinstance(remote['url'], list):
-                    print('Running: ' + ' '.join(remote['url']))
-                    run(remote['url'])
-                else:
-                    print('Downloading from ' + remote['url'])
-                    _urlretrieve(remote['url'], temp_file)
-
-            if remote['zipped'] is None:
-                print('Copying ' + str(temp_file) + ' to ' + str(final_file))
-                copyfile(str(temp_file), str(final_file))  # or maybe symlink
-
-            elif remote['zipped'] is True:  # explicit testing
-                with ZipFile(str(temp_file)) as zf:
-                    print('Extracting all files in ' + remote['cached'] + ':\n\t' + '\n\t'.join(zf.namelist()))
-                    zf.extractall(path=str(DATA_PATH))
+        if not temp_file.exists():
+            if REMOTE_FILES['url'] is None:
+                print('missing URL, please contact developers')
+                return 1
 
             else:
-                print('Extracting file ' + remote['zipped'] + ' to ' +
-                      str(final_file))
-                try:
-                    ZipFile(str(temp_file))
-                except(BadZipFile):
-                    _fix_bad_zip_file(str(temp_file))
-                with ZipFile(str(temp_file)) as zf:
-                    extracted = Path(
-                        zf.extract(remote['zipped'], path=str(DOWNLOADS_PATH)))
-                    extracted.rename(final_file)
-                
+                print('Downloading from ' + REMOTE_FILES['url'])
+                _urlretrieve(REMOTE_FILES['url'], temp_file)
+
+        if REMOTE_FILES['zipped']:
+            with ZipFile(temp_file) as zf:
+                print('Extracting all files in ' + REMOTE_FILES['cached'] + ':\n\t' + '\n\t'.join(zf.namelist()))
+                zf.extractall(path=DATA_PATH)
+
+        else:
+            raise NotImplementedError('No code to copy the files, only to unzip')
 
     return 0
 
@@ -328,25 +268,9 @@ def _clean_download():
 
 
 def _urlretrieve(url, filename):
-    """urlretrive, but it ignores ssl errors (due to https://portal.g-node.org)
-    """
-    ctx = create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = CERT_NONE
-
-    with urlopen(url, context=ctx) as u, filename.open('wb') as f:
+    with urlopen(url) as u, filename.open('wb') as f:
             f.write(u.read())
 
-def _fix_bad_zip_file(zip_file):  
-    f = open(zip_file, 'r+b')  
-    data = f.read()  
-    pos = data.find(b'\x50\x4b\x05\x06') # End of central directory signature  
-    if (pos > 0):  
-        f.seek(pos + 22)   # size of 'ZIP end of central directory record' 
-        f.truncate()  
-        f.close()  
-    else:  
-        raise BadZipFile('File is truncated.')
 
 if __name__ == '__main__':
     returncode = 0

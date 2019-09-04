@@ -1,12 +1,16 @@
 from os import SEEK_SET, SEEK_END, SEEK_CUR
 from datetime import datetime, date
+from logging import getLogger
 from struct import unpack
 
-from numpy import array, dtype, empty, fromfile, iinfo, memmap, NaN, pad
+from numpy import array, dtype, empty, fromfile, iinfo, memmap, NaN, pad, where
+from numpy.lib.recfunctions import append_fields
 
 N_ZONES = 15
 MAX_SAMPLE = 128
 MAX_CAN_VIEW = 128
+
+lg = getLogger(__name__)
 
 
 class Micromed:
@@ -146,6 +150,8 @@ class Micromed:
 
     def return_videos(self, begtime, endtime):
         vid = self._videos
+        begtime *= 1000
+        endtime *= 1000
 
         # remove empty rows
         DTYPE_MAX = iinfo(vid.dtype['duration']).max
@@ -154,18 +160,18 @@ class Micromed:
         if vid.shape[0] == 0:
             raise OSError('No videos for this dataset')
 
-        if vid.shape[0] > 1:
-            raise NotImplementedError('Currently it handles only one video.')
-
-        video_beg = begtime + vid['delay'].item() / 1000
-        video_end = endtime + vid['delay'].item() / 1000
+        vid = append_fields(vid, 'absolute_end', vid['delay'] + vid['duration'], usemask=False)
 
         # full name without number
-        video_name = 'VID_' + str(vid['file_ext'].item()) + '.AVI'
+        i_vid = where((endtime - vid['delay'] >= 0) & (vid['absolute_end'] - begtime >= 0))[0]
+        mpgfiles = ['VID_' + str(vid['file_ext'][i]) + '.AVI' for i in i_vid]
+        mpgfiles = [str(self.filename.parent / mpg) for mpg in mpgfiles]
 
-        mpgfiles = [
-            str(self.filename.parent / video_name),
-            ]
+        video_beg = (begtime - vid['delay'][i_vid[0]]) / 1000
+        video_end = (endtime - vid['delay'][i_vid[-1]]) / 1000
+
+        lg.debug('First Video (#{}) starts at {}'.format(mpgfiles[0], video_beg))
+        lg.debug('Last Video (#{}) ends at {}'.format(mpgfiles[-1], video_end))
 
         return mpgfiles, video_beg, video_end
 

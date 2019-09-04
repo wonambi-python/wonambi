@@ -104,8 +104,8 @@ class ConfigTraces(Config):
         form_layout.addRow('Lines at + and - (uV):', self.index['grid_ytick'])
 
         box2 = QGroupBox('Current Window')
-        self.index['window_start'] = FormInt()
-        self.index['window_length'] = FormInt()
+        self.index['window_start'] = FormFloat()
+        self.index['window_length'] = FormFloat()
         self.index['window_step'] = FormInt()
 
         form_layout = QFormLayout()
@@ -339,6 +339,8 @@ class Traces(QGraphicsView):
 
         if not chan_to_read:
             return
+
+        lg.debug(f'Reading data from dataset: begtime={window_start:10.3f}, endtime={window_end:10.3f}, {len(chan_to_read)} channels')
         data = dataset.read_data(chan=chan_to_read,
                                  begtime=window_start,
                                  endtime=window_end)
@@ -353,7 +355,6 @@ class Traces(QGraphicsView):
             data.s_freq = int(data.s_freq / q)
 
         self.data = _create_data_to_plot(data, self.parent.channels.groups)
-
 
     def display(self):
         """Display the recordings."""
@@ -551,13 +552,13 @@ class Traces(QGraphicsView):
                 mrk_start = max((mrk['start'], window_start))
                 mrk_end = min((mrk['end'], window_end))
                 color = QColor(self.parent.value('marker_color'))
+                h_annot = len(self.idx_label) * y_distance
 
-                item = QGraphicsRectItem(mrk_start, 0,
-                                         mrk_end - mrk_start,
-                                         len(self.idx_label) * y_distance)
-                item.setPen(color)
-                item.setBrush(color)
-                item.setZValue(-9)
+                mrk_dur = amax((mrk_end - mrk_start,
+                                self.parent.value('min_marker_display_dur')))
+                item = RectMarker(mrk_start, 0, mrk_dur,
+                                  h_annot, zvalue=-9,
+                                  color=color)
                 self.scene.addItem(item)
 
                 item = TextItem_with_BG(color.darker(200))
@@ -723,17 +724,21 @@ class Traces(QGraphicsView):
         self.parent.overview.update_position(window_start)
 
     def X_more(self):
-        """Zoom in on the x-axis."""
-        if self.parent.value('window_length') < 0.3:
-            return
-        self.parent.value('window_length',
-                          self.parent.value('window_length') * 2)
+        """Zoom out on the x-axis."""
+        new_length = self.parent.value('window_length') * 2
+        self.parent.value('window_length', new_length)
+        new_start = self.parent.value('window_start') - new_length / 4
+        self.parent.value('window_start', new_start)
+
         self.parent.overview.update_position()
 
     def X_less(self):
-        """Zoom out on the x-axis."""
-        self.parent.value('window_length',
-                          self.parent.value('window_length') / 2)
+        """Zoom in on the x-axis."""
+        new_length = self.parent.value('window_length') / 2
+        self.parent.value('window_length', new_length)
+        new_start = self.parent.value('window_start') + new_length / 2
+        self.parent.value('window_start', new_start)
+
         self.parent.overview.update_position()
 
     def X_length(self, new_window_length):
@@ -1217,12 +1222,16 @@ def _create_data_to_plot(data, chan_groups):
         if one_grp['lp'] is not None:
             data1 = filter_(data1, high_cut=one_grp['lp'])
 
+        if one_grp['notch'] is not None:
+            data1 = filter_(data1, ftype='notch', notchfreq=one_grp['notch'])
+
         for chan in one_grp['chan_to_plot']:
             chan_grp_name = chan + ' (' + one_grp['name'] + ')'
             all_chan_grp_name.append(chan_grp_name)
 
             dat = data1(chan=chan, trial=0)
-            dat = dat - nanmean(dat)
+            if one_grp['demean']:
+                dat = dat - nanmean(dat)
             output.data[0][i_ch, :] = dat * one_grp['scale']
             i_ch += 1
 

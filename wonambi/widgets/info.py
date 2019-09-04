@@ -208,6 +208,10 @@ class Info(QWidget):
         if filename == '':
             return
 
+        # otherwise basename doesn't work
+        if filename.endswith('/'):
+            filename = filename[:-1]
+
         # clear previous dataset once the user opens another dataset
         if self.dataset is not None:
             self.parent.reset()

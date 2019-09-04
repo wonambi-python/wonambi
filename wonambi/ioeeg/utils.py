@@ -46,7 +46,7 @@ def _select_blocks(blocks, begsam, endsam):
         begblk = max(where(begsam < intervals)[0][0] - 1, 0)
         endblk = min(where(endsam > intervals)[0][-1], len(blocks) - 1)
     except IndexError:
-        raise StopIteration
+        return None
 
     for blk in range(begblk, endblk + 1):
 

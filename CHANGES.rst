@@ -1,7 +1,15 @@
 Change Log
 ==========
+Version 6
+----------
+- **6.04**: fix duration for dataset markers in GUI
+- **6.03**: added notch and demean to GUI
+- **6.02**: correct offset for openephys events
+- **6.01**: move all the test files in one location
+
 Version 5
 ----------
+- **5.73**: handle multiple videos for micromed
 - **5.72**: openephys; resampling by a fraction for display; fixes for remlogic staging import
 - **5.71**: fixes for spindle detectors: Moelle2011, Ferrarelli2007, Wamsley2012, Lacourse2018
 - **5.70**: remlogic staging import fix

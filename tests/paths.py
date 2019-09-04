@@ -6,18 +6,10 @@ from pathlib import Path
 
 test_path = Path(__file__).resolve().parent
 
-# Data from publicly available datasets
+# Data
 DATA_PATH = test_path / 'data'
-axon_abf_file = DATA_PATH / 'axon_abf.abf'
-bci2000_file = DATA_PATH / 'bci2000.dat'
-psg_file = DATA_PATH / 'PSG.edf'
-micromed_file = DATA_PATH / 'micromed.TRC'
-generated_file = DATA_PATH / 'edfbrowser_generated_2.edf'
+SAMPLE_PATH = DATA_PATH / 'wonambi'
 
-gui_file = psg_file
-
-# Data from private repository
-SAMPLE_PATH = DATA_PATH / 'Public'
 
 ANAT_PATH = SAMPLE_PATH / 'anat'
 # subsampled version of T1.mgz, to be used as low-res template
@@ -42,19 +34,24 @@ surf_path = fs_path / 'surf' / 'lh.pial'
 SUBJECTS_DIR = SAMPLE_PATH / 'SUBJECTS_DIR'
 
 IO_PATH = SAMPLE_PATH / 'io'
+axon_abf_file = IO_PATH / 'abf' / 'axon_abf.abf'
+bci2000_file = IO_PATH / 'bci2000' / 'bci2000.dat'
+nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
+ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
+ns4_file = IO_PATH / 'blackrock' / 'blackrock.ns4'
 brainvision_dir = IO_PATH / 'brainvision'
-openephys_dir = IO_PATH / 'openephys'
-openephys_dir = Path('/Fridge/users/giovanni/recordings/UMCU/bair_rats/data/20190527_test_markers/2019-05-27_11-47-15')
-ktlx_file = IO_PATH / 'xltek'
-mff_file = IO_PATH / 'egi.mff'
-moberg_file = IO_PATH / 'moberg'
+psg_file = IO_PATH / 'edf' / 'PSG.edf'
+generated_file = IO_PATH / 'edf' / 'edfbrowser_generated_2.edf'
+gui_file = psg_file
 eeglab_1_file = IO_PATH / 'eeglab' / 'eeglab_example_one.set'
 eeglab_2_file = IO_PATH / 'eeglab' / 'eeglab_example_renamed.set'
 eeglab_hdf5_1_file = IO_PATH / 'eeglab' / 'eeglab_example_hdf5_one.set'
 eeglab_hdf5_2_file = IO_PATH / 'eeglab' / 'eeglab_example_hdf5.set'
-nev_file = IO_PATH / 'blackrock' / 'blackrock.nev'
-ns2_file = IO_PATH / 'blackrock' / 'blackrock.ns2'
-ns4_file = IO_PATH / 'blackrock' / 'sampleData.ns4'
+mff_file = IO_PATH / 'egi.mff'
+micromed_file = IO_PATH / 'micromed' / 'micromed.TRC'
+moberg_file = IO_PATH / 'moberg'
+openephys_dir = IO_PATH / 'openephys' / '2019-05-27_11-47-15'
+ktlx_file = IO_PATH / 'xltek' / 'Video_Demo'
 hdf5_file = IO_PATH / 'fieldtrip_hdf5.mat'
 
 # Folder where to export data

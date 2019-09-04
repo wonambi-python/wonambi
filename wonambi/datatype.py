@@ -4,7 +4,8 @@ The main class is Data, all the other classes should depend on it. The other
 classes are given only as convenience, but they should not overwride
 Data.__call__, which needs to be very general.
 """
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
+from collections.abc import Iterable
 from copy import deepcopy
 from logging import getLogger
 from pathlib import Path

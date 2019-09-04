@@ -164,9 +164,18 @@ class Video(QWidget):
         window_length = self.parent.value('window_length')
         d = self.parent.info.dataset
 
-        videos, begsec, endsec = d.read_videos(window_start,
-                                               window_start + window_length)
-        
+        try:
+            videos, begsec, endsec = d.read_videos(window_start,
+                                                   window_start + window_length)
+        except OSError as er:
+            lg.debug(er)
+            self.idx_button.setText('NO VIDEO for this dataset')
+            return
+        except Exception as er:
+            lg.debug(er)
+            self.idx_button.setText(str(er))
+            return
+
         lg.debug(f'Video: {begsec} - {endsec}')
         self.endsec = endsec
         videos = [str(v) for v in videos]  # make sure it's a str (not path)

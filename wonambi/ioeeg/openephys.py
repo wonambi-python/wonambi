@@ -7,12 +7,13 @@ might change in the future.
 """
 from datetime import datetime
 from logging import getLogger
+import locale
 from struct import unpack, calcsize
 from math import ceil
 from re import search, match
 from xml.etree import ElementTree
 
-from numpy import array, empty, NaN, fromfile, unique, where
+from numpy import array, empty, NaN, fromfile, unique, where, arange, hstack, vstack, concatenate
 
 lg = getLogger(__name__)
 
@@ -26,6 +27,14 @@ END_BLK = 10 * 'B'  # control values
 BEG_BLK_SIZE = calcsize(BEG_BLK)
 DAT_FMT_SIZE = calcsize(DAT_FMT)
 BLK_SIZE = BEG_BLK_SIZE + DAT_FMT_SIZE + calcsize(END_BLK)
+
+EVENT_TYPES = {
+    3: 'TTL Event',
+    5: 'Network Event',
+    }
+IGNORE_EVENTS = [
+    'Network Event',
+    ]
 
 
 class OpenEphys:
@@ -82,18 +91,11 @@ class OpenEphys:
         subj_id = self.filename.stem  # use directory name as subject name
 
         start_time = _read_date(self.settings_xml)
+
         self.recordings = _read_openephys(self.openephys_file)
-        s_freq = self.recordings[0]['s_freq']
-        self.s_freq = s_freq
+        self.s_freq = self.recordings[0]['s_freq']
         channels = self.recordings[0]['channels']
-
-        segments, messages = _read_messages_events(self.messages_file)
-
-        for i in range(len(self.segments) - 1):
-            self.segments[i]['length'] = int((self.offsets[i + 1] - self.offsets[0]) / BLK_SIZE * BLK_LENGTH)
-            self.segments[i]['data_offset'] = self.offsets[i]
-
-        self.segments[-1]['data_offset'] = self.offsets[-1]
+        self.segments, self.messages, self.offset = _read_messages_events(self.messages_file)
 
         # only use channels that are actually in the folder
         chan_name = []
@@ -105,23 +107,35 @@ class OpenEphys:
             if channel_filename.exists():
                 chan_name.append(chan['name'])
                 self.channels.append(channel_filename)
-                gain.append(_check_header(channel_filename, s_freq))
+
+                ch_gain = _check_header(channel_filename, self.s_freq, self.offset)
+                gain.append(ch_gain)
 
             else:
                 lg.warning(f'could not find {chan["filename"]} in {self.filename}')
+        self.gain = array(gain)
 
-        file_length = (channel_filename.stat().st_size - HDR_LENGTH)
-        self.segments[-1]['length'] = int((file_length - self.offsets[-1]) / BLK_SIZE * BLK_LENGTH)
+        # read data structure (recordings can have multiple segments)
+        data_offset = [int(x['channels'][0]['position']) for x in self.recordings]
+        for i in range(len(self.segments) - 1):
+            self.segments[i]['length'] = int((data_offset[i + 1] - data_offset[0]) / BLK_SIZE * BLK_LENGTH)
+            self.segments[i]['data_offset'] = data_offset[i]
+
+        self.segments[-1]['data_offset'] = data_offset[-1]
+
+        file_length = channel_filename.stat().st_size
+        self.segments[-1]['length'] = int((file_length - data_offset[-1]) / BLK_SIZE * BLK_LENGTH)
 
         for seg in self.segments:
             seg['end'] = seg['start'] + seg['length']
 
-        self.gain = array(gain)
         n_samples = self.segments[-1]['end']
+
+        self.blocks_dat, self.blocks_offset = _prepare_blocks(self.segments)
 
         orig = {}
 
-        return subj_id, start_time, s_freq, chan_name, n_samples, orig
+        return subj_id, start_time, self.s_freq, chan_name, n_samples, orig
 
     def return_dat(self, chan, begsam, endsam):
         """Read the data for some/all of the channels
@@ -144,18 +158,16 @@ class OpenEphys:
         dat = empty((len(chan), data_length))
         dat.fill(NaN)
 
-        blocks_dat, blocks_disk = _prepare_blocks(self.segments)
-
-        all_blocks = _select_blocks(blocks_dat, begsam, endsam)
+        all_blocks = _select_blocks(self.blocks_dat, begsam, endsam)
         for i_chan, sel_chan in enumerate(chan):
             with self.channels[sel_chan].open('rb') as f:
                 for i_block in all_blocks:
-                    i_dat = blocks_dat[i_block, :] - begsam
-                    i_disk = blocks_disk[i_block, :]
+                    i_dat = self.blocks_dat[i_block, :] - begsam
+                    i_disk = self.blocks_offset[i_block].item()
 
-                    f.seek(i_disk[0])
-                    # read whole block
-                    x = array(unpack(DAT_FMT, f.read(i_disk[1] - i_disk[0])))
+                    # read only data (no timestamp or record marker)
+                    f.seek(i_disk)
+                    x = array(unpack(DAT_FMT, f.read(DAT_FMT_SIZE)))
                     beg_dat = max(i_dat[0], 0)
                     end_dat = min(i_dat[1], data_length)
                     beg_x = max(0, - i_dat[0])
@@ -171,36 +183,10 @@ class OpenEphys:
         """
         all_markers = (
             self.messages
-            + _segments_to_markers(self.segments)
-            + _read_all_channels_events(self.events_file, 0, self.s_freq)
+            + _segments_to_markers(self.segments, self.offset)
+            + _read_all_channels_events(self.events_file, self.s_freq, self.offset)
             )
         return sorted(all_markers, key=lambda x: x['start'])
-
-def _read_block_continuous(f, i_block):
-    """Read a single block / record completely
-
-    Parameters
-    ----------
-    f : file handle
-        handle to a file opened with 'rb'
-    i_block : int
-        index of the block to read
-
-    Returns
-    -------
-    1D array
-        data inside a block for one channel
-
-    Notes
-    -----
-    It skips the timestamp information (it's assumed to be continuous) and the
-    control characters. Maybe it might be useful to check the control
-    characters but it will slow down the execution.
-    """
-    f.seek(HDR_LENGTH + i_block * BLK_SIZE + BEG_BLK_SIZE)
-    v = unpack(DAT_FMT, f.read(DAT_FMT_SIZE))
-
-    return array(v)
 
 
 def _read_openephys(openephys_file):
@@ -259,8 +245,8 @@ def _read_date(settings_file):
     The start time is present in the header of each file. This might be useful
     if 'settings.xml' is not present.
     """
-    import locale
     locale.setlocale(locale.LC_TIME, 'en_US.utf-8')
+
     root = ElementTree.parse(settings_file).getroot()
     for e0 in root:
         if e0.tag == 'INFO':
@@ -269,26 +255,6 @@ def _read_date(settings_file):
                     break
 
     return datetime.strptime(e1.text, '%d %b %Y %H:%M:%S')
-
-
-def _read_n_samples(channel_file):
-    """Calculate the number of samples based on the file size
-
-    Parameters
-    ----------
-    channel_file : Path
-        path to single filename with the header
-
-    Returns
-    -------
-    int
-        number of blocks (i.e. records, in which the data is cut)
-    int
-        number of samples
-    """
-    n_blocks = int((channel_file.stat().st_size - HDR_LENGTH) / BLK_SIZE)
-    n_samples = n_blocks * BLK_LENGTH
-    return n_blocks, n_samples
 
 
 def _read_header(filename):
@@ -303,6 +269,9 @@ def _read_header(filename):
     -------
     dict
         header
+    int
+        the timestamp of the first sample in the data. It's like an offset for
+        the data. It's necessary to align with the clock time and the markers.
     """
     with filename.open('rb') as f:
         h = f.read(HDR_LENGTH).decode()
@@ -315,10 +284,12 @@ def _read_header(filename):
                 value = value.strip()[:-1]
                 header[key] = value
 
-    return header
+        first_timestamp = unpack('q', f.read(8))[0]
+
+    return header, first_timestamp
 
 
-def _check_header(channel_file, s_freq):
+def _check_header(channel_file, s_freq, offset):
     """For each file, make sure that the header is consistent with the
     information in the text file.
 
@@ -328,23 +299,29 @@ def _check_header(channel_file, s_freq):
         path to single filename with the header
     s_freq : int
         sampling frequency
+    offset : int
+        offset of the first timestamp
 
     Returns
     -------
     int
         gain from digital to microvolts (the same information is stored in
         the Continuous_Data.openephys but I trust the header for each file more.
+    int
+        the timestamp of the first sample in the data. It's like an offset for
+        the data. It's necessary to align with the clock time and the markers.
     """
-    hdr = _read_header(channel_file)
+    hdr, first_timestamp = _read_header(channel_file)
 
     assert int(hdr['header_bytes']) == HDR_LENGTH
     assert int(hdr['blockLength']) == BLK_LENGTH
     assert int(hdr['sampleRate']) == s_freq
+    assert first_timestamp == offset
 
     return float(hdr['bitVolts'])
 
 
-def _segments_to_markers(segments):
+def _segments_to_markers(segments, first_timestamp):
     mrk = []
     for i, seg in enumerate(segments):
         mrk.append({
@@ -365,34 +342,43 @@ def _segments_to_markers(segments):
 def _read_messages_events(messages_file):
     messages = []
     segments = []
+    header = True
 
     with messages_file.open() as f:
         for l in f:
 
-            m_time = search(r'\d+ Software time: \d+@(\d+)Hz', l)
+            m_time = search(r'\d+ Software time: (\d+)@\d+Hz', l)
             m_start = search(r'start time: (\d+)@(\d+)Hz', l)
             m_event = match(r'(\d+) (.+)', l)
 
             if m_time:
-                s_freq = int(m_time.group(1))
+                # ignore Software time
+                pass
+
             elif m_start:
+                if header:
+                    offset = int(m_start.group(1))
+                    s_freq = int(m_start.group(2))
+                    header = False
+
                 segments.append({
-                    'offset': int(m_start.group(1)),
+                    'start': int(m_start.group(1)) - offset,
                     's_freq': int(m_start.group(2)),
                     })
+
             elif m_event:
                 time = int(m_event.group(1))
                 messages.append({
                     'name': m_event.group(2),
-                    'start': time / s_freq,
-                    'end': time / s_freq,
+                    'start': (time - offset) / s_freq,
+                    'end': (time - offset) / s_freq,
                     'chan': None,
                 })
 
-    return segments, messages
+    return segments, messages, offset
 
 
-def _read_all_channels_events(events_file, offset, s_freq):
+def _read_all_channels_events(events_file, s_freq, offset):
 
     file_read = [
         ('timestamps', '<i8'),
@@ -416,11 +402,14 @@ def _read_all_channels_events(events_file, offset, s_freq):
 
         for i_on, i_off in zip(onsets, offsets):
             mrk.append({
-                'name': str(evt_type),
+                'name': EVENT_TYPES[evt_type],
                 'start': (i_on - offset) / s_freq,
                 'end': (i_off - offset) / s_freq,
                 'chan': None,
             })
+
+    # skip some events (like Network Events) which are not very useful
+    mrk = [evt for evt in mrk if not evt['name'] in IGNORE_EVENTS]
 
     return mrk
 
@@ -428,26 +417,22 @@ def _read_all_channels_events(events_file, offset, s_freq):
 def _prepare_blocks(segments):
 
     blocks_dat = []
-    blocks_disk = []
+    blocks_offset = []
 
     for seg in segments:
         n_blocks = ceil(seg['length'] / BLK_LENGTH)
-        for i_blk in range(n_blocks):
-            blocks_dat.append([
-                i_blk * BLK_LENGTH + seg['start'],
-                i_blk * BLK_LENGTH + BLK_LENGTH + seg['start'],
-            ])
-            blocks_disk.append([
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE,
-                seg['data_offset'] + BEG_BLK_SIZE + i_blk * DAT_FMT_SIZE + DAT_FMT_SIZE,
-            ])
 
-    blocks_dat = array(blocks_dat)
-    blocks_disk = array(blocks_disk)
+        blocks_dat.append(vstack((
+            arange(n_blocks) * BLK_LENGTH + seg['start'],
+            arange(n_blocks) * BLK_LENGTH + BLK_LENGTH + seg['start'],
+            )))
+        blocks_offset.append(
+            arange(n_blocks) * BLK_SIZE + seg['data_offset'] + BEG_BLK_SIZE)
 
-    blocks_disk
+    blocks_dat = hstack(blocks_dat).T
+    blocks_offset = concatenate(blocks_offset)
 
-    return blocks_dat, blocks_disk
+    return blocks_dat, blocks_offset
 
 
 def _select_blocks(blocks_dat, begsam, endsam):
