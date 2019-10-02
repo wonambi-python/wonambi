@@ -142,7 +142,10 @@ class ChannelsGroup(QWidget):
         self.idx_lp.setToolTip('0 means no filter')
 
         self.idx_notch = QDoubleSpinBox()
-        notch = config_value['notch']
+        if 'notch' in config_value: # for backward compatibility
+            notch = config_value['notch']
+        else:
+            notch = None
         if notch is None:
             notch = 0
         self.idx_notch.setValue(notch)
@@ -161,10 +164,10 @@ class ChannelsGroup(QWidget):
         self.idx_color = QColor(config_value['color'])
 
         self.idx_demean = QCheckBox()
-        if config_value['demean']:
-            self.idx_demean.setCheckState(Qt.Checked)
-        else:
-            self.idx_demean.setCheckState(Qt.Unchecked)
+        self.idx_demean.setCheckState(Qt.Unchecked)
+        if 'demean' in config_value: # for backward compatibility
+            if config_value['demean']:
+                self.idx_demean.setCheckState(Qt.Checked)
 
         l_form = QFormLayout()
         l_form.addRow('High-Pass', self.idx_hp)

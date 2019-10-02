@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.05**: backward compatibility for channels file
 - **6.04**: fix duration for dataset markers in GUI
 - **6.03**: added notch and demean to GUI
 - **6.02**: correct offset for openephys events
