@@ -56,7 +56,7 @@ from ..attr.annotations import create_annotation
 from ..detect import DetectSpindle, DetectSlowWave, merge_close
 from ..ioeeg import _write_vmrk
 from .settings import Config
-from .utils import (convert_name_to_color, FormStr, FormInt, FormFloat, 
+from .utils import (convert_name_to_color, FormStr, FormInt, FormFloat,
                     FormBool, FormMenu, short_strings, ICON, STAGE_NAME)
 from .modal_widgets import DateTimeDialog
 
@@ -71,12 +71,12 @@ SPINDLE_METHODS = ['Moelle2011',
                    'Lacourse2018',
                    'Ray2015',
                    'Martin2013',
-                   'Wamsley2012',  
-                   'Nir2011', 
+                   'Wamsley2012',
+                   'Nir2011',
                    'Ferrarelli2007',
                    'FASST',
                    'FASST2',
-                   'UCSD', 
+                   'UCSD',
                    'Concordia',
                    ]
 SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
@@ -298,7 +298,7 @@ class Notes(QTabWidget):
         act = QAction('New...', self)
         act.triggered.connect(self.new_rater)
         actions['new_rater'] = act
-        
+
         act = QAction('Rename...', self)
         act.triggered.connect(self.rename_rater)
         actions['rename_rater'] = act
@@ -318,7 +318,7 @@ class Notes(QTabWidget):
         act = QAction(QIcon(ICON['del_eventtype']), 'Delete Event Type', self)
         act.triggered.connect(self.delete_eventtype)
         actions['del_eventtype'] = act
-        
+
         act = QAction('Rename Event Type', self)
         act.triggered.connect(self.rename_eventtype)
         actions['rename_eventtype'] = act
@@ -326,11 +326,11 @@ class Notes(QTabWidget):
         act = QAction('New Name', self)
         act.triggered.connect(self.markers_to_events)
         actions['m2e_newname'] = act
-        
+
         act = QAction('Keep Marker Names', self)
         act.triggered.connect(partial(self.markers_to_events, True))
         actions['m2e_keepname'] = act
-        
+
         act = QAction('Merge Events...', self)
         act.triggered.connect(self.parent.show_merge_dialog)
         actions['merge_events'] = act
@@ -403,11 +403,11 @@ class Notes(QTabWidget):
         act = QAction('Compumedics', self)
         act.triggered.connect(partial(self.import_staging, 'compumedics'))
         actions['import_compumedics'] = act
-        
+
         act = QAction('PRANA', self)
         act.triggered.connect(partial(self.import_staging, 'prana'))
         actions['import_prana'] = act
-        
+
         act = QAction('DeltaMed', self)
         act.triggered.connect(partial(self.import_staging, 'deltamed'))
         actions['import_deltamed'] = act
@@ -417,44 +417,44 @@ class Notes(QTabWidget):
         actions['import_fasst'] = act
 
         act = QAction('Domino', self)
-        act.triggered.connect(partial(self.import_staging, 'domino', 
+        act.triggered.connect(partial(self.import_staging, 'domino',
                                       as_qual=True))
         actions['import_domino_qual'] = act
 
         act = QAction('Alice', self)
-        act.triggered.connect(partial(self.import_staging, 'alice', 
+        act.triggered.connect(partial(self.import_staging, 'alice',
                                       as_qual=True))
         actions['import_alice_qual'] = act
 
         act = QAction('Sandman', self)
-        act.triggered.connect(partial(self.import_staging, 'sandman', 
+        act.triggered.connect(partial(self.import_staging, 'sandman',
                                       as_qual=True))
         actions['import_sandman_qual'] = act
 
         act = QAction('RemLogic', self)
-        act.triggered.connect(partial(self.import_staging, 'remlogic', 
+        act.triggered.connect(partial(self.import_staging, 'remlogic',
                                       as_qual=True))
         actions['import_remlogic_qual'] = act
 
         act = QAction('Compumedics', self)
-        act.triggered.connect(partial(self.import_staging, 'compumedics', 
+        act.triggered.connect(partial(self.import_staging, 'compumedics',
                                       as_qual=True))
         actions['import_compumedics_qual'] = act
-        
+
         act = QAction('PRANA', self)
-        act.triggered.connect(partial(self.import_staging, 'prana', 
+        act.triggered.connect(partial(self.import_staging, 'prana',
                                       as_qual=True))
         actions['import_prana_qual'] = act
-        
+
         act = QAction('DeltaMed', self)
-        act.triggered.connect(partial(self.import_staging, 'deltamed', 
+        act.triggered.connect(partial(self.import_staging, 'deltamed',
                                       as_qual=True))
         actions['import_deltamed_qual'] = act
-        
+
         act = QAction('Wonambi', self)
         act.triggered.connect(partial(self.import_events, 'wonambi'))
         actions['import_events_wonambi'] = act
-        
+
         act = QAction('RemLogic', self)
         act.triggered.connect(partial(self.import_events, 'remlogic'))
         actions['import_events_remlogic'] = act
@@ -462,11 +462,11 @@ class Notes(QTabWidget):
         act = QAction('CSV', self)
         act.triggered.connect(partial(self.export, xformat='csv'))
         actions['export_to_csv'] = act
-        
+
         act = QAction('RemLogic', self)
         act.triggered.connect(partial(self.export, xformat='remlogic'))
         actions['export_to_remlogic'] = act
-        
+
         act = QAction('RemLogic FR', self)
         act.triggered.connect(partial(self.export, xformat='remlogic_fr'))
         actions['export_to_remlogic_fr'] = act
@@ -645,7 +645,7 @@ class Notes(QTabWidget):
         """
         self.annot.remove_bookmark(time=time)
         self.update_annotations()
-    
+
     def update_dataset_marker(self):
         """Update markers which are in the dataset. It always updates the list
         of events. Depending on the settings, it might add the markers to
@@ -669,7 +669,7 @@ class Notes(QTabWidget):
 
             item_time = QTableWidgetItem(abs_time)
             item_duration = QTableWidgetItem(duration)
-            item_name = QTableWidgetItem(mrk['name'])
+            item_name = QTableWidgetItem(str(mrk['name']))
 
             color = self.parent.value('marker_color')
             item_time.setForeground(QColor(color))
@@ -703,7 +703,7 @@ class Notes(QTabWidget):
         evttype_group = QGroupBox('Event Types')
         layout = QVBoxLayout()
         evttype_group.setLayout(layout)
-        
+
         self.check_all_eventtype = check_all = QCheckBox('All event types')
         check_all.setCheckState(Qt.Checked)
         check_all.clicked.connect(self.toggle_eventtype)
@@ -722,19 +722,19 @@ class Notes(QTabWidget):
         self.idx_eventtype_scroll.setWidget(evttype_group)
 
     def toggle_eventtype(self):
-        """Check or uncheck all event types in event type scroll.""" 
+        """Check or uncheck all event types in event type scroll."""
         check = self.check_all_eventtype.isChecked()
-        
+
         for btn in self.idx_eventtype_list:
             btn.setChecked(check)
-            
+
     def toggle_check_all_eventtype(self):
         """Check 'All' if all event types are checked in event type scroll."""
         checklist = asarray([btn.isChecked for btn in self.idx_eventtype_list])
-        
+
         if not checklist.all():
             self.check_all_eventtype.setChecked(False)
-    
+
     def get_selected_events(self, time_selection=None):
         """Returns which events are present in one time window.
 
@@ -784,13 +784,13 @@ class Notes(QTabWidget):
 
             item_time = QTableWidgetItem(abs_time)
             item_duration = QTableWidgetItem(duration)
-            item_name = QTableWidgetItem(mrk['name'])
+            item_name = QTableWidgetItem(str(mrk['name']))
             if mrk in bookmarks:
                 item_type = QTableWidgetItem('bookmark')
                 color = self.parent.value('annot_bookmark_color')
             else:
                 item_type = QTableWidgetItem('event')
-                color = convert_name_to_color(mrk['name'])
+                color = convert_name_to_color(str(mrk['name']))
             chan = mrk['chan']
             if isinstance(chan, (tuple, list)):
                 chan = ', '.join(chan)
@@ -861,14 +861,14 @@ class Notes(QTabWidget):
             marker_end_time = self.idx_annot_list.property('end')[row]
 
         window_length = self.parent.value('window_length')
-        
+
         if self.parent.traces.action['centre_event'].isChecked():
             window_start = (marker_time + marker_end_time - window_length) / 2
         else:
             window_start = floor(marker_time / window_length) * window_length
-            
+
         self.parent.overview.update_position(window_start)
-        
+
         if table_type == 'annot':
             for annot in self.parent.traces.idx_annot:
                 if annot.marker.x() == marker_time:
@@ -877,14 +877,14 @@ class Notes(QTabWidget):
 
     def find_row(self, ev_start, ev_end):
         """Highlight event row in table from start and end time.
-        
+
         Parameters
         ----------
         ev_start : float
             start time, in seconds from record start
         ev_end : float
             end time, in seconds from record start
-            
+
         Returns
         -------
         int
@@ -892,21 +892,21 @@ class Notes(QTabWidget):
         """
         all_starts = self.idx_annot_list.property('start')
         all_ends = self.idx_annot_list.property('end')
-        
+
         for i, (start, end) in enumerate(zip(all_starts, all_ends)):
             if start == ev_start and end == ev_end:
                 return i
-        
+
         for i, start in enumerate(all_starts):
             if start == ev_start:
                 return i
-            
+
         for i, end in enumerate(all_ends):
             if end == ev_end:
                 return i
-        
+
         raise ValueError
-        
+
     def get_sleepstage(self, stage_idx=None):
         """Score the sleep stage, using shortcuts or combobox."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1266,21 +1266,21 @@ class Notes(QTabWidget):
             query = 'Which epoch label should be read as Poor quality signal?'
             poor, ok = QInputDialog.getText(self, 'Import quality', query)
             poor = [poor]
-            
+
             if not ok:
                 return
-        
+
         try:
             unaligned = self.annot.import_staging(filename, source, rater,
                                                   record_start,
                                                   staging_start=staging_start,
-                                                  poor=poor, 
+                                                  poor=poor,
                                                   as_qual=as_qual)
         except FileNotFoundError:
             msg = 'File not found'
             self.parent.statusBar().showMessage(msg)
             lg.info(msg)
-            
+
         if unaligned:
             msg = 'Imported scores are not aligned with existing scores.'
             self.parent.statusBar().showMessage(msg)
@@ -1339,11 +1339,11 @@ class Notes(QTabWidget):
         else:
             name = QInputDialog.getText(self, 'Rename Rater',
                                         'Enter name of rater to rename.')
-        
+
         if name[1]:
             new_name = QInputDialog.getText(self, 'Rename Rater',
                                             'Enter new name for rater.')
-            
+
             if new_name[1]:
                 self.annot.rename_rater(name[0], new_name[0])
                 self.display_notes()
@@ -1365,7 +1365,7 @@ class Notes(QTabWidget):
             self.display_eventtype()
             n_eventtype = self.idx_eventtype.count()
             self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
-            
+
         return answer
 
     def delete_eventtype(self, test_type_str=None):
@@ -1388,16 +1388,16 @@ class Notes(QTabWidget):
         else:
             name = QInputDialog.getText(self, 'Rename Event Type',
                                         'Enter name of event type to rename.')
-        
+
         if name[1]:
             new_name = QInputDialog.getText(self, 'Rename Event Type',
                                             'Enter new name for event type.')
-            
+
             if new_name[1]:
                 self.annot.rename_event_type(name[0], new_name[0])
                 self.display_eventtype()
                 self.update_annotations()
-    
+
     def add_event(self, name, time, chan):
         """Action: add a single event."""
         self.annot.add_event(name, time, chan=chan)
@@ -1407,53 +1407,53 @@ class Notes(QTabWidget):
         """Action: remove single event."""
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
-        
-    def change_event_type(self, new_name=None, name=None, time=None, 
+
+    def change_event_type(self, new_name=None, name=None, time=None,
                           chan=None):
         """Action: change an event's type."""
         if new_name is None:
             event_types = self.annot.event_types
-            
+
             if name is None:
                 event = self.annot.get_events(time=time, chan=chan)[0]
                 name = event['name']
-                
+
             idx_name = event_types.index(name)
             if idx_name == len(event_types) - 1:
                 new_name = event_types[0]
             else:
                 new_name = event_types[idx_name + 1]
-                    
+
         self.annot.add_event(new_name, time, chan=chan)
         self.annot.remove_event(name=name, time=time, chan=chan)
         self.update_annotations()
-        
+
         return new_name
 
     def markers_to_events(self, keep_name=False):
         """Copy all markers in dataset to event type. """
         markers = self.parent.info.markers
-        
+
         if markers is None:
             self.parent.statusBar.showMessage('No markers in dataset.')
             return
-        
+
         if not keep_name:
-            name, ok = self.new_eventtype()            
+            name, ok = self.new_eventtype()
             if not ok:
-                return            
+                return
         else:
             name = None
-                
+
         self.annot.add_events(markers, name=name, chan='')
-        
+
         if keep_name:
             self.display_eventtype()
             n_eventtype = self.idx_eventtype.count()
             self.idx_eventtype.setCurrentIndex(n_eventtype - 1)
-        
+
         self.update_annotations()
-    
+
     def detect_events(self, data, method, params, label):
         """Detect events and display on signal.
 
@@ -1493,34 +1493,34 @@ class Notes(QTabWidget):
             if 'Ferrarelli2007' == method:
                 detector.det_thresh = params['0']
                 detector.sel_thresh = params['1']
-                
+
             if 'Nir2011' == method:
                 detector.smooth['dur'] = params['0']
                 detector.det_thresh = params['1']
                 detector.sel_thresh = params['2']
-                
+
             if 'Moelle2011' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.smooth['dur'] = params['1']
-                detector.det_thresh = params['2']            
-            
+                detector.det_thresh = params['2']
+
             if 'Wamsley2012' == method:
                 detector.det_wavelet['dur'] = params['0']
                 detector.det_wavelet['sd'] = params['1']
-                detector.smooth['dur'] = params['2']  
-                detector.det_thresh = params['3']  
-            
+                detector.smooth['dur'] = params['2']
+                detector.det_thresh = params['3']
+
             if 'Martin2013' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.moving_rms['step'] = params['1']
                 detector.det_thresh = params['2']
-            
+
             if 'Ray2015' == method:
                 detector.smooth['dur'] = params['0']
                 detector.zscore['step'] = params['1']
-                detector.det_thresh = params['2']  
-                detector.sel_thresh = params['3']             
-            
+                detector.det_thresh = params['2']
+                detector.sel_thresh = params['3']
+
             if 'Lacourse2018' == method:
                 detector.windowing['dur'] = params['0']
                 detector.windowing['step'] = params['1']
@@ -1528,31 +1528,31 @@ class Notes(QTabWidget):
                 detector.rel_pow_thresh = params['3']
                 detector.covar_thresh = params['4']
                 detector.corr_thresh = params['5']
-                
+
             if 'FASST' == method:
                 detector.det_thresh = params['0']
                 detector.smooth['dur'] = params['1']
-                
+
             if 'FASST2' == method:
                 detector.det_thresh = params['0']
                 detector.moving_rms['dur'] = params['1']
                 detector.smooth['dur'] = params['2']
-            
+
             if 'UCSD' == method:
                 detector.det_wavelet['dur'] = params['0']
                 detector.det_wavelet['width'] = params['1']
                 detector.det_wavelet['win'] = params['2']
-                detector.det_thresh = params['3']  
-                detector.sel_thresh = params['4'] 
-                
+                detector.det_thresh = params['3']
+                detector.sel_thresh = params['4']
+
             if 'Concordia' == method:
                 detector.moving_rms['dur'] = params['0']
                 detector.smooth['dur'] = params['1']
-                detector.det_thresh = params['2']            
-                detector.det_thresh_hi = params['3']            
-                detector.tolerance = params['4']            
-                detector.sel_thresh = params['5']            
-                
+                detector.det_thresh = params['2']
+                detector.det_thresh_hi = params['3']
+                detector.tolerance = params['4']
+                detector.sel_thresh = params['5']
+
         elif method in SLOW_WAVE_METHODS:
             detector = DetectSlowWave(method=method, duration=duration)
 
@@ -1604,24 +1604,24 @@ class Notes(QTabWidget):
         if 'wonambi' == source:
             format_str = 'CSV File (*.csv)'
             rec_start = None
-        
+
         elif 'remlogic' == source:
             format_str = 'Text file (*.txt)'
             rec_start = self.parent.info.dataset.header['start_time']
-            
-        
+
+
         fn, _ = QFileDialog.getOpenFileName(self, 'Import events',
                                             None, format_str)
-        
+
         if fn == '':
             return
-        
+
         fn = Path(fn).resolve()
 
         self.annot.import_events(fn, source=source, rec_start=rec_start,
                                  parent=self.parent)
-        self.display_notes()        
-    
+        self.display_notes()
+
     def export_sleeps_stats(self):
         """action: export sleep statistics CSV."""
         if self.annot is None:  # remove if buttons are disabled
@@ -1637,7 +1637,7 @@ class Notes(QTabWidget):
         dt_dialog = DateTimeDialog('Lights OFF', self.annot.start_time,
                                    self.annot.last_second)
         if not dt_dialog.exec():
-            return                        
+            return
         lights_off = float(dt_dialog.idx_seconds.value())
 
         dt_dialog = DateTimeDialog('Lights ON', self.annot.start_time,
@@ -1678,7 +1678,7 @@ class Notes(QTabWidget):
         self.update_annotations()
 
         self.parent.create_menubar()  # remove all raters
-        
+
     def reset_current_row(self):
         """For traces.next_event"""
         self.parent.traces.current_event_row = None
@@ -1722,7 +1722,7 @@ class MergeDialog(QDialog):
         event_box.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.idx_evt_type = event_box
 
-        self.idx_merge_to = FormMenu(['earlier onset event', 
+        self.idx_merge_to = FormMenu(['earlier onset event',
                                       'longer duration event'])
         self.merge_to = self.idx_merge_to.currentText()
 
@@ -1882,7 +1882,7 @@ class ExportEventsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(None, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.parent = parent
-        
+
         self.setWindowTitle('Export events')
         self.setWindowModality(Qt.WindowModal)
         self.filename = None
@@ -1898,23 +1898,23 @@ class ExportEventsDialog(QDialog):
         filebutton = QPushButton()
         filebutton.setText('Choose')
         self.idx_filename = filebutton
-        
+
         self.xp_format = FormMenu(['CSV', 'Brain Vision'])
         self.all_types = FormBool('All event types')
-        
+
         self.idx_evt_type = QListWidget()
         self.idx_evt_type.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        
+
         filebutton.clicked.connect(self.save_as)
         self.all_types.connect(self.toggle_buttons)
         bbox.clicked.connect(self.button_clicked)
-        
+
         form = QFormLayout()
         form.addRow('Filename', self.idx_filename)
         form.addRow('Format', self.xp_format)
         form.addRow(self.all_types)
         form.addRow('Event type(s)', self.idx_evt_type)
-        
+
         btnlayout = QHBoxLayout()
         btnlayout.addStretch(1)
         btnlayout.addWidget(bbox)
@@ -1925,7 +1925,7 @@ class ExportEventsDialog(QDialog):
         vlayout.addLayout(btnlayout)
 
         self.setLayout(vlayout)
-        
+
     def button_clicked(self, button):
         """Action when button was clicked.
 
@@ -1934,59 +1934,59 @@ class ExportEventsDialog(QDialog):
         button : instance of QPushButton
             which button was pressed
         """
-        if button is self.idx_ok:            
+        if button is self.idx_ok:
             fn = Path(self.filename)
             xp_format = self.xp_format.get_value()
-            
+
             if self.all_types.get_value():
                 evt_type = self.event_types
             else:
                 evt_type = [
                         x.text() for x in self.idx_evt_type.selectedItems()]
-                
+
             if 'CSV' == xp_format:
-                                
+
                 self.parent.notes.annot.export_events(fn, evt_type)
-            
+
             elif 'Brain Vision' == xp_format:
-                
+
                 events = []
-                for et in evt_type:                
+                for et in evt_type:
                     events.extend(self.parent.notes.annot.get_events(name=et))
-        
+
                 if not events:
                     self.parent.statusBar.showMessage('No events found.')
                     return
-                
+
                 events = sorted(events, key=lambda x: x['start'])
                 dataset = self.parent.info.dataset
                 data = ChanTime()
                 data.start_time = dataset.header['start_time']
                 data.s_freq = int(dataset.header['s_freq'])
-                
+
                 with fn.with_suffix('.vmrk').open('w') as f:
                     lg.info('Writing to ' + str(fn) + '.vmrk')
                     f.write(_write_vmrk(data, fn, events))
-                
+
             self.accept()
-            
+
         if button is self.idx_cancel:
             self.reject()
-        
+
     def update(self):
         """Update the event types list, info, when dialog is opened."""
         self.filename = self.parent.notes.annot.xml_file
-        
+
         self.event_types = self.parent.notes.annot.event_types
         self.idx_evt_type.clear()
         for ev in self.event_types:
             self.idx_evt_type.addItem(ev)
-            
+
     def toggle_buttons(self):
         """Turn buttons on and off."""
         all_types = self.all_types.get_value()
         self.idx_evt_type.setEnabled(not all_types)
-    
+
     def save_as(self):
         """Dialog for getting name, location of dataset export."""
         filename = splitext(self.filename)[0]

@@ -219,13 +219,13 @@ class Info(QWidget):
         self.parent.statusBar().showMessage('Reading dataset: ' +
                                             basename(filename))
         lg.info('Reading dataset: ' + str(filename))
-        self.filename = filename # temp
+        self.filename = filename  # temp
         IOClass, sessions = detect_format(filename)
         if len(sessions) > 1:
             session = select_session(sessions)
-            self.dataset = Dataset(filename, session=session + 1) #temp
+            self.dataset = Dataset(filename, bids=bids, session=session + 1)  # temp
         else:
-            self.dataset = Dataset(filename) #temp
+            self.dataset = Dataset(filename, bids=bids)  # temp
 
 #==============================================================================
 #         try:

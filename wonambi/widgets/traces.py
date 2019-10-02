@@ -562,7 +562,7 @@ class Traces(QGraphicsView):
                 self.scene.addItem(item)
 
                 item = TextItem_with_BG(color.darker(200))
-                item.setText(mrk['name'])
+                item.setText(str(mrk['name']))
                 item.setPos(mrk['start'],
                             len(self.idx_label) *
                             self.parent.value('y_distance'))
