@@ -59,6 +59,7 @@ setup(
             'mne',
             'nibabel',
             'fooof',
+            'tensorpac==0.5.6',
             ]
     },
     package_data={
