@@ -3,7 +3,7 @@
 from ast import literal_eval
 from logging import getLogger
 from math import ceil, floor
-from numpy import arange
+from numpy import arange, NaN
 from os.path import dirname, join, realpath
 
 from PyQt5.QtCore import QRectF, QSettings, Qt
@@ -300,6 +300,10 @@ class FormFloat(QLineEdit):
 
         """
         text = self.text()
+
+        if text == 'N/A':
+            return NaN
+
         try:
             text = float(text)
         except ValueError:
@@ -317,7 +321,7 @@ class FormFloat(QLineEdit):
         value : float
             value for the line edit
         """
-        if value == '' or value is None:
+        if value == '' or value is None or value == 'N/A':
             text = ''
         else:
             text = ('{:.' + str(self.significant_digits) + 'f}').format(value)
