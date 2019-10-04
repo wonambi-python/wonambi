@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.06**: fix float for some spindle detections
 - **6.05**: backward compatibility for channels file
 - **6.04**: fix duration for dataset markers in GUI
 - **6.03**: added notch and demean to GUI
