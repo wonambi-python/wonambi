@@ -15,7 +15,7 @@ from .test_scroll_data import (channel_make_group,
                                screenshot,
                                )
 
-from .paths import (annot_fasst_path,
+from .paths import (annot_fasst0_path,
                     annot_fasst_export_file,
                     annot_psg_path,
                     gui_file,
@@ -58,7 +58,7 @@ def test_widget_notes_show_fasst(qtbot):
     w = MainWindow()
     qtbot.addWidget(w)
 
-    w.notes.import_fasst(test_fasst=str(annot_fasst_path),
+    w.notes.import_fasst(test_fasst=str(annot_fasst0_path),
                          test_annot=str(annot_fasst_export_file))
     w.grab().save(str(GUI_PATH / 'notes_05_show_imported.png'))
 
