@@ -238,7 +238,7 @@ def _read_header(filename):
                 hdr[section] = {} # defaultdict(dict)
             continue
 
-        if row == '':
+        if row.strip() == '':
             continue
 
         elif section == 'StateVector':
@@ -247,6 +247,13 @@ def _read_header(filename):
 
         else:
             group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*) // ', row)
+            
+            if group is None:
+                group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*)', row) # For Group without comment
+                if group is None:
+                    print("Cannot parse row:",row)
+                    continue
+            
             onerow = group.groupdict()
 
             values = onerow['value'].split(' ')
