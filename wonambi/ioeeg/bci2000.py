@@ -124,7 +124,7 @@ class BCI2000:
         # make sure we read some data at least, otherwise segfault
         if dat_begsam < self.n_samples and dat_endsam > 0:
 
-            with self.filename.open('rb') as f:
+            with open(self.filename,'rb') as f:
                 f.seek(self.header_len, SEEK_SET)  # skip header
 
                 f.seek(self.dtype.itemsize * dat_begsam, SEEK_CUR)
@@ -191,7 +191,7 @@ class BCI2000:
     def _read_states(self):
 
         all_states = []
-        with self.filename.open('rb') as f:
+        with open(self.filename,'rb') as f:
             f.seek(self.header_len, SEEK_SET)  # skip header
             StatevectorOffset = self.dtype.itemsize - self.statevector_len
 
@@ -238,7 +238,7 @@ def _read_header(filename):
                 hdr[section] = {} # defaultdict(dict)
             continue
 
-        if row == '':
+        if row.strip() == '':
             continue
 
         elif section == 'StateVector':
@@ -247,6 +247,13 @@ def _read_header(filename):
 
         else:
             group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*) // ', row)
+            
+            if group is None:
+                group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*)', row) # For Group without comment
+                if group is None:
+                    print("Cannot parse row:",row)
+                    continue
+            
             onerow = group.groupdict()
 
             values = onerow['value'].split(' ')
@@ -261,7 +268,7 @@ def _read_header(filename):
 
 
 def _read_header_length(filename):
-    with filename.open('rb') as f:
+    with open(filename,'rb') as f:
         firstchar = f.read(100)  # should be enough to read the HeaderLen
         found = search('HeaderLen= (\d*) ', firstchar.decode())
         HeaderLen = int(found.group(1))
@@ -271,7 +278,7 @@ def _read_header_length(filename):
 
 def _read_header_text(filename):
     HeaderLen = _read_header_length(filename)
-    with filename.open('rb') as f:
+    with open(filename,'rb') as f:
         header = f.read(HeaderLen).decode().split('\r\n')
 
     return header
