@@ -2,7 +2,9 @@ alias ls='ls --color=auto'
 
 source ~/.bashrc_secrets
 
+# R
 export R_LIBS_USER=~/tools/Rlib
+alias R='R --no-save'
 
 # common folder
 export FRIDGE=/Fridge/users/giovanni
@@ -11,6 +13,9 @@ export FRIDGE=/Fridge/users/giovanni
 export PATH=~/tools/miniconda/bin:$PATH
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
+
+# matlab
+alias matlab=matlab2018a
 
 # nodejs
 export NODEJS_HOME=~/tools/node-v8.9.2
@@ -79,7 +84,7 @@ sql_schema(){
 # BIDS validator
 
 bids(){
-    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator /data
+    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator --config.ignore=38 --config.ignore=39 --config.ignore=97 /data --verbose
 }
 
 # use all colors in MATE terminal

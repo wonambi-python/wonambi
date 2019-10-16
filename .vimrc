@@ -8,6 +8,9 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
+" colorscheme
+Plugin 'morhetz/gruvbox'
+
 Plugin 'vim-pandoc/vim-pandoc'
 Plugin 'vim-pandoc/vim-pandoc-syntax'
 Plugin 'airblade/vim-gitgutter'
@@ -92,7 +95,9 @@ set nowrap
 set whichwrap+=h,l
 
 " colorscheme
-colorscheme default
+set termguicolors
+set background=dark
+colorscheme gruvbox
 
 " folding
 set foldmethod=indent
