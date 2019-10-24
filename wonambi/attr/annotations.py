@@ -881,19 +881,25 @@ class Annotations():
             save events to this or these channel(s). If None, channel will be
             read from the event list dict under 'chan'
         """
-        if name is not None and name not in self.event_types:
-            self.add_event_type(name)
+        if name is not None:
+            evt_name = name
+            if name not in self.event_types:
+                self.add_event_type(name)
 
         events = self.rater.find('events')
-        pattern = "event_type[@type='" + name + "']"
-        event_type = events.find(pattern)
-
+        
         if parent is not None:
             progress = QProgressDialog('Saving events', 'Abort',
                                0, len(events) - 1, parent)
             progress.setWindowModality(Qt.ApplicationModal)
 
         for i, evt in enumerate(event_list):
+            if name is None:
+                evt_name = evt['name']
+                if evt_name not in self.event_types:
+                    self.add_event_type(evt_name)
+            pattern = "event_type[@type='" + evt_name + "']"
+            event_type = events.find(pattern)
             new_event = SubElement(event_type, 'event')
             event_start = SubElement(new_event, 'event_start')
             event_start.text = str(evt['start'])
