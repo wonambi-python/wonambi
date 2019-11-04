@@ -127,6 +127,9 @@ autocmd BufRead,BufNewFile *.exp setfiletype=xml
 " line at 80
 autocmd FileType python setlocal colorcolumn=80
 
+" RST
+autocmd BufRead,BufNewFile *.rst set tabstop=4
+
 " AIRLINE
 let g:airline_powerline_fonts = 0
 
@@ -151,7 +154,7 @@ let g:syntastic_python_checkers = ['flake8']
 " E501: 2 spaces before function def
 
 " syntastic: rst
-let g:syntastic_rst_checkers = ['sphinx']
+let g:syntastic_rst_checkers = ['rstcheck']
 
 " syntastic: Python
 " E123: indent
