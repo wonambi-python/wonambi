@@ -1,12 +1,12 @@
 """Convenient module to convert data based on simple mathematical operations.
 """
-from inspect import getfullargspec
+from inspect import signature
 from logging import getLogger
 
 # for Math
 from numpy import (absolute,
                    angle,
-                   amax, 
+                   amax,
                    amin,
                    asarray,
                    concatenate,
@@ -140,7 +140,7 @@ def math(data, operator=None, operator_name=None, axis=None):
         keepdims = True
 
         try:
-            args = getfullargspec(one_operator).args
+            args = signature(one_operator).parameters
         except TypeError:
             lg.debug('func ' + str(one_operator) + ' is not a Python '
                      'function')
@@ -162,6 +162,7 @@ def math(data, operator=None, operator_name=None, axis=None):
                            'keepdims': keepdims,
                            })
 
+    print(operations[0])
     output = data._copy()
 
     if axis is not None:
