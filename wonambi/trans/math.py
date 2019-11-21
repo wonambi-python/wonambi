@@ -141,7 +141,7 @@ def math(data, operator=None, operator_name=None, axis=None):
 
         try:
             args = signature(one_operator).parameters
-        except TypeError:
+        except (TypeError, ValueError):
             lg.debug('func ' + str(one_operator) + ' is not a Python '
                      'function')
         else:

@@ -15,11 +15,11 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from PyQt5.QtGui import QIcon
 
-from . import __version__
-from .widgets.creation import (create_menubar, create_toolbar,
-                               create_actions, create_widgets)
-from .widgets.settings import DEFAULTS
-from .widgets.utils import keep_recent_datasets, ICON
+from .. import __version__
+from ..widgets.creation import (create_menubar, create_toolbar,
+                                create_actions, create_widgets)
+from ..widgets.settings import DEFAULTS
+from ..widgets.utils import keep_recent_datasets, ICON
 
 now = datetime.now()
 
