@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .. import __version__
 from ..dataset import Dataset
+from ..trans import resample
 from ..ioeeg import (
     write_brainvision,
     write_edf,
@@ -25,6 +26,8 @@ def main():
                         help='full path to dataset to convert')
     parser.add_argument('outfile', nargs='?',
                         help='full path of the output file with extension (.edf)')
+    parser.add_argument('-f', '--sampling_freq', default=None, type=float,
+                        help='resample to this frequency (in Hz)')
     parser.add_argument('-b', '--begtime', default=None, type=float,
                         help='start time in seconds from the beginning of the recordings')
     parser.add_argument('-e', '--endtime', default=None, type=float,
@@ -62,6 +65,10 @@ def main():
         begtime=args.begtime,
         endtime=args.endtime,
         )
+
+    if args.sampling_freq is not None:
+        lg.info(f'Resampling to {args.sampling_freq}')
+        data = resample(data, s_freq=args.sampling_freq)
 
     outfile = Path(args.outfile)
     if outfile.suffix == '.edf':
