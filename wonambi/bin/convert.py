@@ -1,6 +1,10 @@
 from argparse import ArgumentParser
 from logging import getLogger, StreamHandler, Formatter, INFO, DEBUG
 from pathlib import Path
+from textwrap import dedent
+
+from numpy import isnan
+from scipy.io.wavfile import write
 
 from .. import __version__
 from ..dataset import Dataset
@@ -16,8 +20,13 @@ lg = getLogger('wonambi')
 
 
 def main():
-    parser = ArgumentParser(prog='won_convert',
-                            description='Convert data from one known format to another format')
+    parser = ArgumentParser(prog='won_convert', description=dedent("""\
+    Convert data from one known format to another format
+
+    NOTE
+    You can convert to audio file (.wav). Specify the file name ending in '.wav'.
+    The name of each channel will be appended to the file name.
+    """))
     parser.add_argument('-v', '--version', action='store_true',
                         help='Return version')
     parser.add_argument('-l', '--log', default='info',
@@ -25,7 +34,7 @@ def main():
     parser.add_argument('infile', nargs='?',
                         help='full path to dataset to convert')
     parser.add_argument('outfile', nargs='?',
-                        help='full path of the output file with extension (.edf)')
+                        help='full path of the output file with extension (.edf, .wav)')
     parser.add_argument('-f', '--sampling_freq', default=None, type=float,
                         help='resample to this frequency (in Hz)')
     parser.add_argument('-b', '--begtime', default=None, type=float,
@@ -77,5 +86,14 @@ def main():
             outfile,
             physical_max=8191.75,  # so that precision is 0.25
             )
+
+    elif outfile.suffix == '.wav':
+        for i, chan in enumerate(data.axis['chan'][0]):
+            wav_file = str(outfile.with_suffix('')) + '_' + chan + '.wav'
+            x = data.data[0][i, :]
+            x[isnan(x)] = 0
+            x = (x - x.min()) / (x.max() - x.min()) * 2 - 1
+            write(wav_file, data.s_freq, x)
+
     else:
         raise ValueError(f'Cannot convert to {outfile.suffix}')
