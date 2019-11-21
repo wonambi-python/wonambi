@@ -10,3 +10,4 @@ with open(path.join(here, 'VERSION')) as f:
 from .dataset import Dataset
 from .datatype import Data, ChanTime, ChanFreq, ChanTimeFreq
 from .graphoelement import Graphoelement
+from .bin.scroll_data import MainWindow as Wonambi

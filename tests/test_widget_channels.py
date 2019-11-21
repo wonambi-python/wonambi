@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QToolBar,
                              QToolButton,
                              )
 
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 
 from .test_scroll_data import (channel_make_group,
                                find_in_qt,
@@ -20,7 +20,7 @@ from .paths import (gui_file,
 
 def test_widget_channels(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     assert not w.channels.isEnabled()
@@ -118,7 +118,7 @@ def test_widget_channels(qtbot):
 
 
 def test_widget_channels_save(qtbot):
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     assert not w.channels.action['save_channels'].isEnabled()
@@ -151,7 +151,7 @@ def test_widget_channels_save(qtbot):
 
 def test_widget_channels_load(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     assert not w.channels.action['load_channels'].isEnabled()
@@ -169,7 +169,7 @@ def test_widget_channels_load(qtbot):
 
 
 def test_widget_channels_reref(qtbot):
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -193,7 +193,7 @@ def test_widget_channels_reref(qtbot):
         dump(groups, outfile, indent=' ')
 
     # load dataset, but ignore extra channel
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))

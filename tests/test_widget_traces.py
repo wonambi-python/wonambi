@@ -2,7 +2,7 @@ from datetime import datetime
 from pytest import raises
 from PyQt5.QtWidgets import QAction
 
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 from wonambi.widgets.traces import _convert_timestr_to_seconds
 from wonambi.widgets.modal_widgets import SVGDialog
 from wonambi.widgets.utils import export_graphics
@@ -13,7 +13,7 @@ from .paths import gui_file, GUI_PATH, svg_file
 
 def test_widget_traces_gotoepoch(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.show()
@@ -60,7 +60,7 @@ def test_convert_timestr():
 
 def test_widget_exportsvg(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.show()

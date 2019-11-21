@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (QAction,
 from PyQt5.QtCore import QEvent, QPointF
 from PyQt5.Qt import QMouseEvent, Qt
 
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 from wonambi.trans.reject import remove_artf_evts
 
 from .test_scroll_data import (channel_make_group,
@@ -24,7 +24,7 @@ from .paths import (annot_fasst0_path,
 
 
 def test_widget_notes_load(qtbot):
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     toolbar = w.findChild(QToolBar, 'File Management')
@@ -36,7 +36,7 @@ def test_widget_notes_load(qtbot):
 
 def test_widget_notes_import_fasst(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     menubar = w.menuBar()
@@ -55,7 +55,7 @@ def test_widget_notes_import_fasst(qtbot):
 
 def test_widget_notes_show_fasst(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.notes.import_fasst(test_fasst=str(annot_fasst0_path),
@@ -65,7 +65,7 @@ def test_widget_notes_show_fasst(qtbot):
 
 def test_widget_notes_toolbar(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -103,7 +103,7 @@ def test_widget_notes_toolbar(qtbot):
 
 def test_widget_notes_cycle(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -148,7 +148,7 @@ def test_widget_notes_cycle(qtbot):
 
 def test_widget_notes_mark_event(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -186,7 +186,7 @@ def test_widget_notes_mark_event(qtbot):
 
 def test_widget_notes_dialogs(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -215,7 +215,7 @@ def test_widget_notes_dialogs(qtbot):
 
 def test_widget_notes_export_csv(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     menubar = w.menuBar()
@@ -230,7 +230,7 @@ def test_widget_notes_export_csv(qtbot):
 
 def test_widget_notes_import_error(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.notes.import_fasst(test_fasst=str(gui_file),
@@ -239,7 +239,7 @@ def test_widget_notes_import_error(qtbot):
 
 def test_widget_notes_remove_artf_evts(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))

@@ -1,4 +1,4 @@
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 from PyQt5.QtWidgets import QAction
 from os.path import basename, splitext
 import csv
@@ -18,7 +18,7 @@ from .paths import (annot_psg_path,
 
 def test_widget_analysis_frequency(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -62,13 +62,13 @@ def test_widget_analysis_frequency(qtbot):
     with open(band_path) as f:
         reader = csv.reader(f)
         rows = [row for row in reader]
-    assert approx(float(rows[2][10])) ==  0.0944796084801
+    assert approx(float(rows[2][10])) == 0.0944796084801
     assert approx(float(rows[12][11])) == 0.063348951380
 
 
 def test_widget_analysis_fooof(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
@@ -105,16 +105,16 @@ def test_widget_analysis_fooof(qtbot):
 
 def test_widget_analysis_event(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))
     channel_make_group(w)
     w.channels.button_apply.click()
-    w.notes.update_notes(annot_psg_path)    
+    w.notes.update_notes(annot_psg_path)
     w.traces.go_to_epoch(test_text_str='23:34:45')
-    
-    w.notes.delete_eventtype(test_type_str='spindle')    
+
+    w.notes.delete_eventtype(test_type_str='spindle')
     w.notes.new_eventtype(test_type_str='spindle')
     w.notes.action['new_event'].setChecked(True)
     w.notes.add_event('spindle', (24293.01, 24294.65), 'EEG Pz-Oz (scalp)')
@@ -139,11 +139,11 @@ def test_widget_analysis_event(qtbot):
     evt['sw']['avg_slope'].set_value(True)
     evt['sw']['max_slope'].set_value(True)
     ad.check_all_local()
-    
+
     ad.button_clicked(ad.idx_ok)
     w.notes.delete_eventtype(test_type_str='spindle')
     w.close()
-    
+
     evt_path = EXPORTED_PATH / (splitext(basename(analysis_export_path))[0] +
                                  '_params.csv')
     with open(evt_path) as f:
@@ -152,12 +152,12 @@ def test_widget_analysis_event(qtbot):
     assert approx(float(rows[1][1])) == 2
     assert approx(float(rows[2][1])) == 0.0020768431983
     assert approx(float(rows[4][15])) == 9.81616222270557
-    assert approx(float(rows[9][13])) ==  7.052493472354065 
+    assert approx(float(rows[9][13])) ==  7.052493472354065
 
 
 def test_widget_notes_export_csv(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.info.open_dataset(str(gui_file))

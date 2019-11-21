@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QPushButton
 
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 
 from .test_scroll_data import (channel_make_group,
                                find_in_qt,
@@ -14,7 +14,7 @@ from .paths import (GUI_PATH,
 
 def test_widget_labels(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     assert not w.labels.isEnabled()

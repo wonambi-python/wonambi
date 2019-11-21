@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (QDockWidget,
 from PyQt5.QtCore import QTimer
 from time import sleep
 
-from wonambi.scroll_data import MainWindow
+from wonambi import Wonambi
 
 from .paths import (gui_file,
                     GUI_PATH,
@@ -15,7 +15,7 @@ from .paths import (gui_file,
 
 def test_scroll_data(qtbot):
 
-    w = MainWindow()
+    w = Wonambi()
     qtbot.addWidget(w)
 
     w.grab().save(str(GUI_PATH / 'open_01_start.png'))
@@ -73,7 +73,7 @@ def find_in_qt_by_idx(w, qtype, idx):
     all_child = w.findChildren(qtype)
     if idx >= len(all_child):
         return
-    
+
     return all_child[idx]
 
 
