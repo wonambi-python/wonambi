@@ -36,13 +36,6 @@ class BlackRock:
     def return_hdr(self):
         """Return the header for further use.
 
-        Parameters
-        ----------
-        trigger_bits : int, optional
-            8 or 16, read the triggers as one or two bytes
-        trigger_zero : bool, optional
-            read the trigger zero or not
-
         Returns
         -------
         subj_id : str
@@ -142,13 +135,20 @@ class BlackRock:
 
         return data[chan, :]
 
-    def return_markers(self, trigger_bits=8, trigger_zero=True):
-        """We always read triggers as 16bit, but we convert them to 8 here
-        if requested.
-
+    def return_markers(self, trigger_bits=16, trigger_zero=True):
+        """
+        Parameters
+        ----------
+        trigger_bits : int, optional
+            8 or 16, read the triggers as one or two bytes
+        trigger_zero : bool, optional
+            read the trigger zero or not
         """
         nev_file = splitext(self.filename)[0] + '.nev'
-        markers = _read_neuralev(nev_file, read_markers=True)
+        markers = _read_neuralev(
+            nev_file,
+            read_markers=True,
+            trigger_bits=16)
 
         if trigger_bits == 8:
             to8 = lambda x: str(int(x) - (256 ** 2 - 256))
@@ -164,7 +164,7 @@ class BlackRock:
                     markers[i]['end'] = markers[i + 1]['start']
                 markers_no_zero.append(markers[i])
 
-        return markers_no_zero
+            return markers_no_zero
 
 
 def _read_nsx(filename, BOData, sess_begin, sess_end, factor, begsam, endsam):
@@ -375,8 +375,7 @@ def _read_neuralcd(filename):
     return hdr
 
 
-def _read_neuralev(filename, read_markers=False, trigger_bits=16,
-                   trigger_zero=True):
+def _read_neuralev(filename, read_markers=False, trigger_bits=16):
     """Read some information from NEV
 
     Parameters
@@ -387,8 +386,6 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
         whether to read markers or not (it can get really large)
     trigger_bits : int, optional
         8 or 16, read the triggers as one or two bytes
-    trigger_zero : bool, optional
-        read the trigger zero or not
 
     Returns
     -------
@@ -560,8 +557,7 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16,
                        'tempClassOrReason': unpack('<B', x[6 + i:7 + i])[0],
                        'tempDigiVals': tempDigiVals}
 
-                if tempDigiVals != 0 or False:
-                    DigiValues.append(val)
+                DigiValues.append(val)
 
             digserPacketID = 0
             not_serialdigital = [x for x in DigiValues

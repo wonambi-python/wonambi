@@ -32,7 +32,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     keywords='neuroscience analysis sleep EEG ECoG',
-    packages=find_packages(exclude=('test', )),
+    packages=find_packages(exclude=('tests', )),
     install_requires=[
         'numpy',
         'scipy',
