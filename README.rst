@@ -72,7 +72,7 @@ Optional Requirements
 - mne (optional, to export to mne FIFF files)
 - nibabel (optional to read freesurfer)
 - tensorpac (optional to run phase-amplitude analysis, tensorpac version should be 0.5.6)
-- fooof (optional to run parametrization of power spectra)
+- fooof 1.0 (optional to run parametrization of power spectra)
 
 Status
 ------

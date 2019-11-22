@@ -1938,8 +1938,8 @@ class AnalysisDialog(ChannelDialog):
             return
 
         fm = FOOOF(peak_width_limits=pk_width, max_n_peaks=max_n_pk,
-                   min_peak_amplitude=min_pk_amp, peak_threshold=pk_thresh,
-                   background_mode=bg_mode)
+                   min_peak_height=min_pk_amp, peak_threshold=pk_thresh,
+                   aperiodic_mode=bg_mode)
         fm.fit(x, y, freq_range)
 
         with open(filename, 'w', newline='') as f:
@@ -1954,16 +1954,16 @@ class AnalysisDialog(ChannelDialog):
             csv_file.writerow(['Frequency Resolution is {:1.2f} Hz'.format(
                     fm.freq_res)])
             csv_file.writerow('')
-            csv_file.writerow(['Background Parameters (offset, ' + \
-                    ('knee, ' if fm.background_mode == 'knee' else '') + \
+            csv_file.writerow(['Aperiodic Parameters (offset, ' + \
+                    ('knee, ' if fm.aperiodic_mode == 'knee' else '') + \
                     'slope): ' + ', '.join(['{:2.4f}'] * \
-                    len(fm.background_params_)).format(
-                            *fm.background_params_)])
+                    len(fm.aperiodic_params_)).format(
+                            *fm.aperiodic_params_)])
             csv_file.writerow('')
             csv_file.writerow(['{} peaks were found:'.format(
                     len(fm.peak_params_))])
             csv_file.writerow('')
-            csv_file.writerow(['Index', 'CF', 'Amp', 'BW'])
+            csv_file.writerow(['Index', 'CF', 'PW', 'BW'])
 
             for i, op in enumerate(fm.peak_params_):
                 csv_file.writerow([i, op[0], op[1], op[2]])
