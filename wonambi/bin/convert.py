@@ -1,9 +1,10 @@
 from argparse import ArgumentParser
 from logging import getLogger, StreamHandler, Formatter, INFO, DEBUG
 from pathlib import Path
+from re import search
 from textwrap import dedent
 
-from numpy import isnan
+from numpy import isnan, array
 from scipy.io.wavfile import write
 
 from .. import __version__
@@ -35,12 +36,14 @@ def main():
                         help='full path to dataset to convert')
     parser.add_argument('outfile', nargs='?',
                         help='full path of the output file with extension (.edf, .wav)')
-    parser.add_argument('-f', '--sampling_freq', default=None, type=float,
-                        help='resample to this frequency (in Hz)')
     parser.add_argument('-b', '--begtime', default=None, type=float,
                         help='start time in seconds from the beginning of the recordings')
     parser.add_argument('-e', '--endtime', default=None, type=float,
                         help='end time in seconds from the beginning of the recordings')
+    parser.add_argument('-r', '--rename', default=None,
+            help='Rename the channels using the format specified here. For example, you can do -r "EEG chan{:03d}" where d is the channel index')
+    parser.add_argument('-f', '--sampling_freq', default=None, type=float,
+                        help='resample to this frequency (in Hz)')
 
     args = parser.parse_args()
 
@@ -74,6 +77,15 @@ def main():
         begtime=args.begtime,
         endtime=args.endtime,
         )
+
+    if args.rename is not None:
+        m = search('[\'"](.*)[\'"]', args.rename)
+        if m is None:
+            raise ValueError('Could not parse the pattern {arg.rename}')
+        pattern = m.group(1)
+        lg.info(f'Renaming the channels with pattern: {pattern}')
+        chan_names = [pattern.format(x + 1) for x in data.number_of('chan')[0]]
+        data.axis['chan'][0] = array(chan_names)
 
     if args.sampling_freq is not None:
         lg.info(f'Resampling to {args.sampling_freq}')
