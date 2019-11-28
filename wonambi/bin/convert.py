@@ -79,12 +79,15 @@ def main():
         )
 
     if args.rename is not None:
-        m = search('[\'"](.*)[\'"]', args.rename)
+        """
+        m = search('(.*)[\'"]', args.rename)
         if m is None:
-            raise ValueError('Could not parse the pattern {arg.rename}')
+            raise ValueError(f'Could not parse the pattern {args.rename}')
         pattern = m.group(1)
+        """
+        pattern = args.rename
         lg.info(f'Renaming the channels with pattern: {pattern}')
-        chan_names = [pattern.format(x + 1) for x in data.number_of('chan')[0]]
+        chan_names = [pattern.format(x + 1) for x in range(data.number_of('chan')[0])]
         data.axis['chan'][0] = array(chan_names)
 
     if args.sampling_freq is not None:

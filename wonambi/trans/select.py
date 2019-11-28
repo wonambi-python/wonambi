@@ -13,10 +13,10 @@ from collections import Iterable
 from logging import getLogger
 
 from numpy import (arange, asarray, diff, empty, hstack, inf, linspace,
-                   nan_to_num, ones, ravel, setdiff1d)
+                   nan_to_num, ones, ravel, setdiff1d, floor)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
-from scipy.signal import decimate
+from scipy.signal import resample as sci_resample
 
 try:
     from PyQt5.QtCore import Qt
@@ -35,14 +35,14 @@ lg = getLogger(__name__)
 class Segments():
     """Class containing a set of data segments for analysis, with metadata.
     Only contains metadata until .read_data is called.
-    
+
     Attributes
     ----------
     dataset : instance of wonambi.dataset
         metadata for the associated record
     segments : list of dict
         chronological list of segment metadata. Each segment dict contains info
-        about start and end times, stage, cycle, channel and event name, if 
+        about start and end times, stage, cycle, channel and event name, if
         applicable. Once read_data is called, the signal data are added to each
         segment dictionary under 'data'.
     """
@@ -60,7 +60,7 @@ class Segments():
     def __getitem__(self, index):
         return self.segments[index]
 
-    def read_data(self, chan=[], ref_chan=[], grp_name=None, concat_chan=False, 
+    def read_data(self, chan=[], ref_chan=[], grp_name=None, concat_chan=False,
                   max_s_freq=30000, parent=None):
         """Read data for analysis. Adds data as 'data' in each dict.
 
@@ -267,7 +267,7 @@ def select(data, trial=None, invert=False, **axes_to_select):
     return output
 
 
-def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
+def resample(data, s_freq, axis='time'):
     """Downsample the data after applying a filter.
 
     Parameters
@@ -278,11 +278,6 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
         desired sampling frequency
     axis : str
         axis you want to apply downsample on (most likely 'time')
-    ftype : str
-        filter type to apply. The default here is 'fir', like Matlab but unlike
-        the default in scipy, because it works better
-    n : int
-        The order of the filter (1 less than the length for ‘fir’).
 
     Returns
     -------
@@ -290,17 +285,25 @@ def resample(data, s_freq=None, axis='time', ftype='fir', n=None):
         downsampled data
     """
     output = data._copy()
-    ratio = int(data.s_freq / s_freq)
 
     for i in range(data.number_of('trial')):
-        output.data[i] = decimate(data.data[i], ratio,
-                                  axis=data.index_of(axis),
-                                  zero_phase=True)
+        # check if the ratio between old and new data is not an integer
+        out_samples = int(floor(data.number_of('time')[i] / data.s_freq * s_freq))
+        orig_samples = int(out_samples / s_freq * data.s_freq)
+
+        # if so, then skip the last data points
+        interval = (data.axis[axis][i][0], data.axis[axis][i][orig_samples - 1])
+        x = data(trial=i, axis=interval)
+
+        output.data[i] = sci_resample(
+            data.data[i],
+            out_samples,
+            axis=data.index_of(axis))
 
         n_samples = output.data[i].shape[data.index_of(axis)]
         output.axis[axis][i] = linspace(data.axis[axis][i][0],
-                                        data.axis[axis][i][-1] +
-                                        1 / data.s_freq,
+                                        data.axis[axis][i][-1]
+                                        + 1 / data.s_freq,
                                         n_samples)
 
     output.s_freq = s_freq
@@ -341,7 +344,7 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
     chan_full: list of str or None
         Channel(s) of interest, only used for events (epochs have no
         channel). Channel format is 'chan_name (group_name)'.
-        If used for epochs, separate segments will be returned for each 
+        If used for epochs, separate segments will be returned for each
         channel; this is necessary for channel-specific artefact removal (see
         reject_artf below). If None, channel is ignored.
     epoch : str, optional
@@ -362,9 +365,9 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
         be rejected (and the signal segmented in consequence). Has no effect on
         event selection.
     reject_artf : bool or str or list of str
-        If True, excludes events marked as 'Artefact'. If chan_full is 
-        specified, only artefacts marked on a given channel are removed from 
-        that channel. Signal is segmented in consequence. 
+        If True, excludes events marked as 'Artefact'. If chan_full is
+        specified, only artefacts marked on a given channel are removed from
+        that channel. Signal is segmented in consequence.
         If None, Artefact events are ignored.
         If str or list of str, will reject the specified event types only.
     min_dur : float
@@ -386,9 +389,9 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
             evt_type_name = None
         else:
             evt_type_name = reject_artf
-        
+
         for bund in bundles:
-            bund['times'] = remove_artf_evts(bund['times'], annot, 
+            bund['times'] = remove_artf_evts(bund['times'], annot,
                 chan=bund['chan'], name=evt_type_name, min_dur=0)
 
     # Divide bundles into segments to be concatenated
@@ -412,7 +415,7 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
 
         # Minimum duration
         bundles = _longer_than(bundles, min_dur)
-    
+
     segments = Segments(dataset)
     segments.segments = bundles
 
@@ -505,7 +508,7 @@ def get_times(annot, evt_type=None, stage=None, cycle=None, chan=None,
                                     stage=st_input, qual=qual)
                     if evochs:
                         times = [(
-                                max(e['start'] - buffer, 0), 
+                                max(e['start'] - buffer, 0),
                                 min(e['end'] + buffer, last)) for e in evochs]
                         times = sorted(times, key=lambda x: x[0])
                         one_bundle = {'times': times,
