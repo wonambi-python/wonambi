@@ -410,11 +410,4 @@ def _count_openephys_sessions(filename):
         else:
             sessions.append(int(session_number))
 
-    if len(sessions) == 1:
-        root = ElementTree.parse(f).getroot()
-        sessions = []
-        for recording in root:
-            sessions.append(
-                int(recording.attrib['number']))
-
     return sorted(sessions)
