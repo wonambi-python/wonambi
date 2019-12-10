@@ -118,7 +118,7 @@ class OpenEphys:
         # read data structure (recordings can have multiple segments)
         data_offset = [int(x['channels'][0]['position']) for x in self.recordings]
         for i in range(len(self.segments) - 1):
-            self.segments[i]['length'] = int((data_offset[i + 1] - data_offset[0]) / BLK_SIZE * BLK_LENGTH)
+            self.segments[i]['length'] = int((data_offset[i + 1] - data_offset[i]) / BLK_SIZE * BLK_LENGTH)
             self.segments[i]['data_offset'] = data_offset[i]
 
         self.segments[-1]['data_offset'] = data_offset[-1]
