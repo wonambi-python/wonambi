@@ -74,6 +74,7 @@ DEFAULTS['video'] = {}
 
 # The type of the numbers in DEFAULT is assumed to be float, excluded those below here:
 MUST_BE_INT = [
+    'n_time_labels',
     'timestamp_steps',
     'overview_scale',
     'scoring_window',
