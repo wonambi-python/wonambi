@@ -110,7 +110,7 @@ def detect_format(filename):
         if filename.suffix == '.set':
             return EEGLAB, sessions
 
-        if filename.suffix == '.edf':
+        if filename.suffix in ['.edf', '.rec']:
             return Edf, sessions
 
         if filename.suffix == '.abf':
