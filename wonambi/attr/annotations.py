@@ -1571,7 +1571,8 @@ class Annotations():
             duration[stage] = hypno[idx_loff:idx_lon].count(
                     stage) / n_ep_per_min
 
-        slp_onset = sorted(first.values(), key=lambda x: x[1]['start'])[0]
+        slp_onset = sorted(first.values(), 
+                    key=lambda x: x[1]['start'] if x is not nan else inf)[0]
         wake_up = next((len(epochs) - i, j) for i, j in enumerate(
                 epochs[::-1]) if j['stage'] in ['NREM1', 'NREM2', 'NREM3',
                                                 'REM'])
