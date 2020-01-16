@@ -29,7 +29,7 @@ def test_blackrock_ns4_02():
 def test_blackrock_markers_00():
     d = Dataset(ns2_file)
     markers = d.read_markers()
-    assert len(markers) == 176
+    assert len(markers) == 352
 
 
 def test_blackrock_nev():
