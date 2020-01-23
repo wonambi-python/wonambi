@@ -1,5 +1,6 @@
 alias ls='ls --color=auto'
 
+
 source ~/.bashrc_secrets
 
 # R
@@ -26,6 +27,9 @@ FSLDIR=/home/giovanni/tools/fsl
 . ${FSLDIR}/etc/fslconf/fsl.sh
 PATH=${FSLDIR}/bin:${PATH}
 export FSLDIR PATH
+
+# mricron (use latest version)
+# alias mricron=MRIcron
 
 # freesurfer
 export FREESURFER_HOME=/usr/local/freesurfer_6.0.1

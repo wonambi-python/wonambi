@@ -84,7 +84,7 @@ set colorcolumn=
 set tabstop=2
 " insert one tab at the time
 set shiftwidth=4
-autocmd BufRead,BufNewFile *.json set shiftwidth=1
+autocmd BufRead,BufNewFile *.json set shiftwidth=4
 autocmd BufRead,BufNewFile *.yml set shiftwidth=2
 " use spaces, not tabs
 set expandtab
@@ -173,8 +173,8 @@ autocmd VimEnter * nested :call tagbar#autoopen(1)
 
 " GITGUTTER: faster updates of the signs
 set updatetime=250
-nmap [g <Plug>GitGutterPrevHunk
-nmap ]g <Plug>GitGutterNextHunk
+nmap [g <Plug>(GitGutterPrevHunk)
+nmap ]g <Plug>(GitGutterNextHunk)
 nmap <Leader>hs <Plug>GitGutterStageHunk
 nmap <Leader>hu <Plug>GitGutterUndoHunk
 " You can jump between hunks with [g and ]g. You can stage and undo hunks with <leader>hs and <leader>hu
