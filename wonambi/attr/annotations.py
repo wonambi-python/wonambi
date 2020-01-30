@@ -478,15 +478,27 @@ class Annotations():
                 epoch_length = int(first_line[-3:-1])
 
         elif source == 'alice':
-            stage_start = datetime.strptime(lines[1][2:13], '%I:%M:%S %p')
             dt = rec_start
-
-            # best guess in absence of date
-            if lines[1][11:13] == 'pm' and rec_start.hour < 12:
-                dt = rec_start - timedelta(days=1)
-            elif lines[1][11:13] == 'am' and rec_start.hour > 12:
-                dt = rec_start + timedelta
-
+            line1 = lines[1]
+            row_offset = 0
+            
+            if line1[1] == '\t': # some files have an index column
+                row_offset += 2
+                
+            if ' pm' in line1 or ' am' in line1:                            
+                stage_start = datetime.strptime(
+                        line1[row_offset:row_offset + 11], '%I:%M:%S %p')
+    
+                # best guess in absence of date
+                if line1[11:13] == 'pm' and rec_start.hour < 12:
+                    dt = rec_start - timedelta(days=1)
+                elif line1[11:13] == 'am' and rec_start.hour > 12:
+                    dt = rec_start + timedelta
+                    
+            else:
+                stage_start = datetime.strptime(
+                        line1[row_offset:row_offset + 8], '%H:%M:%S')
+            
             stage_start = stage_start.replace(year=dt.year,
                                               month=dt.month,
                                               day=dt.day)
@@ -502,7 +514,7 @@ class Annotations():
                 epoch_length = 30
 
         elif source == 'sandman':
-            stage_start = datetime.strptime(lines[4][12:33],
+            stage_start = datetime.strptime(lines[4][12:].rstrip(),
                                             '%d/%m/%Y %I:%M:%S %p')
             first_second = int((stage_start - rec_start).total_seconds())
 

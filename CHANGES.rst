@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.09**: bugfixes for data reading and staging import
 - **6.08**: convert data to new format (EDF, Brainvision, audio...) and other improvements and fixes
 - **6.07**: fix BCI2000 reading function (thanks to Schmetzler)
 - **6.06**: fix float for some spindle detections
