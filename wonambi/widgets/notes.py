@@ -411,6 +411,10 @@ class Notes(QTabWidget):
         act = QAction('DeltaMed', self)
         act.triggered.connect(partial(self.import_staging, 'deltamed'))
         actions['import_deltamed'] = act
+        
+        act = QAction('Grael', self)
+        act.triggered.connect(partial(self.import_staging, 'grael'))
+        actions['import_grael'] = act
 
         act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)

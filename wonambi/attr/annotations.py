@@ -526,7 +526,7 @@ class Annotations():
             if epoch_length is None:
                 epoch_length = 30
 
-        elif source == 'compumedics':
+        elif source in ['compumedics', 'grael']:
             if staging_start is None:
                 first_second = 0
             else:

@@ -270,6 +270,7 @@ def create_menubar(MAIN):
     submenu_import.addAction(actions['import_alice'])
     submenu_import.addAction(actions['import_compumedics'])
     submenu_import.addAction(actions['import_deltamed'])
+    submenu_import.addAction(actions['import_grael'])
     submenu_import.addAction(actions['import_domino'])
     submenu_import.addAction(actions['import_prana'])
     submenu_import.addAction(actions['import_remlogic'])
