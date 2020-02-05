@@ -170,7 +170,8 @@ class Dataset:
         - subj_id : str
             subject identification code
         - start_time : datetime
-            start time of the dataset
+            start time of the dataset. If it cannot get the start time from the
+            header, wonambi reads it from the timestamp of the file
         - s_freq : float
             sampling frequency
         - chan_name : list of str
@@ -220,6 +221,8 @@ class Dataset:
         hdr = {}
         hdr['subj_id'] = output[0]
         hdr['start_time'] = output[1]
+        if hdr['start_time'] is None:
+            hdr['start_time'] = datetime.fromtimestamp(self.filename.stat().st_mtime)
         hdr['s_freq'] = output[2]
         hdr['chan_name'] = output[3]
         hdr['n_samples'] = output[4]

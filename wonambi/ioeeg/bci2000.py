@@ -75,8 +75,11 @@ class BCI2000:
         storagetime = orig['Parameter']['StorageTime'].replace('%20', ' ')
         try:  # newer version
             start_time = datetime.strptime(storagetime, '%a %b %d %H:%M:%S %Y')
-        except:
-            start_time = datetime.strptime(storagetime, '%Y-%m-%dT%H:%M:%S')
+        except ValueError:
+            try:
+                start_time = datetime.strptime(storagetime, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                start_time = None
 
         subj_id = orig['Parameter']['SubjectName']
 
@@ -247,13 +250,13 @@ def _read_header(filename):
 
         else:
             group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*) // ', row)
-            
+
             if group is None:
                 group = match('(?P<subsection>[\w:%]*) (?P<format>\w*) (?P<key>\w*)= (?P<value>.*)', row) # For Group without comment
                 if group is None:
                     print("Cannot parse row:",row)
                     continue
-            
+
             onerow = group.groupdict()
 
             values = onerow['value'].split(' ')
