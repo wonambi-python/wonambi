@@ -1247,7 +1247,7 @@ class Notes(QTabWidget):
         else:
             rater = test_rater
 
-        if source in ['deltamed', 'compumedics']:
+        if source in ['deltamed', 'compumedics', 'grael']:
             time_str, ok = QInputDialog.getText(self, 'Staging start time',
                                                 'Enter date and time when '
                                                 'staging \nbegins, using '
