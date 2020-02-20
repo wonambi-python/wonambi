@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+NoDisplay=true
+Exec=/home/giovanni/tools/miniconda/bin/wonambi %f
+Name=wonambi
+Comment=Reader for EEG, iEEG formats

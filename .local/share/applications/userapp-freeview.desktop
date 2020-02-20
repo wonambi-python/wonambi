@@ -1,0 +1,7 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+NoDisplay=false
+Exec=tcsh -c "setenv FREESURFER_HOME /usr/local/freesurfer_6.0.1 ; source /usr/local/freesurfer_6.0.1/SetUpFreeSurfer.csh ;  /usr/local/freesurfer_6.0.1/bin/freeview %f"
+Name=freeview
+Comment=Custom definition for freeview

@@ -17,6 +17,9 @@ Plugin 'airblade/vim-gitgutter'
 
 Plugin 'mechatroner/rainbow_csv'
 
+" IPA typing
+Plugin 'tckmn/vim-xsami'
+
 " installed in arch system
 Plugin 'davidhalter/jedi-vim'
 Plugin 'scrooloose/syntastic'

@@ -22,6 +22,9 @@ alias matlab=matlab2018a
 export NODEJS_HOME=~/tools/node-v8.9.2
 export PATH=$NODEJS_HOME/bin:$PATH
 
+# ruby
+export GEM_HOME=~/tools/ruby
+
 # fsl
 FSLDIR=/home/giovanni/tools/fsl
 . ${FSLDIR}/etc/fslconf/fsl.sh
@@ -50,7 +53,7 @@ export SUBJECTS_DIR=/Fridge/users/giovanni/projects/freesurfer
 ## !! note that there is no separate bin/ models/ folder, all is in one. 
 #where AFNI is installed
 AFNI_INSTALLDIR=/usr/local/afni
-AFNI_INSTALLDIR=/Scratch/AFNI/afni_2016-12-02/linux_fedora_21_64
+# AFNI_INSTALLDIR=/Scratch/AFNI/afni_2016-12-02/linux_fedora_21_64
 # add the AFNI binary path to the search path
 PATH=${AFNI_INSTALLDIR}:${PATH}
 # Location of the plugins
