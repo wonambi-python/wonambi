@@ -1,5 +1,5 @@
 from os import SEEK_SET, SEEK_END, SEEK_CUR
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from logging import getLogger
 from struct import unpack
 
@@ -65,8 +65,10 @@ class Micromed:
 
         subj_id = self._header['name'] + ' ' + self._header['surname']
         chan_name = [ch['chan_name'] for ch in self._header['chans']]
+        offset = self._header['segments']['time_in_samples'][0] / self._header['s_freq']
+        start_time = self._header['start_time'] + timedelta(seconds=offset)
 
-        return subj_id, self._header['start_time'], self._header['s_freq'], chan_name, self._n_smp, self._header
+        return subj_id, start_time, self._header['s_freq'], chan_name, self._n_smp, self._header
 
     def return_dat(self, chan, begsam, endsam):
         """Return the data as 2D numpy.ndarray.
