@@ -223,7 +223,7 @@ def _read_datetime(mrk):
     return DEFAULT_DATETIME
 
 
-def write_brainvision(data, filename, markers=None):
+def write_brainvision(data, filename, markers=None, anonymize=False):
     """Export data in BrainVision format
 
     Parameters
@@ -232,6 +232,8 @@ def write_brainvision(data, filename, markers=None):
         data with only one trial
     filename : path to file
         file to export to (use '.vhdr' as extension)
+    anonymize : bool
+        remove date and time from header
     """
     filename = Path(filename).resolve().with_suffix('.vhdr')
     if markers is None:
@@ -241,7 +243,7 @@ def write_brainvision(data, filename, markers=None):
         f.write(_write_vhdr(data, filename))
 
     with filename.with_suffix('.vmrk').open('w') as f:
-        f.write(_write_vmrk(data, filename, markers))
+        f.write(_write_vmrk(data, filename, markers, anonymize))
 
     _write_eeg(data, filename)
 
@@ -282,7 +284,7 @@ def _write_vhdr(data, filename):
     return vhdr_txt + '\n'.join(output)
 
 
-def _write_vmrk(data, filename, markers):
+def _write_vmrk(data, filename, markers, anonymize=False):
 
     vmrk_txt = f"""\
     Brain Vision Data Exchange Marker File, Version 1.0
@@ -299,7 +301,11 @@ def _write_vmrk(data, filename, markers):
     vmrk_txt = dedent(vmrk_txt)
     # found a way to write \1
     vmrk_txt += r'; Commas in type or description are coded as "\1".'
-    vmrk_txt += f'\nMk1=New Segment,,1,1,0,{data.start_time:%Y%m%d%H%M%S%f}\n'
+    start_time = data.start_time
+    if anonymize:
+        start_time = datetime(1900, 1, 1, 0, 0, 0)
+
+    vmrk_txt += f'\nMk1=New Segment,,1,1,0,{start_time:%Y%m%d%H%M%S%f}\n'
 
     output = []
     for i, mrk in enumerate(markers):
