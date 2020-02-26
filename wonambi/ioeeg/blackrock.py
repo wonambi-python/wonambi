@@ -41,7 +41,9 @@ class BlackRock:
         subj_id : str
             subject identification code
         start_time : datetime
-            start time of the dataset
+            start time of the dataset (in UTC time, because that's the way it
+            was saved and there is no way to know the correct local time
+            reliably)
         s_freq : float
             sampling frequency
         chan_name : list of str
@@ -273,16 +275,9 @@ def _read_neuralcd(filename):
                                   unpack('<i', BasicHdr[278:282])[0])
         time = unpack('<' + 'H' * 8, BasicHdr[286:302])
         lg.info('The date/time from the header is stored in UTC, which is stored in DateTimeUTC')
-        hdr['DateTimeUTC'] = datetime(time[0], time[1], time[3], time[4], time[5],
+        hdr['DateTime'] = datetime(time[0], time[1], time[3], time[4], time[5],
                                    time[6], time[7] * 1000,
                                    tzinfo=timezone.utc)
-        try:
-            lg.debug('Trying to get date/time from filename')
-            hdr['DateTime'] = datetime.strptime(filename.stem[:15], '%Y%m%d-%H%M%S')
-        except Exception:
-            lg.warning('Cannot decode date/time from filename, using UTC time from header')
-            hdr['DateTime'] = hdr['DateTimeUTC']
-
         hdr['ChannelCount'] = unpack('<I', BasicHdr[302:306])[0]
 
         ExtHdrLength = 66
@@ -432,14 +427,8 @@ def _read_neuralev(filename, read_markers=False, trigger_bits=16):
         time = unpack('<' + 'H' * 8, BasicHdr[i0:i1])
         lg.debug('DateTime is in local time with Central version <= 6.03'
                  ' and in UTC with Central version > 6.05')
-        hdr['DateTimeUTC'] = datetime(time[0], time[1], time[3],
-                                      time[4], time[5], time[6], time[7] * 1000)
-        try:
-            lg.debug('Trying to get date/time from filename')
-            hdr['DateTime'] = datetime.strptime(filename.stem[:15], '%Y%m%d-%H%M%S')
-        except Exception:
-            lg.warning('Cannot decode date/time from filename, using (probable) UTC time from header')
-            hdr['DateTime'] = hdr['DateTimeUTC']
+        hdr['DateTime'] = datetime(time[0], time[1], time[3],
+                                   time[4], time[5], time[6], time[7] * 1000)
 
         i0, i1 = i1, i1 + 32
         # hdr['Application'] = _str(BasicHdr[i0:i1].decode('utf-8'))
