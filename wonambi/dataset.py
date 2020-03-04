@@ -25,7 +25,7 @@ from .ioeeg import (Abf,
                     Text,
                     BIDS,
                     LyonRRI,
-                    MindWareIBI,
+                    MindWareRRI,
                     )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -144,7 +144,7 @@ def detect_format(filename):
                     return LyonRRI, sessions
                 
         if '.xls' in filename.suffix.lower():
-            return MindWareIBI, sessions
+            return MindWareRRI, sessions
 
         else:
             raise UnrecognizedFormat('Unrecognized format for file ' +
