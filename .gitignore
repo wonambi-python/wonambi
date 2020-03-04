@@ -38,3 +38,10 @@ docs/source/api/
 docs/source/gui/images/
 docs/source/analysis/images/
 docs/source/analysis/plotly/
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/rSettings.xml
+.idea/vcs.xml
+.idea/wonambi.iml
+.idea/workspace.xml

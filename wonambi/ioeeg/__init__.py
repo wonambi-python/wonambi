@@ -18,4 +18,3 @@ from .bci2000 import BCI2000
 from .text import Text
 from .bids import BIDS, write_bids, write_bids_channels
 from .lyonrri import LyonRRI
-from .mindware import MindWareRRI

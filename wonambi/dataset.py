@@ -25,7 +25,6 @@ from .ioeeg import (Abf,
                     Text,
                     BIDS,
                     LyonRRI,
-                    MindWareRRI,
                     )
 from .ioeeg.bci2000 import _read_header_length
 from .datatype import ChanTime
@@ -142,9 +141,6 @@ def detect_format(filename):
                 first_line = f.readline()
                 if '.rr' in first_line[-4:]:
                     return LyonRRI, sessions
-                
-        if '.xls' in filename.suffix.lower():
-            return MindWareRRI, sessions
 
         else:
             raise UnrecognizedFormat('Unrecognized format for file ' +
