@@ -9,7 +9,7 @@ content of the data.
 Select should be as flexible as possible. There are quite a few cases, which
 will be added as we need them.
 """
-from collections import Iterable
+from collections.abc import Iterable
 from logging import getLogger
 
 from numpy import (arange, asarray, diff, empty, hstack, inf, linspace,
@@ -387,7 +387,7 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
     if bundles and reject_artf is not False:
         s_freq = dataset.header['s_freq']
         two_sample_dur = 2 / s_freq # min length to prevent begsam == endsam
-        
+
         if isinstance(reject_artf, bool):
             evt_type_name = None
         else:
