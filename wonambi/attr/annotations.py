@@ -497,7 +497,7 @@ class Annotations():
                     
             else:
                 stage_start = datetime.strptime(
-                        line1[row_offset:row_offset + 8], '%H:%M:%S')
+                        line1[row_offset:row_offset + 8].strip(), '%H:%M:%S')
             
             stage_start = stage_start.replace(year=dt.year,
                                               month=dt.month,
