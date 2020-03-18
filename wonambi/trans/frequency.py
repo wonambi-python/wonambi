@@ -451,7 +451,7 @@ def _create_morlet(options, s_freq):
 
 
 def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
-           normalization='area', zero_mean=False):
+           normalization='wonambi', zero_mean=False):
     """Create a Morlet wavelet.
 
     Parameters
@@ -470,9 +470,14 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
     dur_in_s : float
         total duration of the wavelet, two-sided (i.e. from start to finish)
     normalization : str
-        'area' means that energy is normalized to 1, 'peak' means that the peak
-        is set at 1, 'max' is a normalization used by nitime which does not
-        change max value of output when you change sigma_f.
+        'wonambi' (default) returns an amplitude of 1 in frequency-domain for a
+        sine wave of amplitude 1 in the time-domain;
+        'juniper' returns amplitude which is dependent on sampling frequency;
+        'area' normalizes the area of the Gaussian envelope to be 1;
+        'peak' normalizes the peak of the Gaussian envelope to be 1.
+        Note that the frequency-domain values for 'area' and 'peak' will
+        depend on the carrier frequency of the wavelet (they depend on sigma_f).
+
     zero_mean : bool
         make sure that the wavelet has zero mean (only relevant if ratio < 5)
 
@@ -514,10 +519,12 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
 
     w *= exp(-t ** 2 / (2 * sigma_t ** 2))
 
-    if normalization == 'area':
+    if normalization == 'wonambi':
+        w /= sqrt(pi / 2) * sigma_t * s_freq
+    elif normalization == 'juniper':
+        w /= sqrt(2 * pi) * sigma_t
+    elif normalization == 'area':
         w /= sqrt(sqrt(pi) * sigma_t * s_freq)
-    elif normalization == 'max':
-        w /= 2 * sigma_t * sqrt(2 * pi) / s_freq
     elif normalization == 'peak':
         pass
 
