@@ -4,7 +4,7 @@ from copy import deepcopy
 from logging import getLogger
 from warnings import warn
 
-from numpy import (arange, array, asarray, copy, empty, exp, log, max, mean, 
+from numpy import (arange, array, asarray, copy, empty, exp, log, max, mean,
                    median, pi, real, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
@@ -96,8 +96,8 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
 
     It uses sampling frequency as specified in s_freq, it does not
     recompute the sampling frequency based on the time axis.
-    
-    Use of log or median for Welch's method is included based on 
+
+    Use of log or median for Welch's method is included based on
     recommendations from Izhikevich et al., bioRxiv, 2018.
     """
     if output not in ('spectraldensity', 'complex', 'csd'):
@@ -150,7 +150,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
 
         if log_trans:
             Sxx = log(Sxx)
-        
+
         if duration is not None:
             if centend == 'mean':
                 Sxx = Sxx.mean(axis=-2)
@@ -346,7 +346,7 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
 def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
                array_out=False):
     """Compute power or energy acoss a frequency band, and its peak frequency.
-    Power is estimated using the mid-point rectangle rule. Input can be 
+    Power is estimated using the mid-point rectangle rule. Input can be
     ChanTime or ChanFreq.
 
     Parameters
@@ -355,14 +355,14 @@ def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
         data to be analyzed, one trial only
     freq : tuple of float
         Frequencies for band of interest. Power will be integrated across this
-        band, inclusively, and peak frequency determined within it. If a value 
+        band, inclusively, and peak frequency determined within it. If a value
         is None, the band is unbounded in that direction.
     input_type : str
         'time' or 'spectrum'
     scaling : str
         'power' or 'energy', only used if data is ChanTime
     n_fft : int
-        length of FFT. if shorter than input signal, signal is truncated; if 
+        length of FFT. if shorter than input signal, signal is truncated; if
         longer, signal is zero-padded to length
     array_out : bool
         if True, will return two arrays instead of two dict.
@@ -387,16 +387,16 @@ def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
         Sxx = frequency(data, scaling=scaling, n_fft=n_fft, detrend=detrend)
     else:
         raise ValueError('Invalid data type')
-    
+
     if detrend is None:
         if 'power' == scaling:
             detrend = 'linear'
         elif 'energy' == scaling:
             detrend = None
-    
+
     sf = Sxx.axis['freq'][0]
     f_res = sf[1] - sf[0] # frequency resolution
-    
+
     if freq[0] is not None:
         idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
     else:
@@ -413,7 +413,7 @@ def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
 
         idx_peak = s[idx_f1:idx_f2].argmax()
         pf = sf[idx_f1:idx_f2][idx_peak]
-        
+
         if array_out:
             power[i, 0] = pw
             peakf[i, 0] = pf
@@ -451,7 +451,7 @@ def _create_morlet(options, s_freq):
 
 
 def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
-           normalization='peak', zero_mean=False):
+           normalization='area', zero_mean=False):
     """Create a Morlet wavelet.
 
     Parameters
@@ -497,7 +497,7 @@ def morlet(freq, s_freq, ratio=5, sigma_f=None, dur_in_sd=4, dur_in_s=None,
         sigma_f = freq / ratio
     else:
         ratio = freq / sigma_f
-    sigma_t = 1 / (2 * pi * sigma_f)
+    sigma_t = 1 / sigma_f
 
     if ratio < 5 and not zero_mean:
         lg.info('The wavelet won\'t have zero mean, set zero_mean=True to '
