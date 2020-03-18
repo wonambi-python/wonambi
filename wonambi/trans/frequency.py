@@ -2,10 +2,11 @@
 """
 from copy import deepcopy
 from logging import getLogger
-from warnings import warn
+from functools import partial
+from multiprocessing import Pool
 
 from numpy import (arange, array, asarray, copy, empty, exp, log, max, mean,
-                   median, pi, real, sqrt, swapaxes, zeros)
+                   median, moveaxis, pi, real, reshape, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -104,8 +105,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
         raise TypeError(f'output can be "spectraldensity", "complex" or "csd",'
                         ' not "{output}"')
     if 'time' not in data.list_of_axes:
-        raise TypeError('\'time\' is not in the axis ' +
-                        str(data.list_of_axes))
+        raise TypeError('\'time\' is not in the axis ' + str(data.list_of_axes))
     if len(data.list_of_axes) != data.index_of('time') + 1:
         raise TypeError('\'time\' should be the last axis')  # this might be improved
 
@@ -171,7 +171,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
     return freq
 
 
-def timefrequency(data, method='morlet', time_skip=1, **options):
+def timefrequency(data, method='morlet', **options):
     """Compute the power spectrum over time.
 
     Parameters
@@ -223,9 +223,6 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
         dur_in_s : float
             total duration of the wavelet, two-sided (i.e. from start to
             finish)
-        time_skip : int, in samples
-            number of time points to skip (it runs convolution on all the
-            data points, but you don't need to store them all)
         normalization : str
             'area' means that energy is normalized to 1, 'peak' means that the
             peak of the wavelet is set at 1, 'max' is a normalization used by
@@ -287,26 +284,33 @@ def timefrequency(data, method='morlet', time_skip=1, **options):
 
     if method == 'morlet':
 
+        # we assume that the data is ChanTime
+        assert data.index_of('chan') == 0
+        assert data.index_of('time') == 1
+
         wavelets = _create_morlet(deepcopy(options), data.s_freq)
 
         for i in range(data.number_of('trial')):
             lg.info('Processing trial # {0: 6}'.format(i))
             timefreq.axis['freq'][i] = array(options['foi'])
-            timefreq.axis['time'][i] = data.axis['time'][i][::time_skip]
+            timefreq.axis['time'][i] = data.axis['time'][i]
 
             timefreq.data[i] = empty((data.number_of('chan')[i],
-                                      data.number_of('time')[i] // time_skip,
+                                      data.number_of('time')[i],
                                       len(options['foi'])),
                                      dtype='complex')
-            for i_c, chan in enumerate(data.axis['chan'][i]):
-                dat = data(trial=i, chan=chan)
-                for i_f, wavelet in enumerate(wavelets):
-                    tf = fftconvolve(dat, wavelet, 'same')
-                    timefreq.data[i][i_c, :, i_f] = tf[::time_skip]
 
-        if time_skip != 1:
-            warn('sampling frequency in s_freq refers to the input data, '
-                 'not to the timefrequency output')
+            data_i = data(trial=i)
+            args = []
+            for i_chan in range(data.number_of('chan')[i]):
+                for wavelet in wavelets:
+                    args.append((i_chan, wavelet))
+
+            with Pool() as p:
+                result = p.starmap(partial(_convolve, dat=data_i), args)
+
+            tf = reshape(array(result), (data.number_of('chan')[i], len(wavelets), -1))
+            timefreq.data[i] = moveaxis(tf, 2, 1)
 
     elif method in ('spectrogram', 'stft'):  # TODO: add timeskip
         nperseg = int(options['duration'] * data.s_freq)
@@ -395,7 +399,7 @@ def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
             detrend = None
 
     sf = Sxx.axis['freq'][0]
-    f_res = sf[1] - sf[0] # frequency resolution
+    f_res = sf[1] - sf[0]  # frequency resolution
 
     if freq[0] is not None:
         idx_f1 = asarray([abs(x - freq[0]) for x in sf]).argmin()
@@ -403,7 +407,7 @@ def band_power(data, freq, scaling='power', n_fft=None, detrend=None,
         idx_f1 = 0
     if freq[1] is not None:
         idx_f2 = min(asarray([abs(x - freq[1]) for x in sf]).argmin() + 1,
-                     len(sf) - 1) # inclusive, to follow convention
+                     len(sf) - 1)  # inclusive, to follow convention
     else:
         idx_f2 = len(sf) - 1
 
@@ -683,8 +687,8 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
     elif output == 'csd':
         result = (result[None, 0, ...].conj() * result[None, 1, ...])
 
-    if (sides == 'one' and output in ('spectraldensity', 'csd') and \
-        scaling != 'chronux'):
+    if (sides == 'one' and output in ('spectraldensity', 'csd')
+       and scaling != 'chronux'):
         if n_fft % 2:
             result[..., 1:] *= 2
         else:
@@ -714,3 +718,8 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         result = swapaxes(result, axis, -1)
 
     return freqs, result
+
+
+def _convolve(i_chan, wavelet, dat):
+    tf = fftconvolve(dat[i_chan, :], wavelet, 'same')
+    return tf
