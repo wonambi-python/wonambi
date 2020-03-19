@@ -27,7 +27,7 @@ class BIDS:
 
         self.baseformat = Dataset(filename)
 
-    def return_hdr(self):
+    def return_hdr(self, sf_from_bids=False):
         """Return the header for further use.
 
         Returns
@@ -47,11 +47,6 @@ class BIDS:
         """
         subj_id = self.task.subject
 
-        sampling_freq = set(self.task.channels.get(map_lambda=lambda x: x['sampling_frequency']))
-        if len(sampling_freq) > 1:
-            raise ValueError('Multiple sampling frequencies not supported')
-
-        s_freq = float(next(iter(sampling_freq)))
         chan_name = self.task.channels.get(map_lambda=lambda x: x['name'])
         self.chan_name = array(chan_name)
 
@@ -59,6 +54,16 @@ class BIDS:
         orig = self.baseformat.header
         start_time = orig['start_time']
         n_samples = orig['n_samples']
+
+        # s_freq is present in the bids twice (json and channels.tsv) and in the header file, however I trust the header of the file the most
+        if sf_from_bids:
+            sampling_freq = set(self.task.channels.get(map_lambda=lambda x: x['sampling_frequency']))
+            if len(sampling_freq) > 1:
+                raise ValueError('Multiple sampling frequencies not supported')
+
+            s_freq = float(next(iter(sampling_freq)))
+        else:
+            s_freq = orig['s_freq']
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
 
@@ -161,7 +166,7 @@ def _write_ieeg_events(output_file, markers):
 
 def write_bids_channels(output_file, dataset):
     """Export BIDS channels TSV from Dataset.
-    
+
     Parameters
     ----------
     output_file : path to file
@@ -180,10 +185,10 @@ def write_bids_channels(output_file, dataset):
                       + x.index('LP:')] \
                       if 'LP:' in x else 'Inf' for x in hdr['prefiltering']]
         notch = [x[x.index('N:') + 2:-2] \
-                      if 'N:' in x else 'n/a' for x in hdr['prefiltering']]        
+                      if 'N:' in x else 'n/a' for x in hdr['prefiltering']]
         s_freq = [x / hdr['record_length'] \
                   for x in hdr['n_samples_per_record']]
-        
+
         chan_type = []
         for one_chan in channels:
             ch = one_chan.lower()
@@ -193,18 +198,18 @@ def write_bids_channels(output_file, dataset):
                 chan_type.append('ECG')
             elif any(x in ch for x in ['emg', 'chin', 'leg']):
                 chan_type.append('EMG')
-            elif (ch[-1].isdigit() and ch[:2] != 'sp') or ch[-1] == 'z': 
+            elif (ch[-1].isdigit() and ch[:2] != 'sp') or ch[-1] == 'z':
                 # not a perfect test
                 #print(f'yessir, {ch} fits the bill alright!')
                 chan_type.append('EEG')
             else:
                 chan_type.append('MISC')
-        
+
         with output_file.open('w') as f:
-            
+
             f.write('name\ttype\tunits\tsampling_frequency\tlow_cutoff'
                     '\thigh_cutoff\tnotch\treference\n')
-            
+
             for i, one_chan in enumerate(channels):
                 f.write('\t'.join([
                     one_chan,
@@ -216,8 +221,8 @@ def write_bids_channels(output_file, dataset):
                     notch[i],
                     'n/a',
                     ]) + '\n')
-    
+
     else:
         print(str(dataset.IOClass) + ' not currently supported.')
-    
-    
+
+
