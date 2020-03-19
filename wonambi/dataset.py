@@ -5,7 +5,6 @@ from datetime import timedelta, datetime
 from math import ceil
 from logging import getLogger
 from pathlib import Path
-from xml.etree import ElementTree
 
 from numpy import arange, asarray, concatenate, empty, int64, zeros
 
@@ -366,23 +365,17 @@ class Dataset:
         if endtime is None and endsam is None:
             endsam = self.header['n_samples']
 
-        if begtime is not None:
-            if not isinstance(begtime, list):
-                begtime = [begtime]
-            begsam = []
-            for one_begtime in begtime:
-                begsam.append(_convert_time_to_sample(one_begtime, self))
-        if endtime is not None:
-            if not isinstance(endtime, list):
-                endtime = [endtime]
-            endsam = []
-            for one_endtime in endtime:
-                endsam.append(_convert_time_to_sample(one_endtime, self))
+        if events is not None:
+            eventssam = self._convert_to_list_with_samples(events)
+            presam = int(pre * s_freq)
+            postsam = int(post * s_freq)
+            begsam = [event - presam for event in eventssam]
+            endsam = [event + postsam for event in eventssam]
 
-        if not isinstance(begsam, list):
-            begsam = [begsam]
-        if not isinstance(endsam, list):
-            endsam = [endsam]
+            event_t = arange(-presam, postsam) / s_freq
+
+        begsam = self._convert_to_list_with_samples(begtime, begsam)
+        endsam = self._convert_to_list_with_samples(endtime, endsam)
 
         if len(begsam) != len(endsam):
             raise ValueError('There should be the same number of start and ' +
@@ -407,9 +400,26 @@ class Dataset:
 
             data.data[i] = dat
             data.axis['chan'][i] = asarray(chan_in_dat, dtype='U')
-            data.axis['time'][i] = (arange(one_begsam, one_endsam) / s_freq)
+            if events is not None:
+                data.axis['time'][i] = event_t
+            else:
+                data.axis['time'][i] = arange(one_begsam, one_endsam) / s_freq
 
         return data
+
+    def _convert_to_list_with_samples(self, times=None, samples=None):
+        """Convenience function to convert the input into a list of samples"""
+        if times is not None:
+            if not isinstance(times, list):
+                times = [times]
+            samples = []
+            for one_time in times:
+                samples.append(_convert_time_to_sample(one_time, self))
+
+        if not isinstance(samples, list):
+            samples = [samples]
+
+        return samples
 
 
 def _count_openephys_sessions(filename):
