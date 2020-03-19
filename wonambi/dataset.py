@@ -240,16 +240,16 @@ class Dataset:
 
         Parameters
         ----------
-        begtime : int or datedelta or datetime or list
+        begtime : int or timedelta or datetime or list
             start of the data to read;
             if it's int, it's assumed it's s;
-            if it's datedelta, it's assumed from the start of the recording;
+            if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
-        endtime : int or datedelta or datetime
+        endtime : int or timedelta or datetime
             end of the data to read;
             if it's int, it's assumed it's s;
-            if it's datedelta, it's assumed from the start of the recording;
+            if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
 
@@ -291,20 +291,20 @@ class Dataset:
         return videos
 
     def read_data(self, chan=None, begtime=None, endtime=None, begsam=None,
-                  endsam=None, s_freq=None):
+                  endsam=None, events=None, pre=1, post=1, s_freq=None):
         """Read the data and creates a ChanTime instance
 
         Parameters
         ----------
         chan : list of strings
             names of the channels to read
-        begtime : int or datedelta or datetime or list
+        begtime : int or timedelta or datetime or list
             start of the data to read;
             if it's int or float, it's assumed it's s;
             if it's timedelta, it's assumed from the start of the recording;
             if it's datetime, it's assumed it's absolute time.
             It can also be a list of any of the above type.
-        endtime : int or datedelta or datetime
+        endtime : int or timedelta or datetime
             end of the data to read;
             if it's int or float, it's assumed it's s;
             if it's timedelta, it's assumed from the start of the recording;
@@ -314,6 +314,16 @@ class Dataset:
             first sample (this sample will be included)
         endsam : int
             last sample (this sample will NOT be included)
+        events : list of int or of timedelta or of datetime
+            list of the onset time of the events of interest.
+            This option is useful if you want to run a trial-based analysis.
+        pre : float
+            only when "events" is specified, the amount of data before each
+            event to be included (in s). Use a positive number to indicate
+            the time before the event.
+        post : float
+            only when "events" is specified, the amount of data after each
+            event to be included (in s).
         s_freq : int
             sampling frequency of the data
 
@@ -326,12 +336,16 @@ class Dataset:
         begsam and endsam follow Python convention, which starts at zero,
         includes begsam but DOES NOT include endsam.
 
-        If begtime and endtime are a list, they both need the exact same
+        If begtime and endtime are a list, the two lists should have the same
         length and the data will be stored in trials.
 
         If neither begtime or begsam are specified, it starts from the first
         sample. If neither endtime or endsam are specified, it reads until the
         end.
+
+        The time axis will indicate the time in seconds from data.start_time,
+        unless you specify "events". In that case, time will run from -"pre" to
+        +"post".
         """
         data = ChanTime()
         data.start_time = self.header['start_time']
