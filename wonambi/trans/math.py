@@ -37,6 +37,7 @@ from numpy import (absolute,
                    unwrap)
 from scipy.signal import detrend, hilbert, fftconvolve
 from scipy.stats import mode
+from scipy.stats.mstats import gmean
 
 lg = getLogger(__name__)
 
@@ -86,7 +87,7 @@ def math(data, operator=None, operator_name=None, axis=None):
     'hilbert', 'diff', 'detrend'
 
     The operator_name's that need an axis and remove it:
-    'mean', 'median', 'mode', 'std'
+    'mean', 'gmean' (geometric mean), 'median', 'mode', 'std'
 
     Examples
     --------
