@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+
+from os import environ
+from pathlib import Path
+from subprocess import run, DEVNULL
+from sys import argv
+from tempfile import mkstemp, gettempdir
+
+
+def run_deface(nii):
+    nii = Path(nii).resolve()
+    print(f'Defacing {nii.name}, it might take a while')
+    path_avg = Path(environ['FREESURFER_HOME']) / 'average'
+
+    # generate a unique file name in the same folder
+    if nii.name.endswith('.nii.gz'):
+        suffix = '.nii.gz'
+    elif nii.name.endswith('.nii'):
+        suffix = '.nii'
+    nii_tmp = Path(mkstemp(dir=nii.parent, suffix=suffix)[1])
+    nii_tmp.unlink()
+
+    run([
+        'mri_deface',  # from freesurfer
+        nii,
+        path_avg / 'talairach_mixed_with_skull.gca',
+        path_avg / 'face.gca',
+        nii_tmp],
+        stdout=DEVNULL, stderr=DEVNULL,
+        cwd=gettempdir(),
+        )
+
+    nii_tmp.rename(nii)
+
+
+if __name__ == '__main__':
+    run_deface(argv[1])
