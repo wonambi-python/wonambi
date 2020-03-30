@@ -12,8 +12,8 @@ will be added as we need them.
 from collections.abc import Iterable
 from logging import getLogger
 
-from numpy import (arange, asarray, diff, empty, hstack, inf, linspace,
-                   nan_to_num, ones, ravel, setdiff1d, floor)
+from numpy import (arange, asarray, diff, empty, hstack, inf, issubsctype, linspace,
+                   nan_to_num, ndarray, ones, ravel, setdiff1d, floor)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
 from scipy.signal import resample as sci_resample
@@ -188,9 +188,9 @@ def select(data, trial=None, invert=False, **axes_to_select):
     **axes_to_select, optional
         Values need to be tuple or list. If the values in one axis are string,
         then you need to specify all the strings that you want. If the values
-        are numeric, then you should specify the range (you cannot specify
-        single values, nor multiple values). To select only up to one point,
-        you can use (None, value_of_interest)
+        are numeric, then you should specify the range. To select only up to one
+        point, you can use (None, value_of_interest). To select multiple
+        values, you can pass a numpy array with dtype bool
     invert : bool
         take the opposite selection
 
@@ -236,7 +236,9 @@ def select(data, trial=None, invert=False, **axes_to_select):
                     selected_values = asarray(values_to_select, dtype='U')
 
                 else:
-                    if (values_to_select[0] is None and
+                    if isinstance(values_to_select, ndarray) and issubsctype(values_to_select.dtype, bool):
+                        bool_values = values_to_select
+                    elif (values_to_select[0] is None and
                        values_to_select[1] is None):
                         bool_values = ones(len(values), dtype=bool)
                     elif values_to_select[0] is None:
