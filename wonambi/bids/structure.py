@@ -17,21 +17,30 @@ BIDS_ENTITIES = (
     'space',
     )
 
+
 class BIDSName():
-    filename = None
     values = {}
 
     def __init__(self, filename):
-        self.filename = Path(filename).resolve()
+        self._filename = Path(filename).resolve()
+        self.path = self._filename.parent
         for entity in BIDS_ENTITIES:
-            self.values[entity] = _match(self.filename, f'{entity}-([a-zA-Z0-9-]+)_')
+            self.values[entity] = _match(self._filename, f'{entity}-([a-zA-Z0-9-]+)_')
 
-        if self.filename.name.endswith('.nii.gz'):
+        if self._filename.name.endswith('.nii.gz'):
             self.extension = '.nii.gz'
         else:
-            self.extension = self.filename.suffix
+            self.extension = self._filename.suffix
 
-        self.format = _match(self.filename, f'_([a-zA-Z0-9-]+){self.extension}')
+        self.format = _match(self._filename, f'_([a-zA-Z0-9-]+){self.extension}')
 
-    def get_filename(self):
-        pass
+    @property
+    def filename(self):
+        parts = []
+        for k, v in self.values.items():
+            if v is None:
+                continue
+            parts.append(f'{k}-{v}')
+
+        stem = '_'.join(parts)
+        return self.path / f'{stem}_{self.format}{self.extension}'

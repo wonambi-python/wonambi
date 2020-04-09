@@ -7,3 +7,5 @@ def test_bids_name():
     assert b.values['sub'] == 'som682'
     assert b.extension == '.tsv'
     assert b.format == 'channels'
+
+    assert b.filename == b._filename
