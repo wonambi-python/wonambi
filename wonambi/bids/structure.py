@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from .utils import _match, get_tsv, get_json
+from ..dataset import Dataset
 
 
 BIDS_ENTITIES = (
@@ -72,6 +73,19 @@ class BIDSMain(BIDSName):
 class BIDSEEG(BIDSMain):
     def __init__(self, filename):
         super().__init__(filename)
+
+    def read_data(self, chan=None, begtime=None, endtime=None, events=None,
+                  pre=1, post=1):
+        """
+        TODO
+        ----
+        rename channels using bids info
+        """
+        if chan is not None:
+            chan = list(chan)
+        return Dataset(self.filename).read_data(
+            chan=chan, begtime=begtime, endtime=endtime, events=events,
+            pre=pre, post=post)
 
     @property
     def channels(self):
