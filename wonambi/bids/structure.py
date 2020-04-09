@@ -1,4 +1,5 @@
 from pathlib import Path
+from numpy import ndarray
 
 from .utils import _match, get_tsv, get_json
 from ..dataset import Dataset
@@ -82,7 +83,15 @@ class BIDSEEG(BIDSMain):
         rename channels using bids info
         """
         if chan is not None:
+            if isinstance(chan, ndarray) and chan.dtype.names is not None:
+                chan = chan['name']
             chan = list(chan)
+
+        if events is not None:
+            if isinstance(events, ndarray) and events.dtype.names is not None:
+                events = events['onset']
+            events = list(events)
+
         return Dataset(self.filename).read_data(
             chan=chan, begtime=begtime, endtime=endtime, events=events,
             pre=pre, post=post)
