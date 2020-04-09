@@ -1,7 +1,6 @@
 from pathlib import Path
-from json import load
 
-from .utils import _match, read_tsv
+from .utils import _match, get_tsv, get_json
 
 
 BIDS_ENTITIES = (
@@ -38,18 +37,18 @@ class BIDSName():
         self.format = _match(self._filename, f'_([a-zA-Z0-9-]+){self.extension}')
 
     @property
-    def _stem(self):
-        parts = []
-        for k, v in self.values.items():
-            if v is None:
-                continue
-            parts.append(f'{k}-{v}')
-
-        return '_'.join(parts)
-
-    @property
     def filename(self):
-        return self.path / f'{self._stem}_{self.format}{self.extension}'
+        return self.path / build_name(self.values, f'{self.format}{self.extension}')
+
+
+def build_name(values, ending):
+    parts = []
+    for k, v in values.items():
+        if v is None:
+            continue
+        parts.append(f'{k}-{v}')
+
+    return '_'.join(parts) + '_' + ending
 
 
 class BIDSMain(BIDSName):
@@ -57,22 +56,8 @@ class BIDSMain(BIDSName):
         super().__init__(filename)
 
     @property
-    def _file_header(self):
-        return self.path / f'{self._stem}_{self.format}.json'
-
-    @property
     def header(self):
-        with self._file_header.open() as f:
-            return load(f)
-
-    @property
-    def _file_events(self):
-        """
-        TODO
-        ----
-        There might be a json file
-        """
-        return self.path / f'{self._stem}_events.tsv'
+        return get_json(self.path, self.values, f'{self.format}.json')
 
     @property
     def events(self):
@@ -81,7 +66,7 @@ class BIDSMain(BIDSName):
         ----
         how to handle n/a
         """
-        return read_tsv(self._file_events)
+        return get_tsv(self.path, self.values, 'events.tsv')
 
 
 class BIDSEEG(BIDSMain):
@@ -89,17 +74,9 @@ class BIDSEEG(BIDSMain):
         super().__init__(filename)
 
     @property
-    def _file_channels(self):
-        return self.path / f'{self._stem}_channels.tsv'
-
-    @property
     def channels(self):
-        return read_tsv(self._file_channels)
-
-    @property
-    def _file_electrodes(self):
-        return self.path / f'{self._stem}_electrodes.tsv'
+        return get_tsv(self.path, self.values, 'channels.tsv')
 
     @property
     def electrodes(self):
-        return read_tsv(self._file_electrodes)
+        return get_tsv(self.path, self.values, 'electrodes.tsv')
