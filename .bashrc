@@ -95,7 +95,8 @@ bids(){
 }
 
 # use all colors in MATE terminal
-TERM=xterm-256color
+export TERM=xterm-256color
+# export TERM=screen-256color
 
 # remember history from all the terminals
 export PROMPT_COMMAND='history -a'
@@ -119,4 +120,3 @@ unset __conda_setup
 
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
-
