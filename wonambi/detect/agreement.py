@@ -94,10 +94,7 @@ class MatchedEvents:
         else:
             raise ValueError("Invalid category.")
         
-        for one_ev in events:
-            annot.add_event(name,
-                            (one_ev['start'], one_ev['end']),
-                            chan=one_ev['chan'])
+        annot.add_events(events, name=name, chan=None)
             
     def all_to_annot(self, annot, names=['TPd', 'TPs', 'FP', 'FN']):
         """Convenience function to write all events to XML by category, showing
