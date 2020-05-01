@@ -9,6 +9,7 @@ from numpy.lib.recfunctions import append_fields
 N_ZONES = 15
 MAX_SAMPLE = 128
 MAX_CAN_VIEW = 128
+ENCODING = 'iso-8859-1'
 
 lg = getLogger(__name__)
 
@@ -182,12 +183,12 @@ def _read_header(f):
 
     orig = {}
 
-    orig['title'] = f.read(32).decode('utf-8').strip()
-    orig['laboratory'] = f.read(32).strip(b'\x00').decode('utf-8').strip()
+    orig['title'] = f.read(32).decode(ENCODING).strip()
+    orig['laboratory'] = f.read(32).strip(b'\x00').decode(ENCODING).strip()
 
     # patient
-    orig['surname'] = f.read(22).decode('utf-8').strip()
-    orig['name'] = f.read(20).decode('utf-8').strip()
+    orig['surname'] = f.read(22).decode(ENCODING).strip()
+    orig['name'] = f.read(20).decode(ENCODING).strip()
     month, day, year = unpack('bbb', f.read(3))
     try:
         orig['date_of_birth'] = date(year + 1900, month, day)
@@ -222,7 +223,7 @@ def _read_header(f):
     zones = {}
     for _ in range(N_ZONES):
         zname, pos, length = unpack('8sII', f.read(16))
-        zname = zname.decode('utf-8').strip()
+        zname = zname.decode(ENCODING).strip()
         zones[zname] = pos, length
 
     pos, length = zones['ORDER']
