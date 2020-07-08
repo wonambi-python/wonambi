@@ -12,6 +12,9 @@
     pager = less -S --shift 4
     editor = vim
 
+[pull]
+	ff = only
+
 [push]
     default = simple
 [filter "lfs"]
@@ -19,3 +22,5 @@
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 	required = true
+[merge]
+	commit = no

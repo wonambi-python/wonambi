@@ -11,7 +11,9 @@ alias R='R --no-save'
 export FRIDGE=/Fridge/users/giovanni
 
 # Miniconda3 
-export PATH=~/tools/miniconda/bin:$PATH
+# export PATH=~/tools/miniconda/bin:$PATH
+# pip3 (instead of miniconda)
+export PATH=~/.local/bin:$PATH
 
 export PYTHONPATH=$FRIDGE/projects/rumc/scripts
 
@@ -26,7 +28,7 @@ export PATH=$NODEJS_HOME/bin:$PATH
 export GEM_HOME=~/tools/ruby
 
 # fsl
-FSLDIR=/home/giovanni/tools/fsl
+FSLDIR=/usr/local/fsl/6.0.1
 . ${FSLDIR}/etc/fslconf/fsl.sh
 PATH=${FSLDIR}/bin:${PATH}
 export FSLDIR PATH
@@ -103,20 +105,23 @@ export PROMPT_COMMAND='history -a'
 
 alias flywheel="fw login $FLYWHEEL_TOKEN"
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/giovanni/tools/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh" ]; then
-        . "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/giovanni/tools/miniconda/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+# offline export of plotly images
+export PATH=$PATH:/home/giovanni/tools/miniconda/lib/orca_app
+
+## >>> conda initialize >>>
+## !! Contents within this block are managed by 'conda init' !!
+#__conda_setup="$('/home/giovanni/tools/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+#if [ $? -eq 0 ]; then
+#    eval "$__conda_setup"
+#else
+#    if [ -f "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh" ]; then
+#        . "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh"
+#    else
+#        export PATH="/home/giovanni/tools/miniconda/bin:$PATH"
+#    fi
+#fi
+#unset __conda_setup
+## <<< conda initialize <<<
 
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
