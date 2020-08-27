@@ -976,7 +976,7 @@ class Annotations():
         self.save()
 
     def get_events(self, name=None, time=None, chan=None, stage=None,
-                   qual=None):
+                   qual=None, cycle=None):
         """Get list of events in the file.
 
         Parameters
@@ -991,12 +991,14 @@ class Annotations():
             list of stages of interest
         qual : str, optional
             epoch signal qualifier (Good or Poor)
+        cycle : list of int, optional
+            list of cycles of interest, numbered starting at 1
         Returns
         -------
         list of dict
             where each dict has 'name' (name of the event), 'start' (start
             time), 'end' (end time), 'chan' (channels of interest, can be
-            empty), 'stage', 'quality' (signal quality)
+            empty), 'stage', 'quality' (signal quality), 'cycle' (sleep period)
 
         Raises
         ------
@@ -1023,6 +1025,9 @@ class Annotations():
                 ep_stages = [x['stage'] for x in self.epochs]
             if qual:
                 ep_quality = [x['quality'] for x in self.epochs]
+                
+        if cycle:
+            cycles = self.get_cycles()
 
         ev = []
         for e_type in events.iterfind(pattern):
@@ -1056,6 +1061,17 @@ class Annotations():
                 else:
                     ev_qual = ep_quality[pos]
                     qual_cond = ev_qual == qual
+                    
+                if cycle is None:
+                    cycle_cond = True
+                else:
+                    ev_cycle = None
+                    for cyc in cycles:
+                        cyc_start, cyc_end, cyc_number = cyc
+                        if cyc_start <= event_start < cyc_end:
+                            ev_cycle = cyc_number
+                            break
+                    cycle_cond = ev_cycle in cycle
 
                 if time is None:
                     time_cond = True
@@ -1067,16 +1083,20 @@ class Annotations():
                 else:
                     chan_cond = event_chan == chan
 
-                if time_cond and chan_cond and stage_cond and qual_cond:
+                if (time_cond and chan_cond and stage_cond and qual_cond and 
+                    cycle_cond):
                     one_ev = {'name': event_name,
                               'start': event_start,
                               'end': event_end,
                               'chan': event_chan.split(', '),  # always a list
                               'stage': '',
-                              'quality': event_qual
+                              'quality': event_qual,
+                              'cycle': '',
                               }
                     if stage is not None:
                         one_ev['stage'] = ev_stage
+                    if cycle is not None:
+                        one_ev['cycle'] = ev_cycle
                     ev.append(one_ev)
 
         return ev
@@ -1917,15 +1937,22 @@ class Annotations():
 
         return slp_onset_lat, waso, total_slp_time # for testing
 
-    def export_events(self, filename, evt_type):
+    def export_events(self, filename, evt_type=None, chan=None, stage=None, 
+                      cycle=None):
         """Export events to CSV
 
         Parameters
         ----------
         filename : str
             path of export file
-        evt_type : list of str
+        evt_type : list of str, optional
             event types to export
+        chan : tuple of str, optional
+            list of channels of interests
+        stage : tuple of str, optional
+            list of stages of interest
+        cycle : list of int, optional
+            list of cycles of interest, numbered starting at 1
         """
         filename = splitext(filename)[0] + '.csv'
         headings_row = ['Index',
@@ -1938,8 +1965,11 @@ class Annotations():
                        'Channel']
 
         events = []
+        if evt_type is None:
+            evt_type = self.event_types
         for et in evt_type:
-            events.extend(self.get_events(name=et))
+            events.extend(self.get_events(name=et, chan=chan, stage=stage, 
+                                          cycle=cycle))
 
         events = sorted(events, key=lambda evt: evt['start'])
 
@@ -1959,13 +1989,13 @@ class Annotations():
                                    ev['end'],
                                    0,
                                    ev['stage'],
-                                   '',
+                                   ev['cycle'],
                                    ev['name'],
                                    ', '.join(ev['chan']),
                                    ])
 
     def import_events(self, filename, source='wonambi', rec_start=None,
-                      parent=None):
+                      chan_dict=None, chan_grp_name='eeg', parent=None):
         """Import events from Wonambi CSV event export and write to annot.
 
         Parameters
@@ -1978,6 +2008,12 @@ class Annotations():
             Date and time (year, month, day, hour, minute, second) of recording
             start. Year is ignored (New Year's Eve celebratory recordings
             unsupported.) Only required for remlogic.
+        chan_dict : dict
+            for prana. keys are channels as they appear in the prana input 
+            file, and values are channels as they appear in the Wonambi GUI
+            (with reference and channel group).
+        chan_grp_name : str
+            for prana. name of the channel group in which to store events.
         parent : QWidget
             for GUI progress bar
         """
@@ -2038,6 +2074,44 @@ class Annotations():
                               'start': start,
                               'end': start + float(cells[idx_dur]),
                               'chan': '',
+                              'stage': '',
+                              'quality': 'Good'
+                                  }
+                    events.append(one_ev)
+                    
+        elif 'prana' == source:
+            
+            with open(filename, 'r', encoding='ISO-8859-1') as f:
+                lines = f.readlines()
+                
+                header = lines[0].split('\t')
+                header = [s.strip() for s in header] # remove trailing newline
+                idx_time = header.index('Start')
+                idx_evt = header.index('Type')
+                idx_dur = header.index('Duration')
+                idx_chan = header.index('Channel')
+                stage_start_date = self.start_time.date()
+                
+                for l in lines[1:]:
+                    cells = l.split('\t')
+                    one_evttype = cells[idx_evt]
+                    clock_start = _prana_time(cells[idx_time], 
+                                              stage_start_date)
+                    start = float((clock_start - rec_start).total_seconds())
+                    
+                    chan_label_prana = cells[idx_chan].strip()
+                    if chan_label_prana == 'All channels':
+                        chan = ''
+                    elif chan_dict:
+                        chan = chan_dict[chan_label_prana]
+                    else: # ignores reference
+                        active_chan = chan_label_prana[4:6]
+                        chan = f'{active_chan} ({chan_grp_name})'
+                    
+                    one_ev = {'name': one_evttype,
+                              'start': start,
+                              'end': start + float(cells[idx_dur]),
+                              'chan': chan,
                               'stage': '',
                               'quality': 'Good'
                                   }
@@ -2191,6 +2265,29 @@ def _remlogic_time(time_cell, date):
     elif time_cell[-8:-10] == '12':
         start = start + timedelta(hours=12)
     else:
+        start = start + timedelta(hours=24)
+
+    return start
+
+def _prana_time(time_cell, date):
+    """Reads RemLogic time string to datetime
+
+    Parameters
+    ----------
+    time_cell : str
+        entire time cell from text file
+    date : date
+        start date from text file
+
+    Returns
+    -------
+    datetime
+        date and time
+    """
+    stage_start_time = datetime.strptime(time_cell[3:], '%H:%M:%S.%f')
+    start = datetime.combine(date, stage_start_time.time())
+
+    if time_cell[1] == '2':
         start = start + timedelta(hours=24)
 
     return start

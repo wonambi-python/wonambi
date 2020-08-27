@@ -1355,7 +1355,24 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 win2 = dat2[beg:end]
                 out[i] = mean((win1 - mean(win1)) * (win2 - mean(win2)))
             dat = out
-    
+            
+        if 'moving_periodogram' == method:  
+            nfft = next_fast_len(total_dur * s_freq)
+            out = zeros((len_out, nfft))
+            freq = method_opt['freq']
+            
+            for i, j in enumerate(arange(0, total_dur, step)[:-1]):
+                beg = max(0, int((j - halfdur) * s_freq))
+                end = min(last, int((j + halfdur) * s_freq))
+                windat = dat[beg:end]
+                sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
+                                       detrend='constant')
+                f0 = asarray([abs(x - freq[0]) for x in sf]).argmin()
+                f1 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+                out[i, :] = psd[f0:f1]
+                
+            dat = out
+            
         if 'moving_power_ratio' == method:
             freq1 = method_opt['freq_narrow']
             freq2 = method_opt['freq_broad']
