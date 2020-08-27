@@ -6,6 +6,7 @@ from numpy import (absolute, arange, argmax, argmin, around, asarray,
                    hstack, insert, invert, log10, logical_and, mean, median, 
                    nan, ones, percentile, pi, ptp, real, sqrt, square, std, 
                    sum, vstack, where, zeros)
+from numpy.fft import rfftfreq
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt, 
                           fftconvolve, hilbert, periodogram, remez, 
@@ -1357,9 +1358,12 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             dat = out
             
         if 'moving_periodogram' == method:  
-            nfft = next_fast_len(total_dur * s_freq)
-            out = zeros((len_out, nfft))
+            nfft = next_fast_len(dur * s_freq)
+            sf = rfftfreq(nfft, 1 / s_freq)
             freq = method_opt['freq']
+            f0 = asarray([abs(x - freq[0]) for x in sf]).argmin()
+            f1 = asarray([abs(x - freq[1]) for x in sf]).argmin()
+            out = zeros((len_out, f1 - f0))
             
             for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
@@ -1367,8 +1371,6 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 windat = dat[beg:end]
                 sf, psd = periodogram(windat, s_freq, 'hann', nfft=nfft,
                                        detrend='constant')
-                f0 = asarray([abs(x - freq[0]) for x in sf]).argmin()
-                f1 = asarray([abs(x - freq[1]) for x in sf]).argmin()
                 out[i, :] = psd[f0:f1]
                 
             dat = out
