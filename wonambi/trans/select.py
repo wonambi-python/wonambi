@@ -61,7 +61,7 @@ class Segments():
         return self.segments[index]
 
     def read_data(self, chan=[], ref_chan=[], grp_name=None, concat_chan=False,
-                  max_s_freq=30000, parent=None):
+                  average_channels=False, max_s_freq=30000, parent=None):
         """Read data for analysis. Adds data as 'data' in each dict.
 
         Parameters
@@ -76,6 +76,9 @@ class Segments():
             name of the channel group, required in GUI
         concat_chan : bool
             if True, data from all channels will be concatenated
+        average_channels : bool
+            if True, all channels will be averaged into a single virtual 
+            channel with label 'avg_chan'
         max_s_freq: : int
             maximum sampling frequency
         parent : QWidget
@@ -147,8 +150,12 @@ class Segments():
                     one_segment.data[0][i, :] = hstack(
                             [x(chan=ch)[0] for x in subseg])
 
+            if average_channels:
+                one_segment.data[0] = one_segment.data[0].mean(0)
+                one_segment.axis['chan'][0] = active_chan = ['avg_chan']
+
             # For channel concatenation
-            if concat_chan and len(chs) > 1:
+            elif concat_chan and len(chs) > 1:
                 one_segment.data[0] = ravel(one_segment.data[0])
                 one_segment.axis['chan'][0] = asarray([(', ').join(chs)],
                                 dtype='U')

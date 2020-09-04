@@ -12,7 +12,7 @@ from .select import (select, resample, get_times, _select_channels, fetch,
 from .frequency import frequency, timefrequency, band_power
 from .merge import concatenate
 from .math import math, get_descriptives
-from .montage import montage
+from .montage import montage, create_virtual_channel
 from .peaks import peaks
 from .reject import rejectbadchan, remove_artf_evts
 from .analyze import export_freq, export_freq_band

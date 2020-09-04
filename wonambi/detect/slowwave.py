@@ -2,7 +2,8 @@
 
 """
 from logging import getLogger
-from numpy import argmin, concatenate, diff, hstack, sign, sum, where, zeros
+from numpy import (argmin, concatenate, diff, hstack, logical_and, newaxis, 
+                   sign, sum, vstack, where, zeros)
 
 try:
     from PyQt5.QtCore import Qt
@@ -25,8 +26,6 @@ class DetectSlowWave:
     ----------
     method : str
         one of the predefined methods
-    frequency : tuple of float
-        low and high frequency of SW band
     duration : tuple of float
         min and max duration of SWs
     """
@@ -52,6 +51,15 @@ class DetectSlowWave:
             self.min_ptp = 75
             self.min_dur = 0
             self.max_dur = None
+            self.invert = False
+            
+        elif method == 'Ngo2015':
+            self.det_filt = {'order': 2, 
+                             'freq': 3.5}
+            self.min_dur = 0.833
+            self.max_dur = 2.0
+            self.peak_thresh = 1.25
+            self.ptp_thresh = 1.25
             self.invert = False
 
         else:
@@ -100,6 +108,9 @@ class DetectSlowWave:
             if 'Massimini2004' in self.method:
                 sw_in_chan = detect_Massimini2004(dat_orig, data.s_freq, time,
                                                   self)
+                
+            elif 'Ngo2015' == self.method:
+                sw_in_chan = detect_Ngo2015(dat_orig, data.s_freq, time, self)
 
             else:
                 raise ValueError('Unknown method')
@@ -182,6 +193,68 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
                     sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
 
     if len(sw_in_chan) == 0:
+        lg.info('No slow wave found')
+
+    return sw_in_chan
+
+def detect_Ngo2015(dat_orig, s_freq, time, opts):
+    """Slow wave detection based on Ngo et al., 2015.
+
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
+    opts : instance of 'DetectSlowWave'
+        'det_filt' : dict
+            parameters for 'butter',
+        'duration' : tuple of float
+            min and max duration of SW
+        'min_ptp' : float
+            min peak-to-peak amplitude
+        'trough_duration' : tuple of float
+            min and max duration of first half-wave (trough)
+
+    Returns
+    -------
+    list of dict
+        list of detected SWs
+    float
+        SW density, per 30-s epoch
+
+    References
+    ----------
+    Ngo, H-V. et al. J Neurosci 35(17) 6630-8 (2015).
+
+    """
+    if opts.invert:
+        dat_orig = -dat_orig
+
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.det_filt)
+    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg')
+    events = find_intervals(idx_zx, s_freq, opts.duration)
+    events = find_peaks_in_slowwwave(dat_det, events)
+    
+    # Negative peak threshold
+    neg_peak = events[:, 1]
+    neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
+    events = events[neg_peak < neg_peak_thresh, :]
+    
+    # Peak-to-peak amplitude threshold
+    ptp = events[:, 3] - events[:, 1]
+    ptp_thresh = ptp.mean() * opts.ptp_thresh
+    events = events[ptp > ptp_thresh, :]
+    
+    sw_in_chan = []
+    if events:
+        events = within_duration(events, time, opts.duration)
+        events = remove_straddlers(events, time, s_freq)
+        sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
+        
+    if sw_in_chan:
         lg.info('No slow wave found')
 
     return sw_in_chan
@@ -307,3 +380,100 @@ def _add_halfwave(data, events, s_freq, opts):
         #lg.info('SW checks out, accepted! ptp is ' + str(abs(data[ev[1]] - data[ev[3]])))
 
     return events[selected, :]
+
+def find_zero_crossings(data, xtype='all'):
+    """Find indices of zero-crossings in data.
+    
+    Parameters
+    ----------
+    data : ndarray (dtype='float')
+        vector with the data
+    xtype : str
+        if 'all', returns all zero crossings
+        if 'neg_to_pos', returns only negative-to-positive zero-crossings
+        if 'pos_to_neg', returns only positive-to-negative zero-crossings
+        
+    Returns
+    -------
+    nadarray of int
+        indices of zero-crossings in the data
+        
+    Note
+    ----
+    A value of exactly 0 in data will always create a zero-crossing with 
+    nonzero values preceding of following it.
+    """
+    if xtype == 'all':
+        zx = where(diff(sign(data)))[0]
+    elif xtype == 'neg_to_pos':
+        zx = where(diff(sign(data)) > 0)[0]
+    elif xtype == 'pos_to_neg':
+        zx = where(diff(sign(data)) < 0)[0]
+    else:
+        raise ValueError(
+            "Invalid xtype. Choose 'all', 'neg_to_pos' or 'pos_to_neg'.")
+        
+    return zx
+
+def find_intervals(indices, s_freq, duration):
+    """From sample indices, find intervals within a certain duration.
+    
+    Parameters
+    ----------
+    indices : ndarray (dtype='int')
+        vector with the indices
+    s_freq : float
+        sampling frequency of indices/data
+    duration: tuple of float
+        min and max duration (s) of intervals
+
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 2 matrix with start and end samples
+    """
+    intervals = diff(indices) / s_freq
+    idx_event_starts = where(logical_and(
+        intervals >= duration[0],
+        intervals < duration[1]
+                                         ))[0]
+    idx_event_ends = idx_event_starts + 1
+    
+    if len(idx_event_starts):
+        events = vstack((indices[idx_event_starts], 
+                         indices[idx_event_ends]
+                         )).T
+    else:
+        events = None
+
+    return events
+
+def find_peaks_in_slowwwave(data, events):
+    """Find trough, - to + zero-crossing and peak from start/end times.
+    
+    Parameters
+    ----------
+    data : ndarray (dtype='float')
+        vector with the data
+    events : ndarray (dtype='int')
+        N x 2 matrix with start, end samples
+    
+    Returns
+    -------
+    ndarray (dtype='int')
+        N x 5 matrix with start, trough, - to + zero crossing, peak, 
+        and end samples
+    """
+    new_events = concatenate((
+        events[:, 0, newaxis], 
+        zeros((events.shape[0], 3)), 
+        events[:, 1, newaxis]), 
+                        axis=1)
+    
+    for i, ev in enumerate(events):
+        ev_dat = data[ev[0]:ev[1]]
+        new_events[i, 1] = ev[0] + ev_dat.argmin() # trough
+        new_events[i, 2] = ev[0] + where(diff(sign(ev_dat)) > 0)[0][0] # -to+
+        new_events[i, 3] = ev[0] + ev_dat.argmax() # peak
+        
+    return new_events

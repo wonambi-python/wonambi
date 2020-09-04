@@ -180,3 +180,28 @@ def compute_average_regress(x, idx_chan):
             x[i, :] - r[0, 0] * avg
             )
     return moveaxis(asarray(x_o), 0, idx_chan)
+
+def create_virtual_channel(data, new_chan_name='virtual', method='average'):
+    """Create a virtual channel by averaging several channels.
+    
+    Parameters
+    ----------
+    data : instance of DataRaw
+        the data to filter
+    new_chan_name : str
+        label for the virtual channel
+    method : str
+        'average'
+        
+    Returns
+    -------
+    mdata : instance of Data
+        virtual data
+    """
+    mdata = data._copy()
+
+    for i in range(mdata.number_of('trial')):
+        mdata.axis['chan'][i] = [new_chan_name]
+        mdata.data[i] = mean(data(trial=i), axis=0)
+        
+    return mdata
