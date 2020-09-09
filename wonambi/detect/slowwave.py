@@ -54,10 +54,11 @@ class DetectSlowWave:
             self.invert = False
             
         elif method == 'Ngo2015':
-            self.det_filt = {'order': 2, 
+            self.lowpass = {'order': 2, 
                              'freq': 3.5}
             self.min_dur = 0.833
             self.max_dur = 2.0
+            self.det_filt = {'freq': (1 / self.max_dur, 1 / self.min_dur)}
             self.peak_thresh = 1.25
             self.ptp_thresh = 1.25
             self.invert = False
@@ -234,7 +235,7 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
         dat_orig = -dat_orig
 
     sw_in_chan = []
-    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.det_filt)
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
     idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg')
     print(len(idx_zx))
     events = find_intervals(idx_zx, s_freq, opts.duration)

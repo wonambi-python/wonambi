@@ -26,6 +26,13 @@ def test_detect_slowwave_AASM_Massimini2004():
     sw = detsw(data)
     assert len(sw.events) == 15
 
+def test_detect_slowwave_Ngo2015():
+    detsw = DetectSlowWave()
+    detsw.invert = True
+    assert repr(detsw) == 'detsw_Ngo2015_0.50-1.20Hz'
+
+    sw = detsw(data)
+    assert len(sw.events) == 2
 
 def test_detect_slowwave_to_data():
     detsw = DetectSlowWave()
