@@ -233,29 +233,37 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
     if opts.invert:
         dat_orig = -dat_orig
 
+    sw_in_chan = []
     dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.det_filt)
     idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg')
+    print(len(idx_zx))
     events = find_intervals(idx_zx, s_freq, opts.duration)
-    events = find_peaks_in_slowwwave(dat_det, events)
-    
-    # Negative peak threshold
-    neg_peak = events[:, 1]
-    neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
-    events = events[neg_peak < neg_peak_thresh, :]
-    
-    # Peak-to-peak amplitude threshold
-    ptp = events[:, 3] - events[:, 1]
-    ptp_thresh = ptp.mean() * opts.ptp_thresh
-    events = events[ptp > ptp_thresh, :]
-    
-    sw_in_chan = []
-    if events:
-        events = within_duration(events, time, opts.duration)
-        events = remove_straddlers(events, time, s_freq)
-        sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
+    print(events.shape)
+    if events is not None:
+        events = find_peaks_in_slowwwave(dat_det, events)
+        print(events.shape)
+        
+        # Negative peak threshold
+        neg_peak = events[:, 1]
+        neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
+        events = events[neg_peak < neg_peak_thresh, :]
+        print(events.shape)
+        
+        # Peak-to-peak amplitude threshold
+        ptp = events[:, 3] - events[:, 1]
+        ptp_thresh = ptp.mean() * opts.ptp_thresh
+        events = events[ptp > ptp_thresh, :]
+        print(events.shape)
+        
+        if events is not None:
+            events = within_duration(events, time, opts.duration)
+            print(events.shape)
+            events = remove_straddlers(events, time, s_freq)
+            print(events.shape)
+            sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
         
     if sw_in_chan:
-        lg.info('No slow wave found')
+        lg.info('No slow waves found')
 
     return sw_in_chan
 
@@ -466,7 +474,7 @@ def find_peaks_in_slowwwave(data, events):
     """
     new_events = concatenate((
         events[:, 0, newaxis], 
-        zeros((events.shape[0], 3)), 
+        zeros((events.shape[0], 3), dtype='int64'), 
         events[:, 1, newaxis]), 
                         axis=1)
     

@@ -12,8 +12,9 @@ will be added as we need them.
 from collections.abc import Iterable
 from logging import getLogger
 
-from numpy import (arange, asarray, diff, empty, hstack, inf, issubsctype, linspace,
-                   nan_to_num, ndarray, ones, ravel, setdiff1d, floor)
+from numpy import (arange, array, asarray, diff, empty, hstack, inf, 
+                   issubsctype, linspace, nan_to_num, ndarray, ones, ravel, 
+                   setdiff1d, floor)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
 from scipy.signal import resample as sci_resample
@@ -151,8 +152,10 @@ class Segments():
                             [x(chan=ch)[0] for x in subseg])
 
             if average_channels:
-                one_segment.data[0] = one_segment.data[0].mean(0)
-                one_segment.axis['chan'][0] = active_chan = ['avg_chan']
+                one_segment.data[0] = one_segment.data[0].mean(0, 
+                                                               keepdims=True)
+                one_segment.axis['chan'][0] = array(['avg_chan'], dtype='<U2')
+                active_chan = ['avg_chan']
 
             # For channel concatenation
             elif concat_chan and len(chs) > 1:
