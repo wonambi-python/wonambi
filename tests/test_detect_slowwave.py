@@ -27,7 +27,7 @@ def test_detect_slowwave_AASM_Massimini2004():
     assert len(sw.events) == 15
 
 def test_detect_slowwave_Ngo2015():
-    detsw = DetectSlowWave()
+    detsw = DetectSlowWave(method='Ngo2015')
     detsw.invert = True
     assert repr(detsw) == 'detsw_Ngo2015_0.50-1.20Hz'
 
