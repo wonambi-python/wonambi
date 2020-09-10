@@ -166,7 +166,9 @@ class BlackRock:
                     markers[i]['end'] = markers[i + 1]['start']
                 markers_no_zero.append(markers[i])
 
-            return markers_no_zero
+            markers = markers_no_zero
+
+        return markers
 
 
 def _read_nsx(filename, BOData, sess_begin, sess_end, factor, begsam, endsam):
