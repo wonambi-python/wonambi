@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.12**: Ngo2015 slow wave detection; FOOOF 1.0 update; PRANA events import
 - **6.11**: create trials based on events for trial-based analysis
 - **6.10**: improvements to morlet analysis
 - **6.09**: bugfixes for data reading and staging import
