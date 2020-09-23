@@ -442,24 +442,30 @@ def _read_montage(f, zone):
     f.seek(pos, SEEK_SET)
 
     montages = []
+    shown_warning = False
 
     while f.tell() < (pos + length):
-        montage = {
-            'lines': unpack('H', f.read(2))[0],
-            'sectors': unpack('H', f.read(2))[0],
-            'base_time': unpack('H', f.read(2))[0],
-            'notch': unpack('H', f.read(2))[0],
-            'colour': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
-            'selection': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
-            'description': f.read(64).strip(b'\x01\x00').decode(),
-            'inputsNonInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # NonInv : non inverting input
-            'inputsInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # Inv : inverting input
-
-            'HiPass_Filter': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
-            'LowPass_Filter': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
-            'reference': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
-            'free': f.read(1720).strip(b'\x01\x00'),
-            }
+        try:
+            montage = {
+                'lines': unpack('H', f.read(2))[0],
+                'sectors': unpack('H', f.read(2))[0],
+                'base_time': unpack('H', f.read(2))[0],
+                'notch': unpack('H', f.read(2))[0],
+                'colour': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
+                'selection': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
+                'description': f.read(64).strip(b'\x01\x00').decode(),
+                'inputsNonInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # NonInv : non inverting input
+                'inputsInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # Inv : inverting input
+                'HiPass_Filter': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
+                'LowPass_Filter': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
+                'reference': unpack(MAX_CAN_VIEW * 'I', f.read(MAX_CAN_VIEW * 4)),
+                'free': f.read(1720).strip(b'\x01\x00'),
+                }
+        except UnicodeDecodeError:
+            if not shown_warning:
+                lg.warning('There was an error reading one of the montages')
+                shown_warning = True
+            montage = None
         montages.append(montage)
 
     return montages
