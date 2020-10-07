@@ -67,7 +67,6 @@ REMOTE_FILES = {
     }
 
 
-
 def _files_in_downloads():
 
     print('Files stored in cached ' + str(DOWNLOADS_PATH.resolve()) + ':\n\t' +
