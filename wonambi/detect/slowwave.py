@@ -245,14 +245,14 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
         if events is not None:
             # Negative peak threshold
             neg_peak = events[:, 1]
-            neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
-            events = events[neg_peak < neg_peak_thresh, :]
+            neg_peak_thresh = dat_det[neg_peak].mean() * opts.peak_thresh
+            events = events[dat_det[neg_peak] < neg_peak_thresh, :]
             
             if events is not None:
                 # Peak-to-peak amplitude threshold
                 ptp = events[:, 3] - events[:, 1]
-                ptp_thresh = ptp.mean() * opts.ptp_thresh
-                events = events[ptp > ptp_thresh, :]
+                ptp_thresh = dat_det[ptp].mean() * opts.ptp_thresh
+                events = events[dat_det[ptp] > ptp_thresh, :]
                 
                 if events is not None:
                     #events = within_duration(events, time, opts.duration)
