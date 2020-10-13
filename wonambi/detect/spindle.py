@@ -262,7 +262,7 @@ class DetectSpindle:
             lg.info('Detecting spindles on channel %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
-            dat_orig = dat_orig - dat_orig.nanmean() # demean
+            dat_orig = dat_orig - dat_orig.mean() # demean
 
             if self.method == 'Ferrarelli2007':
                 sp_in_chan, values, density = detect_Ferrarelli2007(dat_orig,
