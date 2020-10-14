@@ -55,6 +55,12 @@ openephys_dir = IO_PATH / 'openephys' / '2019-05-27_11-47-15'
 ktlx_file = IO_PATH / 'xltek' / 'Video_Demo'
 hdf5_file = IO_PATH / 'fieldtrip_hdf5.mat'
 
+# BIDS
+BIDS_PATH = DATA_PATH / 'bids-example'
+BIDS_IEEG_PATH = BIDS_PATH / 'ieeg_visual_multimodal'
+BIDS_IEEG_CHANNELS = BIDS_IEEG_PATH / 'sub-som682/ses-somecog01/ieeg/sub-som682_ses-somecog01_task-spatialobject_run-01_channels.tsv'
+
+
 # Folder where to export data
 EXPORTED_PATH = test_path / 'exported'
 EXPORTED_PATH.mkdir(exist_ok=True)

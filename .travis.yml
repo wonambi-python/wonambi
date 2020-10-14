@@ -20,6 +20,7 @@ before_install:
  # create display with large resolution
  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16"
  - python setup_wonambi.py --get_files
+ - git clone https://github.com/bids-standard/bids-examples.git tests/data/bids-example
 
 install: 
  # install requirements

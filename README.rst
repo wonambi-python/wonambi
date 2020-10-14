@@ -16,8 +16,10 @@ Features
   - EGI MFF (.mff)
   - Fieldtrip (.mat)
   - mne FIFF (.fiff)
+  - SystemPlus Micromed (.trc)
   - Moberg ("EEG,Composite,SampleSeries,Composite,MRIAmp,data")
   - openephys (.continuous, .openephys)
+  - BIDS-formatted data file
 
 - Interface for Sleep Scoring
 
@@ -31,7 +33,7 @@ Installation
 ------------
 Install wonambi by running:
 
-    pip install wonambi
+    pip3 install wonambi
 
 See `Installation for details <http://wonambi-python.github.io/installation.html>`_
 
@@ -59,7 +61,7 @@ See `Change Log <http://wonambi-python.github.io/changelog.html>`_
 
 Requirements
 ------------
-- Python 3.6
+- Python 3.6 or later
 - numpy
 - scipy
 
@@ -76,8 +78,8 @@ Optional Requirements
 
 Status
 ------
-.. image:: https://travis-ci.org/wonambi-python/wonambi.svg?branch=master
-    :target: https://travis-ci.org/wonambi-python/wonambi
+.. image:: https://travis-ci.com/wonambi-python/wonambi.svg?branch=master
+    :target: https://travis-ci.com/wonambi-python/wonambi
 
 .. image:: https://codecov.io/gh/wonambi-python/wonambi/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/wonambi-python/wonambi

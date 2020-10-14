@@ -9,6 +9,7 @@ from numpy.lib.recfunctions import append_fields
 N_ZONES = 15
 MAX_SAMPLE = 128
 MAX_CAN_VIEW = 128
+ENCODING = 'iso-8859-1'
 
 lg = getLogger(__name__)
 
@@ -182,12 +183,12 @@ def _read_header(f):
 
     orig = {}
 
-    orig['title'] = f.read(32).decode('utf-8').strip()
-    orig['laboratory'] = f.read(32).strip(b'\x00').decode('utf-8').strip()
+    orig['title'] = f.read(32).decode(ENCODING).strip()
+    orig['laboratory'] = f.read(32).strip(b'\x00').decode(ENCODING).strip()
 
     # patient
-    orig['surname'] = f.read(22).decode('utf-8').strip()
-    orig['name'] = f.read(20).decode('utf-8').strip()
+    orig['surname'] = f.read(22).decode(ENCODING).strip()
+    orig['name'] = f.read(20).decode(ENCODING).strip()
     month, day, year = unpack('bbb', f.read(3))
     try:
         orig['date_of_birth'] = date(year + 1900, month, day)
@@ -222,7 +223,7 @@ def _read_header(f):
     zones = {}
     for _ in range(N_ZONES):
         zname, pos, length = unpack('8sII', f.read(16))
-        zname = zname.decode('utf-8').strip()
+        zname = zname.decode(ENCODING).strip()
         zones[zname] = pos, length
 
     pos, length = zones['ORDER']
@@ -412,8 +413,8 @@ def _read_labcod(f, zone, order):
         chan['status'] = f.read(1)  # Status of electrode for acquisition : 0 : not acquired, 1 : acquired
         chan['channelType'] = f.read(1)  # TODO: type of reference
 
-        chan['chan_name'] = f.read(6).strip(b'\x01\x00').decode()
-        chan['ground'] = f.read(6).strip(b'\x01\x00').decode()
+        chan['chan_name'] = f.read(6).strip(b'\x01\x00').decode(ENCODING)
+        chan['ground'] = f.read(6).strip(b'\x01\x00').decode(ENCODING)
         l_min, l_max, chan['logical_ground'], ph_min, ph_max = unpack('iiiii', f.read(20))
         chan['factor'] = float(ph_max - ph_min) / float(l_max - l_min + 1)
 
@@ -427,7 +428,7 @@ def _read_labcod(f, zone, order):
         chan['Latitude'], chan['Longitude'] = unpack('ff', f.read(8))
         chan['presentInMap'] = unpack('B', f.read(1))[0]
         chan['isInAvg'] = unpack('B', f.read(1))[0]
-        chan['Description'] = f.read(32).strip(b'\x01\x00').decode()
+        chan['Description'] = f.read(32).strip(b'\x01\x00').decode(ENCODING)
         chan['xyz'] = unpack('fff', f.read(12))
         chan['Coordinate_Type'] = unpack('H', f.read(2))[0]
         chan['free'] = f.read(24).strip(b'\x01\x00')
@@ -451,7 +452,7 @@ def _read_montage(f, zone):
             'notch': unpack('H', f.read(2))[0],
             'colour': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
             'selection': unpack(MAX_CAN_VIEW * 'B', f.read(MAX_CAN_VIEW)),
-            'description': f.read(64).strip(b'\x01\x00').decode(),
+            'description': f.read(64).strip(b'\x01\x00').decode(ENCODING),
             'inputsNonInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # NonInv : non inverting input
             'inputsInv': unpack(MAX_CAN_VIEW * 'H', f.read(MAX_CAN_VIEW * 2)),  # Inv : inverting input
 

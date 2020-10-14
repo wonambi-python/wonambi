@@ -6,7 +6,7 @@ from math import ceil
 from logging import getLogger
 from pathlib import Path
 
-from numpy import arange, asarray, concatenate, empty, int64, zeros
+from numpy import arange, asarray, concatenate, empty, int64, zeros, ndarray
 
 from .ioeeg import (Abf,
                     Edf,
@@ -352,8 +352,10 @@ class Dataset:
 
         if chan is None:
             chan = self.header['chan_name']
-        if not (isinstance(chan, list) or isinstance(chan, tuple)):
+        if not (isinstance(chan, list) or isinstance(chan, tuple) or isinstance(chan, ndarray)):
             raise TypeError('Parameter "chan" should be a list')
+        else:
+            chan = list(chan)  # make sure it's a list
         add_ref = False
         if '_REF' in chan:
             add_ref = True
