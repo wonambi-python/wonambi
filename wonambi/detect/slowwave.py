@@ -3,7 +3,7 @@
 """
 from logging import getLogger
 from numpy import (argmin, concatenate, diff, hstack, logical_and, newaxis, 
-                   sign, sum, vstack, where, zeros)
+                   ones, sign, sum, vstack, where, zeros)
 
 try:
     from PyQt5.QtCore import Qt
@@ -105,6 +105,7 @@ class DetectSlowWave:
             lg.info('Detecting slow waves on chan %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
+            dat_orig = dat_orig - dat_orig.nanmean()  # demean
 
             if 'Massimini2004' in self.method:
                 sw_in_chan = detect_Massimini2004(dat_orig, data.s_freq, time,
@@ -237,31 +238,26 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
     sw_in_chan = []
     dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
     idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg')
-    print(len(idx_zx))
     events = find_intervals(idx_zx, s_freq, opts.duration)
-    print(events.shape)
     if events is not None:
         events = find_peaks_in_slowwwave(dat_det, events)
-        print(events.shape)
-        
-        # Negative peak threshold
-        neg_peak = events[:, 1]
-        neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
-        events = events[neg_peak < neg_peak_thresh, :]
-        print(events.shape)
-        
-        # Peak-to-peak amplitude threshold
-        ptp = events[:, 3] - events[:, 1]
-        ptp_thresh = ptp.mean() * opts.ptp_thresh
-        events = events[ptp > ptp_thresh, :]
-        print(events.shape)
         
         if events is not None:
-            events = within_duration(events, time, opts.duration)
-            print(events.shape)
-            events = remove_straddlers(events, time, s_freq)
-            print(events.shape)
-            sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
+            # Negative peak threshold
+            neg_peak = events[:, 1]
+            neg_peak_thresh = neg_peak.mean() * opts.peak_thresh
+            events = events[neg_peak < neg_peak_thresh, :]
+            
+            if events is not None:
+                # Peak-to-peak amplitude threshold
+                ptp = events[:, 3] - events[:, 1]
+                ptp_thresh = ptp.mean() * opts.ptp_thresh
+                events = events[ptp > ptp_thresh, :]
+                
+                if events is not None:
+                    events = within_duration(events, time, opts.duration)
+                    events = remove_straddlers(events, time, s_freq)
+                    sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
         
     if sw_in_chan:
         lg.info('No slow waves found')
@@ -479,10 +475,14 @@ def find_peaks_in_slowwwave(data, events):
         events[:, 1, newaxis]), 
                         axis=1)
     
+    selected = ones(events.shape[0], dtype='bool')
     for i, ev in enumerate(events):
-        ev_dat = data[ev[0]:ev[1]]
-        new_events[i, 1] = ev[0] + ev_dat.argmin() # trough
-        new_events[i, 2] = ev[0] + where(diff(sign(ev_dat)) > 0)[0][0] # -to+
-        new_events[i, 3] = ev[0] + ev_dat.argmax() # peak
+        try:
+            ev_dat = data[ev[0]:ev[1]]
+            new_events[i, 1] = ev[0] + ev_dat.argmin() # trough
+            new_events[i, 2] = ev[0] + where(diff(sign(ev_dat)) > 0)[0][0] # -to+
+            new_events[i, 3] = ev[0] + ev_dat.argmax() # peak
+        except IndexError:
+            selected[i] = False
         
-    return new_events
+    return new_events[selected, :]
