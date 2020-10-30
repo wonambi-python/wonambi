@@ -54,7 +54,7 @@ export SUBJECTS_DIR=/Fridge/users/giovanni/projects/freesurfer
 ## This is basically a copy of /etc/afni/afni.sh, without sourcing the users prefs
 ## !! note that there is no separate bin/ models/ folder, all is in one. 
 #where AFNI is installed
-AFNI_INSTALLDIR=/usr/local/afni
+AFNI_INSTALLDIR=/usr/local/afni/AFNI_20.2.11
 # AFNI_INSTALLDIR=/Scratch/AFNI/afni_2016-12-02/linux_fedora_21_64
 # add the AFNI binary path to the search path
 PATH=${AFNI_INSTALLDIR}:${PATH}
@@ -82,6 +82,11 @@ export PATH=~/tools/bin:$PATH
 
 # custom firefox
 export PATH=~/tools/bin/firefox:$PATH
+
+# backup sql
+backup(){
+    ssh blue1 'mysqldump -u giovanni -p --databases test2' > /home/giovanni/xelo2.sql
+}
 
 # custom SQL schema
 export PATH=~/tools/bin/schemacrawler:$PATH
