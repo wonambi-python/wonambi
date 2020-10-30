@@ -152,18 +152,16 @@ let g:syntastic_check_on_wq = 0
 let g:syntastic_loc_list_height = 5
 let g:syntastic_python_checkers = ['flake8']
 
-" disable several syntastic flake8 errors
-" E302: too long lines
-" E501: 2 spaces before function def
-
 " syntastic: rst
 let g:syntastic_rst_checkers = ['rstcheck']
 
 " syntastic: Python
+" E302: too long lines
+" E501: 2 spaces before function def
 " E123: indent
 " E731: do not assign a lambda expression, use a def
-" W504: line break after binary operator 
-let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123,E731,W504'
+" W503: line break before binary operator 
+let g:syntastic_python_flake8_post_args='--ignore=E302,E501,E123,E731,W503'
 
 " TAGBAR:
 nmap <F8> :TagbarToggle<CR>
