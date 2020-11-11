@@ -98,7 +98,7 @@ sql_schema(){
 # BIDS validator
 
 bids(){
-    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator --config.ignore=38 --config.ignore=39 --config.ignore=97 /data --verbose
+    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator --config.ignore=38 --config.ignore=39 --config.ignore=97 --config.ignore=87 /data --verbose
 }
 
 # use all colors in MATE terminal
