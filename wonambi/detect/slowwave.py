@@ -3,7 +3,7 @@
 """
 from logging import getLogger
 from numpy import (argmin, concatenate, diff, hstack, logical_and, newaxis, 
-                   ones, sign, sum, vstack, where, zeros)
+                   ones, percentile, sign, sum, vstack, where, zeros)
 
 try:
     from PyQt5.QtCore import Qt
@@ -62,6 +62,13 @@ class DetectSlowWave:
             self.peak_thresh = 1.25
             self.ptp_thresh = 1.25
             self.invert = False
+            
+        elif method == 'Staresina2015':
+            self.lowpass = {'order': 3, 
+                            'freq': 1.25}
+            self.duration = (0.8, 2)
+            self.ptp_thresh = 75
+            self.invert = False
 
         else:
             raise ValueError('Unknown method')
@@ -113,6 +120,10 @@ class DetectSlowWave:
                 
             elif 'Ngo2015' == self.method:
                 sw_in_chan = detect_Ngo2015(dat_orig, data.s_freq, time, self)
+                
+            elif 'Staresina2015' == self.method:
+                sw_in_chan = detect_Staresina2015(dat_orig, data.s_freq, time, 
+                                                  self)
 
             else:
                 raise ValueError('Unknown method')
@@ -211,21 +222,17 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
     time : ndarray (dtype='float')
         vector with the time points for each sample
     opts : instance of 'DetectSlowWave'
-        'det_filt' : dict
-            parameters for 'butter',
+        'lowpass' : dict
+            parameters for 'low_butter',
         'duration' : tuple of float
             min and max duration of SW
         'min_ptp' : float
             min peak-to-peak amplitude
-        'trough_duration' : tuple of float
-            min and max duration of first half-wave (trough)
 
     Returns
     -------
     list of dict
         list of detected SWs
-    float
-        SW density, per 30-s epoch
 
     References
     ----------
@@ -236,23 +243,23 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
         dat_orig = -dat_orig
 
     sw_in_chan = []
-    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
-    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg')
-    events = find_intervals(idx_zx, s_freq, opts.duration)
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass) #filter to SO range
+    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') #detect crossing from pos to neg (visual down to up)
+    events = find_intervals(idx_zx, s_freq, opts.duration) #event within duration set up
     if events is not None:
-        events = find_peaks_in_slowwwave(dat_det, events)
+        events = find_peaks_in_slowwwave(dat_det, events) #finds start, trough, crossing, peak, end of sw
         
         if events is not None:
             # Negative peak threshold
-            idx_neg_peak = events[:, 1]
-            neg_peak_thresh = dat_det[idx_neg_peak].mean() * opts.peak_thresh
-            events = events[dat_det[idx_neg_peak] < neg_peak_thresh, :]
+            idx_neg_peak = events[:, 1] #finds index(sample) of trough of sw (but try with [:,3])
+            neg_peak_thresh = dat_det[idx_neg_peak].mean() * opts.peak_thresh #multiples mean of all trough by threshold
+            events = events[dat_det[idx_neg_peak] < neg_peak_thresh, :] 
             
             if events is not None:
                 # Peak-to-peak amplitude threshold
-                ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]]
-                ptp_thresh = ptp.mean() * opts.ptp_thresh
-                events = events[ptp > ptp_thresh, :]
+                ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]] # for each event, subtract trough from peak
+                ptp_thresh = ptp.mean() * opts.ptp_thresh # np.percentile(ptp, 75)
+                events = events[ptp > ptp_thresh, :] # filter events above peak to peak threshold
                 
                 if events is not None:
                     #events = within_duration(events, time, opts.duration)
@@ -264,6 +271,61 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
 
     return sw_in_chan
 
+def detect_Staresina2015(dat_orig, s_freq, time, opts):
+    """Slow wave detection based on Ngo et al., 2015.
+
+    Parameters
+    ----------
+    dat_orig : ndarray (dtype='float')
+        vector with the data for one channel
+    s_freq : float
+        sampling frequency
+    time : ndarray (dtype='float')
+        vector with the time points for each sample
+    opts : instance of 'DetectSlowWave'
+        'det_remez' : dict
+            parameters for 'remez' (FIR filter),
+        'duration' : tuple of float
+            min and max duration of SW
+        'min_ptp' : float
+            min peak-to-peak amplitude
+
+    Returns
+    -------
+    list of dict
+        list of detected SWs
+
+    References
+    ----------
+    Staresina, B. et al. 18(11) 1679-86 (2015).
+
+    """
+    if opts.invert:
+        dat_orig = -dat_orig
+
+    sw_in_chan = []
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass) #filter to SO range
+    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') #detect crossing from pos to neg (visual down to up)
+    events = find_intervals(idx_zx, s_freq, opts.duration) #event within duration set up
+
+    if events is not None:
+        events = find_peaks_in_slowwwave(dat_det, events) #finds start, trough, crossing, peak, end of sw
+
+        if events is not None:
+            # Peak-to-peak amplitude threshold
+            ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]] # for each event, subtract trough from peak
+            ptp_thresh = percentile(ptp, opts.ptp_thresh)
+            events = events[ptp >= ptp_thresh, :] # filter events above peak to peak threshold
+            
+            if events is not None:
+                #events = within_duration(events, time, opts.duration)
+                events = remove_straddlers(events, time, s_freq)
+                sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
+        
+    if sw_in_chan:
+        lg.info('No slow waves found')
+
+    return sw_in_chan
 
 def select_peaks(data, events, limit):
     """Check whether event satisfies amplitude limit.
@@ -486,3 +548,4 @@ def find_peaks_in_slowwwave(data, events):
             selected[i] = False
         
     return new_events[selected, :]
+

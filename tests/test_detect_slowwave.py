@@ -32,7 +32,15 @@ def test_detect_slowwave_Ngo2015():
     assert repr(detsw) == 'detsw_Ngo2015_0.50-1.20Hz'
 
     sw = detsw(data)
-    assert len(sw.events) == 4
+    assert len(sw.events) == 0
+    
+def test_detect_slowwave_Staresina2015():
+    detsw = DetectSlowWave(method='Staresina2015')
+    detsw.invert = True
+    assert repr(detsw) == 'detsw_Staresina2015_0.50-1.25Hz'
+
+    sw = detsw(data)
+    assert len(sw.events) == 2
 
 def test_detect_slowwave_to_data():
     detsw = DetectSlowWave()
