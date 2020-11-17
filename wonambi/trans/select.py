@@ -426,7 +426,10 @@ def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
             bundles = _find_intervals(bundles, epoch_dur, step)
 
         elif not epoch:
-            bundles = _concat(bundles, cat)
+            if evt_type:
+                bundles = _concat(bundles, cat, concat_continuous=False)
+            else:
+                bundles = _concat(bundles, cat)
 
         # Minimum duration
         bundles = _longer_than(bundles, min_dur)
@@ -550,7 +553,7 @@ def _longer_than(segments, min_dur):
     return long_enough
 
 
-def _concat(bundles, cat=(0, 0, 0, 0)):
+def _concat(bundles, cat=(0, 0, 0, 0), concat_continuous=True):
     """Prepare event or epoch start and end times for concatenation."""
     chan = sorted(set([x['chan'] for x in bundles]))
     cycle = sorted(set([x['cycle'] for x in bundles]))
@@ -616,7 +619,8 @@ def _concat(bundles, cat=(0, 0, 0, 0)):
             for i, j in enumerate(bund['times']):
 
                 if last is not None:
-                    if not isclose(j[0], last, abs_tol=0.01):
+                    if not isclose(j[0], last, abs_tol=0.01) \
+                        or not concat_continuous:
                         new_times = bund['times'][start:i]
                         new_bund = bund.copy()
                         new_bund['times'] = new_times
