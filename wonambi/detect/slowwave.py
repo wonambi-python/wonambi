@@ -66,7 +66,8 @@ class DetectSlowWave:
         elif method == 'Staresina2015':
             self.lowpass = {'order': 3, 
                             'freq': 1.25}
-            self.duration = (0.8, 2)
+            self.min_dur = 0.8
+            self.max_dur = 2.0
             self.ptp_thresh = 75
             self.invert = False
 
