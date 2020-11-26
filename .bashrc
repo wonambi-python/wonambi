@@ -83,11 +83,6 @@ export PATH=~/tools/bin:$PATH
 # custom firefox
 export PATH=~/tools/bin/firefox:$PATH
 
-# backup sql
-backup(){
-    ssh blue1 'mysqldump -u giovanni -p --databases test2' > /home/giovanni/xelo2.sql
-}
-
 # custom SQL schema
 export PATH=~/tools/bin/schemacrawler:$PATH
 
@@ -98,7 +93,8 @@ sql_schema(){
 # BIDS validator
 
 bids(){
-    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator --config.ignore=38 --config.ignore=39 --config.ignore=97 --config.ignore=87 /data --verbose
+    docker pull bids/validator &> /dev/null ;
+    docker run -ti --rm -v `readlink -f "$1"`:/data:ro bids/validator /data --verbose
 }
 
 # use all colors in MATE terminal
@@ -113,20 +109,10 @@ alias flywheel="fw login $FLYWHEEL_TOKEN"
 # offline export of plotly images
 export PATH=$PATH:/home/giovanni/tools/miniconda/lib/orca_app
 
-## >>> conda initialize >>>
-## !! Contents within this block are managed by 'conda init' !!
-#__conda_setup="$('/home/giovanni/tools/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-#if [ $? -eq 0 ]; then
-#    eval "$__conda_setup"
-#else
-#    if [ -f "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh" ]; then
-#        . "/home/giovanni/tools/miniconda/etc/profile.d/conda.sh"
-#    else
-#        export PATH="/home/giovanni/tools/miniconda/bin:$PATH"
-#    fi
-#fi
-#unset __conda_setup
-## <<< conda initialize <<<
-
 # hide conda and venv
 PS1='[\u@\h:\w]\$ '
+
+# backup sql
+backup(){
+    ssh blue1 'mysqldump -u giovanni -p --databases test2' > /home/giovanni/xelo2.sql
+}
