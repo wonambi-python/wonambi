@@ -43,31 +43,62 @@ REMLOGIC_STAGE_KEY = {'SLEEP-S0': 'Wake',
                       'SLEEP-S3': 'NREM3',
                       'SLEEP-S4': 'NREM3',
                       'SLEEP-REM': 'REM',
+                      'SLEEP-RE': 'REM',
                       'SLEEP-UNSCORED': 'Undefined'}
 
 ALICE_STAGE_KEY = {'WK': 'Wake',
                    'N1': 'NREM1',
                    'N2': 'NREM2',
                    'N3': 'NREM3',
-                   'EM': 'REM'}
+                   'EM': 'REM',
+                   'S1': 'NREM1',
+                   'S2': 'NREM2',
+                   'S3': 'NREM3',
+                   'W': 'Wake',
+                   '1': 'NREM1',
+                   '2': 'NREM2',
+                   '3': 'NREM3',
+                   '11': 'Wake',
+                   '12': 'NREM1',
+                   '13': 'NREM2',
+                   '14': 'NREM3',
+                   '15': 'REM'}
 
 SANDMAN_STAGE_KEY = {' 1': 'NREM1',
                      ' 2': 'NREM2',
                      ' 3': 'NREM3',
+                     ' 4': 'NREM3',
                      'em': 'REM',
                      'ke': 'Wake',
                      '1\t': 'NREM1',
                      '2\t': 'NREM2',
                      '3\t': 'NREM3',
+                     '4\t': 'NREM3',
                      'm\t': 'REM',
                      'e\t': 'Wake'}
 
-COMPUMEDICS_STAGE_KEY = {'?': 'Unknown',
+COMPUMEDICS_STAGE_KEY = {'?': 'Undefined',
+                         '?\n': 'Undefined',
                          'W': 'Wake',
+                         'W\n': 'Wake',
+                         'N1': 'NREM1',
+                         'N2': 'NREM2',
+                         'N3': 'NREM3',
+                         'R\n': 'REM',
+                         '0': 'Wake',
+                         '0\n': 'Wake',
                          '1': 'NREM1',
+                         '1\n': 'NREM1',
                          '2': 'NREM2',
+                         '2\n': 'NREM2',
                          '3': 'NREM3',
-                         'R': 'REM'}
+                         '3\n': 'NREM3',
+                         '4': 'NREM3',
+                         '4\n': 'NREM3',
+                         '5': 'NREM3',
+                         '5\n': 'NREM3',
+                         'R': 'REM',
+                         'R\n': 'REM' }
 
 FASST_STAGE_KEY = ['Wake',
                    'NREM1',
@@ -456,11 +487,15 @@ class Annotations():
                 cells = first_line.split('\t')
                 for cell in cells:
                     try:
-                        stage_start_time = datetime.strptime(cell[-8:],
-                                                             '%I:%M:%S')
-                        if cell[1] == 'U':
-                            stage_start_time = stage_start_time + timedelta(
-                                    hours=12)
+                        if 'PM' in cell:
+                            stage_start_time = datetime.strptime(cell, 
+                                                            '%I:%M:%S %p')
+                        else:
+                            stage_start_time = datetime.strptime(cell[-8:],
+                                                                 '%I:%M:%S')
+                            if cell[1] == 'U':
+                                stage_start_time = (stage_start_time 
+                                                    + timedelta(hours=12))
                     except ValueError:
                         continue
                 if stage_start_time == None:
@@ -485,9 +520,9 @@ class Annotations():
             if line1[1] == '\t': # some files have an index column
                 row_offset += 2
                 
-            if ' pm' in line1 or ' am' in line1:                            
+            if ' pm' in line1.lower() or ' am' in line1.lower():                            
                 stage_start = datetime.strptime(
-                        line1[row_offset:row_offset + 11], '%I:%M:%S %p')
+                        line1[row_offset:row_offset + 10], '%I:%M:%S %p')
     
                 # best guess in absence of date
                 if line1[11:13] == 'pm' and rec_start.hour < 12:
@@ -495,9 +530,11 @@ class Annotations():
                 elif line1[11:13] == 'am' and rec_start.hour > 12:
                     dt = rec_start + timedelta
                     
-            else:
+            elif ':' in line1:
                 stage_start = datetime.strptime(
                         line1[row_offset:row_offset + 8].strip(), '%H:%M:%S')
+            else:
+                stage_start = rec_start
             
             stage_start = stage_start.replace(year=dt.year,
                                               month=dt.month,
@@ -514,19 +551,37 @@ class Annotations():
                 epoch_length = 30
 
         elif source == 'sandman':
-            stage_start = datetime.strptime(lines[4][12:].rstrip(),
-                                            '%d/%m/%Y %I:%M:%S %p')
-            first_second = int((stage_start - rec_start).total_seconds())
-
-            idx_first_line = 14
-
-            stage_key = SANDMAN_STAGE_KEY
-            idx_stage = slice(-14, -12)
-
             if epoch_length is None:
                 epoch_length = 30
+                
+                if 'Epoch' in lines[0]:
+                    start_epoch = int(lines[1].split('\t')[0])
+                    stage_start = rec_start + timedelta(seconds=(start_epoch*epoch_length))
+                    idx_first_line = 1
+                    first_second = int((stage_start - rec_start).total_seconds())
+                    stage_key = SANDMAN_STAGE_KEY
+                    idx_stage = slice(-3, -1)
+                else:
+                    idx_first_line = 14
+                
+                # check length of YEAR is 2 or 4 digits
+                    if len(lines[4][12:].split(" ")[0].split('/')[2]) ==2:
+                        date_str =  lines[4][12:].split(" ")[0]
+                        time_str =  lines[idx_first_line].split('\t')[2].rstrip()
+                        # start from epoch, since 1st epoch is not always from 1
+                        stage_start = datetime.strptime(date_str + " " + time_str,
+                                                        '%d/%m/%y %I:%M:%S %p')
+                        
+                    elif len(lines[4][12:].split(" ")[0].split('/')[2]) == 4:
+                        date_str =  lines[4][12:].split(" ")[0]
+                        time_str =  lines[idx_first_line].split('\t')[2].rstrip()
+                        stage_start = datetime.strptime(date_str + " " + time_str,
+                                                        '%d/%m/%Y %I:%M:%S %p')
+                    first_second = int((stage_start - rec_start).total_seconds())
+                    stage_key = SANDMAN_STAGE_KEY
+                    idx_stage = slice(-14, -12)
 
-        elif source in ['compumedics', 'grael']:
+        elif source in ['compumedics', 'grael', 'egi']:
             if staging_start is None:
                 first_second = 0
             else:
@@ -535,7 +590,7 @@ class Annotations():
 
             idx_first_line = 0
             stage_key = COMPUMEDICS_STAGE_KEY
-            idx_stage = slice(0, 1)
+            idx_stage = slice(0, 2)
 
             if epoch_length is None:
                 epoch_length = 30
