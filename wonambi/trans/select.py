@@ -323,6 +323,68 @@ def resample(data, s_freq, axis='time'):
     return output
 
 
+def smart_chan(dataset, simple_chan_name, test_chan=None):    
+    """From a list of simple channel names, attempts to find the corresponding
+    channel names in the dataset and returns a list (with same order).
+    Parameters
+    ----------
+    dataset : instance of Dataset
+        info about record
+    simple_chan_name : list of str
+        simple names for channels, e.g. ['F3', 'Fp2', 'ECG']
+        
+    Returns
+    -------
+    list
+        corresponding channel labels as they appear in dataset
+    """
+    chan_key = {}
+    
+    if test_chan is None:
+        orig_chan_name = dataset.header['chan_name']
+    else:
+        orig_chan_name = test_chan
+    
+    for s in simple_chan_name:
+        # look for exact matches
+        candidates = [x for x in orig_chan_name if s == x]
+        if len(candidates) == 1:
+            chan_key[s] = candidates[0]
+            continue
+        elif len(candidates) > 1:
+            raise ValueError( f'The record contains {len(candidates)} '
+                             f'duplicates of channel label {s}')
+        
+        # look for s in first position
+        candidates = [x for x in orig_chan_name if s == x[:min(len(s), 
+                                                               len(x))]]
+        if len(candidates) == 1:
+            chan_key[s] = candidates[0]
+            continue
+        elif len(candidates) > 1:
+            # s appears in first position more than once
+            raise ValueError(
+                f'Too many candidates corresponding to {s}: {candidates}')
+        
+        # look for unique occurrences of s somewhere in chan label
+        candidates = [x for x in orig_chan_name if s in x]
+        if len(candidates) == 1:
+            chan_key[s] = candidates[0]
+            continue
+        elif len(candidates) > 1:
+            # remove from candidates all instances of chan as reference
+            no_dash = [x for x in candidates if x[x.index(s) - 1] != '-']
+            if len(no_dash) == 1:
+                chan_key[s] = no_dash[0]
+                continue
+            else:
+                raise ValueError(
+                    f'Too many candidates corresponding to {s}: {candidates}')
+        raise ValueError(f'Unable to find channel containing {s}')
+    
+    return [chan_key[x] for x in simple_chan_name]
+
+
 def fetch(dataset, annot, cat=(0, 0, 0, 0), evt_type=None, stage=None,
           cycle=None, chan_full=None, epoch=None, epoch_dur=30,
           epoch_overlap=0, epoch_step=None, reject_epoch=False,
