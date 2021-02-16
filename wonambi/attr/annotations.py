@@ -522,7 +522,7 @@ class Annotations():
                 
             if ' pm' in line1.lower() or ' am' in line1.lower():                            
                 stage_start = datetime.strptime(
-                        line1[row_offset:row_offset + 10], '%I:%M:%S %p')
+                        line1[row_offset:row_offset + 11], '%I:%M:%S %p')
     
                 # best guess in absence of date
                 if line1[11:13] == 'pm' and rec_start.hour < 12:

@@ -40,7 +40,7 @@ def test_detect_slowwave_Staresina2015():
     assert repr(detsw) == 'detsw_Staresina2015_0.50-1.25Hz'
 
     sw = detsw(data)
-    assert len(sw.events) == 2
+    assert len(sw.events) == 9
 
 def test_detect_slowwave_to_data():
     detsw = DetectSlowWave()
