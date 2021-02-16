@@ -68,6 +68,7 @@ class DetectSlowWave:
                             'freq': 1.25}
             self.min_dur = 0.8
             self.max_dur = 2.0
+            self.det_filt = {'freq': (1 / self.max_dur, 1 / self.min_dur)}
             self.ptp_thresh = 75
             self.invert = False
 
