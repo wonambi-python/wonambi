@@ -1,7 +1,8 @@
 WONAMBI
 =======
-Package to analysis EEG, ECoG and other electrophysiology formats.
-It allows for visualization of the results and for a GUI that can be used to score sleep stages.
+Package for the analysis of EEG, ECoG and other electrophysiology modalities.
+Allows for visualization of the data and sleep stage scoring in a GUI.
+Provides automatic detectors for spindles and slow waves.
 
 Features
 --------
