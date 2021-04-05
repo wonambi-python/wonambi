@@ -70,6 +70,7 @@ class DetectSpindle:
         self.tolerance = 0
         self.min_interval = 0
         self.power_peaks = 'interval'
+        self.rolloff = None
         
         if method == 'Ferrarelli2007':
             self.frequency = (11, 15)
