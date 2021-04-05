@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.16**: restore __init__.py (sorry)
+- **6.15**: frequency and timefrequency can handle NaN when using spectrogram
 - **6.14**: BIDS, Staresina2015 slow wave detector, staging import improvements
 - **6.13**: Ignore error when reading micromed TRC containing a non-standard montage
 - **6.12**: Ngo2015 slow wave detection; FOOOF 1.0 update; PRANA events import

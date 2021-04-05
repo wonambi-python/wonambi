@@ -1,5 +1,5 @@
 """
-Phypno main module
+Wonambi main module
 """
 from os import path
 

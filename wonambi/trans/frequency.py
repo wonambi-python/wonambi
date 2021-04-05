@@ -5,8 +5,8 @@ from logging import getLogger
 from functools import partial
 from multiprocessing import Pool
 
-from numpy import (arange, array, asarray, copy, empty, exp, log, max, mean,
-                   median, moveaxis, pi, real, reshape, sqrt, swapaxes, zeros)
+from numpy import (arange, array, asarray, copy, empty, exp, isnan, log, max, mean,
+                   median, moveaxis, NaN, pi, real, reshape, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -102,7 +102,7 @@ def frequency(data, output='spectraldensity', scaling='power', sides='one',
     recommendations from Izhikevich et al., bioRxiv, 2018.
     """
     if output not in ('spectraldensity', 'complex', 'csd'):
-        raise TypeError(f'output can be "spectraldensity", "complex" or "csd",'
+        raise TypeError('output can be "spectraldensity", "complex" or "csd",'
                         ' not "{output}"')
     if 'time' not in data.list_of_axes:
         raise TypeError('\'time\' is not in the axis ' + str(data.list_of_axes))
@@ -669,7 +669,16 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
             tapers /= norm(tapers)
 
     if detrend is not None:
+        has_nan = isnan(x).any(axis=axis)
+        if has_nan.any():
+            x = x.copy()
+            x[has_nan] = 0
+
         x = detrend_func(x, axis=axis, type=detrend)
+
+        if has_nan.any():
+            x[has_nan] = NaN
+
     tapered = tapers * x[..., None, :]
 
     if sides == 'one':
