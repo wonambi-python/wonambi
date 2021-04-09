@@ -3,7 +3,7 @@ from logging import getLogger
 from numpy import (asarray,
                    c_,
                    dot,
-                   mean,
+                   nanmean,
                    moveaxis,
                    where,
                    zeros,
@@ -80,7 +80,7 @@ def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None,
 
                 ref_data = data(trial=i, chan=ref_chan)
                 if method == 'average':
-                    mdata.data[i] = (data(trial=i) - mean(ref_data, axis=idx_chan))
+                    mdata.data[i] = (data(trial=i) - nanmean(ref_data, axis=idx_chan))
                 elif method == 'regression':
                     mdata.data[i] = compute_average_regress(data(trial=i), idx_chan)
 
@@ -136,7 +136,7 @@ def create_bipolar_chan(chan, max_dist):
         new_label = chan.chan[x0].label + '-' + chan.chan[x1].label
         bipolar_labels.append(new_label)
 
-        xyz = mean(c_[chan.chan[x0].xyz, chan.chan[x1].xyz], axis=1)
+        xyz = nanmean(c_[chan.chan[x0].xyz, chan.chan[x1].xyz], axis=1)
         bipolar_xyz.append(xyz)
 
         trans = zeros(chan.n_chan)
@@ -171,7 +171,7 @@ def compute_average_regress(x, idx_chan):
         raise ValueError(f'The number of dimensions must be 2, not {x.ndim}')
 
     x = moveaxis(x, idx_chan, 0)  # move axis to the front
-    avg = mean(x, axis=0)
+    avg = nanmean(x, axis=0)
 
     x_o = []
     for i in range(x.shape[0]):
@@ -183,7 +183,7 @@ def compute_average_regress(x, idx_chan):
 
 def create_virtual_channel(data, new_chan_name='virtual', method='average'):
     """Create a virtual channel by averaging several channels.
-    
+
     Parameters
     ----------
     data : instance of DataRaw
@@ -192,7 +192,7 @@ def create_virtual_channel(data, new_chan_name='virtual', method='average'):
         label for the virtual channel
     method : str
         'average'
-        
+
     Returns
     -------
     mdata : instance of Data
@@ -202,6 +202,6 @@ def create_virtual_channel(data, new_chan_name='virtual', method='average'):
 
     for i in range(mdata.number_of('trial')):
         mdata.axis['chan'][i] = [new_chan_name]
-        mdata.data[i] = mean(data(trial=i), axis=0)
-        
+        mdata.data[i] = nanmean(data(trial=i), axis=0)
+
     return mdata
