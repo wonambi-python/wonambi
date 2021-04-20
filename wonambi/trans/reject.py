@@ -45,7 +45,7 @@ def remove_artf_evts(times, annot, chan=None, name=None, min_dur=0.1):
         if isinstance(name, list):
             evt_type_list = name
         elif isinstance(name, str):
-            evt_type_list = []
+            evt_type_list = [name]
         else:
             raise TypeError(
                     "Argument 'name' must be str, list of str, or None.")
@@ -56,8 +56,9 @@ def remove_artf_evts(times, annot, chan=None, name=None, min_dur=0.1):
     for evt_type in evt_type_list:
         artefact.extend(annot.get_events(name=evt_type, time=(beg, end), 
                                          chan=chan))
-            
+
     if artefact:
+        artefact = sorted(artefact, key=lambda x: x['start'])
         new_times = []
         
         for seg in times:
@@ -76,8 +77,8 @@ def remove_artf_evts(times, annot, chan=None, name=None, min_dur=0.1):
                         new_seg = False
                         break
                     
-                    a_starts_in_s = seg[0] <= artf['start'] <= seg[1]
-                    a_ends_in_s = seg[0] <= artf['end'] <= seg[1]
+                    a_starts_in_s = seg[0] <= artf['start'] < seg[1]
+                    a_ends_in_s = seg[0] < artf['end'] <= seg[1]
                     
                     if a_ends_in_s and not a_starts_in_s:
                         seg = artf['end'], seg[1]
