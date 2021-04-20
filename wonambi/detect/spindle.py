@@ -665,7 +665,7 @@ def detect_Martin2013(dat_orig, s_freq, time, opts):
     time : ndarray (dtype='float')
         vector with the time points for each sample
     opts : instance of 'DetectSpindle'
-        'remez' : dict
+        'det_remez' : dict
              parameters for 'remez' filter
         'moving_rms' : dict
              parameters for 'moving_rms'
@@ -763,7 +763,7 @@ def detect_Ray2015(dat_orig, s_freq, time, opts):
     dat_det = transform_signal(dat_det, s_freq, 'low_butter', 
                                opts.det_low_butter)
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
-    dat_det = transform_signal(dat_det, s_freq, 'abs2')
+    dat_det = transform_signal(dat_det, s_freq, 'abs_complex')
     dat_det = transform_signal(dat_det, s_freq, 'moving_zscore', opts.zscore)
     
     det_value = opts.det_thresh
@@ -1162,9 +1162,12 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     s_freq : float
         sampling frequency
     method : str
-        one of 'butter', 'cheby2', 'double_butter', 'morlet', 'morlet_real', 
-        'hilbert', 'abs', 'smooth', 'gaussian', 'remez', 'wavelet_real',
-        'low_butter', 'zscore', 'moving_rms', 'moving_ms'
+        one of 'abs', 'abs_complex', 'butter', 'cdemod', 'cheby2', 
+        'double_butter', 'double_sosbutter', 'gaussian', 'hilbert', 
+        'high_butter', 'low_butter', 'morlet', 'moving_covar', 'moving_ms',
+        'moving_periodogram', 'moving_power_ratio',  'moving_rms', 'moving_sd', 
+        'moving_zscore', 'remez', 'smooth', 'sosbutter', 'spectrogram', 
+        'wavelet_real'.
     method_opt : dict
         depends on methods
     dat2 : ndarray(dtype='float')
@@ -1179,7 +1182,8 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     -----
     double_butter implements an effective bandpass by applying a highpass, 
     followed by a lowpass. This method reduces filter instability, due to 
-    underlying numerical instability arising from nyquist / freq, at low freq.
+    underlying numerical instability arising from nyquist / freq at low freq.
+    
     Wavelets pass only absolute values already, it does not make sense to store
     the complex values.
 
@@ -1194,14 +1198,20 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     cdemod has parameters:
         freq : float
             carrier frequency for complex demodulation
-    
+
     cheby2 has parameters:
         freq : tuple of float
             low and high values for bandpass
         order : int
             filter order (will be effecively doubled by filtfilt)
-            
+
     double_butter has parameters:
+        freq : tuple of float
+            low and high values for highpass, then lowpass
+        order : int
+            filter order (will be effecively doubled by filtfilt)
+
+    double_sosbutter has parameters:
         freq : tuple of float
             low and high values for highpass, then lowpass
         order : int
@@ -1210,13 +1220,19 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
     gaussian has parameters:
         dur : float
             standard deviation of the Gaussian kernel, aka sigma (sec)
-            
-    low_butter has parameters:
+
+    high_butter has parameters:
         freq : float
-            Highcut frequency, in Hz
+            Highpass (lowcut) frequency, in Hz
         order : int
             filter order (will be effecively doubled by filtfilt)
-            
+
+    low_butter has parameters:
+        freq : float
+            Lowpass (highcut) frequency, in Hz
+        order : int
+            filter order (will be effecively doubled by filtfilt)
+
     morlet has parameters:
         f0 : float
             center frequency in Hz
@@ -1224,6 +1240,73 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             standard deviation of frequency
         dur : float
             window length in number of standard deviations
+
+    moving_covar has parameters:
+        dur : float
+            duration of the window (sec)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_ms has parameters:
+        dur : float
+            duration of the window (sec)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_periodogram has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
+        freq : tuple of float
+            frequency range for periodogram (Hz)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_power_ratio has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
+        freq_narrow : tuple of float
+            frequency range for the narrowband power (Hz)
+        freq_broad : tuple of float
+            frequency range for the broadband power (Hz)
+        fft_dur : float
+            duration of the FFT window (sec)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_rms has parameters:
+        dur : float
+            duration of the window (sec)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_sd has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
+        step: float
+            step between consecutive windows (sec)
+
+    moving_zscore has parameters:
+        dur : float
+            duration of the z-score sliding window (sec)
+        pcl_range : tuple of float, or None
+            if not None, only data within this percentile range will be used 
+            for determining the standard deviation for calculation of the 
+            z-score
+        step: float
+            step between consecutive windows (sec)
+
+    remez has parameters:
+        freq : tuple of float
+            low and high values for bandpass
+        rolloff : float
+            bandwidth, in hertz, between stop and pass frequencies
+        dur : float
+            dur * s_freq = N, where N is the filter order, a.k.a number of taps
+
+    smooth has parameters:
+        dur : float
+            duration of the convolution window (sec). For 'triangle', base of 
+            isosceles triangle.
 
     wavelet_real has parameters:
         freqs : ndarray
@@ -1234,56 +1317,32 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
             wavelet width
         win : float
             moving average window length (sec) of wavelet convolution
-
-    smooth has parameters:
-        dur : float
-            duration of the window (sec)
-
-    moving_rms has parameters:
-        dur : float
-            duration of the window (sec)
-            
-    moving_zscore has parameters:
-        dur : float
-            duration of the z-score sliding window (sec)
-            
-    remez has parameters:
-        freq : tuple of float
-            low and high values for bandpass
-        rolloff : float
-            bandwidth, in hertz, between stop and pass frequencies
-        dur : float
-            dur * s_freq = N, where N is the filter order, a.k.a number of taps
-                
-    tri_smooth has parameters:
-        dur : float
-            length of convolution window, base of isosceles triangle
     """
     if 'abs' == method:
         dat = absolute(dat)
-        
-    if 'abs2' == method:
+
+    if 'abs_complex' == method:
         dat = dat.real**2 + dat.imag**2
 
     if 'butter' == method:
         freq = method_opt['freq']
         N = method_opt['order']
-
+        
         nyquist = s_freq / 2
         Wn = asarray(freq) / nyquist
         b, a = butter(N, Wn, btype='bandpass')
         dat = filtfilt(b, a, dat)
-        
+
     if 'cdemod' == method:
         carr_freq = method_opt['freq']
-        carr_sig = exp(-1j * 2 * pi * carr_freq * arange(0, len(dat)) / s_freq)
         
+        carr_sig = exp(-1j * 2 * pi * carr_freq * arange(0, len(dat)) / s_freq)
         dat = dat * carr_sig        
-    
+
     if 'cheby2' == method:
         freq = method_opt['freq']
         N = method_opt['order']
-
+        
         Rs = 40
         nyquist = s_freq / 2
         Wn = asarray(freq) / nyquist
@@ -1319,10 +1378,10 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         Wn = freq[1] / nyquist
         sos = butter(N, Wn, btype='lowpass', output='sos')
         dat = sosfiltfilt(sos, dat)
-    
+
     if 'gaussian' == method:
         sigma = method_opt['dur']
-
+        
         dat = gaussian_filter(dat, sigma)        
 
     if 'hilbert' == method:
@@ -1330,22 +1389,23 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         dat = hilbert(dat, N=next_fast_len(N)) # much faster this way
         dat = dat[:N] # truncate away zero-padding
         
-    if 'low_butter' == method:
-        freq = method_opt['freq']
-        N = method_opt['order']
-        nyquist = s_freq / 2
-        
-        Wn = freq / nyquist
-        b, a = butter(N, Wn, btype='lowpass')
-        dat = filtfilt(b, a, dat)
     
     if 'high_butter' == method:
         freq = method_opt['freq']
         N = method_opt['order']
-        nyquist = s_freq / 2
         
+        nyquist = s_freq / 2
         Wn = freq / nyquist
         b, a = butter(N, Wn, btype='highpass')
+        dat = filtfilt(b, a, dat)
+        
+    if 'low_butter' == method:
+        freq = method_opt['freq']
+        N = method_opt['order']
+        
+        nyquist = s_freq / 2
+        Wn = freq / nyquist
+        b, a = butter(N, Wn, btype='lowpass')
         dat = filtfilt(b, a, dat)
     
     if 'morlet' == method:
@@ -1468,7 +1528,6 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         nyquist = s_freq / 2
         Fs1, Fs2 = Fp1 - rolloff, Fp2 + rolloff
         dens = 20
-        
         bpass = remez(N, [0, Fs1, Fp1, Fp2, Fs2, nyquist], [0, 1, 0], 
                       grid_density=dens, fs=s_freq)
         dat = filtfilt(bpass, 1, dat)
@@ -1778,7 +1837,7 @@ def within_duration(events, time, limits):
     return events[min_dur & max_dur, :]
 
 
-def remove_straddlers(events, time, s_freq, toler=0.1):
+def remove_straddlers(events, time, s_freq, tolerance=0.1):
     """Reject an event if it straddles a stitch, by comparing its 
     duration to its timespan.
 
@@ -1790,7 +1849,7 @@ def remove_straddlers(events, time, s_freq, toler=0.1):
         vector with time points
     s_freq : float
         sampling frequency
-    toler : float, def=0.1
+    tolerance : float, def=0.1
         maximum tolerated difference between event duration and timespan
 
     Returns
@@ -1799,7 +1858,7 @@ def remove_straddlers(events, time, s_freq, toler=0.1):
         N x M matrix with start , ..., end samples
     """
     dur = (events[:, -1] - 1 - events[:, 0]) / s_freq
-    continuous = time[events[:, -1] - 1] - time[events[:, 0]] - dur < toler
+    continuous = time[events[:, -1] - 1] - time[events[:, 0]] - dur < tolerance
     
     return events[continuous, :]
     
@@ -2160,10 +2219,9 @@ def _merge_close(dat, events, time, min_interval):
 
 
 def _wmorlet(f0, sd, sampling_rate, ns=5):
-    """
-    adapted from nitime
+    """Adapted from nitime
 
-    returns a complex morlet wavelet in the time domain
+    Returns a complex morlet wavelet in the time domain
 
     Parameters
     ----------
@@ -2171,6 +2229,11 @@ def _wmorlet(f0, sd, sampling_rate, ns=5):
         sd : standard deviation of frequency
         sampling_rate : samplingrate
         ns : window length in number of standard deviations
+        
+    Returns
+    -------
+    ndarray
+        complex morlet wavelet in the time domain
     """
     st = 1. / (2. * pi * sd)
     w_sz = float(int(ns * st * sampling_rate))  # half time window size

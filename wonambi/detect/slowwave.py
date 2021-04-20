@@ -28,10 +28,18 @@ class DetectSlowWave:
         one of the predefined methods
     duration : tuple of float
         min and max duration of SWs
+        
+    Attributes
+    ----------
+    invert : bool
+        pass
+    trough_duration : float
+        pass
     """
     def __init__(self, method='Massimini2004', duration=None):
 
         self.method = method
+        self.trough_duration = None
 
         if method == 'Massimini2004':
             self.det_filt = {'order': 2,
@@ -167,6 +175,9 @@ def detect_Massimini2004(dat_orig, s_freq, time, opts):
             min peak-to-peak amplitude
         'trough_duration' : tuple of float
             min and max duration of first half-wave (trough)
+        'max_trough_amp' : float
+            The trough amplitude has a negative value, so this parameter sets 
+            the minimum depth of the trough
 
     Returns
     -------
