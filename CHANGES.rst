@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 6
 ----------
+- **6.17**: major fix for event rejection
 - **6.16**: restore __init__.py (sorry)
 - **6.15**: frequency and timefrequency can handle NaN when using spectrogram
 - **6.14**: BIDS, Staresina2015 slow wave detector, staging import improvements

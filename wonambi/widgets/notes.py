@@ -79,7 +79,10 @@ SPINDLE_METHODS = ['Moelle2011',
                    'UCSD',
                    'Concordia',
                    ]
-SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004']
+SLOW_WAVE_METHODS = ['Massimini2004', 'AASM/Massimini2004', 
+                     #'Ngo2015', 
+                     #'Staresina2015'
+                     ]
 
 
 class ConfigNotes(Config):
