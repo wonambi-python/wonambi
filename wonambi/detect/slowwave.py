@@ -40,45 +40,40 @@ class DetectSlowWave:
 
         self.method = method
         self.trough_duration = None
+        self.invert = False
 
         if method == 'Massimini2004':
             self.det_filt = {'order': 2,
                              'freq': (0.1, 4.)}
             self.trough_duration = (0.3, 1.)
-            self.max_trough_amp = - 80
+            self.max_trough_amp = -80
             self.min_ptp = 140
             self.min_dur = 0
             self.max_dur = None
-            self.invert = False
 
         elif method == 'AASM/Massimini2004':
             self.det_filt = {'order': 2,
                              'freq': (0.1, 4.)}
             self.trough_duration = (0.25, 1.)
-            self.max_trough_amp = - 40
+            self.max_trough_amp = -40
             self.min_ptp = 75
             self.min_dur = 0
             self.max_dur = None
-            self.invert = False
             
         elif method == 'Ngo2015':
             self.lowpass = {'order': 2, 
                              'freq': 3.5}
             self.min_dur = 0.833
             self.max_dur = 2.0
-            self.det_filt = {'freq': (1 / self.max_dur, 1 / self.min_dur)}
             self.peak_thresh = 1.25
             self.ptp_thresh = 1.25
-            self.invert = False
             
         elif method == 'Staresina2015':
             self.lowpass = {'order': 3, 
                             'freq': 1.25}
             self.min_dur = 0.8
             self.max_dur = 2.0
-            self.det_filt = {'freq': (1 / self.max_dur, 1 / self.min_dur)}
             self.ptp_thresh = 75
-            self.invert = False
 
         else:
             raise ValueError('Unknown method')
@@ -239,8 +234,11 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
             parameters for 'low_butter',
         'duration' : tuple of float
             min and max duration of SW
-        'min_ptp' : float
-            min peak-to-peak amplitude
+        'peak_thresh' : float
+            mean trough amplitude is multiplied by this scalar to yield 
+            threshold; SWs above this threshold are kept
+        'ptp_thresh' : float
+            percentile of mean ptp values, above which SW is kept
 
     Returns
     -------
@@ -256,26 +254,31 @@ def detect_Ngo2015(dat_orig, s_freq, time, opts):
         dat_orig = -dat_orig
 
     sw_in_chan = []
-    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass) #filter to SO range
-    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') #detect crossing from pos to neg (visual down to up)
-    events = find_intervals(idx_zx, s_freq, opts.duration) #event within duration set up
+    # filter to SO band:
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
+    # detect positive-to-negative zero crossings:
+    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') 
+    # find zero-crossing intervals within duration:
+    events = find_intervals(idx_zx, s_freq, opts.duration) 
     if events is not None:
-        events = find_peaks_in_slowwwave(dat_det, events) #finds start, trough, crossing, peak, end of sw
+        # find start, trough, -to+ zero crossing, peak and end:
+        events = find_peaks_in_slowwwave(dat_det, events)
         
         if events is not None:
             # Negative peak threshold
-            idx_neg_peak = events[:, 1] #finds index(sample) of trough of sw (but try with [:,3])
-            neg_peak_thresh = dat_det[idx_neg_peak].mean() * opts.peak_thresh #multiples mean of all trough by threshold
+            idx_neg_peak = events[:, 1]
+            # Trough threshhold is set as peak_thresh (float) times the mean trough amplitude over all events:
+            neg_peak_thresh = dat_det[idx_neg_peak].mean() * opts.peak_thresh
             events = events[dat_det[idx_neg_peak] < neg_peak_thresh, :] 
             
             if events is not None:
                 # Peak-to-peak amplitude threshold
-                ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]] # for each event, subtract trough from peak
-                ptp_thresh = ptp.mean() * opts.ptp_thresh # np.percentile(ptp, 75)
-                events = events[ptp > ptp_thresh, :] # filter events above peak to peak threshold
+                ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]]
+                # Peak-to-peak threshold is set as a percentile of the mean ptp amplitude:
+                ptp_thresh = ptp.mean() * opts.ptp_thresh
+                events = events[ptp > ptp_thresh, :]
                 
                 if events is not None:
-                    #events = within_duration(events, time, opts.duration)
                     events = remove_straddlers(events, time, s_freq)
                     sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
         
@@ -296,12 +299,12 @@ def detect_Staresina2015(dat_orig, s_freq, time, opts):
     time : ndarray (dtype='float')
         vector with the time points for each sample
     opts : instance of 'DetectSlowWave'
-        'det_remez' : dict
-            parameters for 'remez' (FIR filter),
+        'lowpass' : dict
+            parameters for 'low_butter',
         'duration' : tuple of float
             min and max duration of SW
-        'min_ptp' : float
-            min peak-to-peak amplitude
+        'ptp_thresh' : float
+            percentile of mean ptp values, above which SW is kept
 
     Returns
     -------
@@ -317,21 +320,20 @@ def detect_Staresina2015(dat_orig, s_freq, time, opts):
         dat_orig = -dat_orig
 
     sw_in_chan = []
-    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass) #filter to SO range
-    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') #detect crossing from pos to neg (visual down to up)
-    events = find_intervals(idx_zx, s_freq, opts.duration) #event within duration set up
+    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
+    idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') 
+    events = find_intervals(idx_zx, s_freq, opts.duration)
 
     if events is not None:
-        events = find_peaks_in_slowwwave(dat_det, events) #finds start, trough, crossing, peak, end of sw
+        events = find_peaks_in_slowwwave(dat_det, events)
 
         if events is not None:
             # Peak-to-peak amplitude threshold
-            ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]] # for each event, subtract trough from peak
+            ptp = dat_det[events[:, 3]] - dat_det[events[:, 1]]
             ptp_thresh = percentile(ptp, opts.ptp_thresh)
-            events = events[ptp >= ptp_thresh, :] # filter events above peak to peak threshold
+            events = events[ptp >= ptp_thresh, :] 
             
             if events is not None:
-                #events = within_duration(events, time, opts.duration)
                 events = remove_straddlers(events, time, s_freq)
                 sw_in_chan = make_slow_waves(events, dat_det, time, s_freq)
         

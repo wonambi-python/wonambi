@@ -1601,7 +1601,7 @@ def define_threshold(dat, s_freq, method, value, nbins=120):
     value : float
         value to multiply the values for
     nbins : int
-        for histmax method, number of bins in the histogram
+        for histmax method only, number of bins in the histogram
 
     Returns
     -------
