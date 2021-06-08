@@ -4,6 +4,7 @@ from numpy import (asarray,
                    c_,
                    dot,
                    nanmean,
+                   nanmedian,
                    moveaxis,
                    where,
                    zeros,
@@ -31,8 +32,8 @@ def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None,
         distance in mm to consider two channels as neighbors and then compute
         the bipolar montage between them.
     method : str
-        'average' or 'regression'. 'average' takes the
-        average across the channels selected as reference (it can be all) and
+        'average' or 'median' or 'regression'. 'average' / 'median' takes the
+        mean / median across the channels selected as reference (it can be all) and
         subtract it from each channel. 'regression' keeps the residuals after
         regressing out the mean across channels.
 
@@ -81,6 +82,8 @@ def montage(data, ref_chan=None, ref_to_avg=False, bipolar=None,
                 ref_data = data(trial=i, chan=ref_chan)
                 if method == 'average':
                     mdata.data[i] = (data(trial=i) - nanmean(ref_data, axis=idx_chan))
+                if method == 'median':
+                    mdata.data[i] = (data(trial=i) - nanmedian(ref_data, axis=idx_chan))
                 elif method == 'regression':
                     mdata.data[i] = compute_average_regress(data(trial=i), idx_chan)
 
