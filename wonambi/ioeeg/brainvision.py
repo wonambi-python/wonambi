@@ -291,7 +291,7 @@ def _write_vmrk(data, filename, markers, anonymize=False):
 
     [Common Infos]
     Codepage=UTF-8
-    DataFile={filename.name}
+    DataFile={filename.stem}.eeg
 
     [Marker Infos]
     ; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
