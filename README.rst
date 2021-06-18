@@ -87,5 +87,4 @@ Status
 
 License
 -------
-The project is licensed under the GPLv3 license.
-Other licenses available upon request.
+The project is licensed under the 3-clause BSD license.

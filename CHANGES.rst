@@ -1,5 +1,9 @@
 Change Log
 ==========
+Version 7
+----------
+- **7.01**: Release wonambi with 3-clause BSD
+
 Version 6
 ----------
 - **6.17**: major fix for event rejection
