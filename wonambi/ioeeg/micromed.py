@@ -149,7 +149,18 @@ class Micromed:
                  'end': trig['sample'] / self._s_freq,
                  })
 
-        return markers
+        for start, name in self._header['notes']:
+            if start == 0:
+                break
+            if name == b'* * * Part 1 * * *':
+                continue
+            markers.append(
+                {'name': name.decode(),
+                 'start': start / self._s_freq,
+                 'end': start / self._s_freq,
+                 })
+
+        return sorted(markers, key=lambda k: k['start'])
 
     def return_videos(self, begtime, endtime):
         vid = self._videos
