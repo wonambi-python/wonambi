@@ -67,6 +67,7 @@ class DetectSlowWave:
             self.max_dur = 2.0
             self.peak_thresh = 1.25
             self.ptp_thresh = 1.25
+            self.det_filt = {'freq': (0.5, 1.20)} # for repr
             
         elif method == 'Staresina2015':
             self.lowpass = {'order': 3, 
@@ -74,6 +75,7 @@ class DetectSlowWave:
             self.min_dur = 0.8
             self.max_dur = 2.0
             self.ptp_thresh = 75
+            self.det_filt = {'freq': (0.5, 1.25)} # for repr
 
         else:
             raise ValueError('Unknown method')
