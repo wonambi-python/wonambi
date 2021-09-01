@@ -125,6 +125,8 @@ def consensus(events, threshold, s_freq, min_duration=None, weights=None):
         sampling frequency, in Hz
     min_duration : float, optional
         minimum duration for merged events, in s.
+    weights : list of float
+        a vector of relative weights of each event type
         
     Returns
     -------

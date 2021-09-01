@@ -467,10 +467,13 @@ class Annotations():
 
         elif source == 'remlogic':
             clue = 'SLEEP-' # signifies an epoch (as opposed to an event)
+            time_hdrs = ('Time [hh:mm:ss]', 'Heure [hh:mm:ss]')
             redherring = 'SPINDLE'
             idx_clue = slice(-18, -6)
             idx_head = lines.index(
-                    next(l for l in lines if 'Time [hh:mm:ss]' in l))
+                    next(l for l in lines if any(
+                                            hdr in l for hdr in time_hdrs
+                                            )))
             first_line = next(l for l in lines[idx_head:] \
                               if clue in l[idx_clue] \
                               and 'SLEEP-RM' not in l[-18:])
@@ -2098,19 +2101,28 @@ class Annotations():
 
             with open(filename, 'r', encoding='ISO-8859-1') as f:
                 lines = f.readlines()
-
+                time_hdrs = ('Time [hh:mm:ss', 'Heure [hh:mm:ss')
                 idx_header = lines.index(next(
-                        l for l in lines if 'Time [hh:mm:ss]' in l))
+                    l for l in lines if any(hdr in l for hdr in time_hdrs)))
                 header = lines[idx_header].split('\t')
                 header = [s.strip() for s in header] # remove trailing newline
-                idx_time = header.index('Time [hh:mm:ss]')
-                idx_evt = header.index('Event')
-                idx_dur = header.index('Duration[s]')
+                
+                idx_time = [i for i, s in enumerate(header) if any(
+                    x in s for x in time_hdrs)][0]
+                idx_evt = [i for i, s in enumerate(header) if any(
+                    x in s for x in (
+                        'Event', 'vènement', 'vénement', 'venement') )][0]
+                idx_dur = [i for i, s in enumerate(header) if any(
+                    x in s for x in ('Duration', 'Durée') )][0]
+                
+                # French files are in 24-hour time
+                hour24 = 'Heure' in header[idx_time]
 
                 # Find staging start date
+                date_line = lines[3].strip()
                 stage_start_date = _try_parse_datetime(
-                        lines[3][16:lines[3].index('\n')],
-                        ('%Y/%m/%d', '%d/%m/%Y'))
+                    date_line[date_line.index(':') + 2:],
+                        ('%Y/%m/%d', '%d/%m/%Y', '%Y.%m.%d', '%d.%m.%Y'))
 
                 # Events loop
                 for l in lines[idx_header + 1:]:
@@ -2122,7 +2134,8 @@ class Annotations():
                         continue
 
                     clock_start = _remlogic_time(cells[idx_time],
-                                                 stage_start_date)
+                                                 stage_start_date,
+                                                 hour24=hour24)
                     start = float((clock_start - rec_start).total_seconds())
 
                     one_ev = {'name': one_evttype,
@@ -2297,7 +2310,7 @@ def _try_parse_datetime(text, fmts):
             pass
     raise ValueError('No valid date found.')
 
-def _remlogic_time(time_cell, date):
+def _remlogic_time(time_cell, date, hour24):
     """Reads RemLogic time string to datetime
 
     Parameters
@@ -2306,21 +2319,30 @@ def _remlogic_time(time_cell, date):
         entire time cell from text file
     date : datetime
         start date from text file
+    hour24 : bool
+        if True, time will be read on 24-hour clock instead of 12-hour clock
 
     Returns
     -------
     datetime
         date and time
     """
-    stage_start_time = datetime.strptime(time_cell[-8:], '%I:%M:%S')
-    start = datetime.combine(date.date(), stage_start_time.time())
-
-    if time_cell[1] == 'U':
-        start = start + timedelta(hours=12)
-    elif time_cell[-8:-10] == '12':
-        start = start + timedelta(hours=12)
+    time_str = time_cell[time_cell.index(':') - 2:]
+    if hour24:
+        stage_start_time = _try_parse_datetime(time_str, 
+                                               ('%H:%M:%S', '%H:%M:%S.%f'))
+        start = datetime.combine(date.date(), stage_start_time.time())
     else:
-        start = start + timedelta(hours=24)
+        stage_start_time = _try_parse_datetime(time_str, 
+                                               ('%I:%M:%S', '%I:%M:%S.%f'))
+        start = datetime.combine(date.date(), stage_start_time.time())
+    
+        if time_cell[1] == 'U':
+            start = start + timedelta(hours=12)
+        elif time_cell[-8:-10] == '12':
+            start = start + timedelta(hours=12)
+        else:
+            start = start + timedelta(hours=24)
 
     return start
 
