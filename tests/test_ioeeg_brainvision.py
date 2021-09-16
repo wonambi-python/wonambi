@@ -58,4 +58,4 @@ def test_brainvision_write():
         {'name': 'd', 'start': 15, 'end': 17},
         ]
     data.export(brainvision_file, 'brainvision', markers=markers)
-    assert brainvision_file.with_suffix('.vmrk').stat().st_size == 556
+    assert brainvision_file.with_suffix('.vmrk').stat().st_size == 555
