@@ -120,6 +120,8 @@ class Segments():
                                      'segment at {}-{} has no channel.'.format(
                                              t0, t1))
                 active_chan = chan if chan else [seg['chan'].split(' (')[0]]
+                if isinstance(active_chan, str):
+                    active_chan = [active_chan] 
                 chan_to_read = active_chan + ref_chan
 
                 data = self.dataset.read_data(chan=chan_to_read, begtime=t0,

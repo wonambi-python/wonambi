@@ -106,6 +106,8 @@ FASST_STAGE_KEY = ['Wake',
                    'NREM3',
                    None,
                    'REM',
+                   'Movement',
+                   'Unknown'
                    ]
 
 PRANA_STAGE_KEY =  {'0': 'Wake',
@@ -178,7 +180,7 @@ def create_empty_annotations(xml_file, dataset):
         f.write(xml.toxml())
 
 
-def create_annotation(xml_file, from_fasst):
+def create_annotation(xml_file, from_fasst, lights_off=False, legacy_meth=False):
     """Create annotations by importing from FASST sleep scoring file.
 
     Parameters
@@ -187,6 +189,10 @@ def create_annotation(xml_file, from_fasst):
         annotation file that will be created
     from_fasst : path to FASST file
         .mat file containing the scores
+    lights_off : bool
+        set to True if scoring begins at lights off
+    legacy_meth : bool
+        old functionality; will stage epochs starting at epoch_start = 0.
 
     Returns
     -------
@@ -213,7 +219,9 @@ def create_annotation(xml_file, from_fasst):
     microsecond, second = modf(info.hour[2])
     start_time = datetime(*info.date, int(info.hour[0]), int(info.hour[1]),
                           int(second), int(microsecond * 1e6))
-    first_sec = score[3, 0][0]
+    first_sec = 0
+    if lights_off:
+        first_sec = int(round(score[3, 0][0]))
     last_sec = score[0, 0].shape[0] * score[2, 0]
 
     root = Element('annotations')
@@ -235,7 +243,7 @@ def create_annotation(xml_file, from_fasst):
     x.text = start_time.isoformat()
 
     x = SubElement(info, 'first_second')
-    x.text = str(int(first_sec))
+    x.text = str(first_sec)
     x = SubElement(info, 'last_second')
     x.text = str(int(last_sec))
 
@@ -251,11 +259,62 @@ def create_annotation(xml_file, from_fasst):
         epoch_length = int(score[2, i_rater])
         annot.add_rater(rater_name, epoch_length=epoch_length)
 
-        for epoch_start, epoch in enumerate(score[0, i_rater]):
-            if isnan(epoch):
-                continue
-            annot.set_stage_for_epoch(epoch_start * epoch_length,
-                                      FASST_STAGE_KEY[int(epoch)], save=False)
+        if not legacy_meth:
+            offset = first_sec % epoch_length
+            annot.get_rater(rater_name)
+            stages = annot.rater.find('stages')
+    
+            # list is necessary so that it does not remove in place
+            for s in list(stages):
+                stages.remove(s)
+    
+            for i in arange(offset, first_sec - epoch_length, epoch_length):
+                epoch = SubElement(stages, 'epoch')
+    
+                start_time = SubElement(epoch, 'epoch_start')
+                epoch_beg = i
+                start_time.text = str(epoch_beg)
+    
+                end_time = SubElement(epoch, 'epoch_end')
+                end_time.text = str(epoch_beg + epoch_length)
+    
+                epoch_stage = SubElement(epoch, 'stage')
+                epoch_stage.text = 'Unknown'
+                quality = SubElement(epoch, 'quality')
+                quality.text = 'Good'
+    
+            idx_epoch = 0
+            for idx_epoch, fasst_stage in enumerate(score[0, i_rater]):
+                epoch = SubElement(stages, 'epoch')
+    
+                start_time = SubElement(epoch, 'epoch_start')
+                epoch_beg = first_sec + (idx_epoch * epoch_length)
+                start_time.text = str(epoch_beg)
+    
+                end_time = SubElement(epoch, 'epoch_end')
+                end_time.text = str(epoch_beg + epoch_length)
+    
+                epoch_stage = SubElement(epoch, 'stage')
+    
+                try:
+                    one_stage = FASST_STAGE_KEY[int(fasst_stage)]
+    
+                except:
+                    one_stage = 'Unknown'
+                    lg.info(f'Stage not recognized at second {epoch_beg}')
+    
+                epoch_stage.text = one_stage
+    
+                quality = SubElement(epoch, 'quality')
+                quality.text = 'Good'
+
+        else:
+
+            for epoch_start, epoch in enumerate(score[0, i_rater]):
+                if isnan(epoch):
+                    continue
+                annot.set_stage_for_epoch(epoch_start * epoch_length,
+                                          FASST_STAGE_KEY[int(epoch)], save=False)
 
     annot.save()
 

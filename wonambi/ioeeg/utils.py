@@ -63,8 +63,14 @@ def read_hdf5_chan_name(f, hdf5_labels):
     # some hdf5 magic
     # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
     chan_name = []
-    for l in hdf5_labels.value.flat:
+    try:
+        labels = hdf5_labels.value.flat
+    except:
+        labels = hdf5_labels[()].flat
+
+    for l in labels:
         chan_name.append(read_hdf5_str(f[l]))
+    
     return chan_name
 
 

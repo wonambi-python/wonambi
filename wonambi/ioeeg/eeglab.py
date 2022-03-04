@@ -67,13 +67,21 @@ class EEGLAB:
 
             with File(self.filename) as f:
                 EEG = f['EEG']
-                self.s_freq = EEG['srate'].value.item()
+                try:
+                    self.s_freq = EEG['srate'].value.item()
+                except:
+                    self.s_freq = EEG['srate'][()].item()
                 chan_name = read_hdf5_chan_name(f, EEG['chanlocs']['labels'])
                 n_samples = int(EEG['pnts'].value.item())
 
                 subj_id = read_hdf5_str(EEG['subject'])
                 try:
-                    start_time = datetime(*EEG['etc']['T0'])
+                    if 'T0' in list(EEG['etc']):
+                        start_time = datetime(*EEG['etc']['T0'])
+                    elif 'rec_startdate' in list(EEG['etc']):
+                        EEG_starttime = EEG['etc']['rec_startdate']
+                        start_time_char = ''.join([chr(x) for x in EEG_starttime])
+                        start_time = datetime.fromisoformat(start_time_char)
                 except ValueError:
                     start_time = DEFAULT_DATETIME
 

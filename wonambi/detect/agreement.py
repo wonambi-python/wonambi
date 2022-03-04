@@ -168,6 +168,87 @@ def consensus(events, threshold, s_freq, min_duration=None, weights=None):
                    'chan': chan} for i in range(merged.shape[1])]
 
     return out     
+
+def consensus_exact(events, threshold, s_freq, window=None, min_duration=None, weights=None):
+    """Take two or more event lists and output a merged list based on 
+    consensus, where agreement is exactly equal to a threshold.
+    This is useful when combining >2 event types, and creating a 
+    consensus event type based on some combination of these events.
+    
+    Parameters
+    ----------
+    events: tuple of lists of dict
+        two or more lists of events from different raters, with 'start', 'end'
+        and 'chan'
+    threshold : float
+        value between 0 and 1 to threshold consensus. Consensus is computed on
+        a per-sample basis. For a given rater, if an event is present at a 
+        sample, that rater-sample is assigned the value 1; otherwise it is 
+        assigned 0. The arithmetic sum is taken per sample across all raters, 
+        and if this exactly equals 'threshold', the sample is counted as 
+        belonging to a merged event.
+    s_freq : int
+        sampling frequency, in Hz
+    min_duration : float, optional
+        minimum duration for merged events, in s.
+    weights : a dict containing event names (str) and their corresponding 
+        weighting (int) e.g. {'low' : 1,'med' : 2,'high' : 3}
+        
+    Returns
+    -------
+    instance of wonambi.Graphoelement
+        events merged by consensus and named by confidence rating
+        
+    Notes
+    -----
+    This function is a modification of agreement.consensus contributed by 
+    Nathan Cross.
+    """
+    chan = [one_rater[0]['chan'] for one_rater in events if one_rater][0]
+    if window is None:
+        beg = min([one_rater[0]['start'] for one_rater in events if one_rater])
+        end = max([one_rater[-1]['end'] for one_rater in events if one_rater])
+    else:
+        beg = window[0]
+        end = window[1]
+   
+    n_samples = int((end - beg) * s_freq)
+    times = arange(beg, end + 1/s_freq, 1/s_freq)
+    if weights is None:
+        weights = {'low':1,'med':2,'high':3}
+    
+    positives = zeros((len(events), n_samples))
+    for i, one_rater in enumerate(events):
+        for ev in one_rater:
+            n_start = int((ev['start'] - beg) * s_freq)
+            n_end = int((ev['end'] - beg) * s_freq)
+            if ev['name'] == 'low':
+                positives[i, n_start:n_end].fill(weights['low'])
+            elif ev['name'] == 'med':
+                positives[i, n_start:n_end].fill(weights['med'])
+            elif ev['name'] == 'high':
+                positives[i, n_start:n_end].fill(weights['high'])
+                
+    consensus = sum(positives, axis=0)
+    consensus[consensus != threshold] = 0
+    consensus[consensus == threshold] = 1  
+    consensus = concatenate(([0], consensus, [0]))
+    on_off = diff(consensus)
+    onsets = where(on_off == 1)
+    offsets = where(on_off == -1)
+    start_times = times[onsets]
+    end_times = times[offsets]
+    merged = vstack((start_times, end_times))
+    
+    if min_duration:
+        merged = merged[:, merged[1, :] - merged[0, :] >= min_duration]
+        
+    out = Graphoelement()
+    out.events = [{'start': merged[0, i], 
+                   'end': merged[1, i],
+                   'chan': chan} for i in range(merged.shape[1])]
+
+    return out 
             
 def match_events(detection, standard, threshold):
     """Find best matches between detected and standard events, by a thresholded
