@@ -73,7 +73,8 @@ class DetectSpindle:
         self.rolloff = None
         
         if method == 'Ferrarelli2007':
-            self.frequency = (11, 15)
+            if self.frequency is None:
+                self.frequency = (11, 15)
             self.duration = (0.3, 3)
             self.det_remez = {'freq': self.frequency,
                               'rolloff': 0.9,
@@ -83,7 +84,8 @@ class DetectSpindle:
             self.sel_thresh = 2
             
         elif method == 'Moelle2011':
-            self.frequency = (12, 15)
+            if self.frequency is None:
+                self.frequency = (12, 15)
             self.duration = (0.5, 3)
             self.det_remez = {'freq': self.frequency,
                               'rolloff': 1.7,
@@ -96,7 +98,8 @@ class DetectSpindle:
             self.det_thresh = 1.5
             
         elif method == 'Nir2011':
-            self.frequency = (9.2, 16.8)
+            if self.frequency is None:
+                self.frequency = (9.2, 16.8)
             self.duration = (0.5, 2)
             self.det_butter = {'order': 2,
                                'freq': self.frequency,
@@ -108,7 +111,8 @@ class DetectSpindle:
             
             
         elif method == 'Wamsley2012':
-            self.frequency = (12, 15)
+            if self.frequency is None:
+                self.frequency = (12, 15)
             self.duration = (0.3, 3)
             self.det_wavelet = {'f0': mean(self.frequency),
                                 'sd': .8,
@@ -120,7 +124,8 @@ class DetectSpindle:
             self.det_thresh = 4.5
 
         elif method == 'Martin2013':
-            self.frequency = (11.5, 14.5)
+            if self.frequency is None:
+                self.frequency = (11.5, 14.5)
             self.duration = (.5, 3)
             self.det_remez = {'freq': self.frequency,
                               'rolloff': 1.1,
@@ -131,7 +136,8 @@ class DetectSpindle:
             self.det_thresh = 95
             
         elif method == 'Ray2015':
-            self.frequency = (11, 16)
+            if self.frequency is None:
+                self.frequency = (11, 16)
             self.duration = (.49, None)
             self.cdemod = {'freq': mean(self.frequency)}
             self.det_butter = {'freq': (0.3, 35),
@@ -148,7 +154,8 @@ class DetectSpindle:
             self.sel_thresh = 0.1
         
         elif method == 'Lacourse2018':
-            self.frequency = (11, 16)
+            if self.frequency is None:
+                self.frequency = (11, 16)
             self.duration = (.3, 2.5)
             self.det_butter = {'freq': self.frequency,
                                'order': 20}
@@ -178,7 +185,8 @@ class DetectSpindle:
             self.corr_thresh = 0.69
         
         elif 'FASST' in method:
-            self.frequency = (11, 18)
+            if self.frequency is None:
+                self.frequency = (11, 18)
             self.duration = (.4, 1.3)
             self.det_butter = {'freq': self.frequency,
                                'order': 4}
@@ -190,7 +198,8 @@ class DetectSpindle:
             self.det_thresh = 90
         
         elif method == 'UCSD':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.duration = (0.3, 3)
             self.det_wavelet = {'freqs': arange(self.frequency[0],
                                                 self.frequency[1] + .5, .5),
@@ -210,7 +219,8 @@ class DetectSpindle:
             self.ratio_thresh = .5
 
         elif method == 'Concordia':
-            self.frequency = (10, 16)
+            if self.frequency is None:
+                self.frequency = (10, 16)
             self.duration = (0.5, 3)
             self.det_butter = {'order': 2,
                                'freq': self.frequency,
