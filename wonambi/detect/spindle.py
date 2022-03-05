@@ -66,6 +66,7 @@ class DetectSpindle:
                  merge=False):
         
         self.method = method
+        self.frequency = frequency
         self.merge = merge
         self.tolerance = 0
         self.min_interval = 0
