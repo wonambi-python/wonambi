@@ -82,6 +82,8 @@ class EEGLAB:
                         EEG_starttime = EEG['etc']['rec_startdate']
                         start_time_char = ''.join([chr(x) for x in EEG_starttime])
                         start_time = datetime.fromisoformat(start_time_char)
+                    else:
+                        start_time = DEFAULT_DATETIME
                 except ValueError:
                     start_time = DEFAULT_DATETIME
 

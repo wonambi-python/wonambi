@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.04**: upgrade setuptools
+- **7.03**: fix for spindle detection with custom bands, io updates
 - **7.02**: event import support from RemLogic FR version
 - **7.01**: Release wonambi with 3-clause BSD
 
