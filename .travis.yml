@@ -1,5 +1,5 @@
 language: python
-dist: bionic
+dist: focal
 
 python:
  - "3.7"
@@ -26,7 +26,6 @@ install:
  # install requirements
  - pip install numpy scipy
  - pip install $OPT_DEP
- - pip install -U setuptools
  - pip install pytest
  - pip install pytest-qt pytest-cov codecov plotly
  - pip install sphinx sphinx_rtd_theme

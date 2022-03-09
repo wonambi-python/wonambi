@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.06**: use focal for travis CI
 - **7.05**: actually update setuptools
 - **7.04**: upgrade setuptools
 - **7.03**: fix for spindle detection with custom bands, io updates
