@@ -418,6 +418,10 @@ class Notes(QTabWidget):
         act = QAction('Grael', self)
         act.triggered.connect(partial(self.import_staging, 'grael'))
         actions['import_grael'] = act
+        
+        act = QAction('Phillips', self)
+        act.triggered.connect(partial(self.import_staging, 'phillips'))
+        actions['import_phillips'] = act
 
         act = QAction('FASST', self)
         act.triggered.connect(self.import_fasst)
@@ -457,6 +461,11 @@ class Notes(QTabWidget):
         act.triggered.connect(partial(self.import_staging, 'deltamed',
                                       as_qual=True))
         actions['import_deltamed_qual'] = act
+        
+        act = QAction('Phillips', self)
+        act.triggered.connect(partial(self.import_staging, 'phillips',
+                                      as_qual=True))
+        actions['import_phillips_qual'] = act
 
         act = QAction('Wonambi', self)
         act.triggered.connect(partial(self.import_events, 'wonambi'))

@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.08**: import staging from Phillips CSV
+- **7.07**: import staging from Phillips CSV
 - **7.06**: use focal for travis CI
 - **7.05**: actually update setuptools
 - **7.04**: upgrade setuptools
