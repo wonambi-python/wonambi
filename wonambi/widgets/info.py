@@ -227,32 +227,6 @@ class Info(QWidget):
         else:
             self.dataset = Dataset(filename, bids=bids)  # temp
 
-#==============================================================================
-#         try:
-#             self.filename = filename
-#             self.dataset = Dataset(filename)
-#         except FileNotFoundError:
-#             msg = 'File ' + basename(filename) + ' cannot be read'
-#             self.parent.statusBar().showMessage(msg)
-#             lg.info(msg)
-#             error_dialog = QErrorMessage()
-#             error_dialog.setWindowTitle('Error opening dataset')
-#             error_dialog.showMessage(msg)
-#             if debug_filename is None:
-#                 error_dialog.exec()
-#             return
-#
-#         except BaseException as err:
-#             self.parent.statusBar().showMessage(str(err))
-#             lg.info('Error ' + str(err))
-#             error_dialog = QErrorMessage()
-#             error_dialog.setWindowTitle('Error opening dataset')
-#             error_dialog.showMessage(str(err))
-#             if debug_filename is None:
-#                 error_dialog.exec()
-#             return
-#==============================================================================
-
         self.action['export'].setEnabled(True)
 
         self.parent.statusBar().showMessage('')

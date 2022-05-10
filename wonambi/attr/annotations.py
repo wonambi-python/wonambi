@@ -129,6 +129,12 @@ PHYSIP_STAGE_KEY = {'0': 'NREM3',
                    '4': 'Wake',
                    '5': 'Artefact'}
 
+CSV_STAGE_KEY = {'WK': 'Wake',
+                 'N1': 'NREM1',
+                 'N2': 'NREM2',
+                 'N3': 'NREM3',
+                 'RE': 'REM'}
+
 BIDS_STAGE_KEY = {'Wake': 'sleep_wake',
                   'NREM1': 'sleep_N1',
                   'NREM2': 'sleep_N2',
@@ -138,6 +144,7 @@ BIDS_STAGE_KEY = {'Wake': 'sleep_wake',
                   'Movement': 'artifact_motion',
                   'Unknown': '',
                   'Undefined': ''}
+
 
 def parse_iso_datetime(date):
     try:
@@ -702,6 +709,34 @@ class Annotations():
                         break
                 if idx_epoch_length is None:
                     epoch_length = 30
+
+        elif source == 'csv':
+            if staging_start is None:
+                dt = rec_start
+                staging_start_str = lines[1].split(',')[1].lower()
+                staging_start = datetime.strptime(staging_start_str, 
+                                                  '%I:%M:%S %p')
+    
+                # best guess in absence of date
+                if staging_start_str[-2:] == 'pm' and rec_start.hour < 12:
+                    dt = rec_start - timedelta(days=1)
+                elif staging_start_str[-2:] == 'am' and rec_start.hour > 12:
+                    dt = rec_start + timedelta(days=1)
+                    
+                staging_start = staging_start.replace(year=dt.year,
+                                                      month=dt.month,
+                                                      day=dt.day)
+                
+            first_second = int((staging_start - rec_start).total_seconds())
+
+            idx_first_line = 0
+            stage_key = CSV_STAGE_KEY
+            idx_stage = slice(0, 2)
+
+            if epoch_length is None:
+                epoch_length = 30
+                
+            lines = [x.split(',')[2] for x in lines]            
 
         else:
             raise ValueError('Unknown source program for staging file')
