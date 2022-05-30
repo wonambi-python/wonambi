@@ -2,6 +2,8 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.10**: re-re-release
+- **7.09**: re-release
 - **7.08**: import staging from Phillips CSV
 - **7.07**: import staging from Phillips CSV
 - **7.06**: use focal for travis CI

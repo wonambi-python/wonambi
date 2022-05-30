@@ -129,7 +129,7 @@ PHYSIP_STAGE_KEY = {'0': 'NREM3',
                    '4': 'Wake',
                    '5': 'Artefact'}
 
-CSV_STAGE_KEY = {'WK': 'Wake',
+PHILLIPS_STAGE_KEY = {'WK': 'Wake',
                  'N1': 'NREM1',
                  'N2': 'NREM2',
                  'N3': 'NREM3',
@@ -469,7 +469,7 @@ class Annotations():
             Staging file name.
         source : str
             Name of program where staging was made. One of 'domino', 'alice',
-            'compumedics', 'sandman', 'remlogic'
+            'compumedics', 'sandman', 'remlogic', 'phillips', 'grael', 'egi'
         rater_name : str
             Rater name for imported staging.
         rec_start : datetime
@@ -710,7 +710,7 @@ class Annotations():
                 if idx_epoch_length is None:
                     epoch_length = 30
 
-        elif source == 'csv':
+        elif source == 'phillips':
             if staging_start is None:
                 dt = rec_start
                 staging_start_str = lines[1].split(',')[1].lower()
@@ -730,7 +730,7 @@ class Annotations():
             first_second = int((staging_start - rec_start).total_seconds())
 
             idx_first_line = 0
-            stage_key = CSV_STAGE_KEY
+            stage_key = PHILLIPS_STAGE_KEY
             idx_stage = slice(0, 2)
 
             if epoch_length is None:
