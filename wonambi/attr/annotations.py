@@ -711,7 +711,7 @@ class Annotations():
                     epoch_length = 30
 
         elif source == 'phillips':
-            if staging_start is None:
+            if not isinstance(staging_start, datetime):
                 dt = rec_start
                 staging_start_str = lines[1].split(',')[1].lower()
                 staging_start = datetime.strptime(staging_start_str, 

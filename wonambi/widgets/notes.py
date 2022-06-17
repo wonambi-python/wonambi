@@ -1225,12 +1225,15 @@ class Notes(QTabWidget):
             return
 
         record_start = self.parent.info.dataset.header['start_time']
+        file_filter = 'Text File (*.txt)'
+        if source == 'phillips':
+            file_filter = 'CSV File (*.csv)'
 
         if test_filename is None:
             filename, _ = QFileDialog.getOpenFileName(self,
                                                       'Load staging file',
                                                       None,
-                                                      'Text File (*.txt)')
+                                                      file_filter)
         else:
             filename = test_filename
 
