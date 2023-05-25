@@ -75,7 +75,10 @@ def read_hdf5_chan_name(f, hdf5_labels):
 
 
 def read_hdf5_str(value):
-    datfile = ''.join([chr(x) for x in value.value])
+    try:
+        datfile = ''.join([chr(str(x)) for x in value.value])
+    except:
+        datfile = ''.join([chr(x[0]) for x in value])
     if datfile == '\x00\x00':
         return ''
     else:

@@ -72,12 +72,19 @@ class EEGLAB:
                 except:
                     self.s_freq = EEG['srate'][()].item()
                 chan_name = read_hdf5_chan_name(f, EEG['chanlocs']['labels'])
-                n_samples = int(EEG['pnts'].value.item())
+                try:
+                    n_samples = int(EEG['pnts'].value.item())
+                except:
+                    n_samples = int(EEG['pnts'][0].item())
 
                 subj_id = read_hdf5_str(EEG['subject'])
                 try:
                     if 'T0' in list(EEG['etc']):
-                        start_time = datetime(*EEG['etc']['T0'])
+                        try:
+                            start_time = datetime(*EEG['etc']['T0'])
+                        except:
+                            EEG_starttime = [int(x[0]) for x in EEG['etc']['T0']]
+                            start_time = datetime(*EEG_starttime)
                     elif 'rec_startdate' in list(EEG['etc']):
                         EEG_starttime = EEG['etc']['rec_startdate']
                         start_time_char = ''.join([chr(x) for x in EEG_starttime])

@@ -3,7 +3,8 @@
 """
 from logging import getLogger
 from numpy import (argmin, concatenate, diff, hstack, logical_and, newaxis, 
-                   ones, percentile, sign, sum, vstack, where, zeros)
+                   ones, percentile, roll, sign, sum, vstack, where, zeros)
+from scipy.signal import firwin, kaiserord, lfilter
 
 try:
     from PyQt5.QtCore import Qt
@@ -322,7 +323,22 @@ def detect_Staresina2015(dat_orig, s_freq, time, opts):
         dat_orig = -dat_orig
 
     sw_in_chan = []
-    dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
+    
+    # Create a FIR filter
+    nyq_rate = s_freq / 2.0
+    width = 5.0/nyq_rate
+    N, beta = kaiserord(60.0, width)
+    cutoff = opts.lowpass['freq']
+    b = firwin(N, cutoff/nyq_rate, window=('kaiser', beta))
+    
+    # Filter the signal
+    fir = lfilter(b, 1.0, dat_orig)
+    
+    # Apply the phase shift correction
+    delay = int(-0.5 * (N-1))
+    dat_det = roll(fir, delay)
+    
+    #dat_det = transform_signal(dat_orig, s_freq, 'low_butter', opts.lowpass)
     idx_zx = find_zero_crossings(dat_det, xtype='pos_to_neg') 
     events = find_intervals(idx_zx, s_freq, opts.duration)
 
