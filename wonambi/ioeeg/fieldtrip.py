@@ -1,6 +1,6 @@
 from datetime import datetime
 from logging import getLogger
-from numpy import around, empty
+from numpy import around, c_, empty, float64, NaN
 from scipy.io import loadmat, savemat
 
 from .utils import read_hdf5_chan_name
@@ -9,8 +9,7 @@ from ..utils import MissingDependency
 try:
     from h5py import File
 except ImportError as err:
-    File = MissingDependency(err)
-
+    File = MissingDependency(err)  
 
 lg = getLogger(__name__)
 VAR = 'data'
@@ -77,10 +76,13 @@ class FieldTrip:
                 if VAR not in f.keys():
                     raise KeyError('Save the FieldTrip variable as ''{}'''
                                    ''.format(VAR))
-
-                s_freq = int(f[VAR]['fsample'].value.squeeze())
+                try:
+                    s_freq = int(f[VAR]['fsample'].value.squeeze())
+                except:
+                    s_freq = int(f[VAR]['fsample'][0].squeeze())
+                
+                
                 chan_name = read_hdf5_chan_name(f, f[VAR]['label'])
-
                 n_samples = int(around(f[f[VAR]['trial'][0].item()].shape[0]))
 
         return subj_id, start_time, s_freq, chan_name, n_samples, orig
@@ -104,10 +106,14 @@ class FieldTrip:
 
         """
         TRL = 0
+             
         try:
             ft_data = loadmat(self.filename, struct_as_record=True,
                               squeeze_me=True)
+            
+            n_samples = ft_data['shape'][1]
             ft_data = ft_data[VAR]
+            
 
             data = ft_data['trial'].item(TRL)
 
@@ -115,9 +121,25 @@ class FieldTrip:
             from h5py import File
 
             with File(self.filename) as f:
-                data = f[f[VAR]['trial'][TRL].item()].value.T
+                try:
+                    data = f[f[VAR]['trial'][TRL].item()].value.T
+                except:
+                    data = f[f[VAR]['trial'][TRL].item()][:].T
+            n_samples = data.shape[1]
+       
+        dat = data[:, begsam:endsam]
+                    
+        if begsam < 0:
+            pad = empty((dat.shape[0], 0 - begsam))
+            pad.fill(NaN)
+            dat = c_[pad, dat]
 
-        return data[chan, begsam:endsam]
+        if endsam >= n_samples:
+            pad = empty((dat.shape[0], endsam - n_samples))
+            pad.fill(NaN)
+            dat = c_[dat, pad]
+
+        return dat[chan, :]
 
     def return_markers(self):
         """Return all the markers (also called triggers or events).
