@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.12**: publish to pypi again
 - **7.11**: quick fix for Phillips staging import
 - **7.10**: re-re-release
 - **7.09**: re-release
