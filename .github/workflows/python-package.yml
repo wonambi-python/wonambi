@@ -26,3 +26,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         python -m pip install numpy scipy
+    - name: Install wonambi
+      run: |
+        python -m pip install -e .
