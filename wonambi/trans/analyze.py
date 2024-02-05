@@ -4,7 +4,7 @@
 from logging import getLogger
 from itertools import compress
 from csv import writer
-from numpy import (amax, amin, asarray, concatenate, in1d, mean, negative, ptp, 
+from numpy import (amax, amin, any, asarray, concatenate, in1d, mean, negative, ptp, 
                    reshape, sqrt, square)
 
 try:
@@ -177,7 +177,7 @@ def export_event_params(filename, params, count=None, density=None):
                    'Event type',
                    'Channel']
     spacer = [''] * (len(heading_row_1) - 1)
-
+    
     param_headings_1 = ['Min. amplitude (uV)',
                         'Max. amplitude (uV)',
                         'Peak-to-peak amplitude (uV)',
@@ -254,7 +254,7 @@ def export_event_params(filename, params, count=None, density=None):
         if density:
             csv_file.writerow(['Density', density])
 
-        if dat == []:
+        if not any(dat):
             return
 
         csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
@@ -268,7 +268,7 @@ def export_event_params(filename, params, count=None, density=None):
         for seg in params:
             if seg['cycle'] is not None:
                 seg['cycle'] = seg['cycle'][2]
-
+            
             for chan in seg['data'].axis['chan'][0]:
                 idx += 1
                 data_row_1 = [seg[x](chan=chan)[0] for x in sel_params_1]

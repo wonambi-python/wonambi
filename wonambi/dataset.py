@@ -390,8 +390,8 @@ class Dataset:
 
         for i, one_begsam, one_endsam in zip(range(n_trl), begsam, endsam):
             dataset = self.dataset
-            lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,
-                     one_endsam))
+            #lg.debug('begsam {0: 6}, endsam {1: 6}'.format(one_begsam,
+            #         one_endsam))
             dat = dataset.return_dat(idx_chan, one_begsam, one_endsam)
             chan_in_dat = chan
 
