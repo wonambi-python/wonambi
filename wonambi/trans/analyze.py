@@ -4,7 +4,7 @@
 from logging import getLogger
 from itertools import compress
 from csv import writer
-from numpy import (amax, amin, any, asarray, concatenate, in1d, mean, negative, ptp, 
+from numpy import (amax, amin, asarray, concatenate, in1d, mean, negative, ptp, 
                    reshape, sqrt, square)
 
 try:
@@ -243,6 +243,8 @@ def export_event_params(filename, params, count=None, density=None):
     if dat:
         dat = concatenate(dat, axis=1)
         desc = get_descriptives(dat)
+    else:
+        desc = None
 
     with open(filename, 'w', newline='') as f:
         lg.info('Writing to ' + str(filename))
@@ -254,7 +256,7 @@ def export_event_params(filename, params, count=None, density=None):
         if density:
             csv_file.writerow(['Density', density])
 
-        if not any(dat):
+        if not desc:
             return
 
         csv_file.writerow(heading_row_1 + heading_row_2 + heading_row_3 \
