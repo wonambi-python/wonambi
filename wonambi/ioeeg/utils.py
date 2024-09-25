@@ -2,6 +2,7 @@ from datetime import datetime
 from numpy import (append,
                    cumsum,
                    where,
+                   ndarray,
                    )
 
 
@@ -63,23 +64,41 @@ def read_hdf5_chan_name(f, hdf5_labels):
     # some hdf5 magic
     # https://groups.google.com/forum/#!msg/h5py/FT7nbKnU24s/NZaaoLal9ngJ
     chan_name = []
+
     try:
         labels = hdf5_labels.value.flat
     except:
         labels = hdf5_labels[()].flat
-
     for l in labels:
         chan_name.append(read_hdf5_str(f[l]))
-    
     return chan_name
 
 
 def read_hdf5_str(value):
     try:
-        datfile = ''.join([chr(str(x)) for x in value.value])
+        data = value[()]
+        if isinstance(data, bytes):
+            datfile = data.decode('utf-8')  
+        elif isinstance(data, str):
+            datfile = data  
+        elif isinstance(data, ndarray):
+            if data.dtype.kind in ('S', 'O'):  
+                
+                datfile = ''.join([x.decode('utf-8') if isinstance(x, bytes) else str(x) for x in data])
+            elif data.dtype.kind in ('i', 'u'):  # Integer types
+                
+                datfile = ''.join([chr(int(x)) for x in data])
+            else:
+                datfile = str(data)
+        else:
+            datfile = str(data)
     except:
-        datfile = ''.join([chr(x[0]) for x in value])
+        try:
+            datfile = ''.join([chr(str(x)) for x in value.value])
+        except:
+            datfile = ''.join([chr(x[0]) for x in value])
     if datfile == '\x00\x00':
         return ''
     else:
         return datfile
+    
