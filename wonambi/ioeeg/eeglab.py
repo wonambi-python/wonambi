@@ -86,9 +86,15 @@ class EEGLAB:
                             EEG_starttime = [int(x[0]) for x in EEG['etc']['T0']]
                             start_time = datetime(*EEG_starttime)
                     elif 'rec_startdate' in list(EEG['etc']):
-                        EEG_starttime = EEG['etc']['rec_startdate']
-                        start_time_char = ''.join([chr(x) for x in EEG_starttime])
-                        start_time = datetime.fromisoformat(start_time_char)
+                        EEG_starttime = EEG['etc']['rec_startdate'][()]  
+                        start_time_char = EEG_starttime.tobytes().decode('utf-16-le')  
+                        start_time = datetime.fromisoformat(start_time_char)  
+
+
+                        #EEG_starttime = EEG['etc']['rec_startdate']
+                        
+                        #start_time_char = ''.join([chr(x) for x in EEG_starttime])
+                        #start_time = datetime.fromisoformat(start_time_char)
                     else:
                         start_time = DEFAULT_DATETIME
                 except ValueError:
