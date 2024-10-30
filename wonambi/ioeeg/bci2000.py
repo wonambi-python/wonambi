@@ -12,7 +12,7 @@ from numpy import (fromfile,
                    empty,
                    hstack,
                    ndarray,
-                   NaN,
+                   nan,
                    vstack,
                    where,
                    dtype,
@@ -142,13 +142,13 @@ class BCI2000:
         if begsam < 0:
 
             pad = empty((dat.shape[0], 0 - begsam))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[pad, dat]
 
         if endsam >= self.n_samples:
 
             pad = empty((dat.shape[0], endsam - self.n_samples))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[dat, pad]
 
         return dat[chan, :] * self.gain[chan][:, None]  # apply gain

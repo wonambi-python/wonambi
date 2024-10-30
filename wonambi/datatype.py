@@ -10,7 +10,7 @@ from copy import deepcopy
 from logging import getLogger
 from pathlib import Path
 
-from numpy import arange, array, empty, ix_, NaN, squeeze, where
+from numpy import arange, array, empty, ix_, nan, squeeze, where
 
 lg = getLogger()
 
@@ -171,7 +171,7 @@ class Data:
                 output_shape.append(n_values)
 
             output[cnt] = empty(output_shape, dtype=self.data[i].dtype)
-            output[cnt].fill(NaN)
+            output[cnt].fill(nan)
 
             if all([len(x) > 0 for x in idx_data]):
                 ix_output = ix_(*idx_output)

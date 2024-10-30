@@ -5,7 +5,7 @@ from pathlib import Path
 from struct import unpack
 from xml.etree.ElementTree import parse
 
-from numpy import (append, asarray, cumsum, diff, empty, NaN, sum,
+from numpy import (append, asarray, cumsum, diff, empty, nan, sum,
                    where, ndarray, unique)
 
 from .utils import DEFAULT_DATETIME
@@ -130,7 +130,7 @@ class EgiMff:
         assert begsam < endsam
 
         data = empty((len(chan), endsam - begsam))
-        data.fill(NaN)
+        data.fill(nan)
 
         chan = asarray(chan)
 

@@ -5,7 +5,7 @@ from os.path import splitext
 from struct import unpack
 from pathlib import Path
 
-from numpy import (asarray, empty, expand_dims, fromfile, iinfo, NaN, ones,
+from numpy import (asarray, empty, expand_dims, fromfile, iinfo, nan, ones,
                    reshape, where)
 
 lg = getLogger(__name__)
@@ -178,12 +178,12 @@ def _read_nsx(filename, BOData, sess_begin, sess_end, factor, begsam, endsam):
     -----
     Tested on NEURALCD
 
-    It returns NaN if you select an interval outside of the data
+    It returns nan if you select an interval outside of the data
     """
     n_chan = factor.shape[0]
 
     dat = empty((n_chan, endsam - begsam))
-    dat.fill(NaN)
+    dat.fill(nan)
 
     sess_to_read = where((begsam < sess_end) & (endsam > sess_begin))[0]
 

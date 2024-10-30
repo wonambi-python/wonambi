@@ -13,7 +13,7 @@ from math import ceil
 from re import search, match
 from xml.etree import ElementTree
 
-from numpy import array, empty, NaN, fromfile, unique, where, arange, hstack, vstack, concatenate
+from numpy import array, empty, nan, fromfile, unique, where, arange, hstack, vstack, concatenate
 
 lg = getLogger(__name__)
 
@@ -156,7 +156,7 @@ class OpenEphys:
         """
         data_length = endsam - begsam
         dat = empty((len(chan), data_length))
-        dat.fill(NaN)
+        dat.fill(nan)
 
         all_blocks = _select_blocks(self.blocks_dat, begsam, endsam)
         for i_chan, sel_chan in enumerate(chan):

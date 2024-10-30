@@ -2,7 +2,7 @@
 Adapted from axonrawio.py in python-neo. Strongly simplified.
 """
 from datetime import datetime, timedelta
-from numpy import c_, empty, float64, NaN, memmap, dtype, newaxis, array
+from numpy import c_, empty, float64, nan, memmap, dtype, newaxis, array
 from os import SEEK_SET
 from struct import unpack, calcsize
 
@@ -123,13 +123,13 @@ class Abf:
         if begsam < 0:
 
             pad = empty((dat.shape[0], 0 - begsam))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[pad, dat]
 
         if endsam >= self.n_samples:
 
             pad = empty((dat.shape[0], endsam - self.n_samples))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[dat, pad]
 
         return dat

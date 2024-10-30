@@ -31,7 +31,7 @@ from numpy import (array,
                    expand_dims,
                    fromfile,
                    int32,
-                   NaN,
+                   nan,
                    ones,
                    unpackbits,
                    where,
@@ -541,7 +541,7 @@ def _read_erd(erd_file, begsam, endsam):
 
     When we save the data as memory-mapped, we only save the real channels.
     However, the data in the output have both shorted and non-shorted channels.
-    Shorted channels have NaN's only.
+    Shorted channels have nan's only.
 
     About the actual implementation, we always follow the python convention
     that the first sample is included and the last sample is not.
@@ -562,7 +562,7 @@ def _read_erd(erd_file, begsam, endsam):
 
     n_smp = endsam - begsam
     data = empty((n_allchan, n_smp))
-    data.fill(NaN)
+    data.fill(nan)
 
     # it includes the sample in both cases
     etc = _read_etc(erd_file.with_suffix('.etc'))
@@ -594,11 +594,11 @@ def _read_erd(erd_file, begsam, endsam):
             data[:, d1:d2] = dat[:, begpos_rec:endpos_rec]
 
 
-    # fill up the output data, put NaN for shorted channels
+    # fill up the output data, put nan for shorted channels
     if n_shorted > 0:
         full_channels = where(asarray([x == 0 for x in shorted]))[0]
         output = empty((n_allchan, n_smp))
-        output.fill(NaN)
+        output.fill(nan)
         output[full_channels, :] = data
     else:
         output = data
@@ -907,7 +907,7 @@ class Ktlx():
         Returns
         -------
         ndarray
-            2-d matrix with data (might contain NaN)
+            2-d matrix with data (might contain nan)
 
         Notes
         -----
@@ -920,7 +920,7 @@ class Ktlx():
         hundreds samples are nan.
         """
         dat = empty((len(chan), endsam - begsam))
-        dat.fill(NaN)
+        dat.fill(nan)
 
         stc, all_stamp = _read_stc(self._filename.with_suffix('.stc'))
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from numpy import c_, NaN, empty, memmap, float64
+from numpy import c_, nan, empty, memmap, float64
 from pathlib import Path
 from scipy.io import loadmat
 
@@ -86,13 +86,13 @@ class EEGLAB:
                             EEG_starttime = [int(x[0]) for x in EEG['etc']['T0']]
                             start_time = datetime(*EEG_starttime)
                     elif 'rec_startdate' in list(EEG['etc']):
-                        EEG_starttime = EEG['etc']['rec_startdate'][()]  
-                        start_time_char = EEG_starttime.tobytes().decode('utf-16-le')  
-                        start_time = datetime.fromisoformat(start_time_char)  
+                        EEG_starttime = EEG['etc']['rec_startdate'][()]
+                        start_time_char = EEG_starttime.tobytes().decode('utf-16-le')
+                        start_time = datetime.fromisoformat(start_time_char)
 
 
                         #EEG_starttime = EEG['etc']['rec_startdate']
-                        
+
                         #start_time_char = ''.join([chr(x) for x in EEG_starttime])
                         #start_time = datetime.fromisoformat(start_time_char)
                     else:
@@ -128,13 +128,13 @@ class EEGLAB:
         if begsam < 0:
 
             pad = empty((dat.shape[0], 0 - begsam))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[pad, dat]
 
         if endsam >= n_samples:
 
             pad = empty((dat.shape[0], endsam - n_samples))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[dat, pad]
 
         return dat[chan, :]

@@ -15,7 +15,7 @@ from numpy import (abs,
                    iinfo,
                    ones,
                    max,
-                   NaN,
+                   nan,
                    newaxis,
                    repeat,
                    )
@@ -199,7 +199,7 @@ class Edf:
         assert begsam < endsam
 
         dat = empty((len(chan), endsam - begsam))
-        dat.fill(NaN)
+        dat.fill(nan)
 
         with self.filename.open('rb') as f:
 
@@ -239,14 +239,14 @@ class Edf:
             f.seek(offset)
             x = fromfile(f, count=n_smp_per_chan, dtype=EDF_FORMAT)
 
-            ratio = self.max_smp / n_smp_per_chan            
+            ratio = self.max_smp / n_smp_per_chan
             if ratio.is_integer():
-                dat_in_rec[i_ch_in_dat, :] = repeat(x, int(ratio))                
+                dat_in_rec[i_ch_in_dat, :] = repeat(x, int(ratio))
             else:
                 fract = round(Fraction(ratio), 2)
                 up, down = fract.numerator, fract.denominator
                 dat_in_rec[i_ch_in_dat, :] = resample_poly(x, up, down)
-            i_ch_in_dat += 1                
+            i_ch_in_dat += 1
 
         return dat_in_rec
 
@@ -283,7 +283,7 @@ class Edf:
         return markers
 
 
-def write_edf(data, filename, subj_id='X X X X', physical_max=1000, 
+def write_edf(data, filename, subj_id='X X X X', physical_max=1000,
               physical_min=None):
     """Export data to FieldTrip.
 
@@ -321,7 +321,7 @@ def write_edf(data, filename, subj_id='X X X X', physical_max=1000,
 
     if physical_min is None:
         physical_min = -1 * physical_max
-    
+
     dat = data.data[0] / physical_max * DIGITAL_MAX
     dat = dat.astype(EDF_FORMAT)
     dat[dat > DIGITAL_MAX] = DIGITAL_MAX
