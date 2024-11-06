@@ -12,8 +12,8 @@ will be added as we need them.
 from collections.abc import Iterable
 from logging import getLogger
 
-from numpy import (arange, array, asarray, diff, empty, hstack, inf, 
-                   issubsctype, linspace, nan_to_num, ndarray, ones, ravel, 
+from numpy import (arange, array, asarray, diff, empty, hstack, inf,
+                   linspace, nan_to_num, ndarray, ones, ravel,
                    setdiff1d, floor)
 from numpy.lib.stride_tricks import as_strided
 from math import isclose
@@ -78,7 +78,7 @@ class Segments():
         concat_chan : bool
             if True, data from all channels will be concatenated
         average_channels : bool
-            if True, all channels will be averaged into a single virtual 
+            if True, all channels will be averaged into a single virtual
             channel with label 'avg_chan'
         max_s_freq: : int
             maximum sampling frequency
@@ -121,7 +121,7 @@ class Segments():
                                              t0, t1))
                 active_chan = chan if chan else [seg['chan'].split(' (')[0]]
                 if isinstance(active_chan, str):
-                    active_chan = [active_chan] 
+                    active_chan = [active_chan]
                 chan_to_read = active_chan + ref_chan
 
                 data = self.dataset.read_data(chan=chan_to_read, begtime=t0,
@@ -154,7 +154,7 @@ class Segments():
                             [x(chan=ch)[0] for x in subseg])
 
             if average_channels:
-                one_segment.data[0] = one_segment.data[0].mean(0, 
+                one_segment.data[0] = one_segment.data[0].mean(0,
                                                                keepdims=True)
                 one_segment.axis['chan'][0] = array(['avg_chan'], dtype='<U2')
                 active_chan = ['avg_chan']
@@ -248,7 +248,7 @@ def select(data, trial=None, invert=False, **axes_to_select):
                     selected_values = asarray(values_to_select, dtype='U')
 
                 else:
-                    if isinstance(values_to_select, ndarray) and issubsctype(values_to_select.dtype, bool):
+                    if isinstance(values_to_select, ndarray) and issubclass(values_to_select.dtype, bool):
                         bool_values = values_to_select
                     elif (values_to_select[0] is None and
                        values_to_select[1] is None):
@@ -325,7 +325,7 @@ def resample(data, s_freq, axis='time'):
     return output
 
 
-def smart_chan(dataset, simple_chan_name, test_chan=None):    
+def smart_chan(dataset, simple_chan_name, test_chan=None):
     """From a list of simple channel names, attempts to find the corresponding
     channel names in the dataset and returns a list (with same order).
     Parameters
@@ -334,19 +334,19 @@ def smart_chan(dataset, simple_chan_name, test_chan=None):
         info about record
     simple_chan_name : list of str
         simple names for channels, e.g. ['F3', 'Fp2', 'ECG']
-        
+
     Returns
     -------
     list
         corresponding channel labels as they appear in dataset
     """
     chan_key = {}
-    
+
     if test_chan is None:
         orig_chan_name = dataset.header['chan_name']
     else:
         orig_chan_name = test_chan
-    
+
     for s in simple_chan_name:
         # look for exact matches
         candidates = [x for x in orig_chan_name if s == x]
@@ -356,9 +356,9 @@ def smart_chan(dataset, simple_chan_name, test_chan=None):
         elif len(candidates) > 1:
             raise ValueError( f'The record contains {len(candidates)} '
                              f'duplicates of channel label {s}')
-        
+
         # look for s in first position
-        candidates = [x for x in orig_chan_name if s == x[:min(len(s), 
+        candidates = [x for x in orig_chan_name if s == x[:min(len(s),
                                                                len(x))]]
         if len(candidates) == 1:
             chan_key[s] = candidates[0]
@@ -367,7 +367,7 @@ def smart_chan(dataset, simple_chan_name, test_chan=None):
             # s appears in first position more than once
             raise ValueError(
                 f'Too many candidates corresponding to {s}: {candidates}')
-        
+
         # look for unique occurrences of s somewhere in chan label
         candidates = [x for x in orig_chan_name if s in x]
         if len(candidates) == 1:
@@ -383,7 +383,7 @@ def smart_chan(dataset, simple_chan_name, test_chan=None):
                 raise ValueError(
                     f'Too many candidates corresponding to {s}: {candidates}')
         raise ValueError(f'Unable to find channel containing {s}')
-    
+
     return [chan_key[x] for x in simple_chan_name]
 
 
