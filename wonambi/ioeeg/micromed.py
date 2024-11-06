@@ -155,7 +155,7 @@ class Micromed:
             if name == b'* * * Part 1 * * *':
                 continue
             markers.append(
-                {'name': name.decode(),
+                {'name': name.decode(encoding='latin-1'),  # micromed uses latin-1, not utf-8
                  'start': start / self._s_freq,
                  'end': start / self._s_freq,
                  })
