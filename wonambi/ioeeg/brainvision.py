@@ -152,17 +152,25 @@ def _parse_ini(brainvision_file):
 
         line = f.readline().decode('ascii').strip()
         if (line in ['Brain Vision Data Exchange Header File Version 1.0',
-                     'Brain Vision Data Exchange Marker File, Version 1.0',
+                     'Brain Vision Data Exchange Marker File Version 1.0',
+                     'Brain Vision Data Exchange Header File, Version 1.0',
+                     'Brain Vision Data Exchange Marker File, Version 1.0'
                      'BrainVision Data Exchange Header File Version 1.0',
-                     'BrainVision Data Exchange Marker File, Version 1.0'):
+                     'BrainVision Data Exchange Marker File Version 1.0',
+                     'BrainVision Data Exchange Header File, Version 1.0',
+                     'BrainVision Data Exchange Marker File, Version 1.0']):
 
             ini['version'] = 1.0
             encoding = 'latin1'
 
         elif (line in ['Brain Vision Data Exchange Header File Version 2.0',
-                       'Brain Vision Data Exchange Marker File, Version 2.0',
+                       'Brain Vision Data Exchange Marker File Version 2.0',
+                       'Brain Vision Data Exchange Header File, Version 2.0',
+                       'Brain Vision Data Exchange Marker File, Version 2.0'
                        'BrainVision Data Exchange Header File Version 2.0',
-                       'BrainVision Data Exchange Marker File, Version 2.0',):
+                       'BrainVision Data Exchange Marker File Version 2.0',
+                       'BrainVision Data Exchange Header File, Version 2.0',
+                       'BrainVision Data Exchange Marker File, Version 2.0']):
             ini['version'] = 2.0
             encoding = 'utf-8'
 
