@@ -4,8 +4,8 @@ from logging import getLogger
 from numpy import (absolute, arange, argmax, argmin, around, asarray,
                    concatenate, cos, diff, exp, empty, histogram,
                    hstack, insert, invert, log10, logical_and, mean, median,
-                   nan, ones, percentile, pi, ptp, real, sqrt, square, std,
-                   sum, vstack, where, zeros)
+                   nan, nanmean, nanmedian, nanstd, ones, percentile, pi, ptp, 
+                   real, sqrt, square, std, sum, vstack, where, zeros)
 from numpy.fft import rfftfreq
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import (argrelmax, butter, cheby2, filtfilt,
@@ -116,7 +116,7 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (12, 15)
             self.duration = (0.3, 3)
-            self.det_wavelet = {'f0': mean(self.frequency),
+            self.det_wavelet = {'f0': nanmean(self.frequency),
                                 'sd': .8,
                                 'dur': 1.,
                                 'output': 'complex'
@@ -141,7 +141,7 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (11, 16)
             self.duration = (.49, None)
-            self.cdemod = {'freq': mean(self.frequency)}
+            self.cdemod = {'freq': nanmean(self.frequency)}
             self.det_butter = {'freq': (0.3, 35),
                                'order': 4}
             self.det_low_butter = {'freq': 5,
@@ -285,7 +285,7 @@ class DetectSpindle:
             lg.info('Detecting spindles on channel %s', chan)
             time = hstack(data.axis['time'])
             dat_orig = hstack(data(chan=chan))
-            dat_orig = dat_orig - dat_orig.mean() # demean
+            dat_orig = dat_orig - nanmean(dat_orig) # demean
 
             if self.method == 'Ferrarelli2007':
                 sp_in_chan, values, density = detect_Ferrarelli2007(dat_orig,
@@ -876,8 +876,8 @@ def detect_Lacourse2018(dat_orig, s_freq, time, opts):
     abs_sig_pow = log10(dat_det)
         # Option to adapt the absolute threshold, for low-amplitude recordings
     if opts.abs_pow_thresh < 0:
-        opts.abs_pow_thresh = (mean(abs_sig_pow) -
-                               opts.abs_pow_thresh * std(abs_sig_pow))
+        opts.abs_pow_thresh = (nanmean(abs_sig_pow) -
+                               opts.abs_pow_thresh * nanstd(abs_sig_pow))
     abs_sig_pow = transform_signal(abs_sig_pow, ds_freq, 'smooth', opts.smooth)
 
     # Relative sigma power
@@ -1452,7 +1452,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 end = min(last, int((j + halfdur) * s_freq))
                 win1 = dat[beg:end]
                 win2 = dat2[beg:end]
-                out[i] = mean((win1 - mean(win1)) * (win2 - mean(win2)))
+                out[i] = nanmean((win1 - nanmean(win1)) * (win2 - nanmean(win2)))
             dat = out
 
         if 'moving_periodogram' == method:
@@ -1503,7 +1503,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
                 win = dat[beg:end]
-                out[i] = std(win)
+                out[i] = nanstd(win)
             dat = out
 
         if 'moving_zscore' == method:
@@ -1519,14 +1519,14 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
 
                 if pcl_range is not None:
                     stddat = windat[logical_and(windat > lo, windat < hi)]
-                out[i] = (dat[i] - mean(windat)) / std(stddat)
+                out[i] = (dat[i] - nanmean(windat)) / nanstd(stddat)
             dat = out
 
         if method in ['moving_rms', 'moving_ms']:
             for i, j in enumerate(arange(0, total_dur, step)[:-1]):
                 beg = max(0, int((j - halfdur) * s_freq))
                 end = min(last, int((j + halfdur) * s_freq))
-                out[i] = mean(square(dat[beg:end]))
+                out[i] = nanmean(square(dat[beg:end]))
             if method == 'moving_rms':
                 out = sqrt(out)
             dat = out
@@ -1594,7 +1594,7 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         for i, one_wm in enumerate(wm):
             x = abs(fftconvolve(dat, one_wm, mode='same'))
             tfr[:, i] = fftconvolve(x, tukey(win), mode='same')
-        dat = mean(tfr, axis=1)
+        dat = nanmean(tfr, axis=1)
 
     return dat
 
@@ -1622,19 +1622,19 @@ def define_threshold(dat, s_freq, method, value, nbins=120):
 
     """
     if method == 'mean':
-        value = value * mean(dat)
+        value = value * nanmean(dat)
     elif method == 'median':
         value = value * median(dat)
     elif method == 'std':
-        value = value * std(dat)
+        value = value * nanstd(dat)
     elif method == 'mean+std':
-        value = mean(dat) + value * std(dat)
+        value = nanmean(dat) + value * nanstd(dat)
     elif method == 'median+std':
-        value = median(dat) + value * std(dat)
+        value = nanmedian(dat) + value * nanstd(dat)
     elif method == 'histmax':
         hist = histogram(dat, bins=nbins)
         idx_maxbin = argmax(hist[0])
-        maxamp = mean((hist[1][idx_maxbin], hist[1][idx_maxbin + 1]))
+        maxamp = nanmean((hist[1][idx_maxbin], hist[1][idx_maxbin + 1]))
         value = value * maxamp
 
     return value
@@ -1918,7 +1918,7 @@ def power_ratio(events, dat, s_freq, limits, ratio_thresh):
             freq_sp = (f >= limits[0]) & (f <= limits[1])
             freq_nonsp = (f <= limits[1])
 
-            ratio[i] = mean(Pxx[freq_sp]) / mean(Pxx[freq_nonsp])
+            ratio[i] = nanmean(Pxx[freq_sp]) / nanmean(Pxx[freq_nonsp])
 
     events = events[ratio > ratio_thresh, :]
 
@@ -2009,7 +2009,7 @@ def power_in_band(events, dat, s_freq, frequency):
             # find nearest frequencies in sf
             b0 = asarray([abs(x - frequency[0]) for x in sf]).argmin()
             b1 = asarray([abs(x - frequency[1]) for x in sf]).argmin()
-            pw[i] = mean(Pxx[b0:b1])
+            pw[i] = nanmean(Pxx[b0:b1])
 
     return pw
 
@@ -2055,8 +2055,8 @@ def make_spindles(events, power_peaks, powers, dat_det, dat_orig, time,
                        'dur': (i[2] - i[0]) / s_freq,
                        'auc_det': sum(dat_det[i[0]:i[2]]) / s_freq,
                        'auc_orig': sum(dat_orig[i[0]:i[2]]) / s_freq,
-                       'rms_det': sqrt(mean(square(dat_det[i[0]:i[2]]))),
-                       'rms_orig': sqrt(mean(square(dat_orig[i[0]:i[2]]))),
+                       'rms_det': sqrt(nanmean(square(dat_det[i[0]:i[2]]))),
+                       'rms_orig': sqrt(nanmean(square(dat_orig[i[0]:i[2]]))),
                        'power_orig': one_pwr,
                        'peak_freq': one_peak,
                        'ptp_det': ptp(dat_det[i[0]:i[2]]),
