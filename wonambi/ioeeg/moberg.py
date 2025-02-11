@@ -2,7 +2,7 @@ from os.path import getsize, join
 from xml.etree.ElementTree import parse
 from datetime import datetime, timedelta, timezone
 
-from numpy import NaN, pad, reshape, zeros
+from numpy import nan, pad, reshape, zeros
 
 TIMEZONE = timezone.utc
 # 24bit precision
@@ -136,7 +136,7 @@ class Moberg:
         dat = reshape(dat, (self.n_chan, -1), 'F')
         dat = self.convertion(dat[chan, :])
         dat = pad(dat, ((0, 0), (begpad, endpad)),
-                  mode='constant', constant_values=NaN)
+                  mode='constant', constant_values=nan)
 
         return dat
 

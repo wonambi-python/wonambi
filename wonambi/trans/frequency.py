@@ -6,7 +6,7 @@ from functools import partial
 from multiprocessing import Pool
 
 from numpy import (arange, array, asarray, copy, empty, exp, isnan, log, max, mean,
-                   median, moveaxis, NaN, pi, real, reshape, sqrt, swapaxes, zeros)
+                   median, moveaxis, nan, pi, real, reshape, sqrt, swapaxes, zeros)
 from numpy.linalg import norm
 import numpy.fft as np_fft
 from scipy import fftpack
@@ -677,7 +677,7 @@ def _fft(x, s_freq, detrend='linear', taper=None, output='spectraldensity',
         x = detrend_func(x, axis=axis, type=detrend)
 
         if has_nan.any():
-            x[has_nan] = NaN
+            x[has_nan] = nan
 
     tapered = tapers * x[..., None, :]
 

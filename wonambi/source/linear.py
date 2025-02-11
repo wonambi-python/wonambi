@@ -6,7 +6,7 @@ from functools import partial
 from logging import getLogger
 from multiprocessing import Pool
 
-from numpy import (arange, asarray, atleast_2d, empty, exp, isnan, NaN,
+from numpy import (arange, asarray, atleast_2d, empty, exp, isnan, nan,
                    nansum)
 from numpy.linalg import norm
 try:
@@ -49,7 +49,7 @@ class Linear:
         for i, one_trl in enumerate(data):
             output.axis['surf'][i] = arange(self.inv.shape[0])
             output.data[i] = self.inv.dot(data.data[i])
-            output.data[i][exclude_vert, ] = NaN
+            output.data[i][exclude_vert, ] = nan
 
         return output
 
@@ -122,12 +122,12 @@ def calc_xyz2surf(surf, xyz, threshold=20, exponent=None, std=None):
         external_threshold_value = gauss(std, std) # this is around 0.607
     lg.debug('Values thresholded at ' + str(threshold_value))
 
-    xyz2surf[xyz2surf < threshold_value] = NaN
+    xyz2surf[xyz2surf < threshold_value] = nan
 
     # here we deal with vertices that are within the threshold value but far
     # from a single electrodes, so those remain empty
     sumval = nansum(xyz2surf, axis=1)
-    sumval[sumval < external_threshold_value] = NaN
+    sumval[sumval < external_threshold_value] = nan
 
     # normalize by the number of electrodes
     xyz2surf /= atleast_2d(sumval).T

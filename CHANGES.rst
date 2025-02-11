@@ -2,6 +2,10 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.15**: change all the NaN to nan (followup of v7.12)
+- **7.14**: micromed uses latin-1, not utf-8
+- **7.13**: release to pypi
+- **7.12**: tukey from scipy.signal.windows and nan instead of NaN for numpy
 - **7.11**: quick fix for Phillips staging import
 - **7.10**: re-re-release
 - **7.09**: re-release

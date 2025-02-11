@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 from logging import getLogger
 from struct import unpack
 
-from numpy import array, dtype, empty, fromfile, iinfo, memmap, NaN, pad, where
+from numpy import array, dtype, empty, fromfile, iinfo, memmap, nan, pad, where
 from numpy.lib.recfunctions import append_fields
 
 N_ZONES = 15
@@ -94,7 +94,7 @@ class Micromed:
 
         if (begsam >= self._n_smp) or (endsam < 0):
             dat = empty((len(chan), endsam - begsam))
-            dat.fill(NaN)
+            dat.fill(nan)
             return dat
 
         if begsam < 0:
@@ -116,7 +116,7 @@ class Micromed:
                      shape=dshape, offset=offset).astype('float')
 
         dat = pad(dat[chan, :], ((0, 0), (begpad, endpad)), mode='constant',
-                  constant_values=NaN)
+                  constant_values=nan)
 
         return (dat - self._offset[chan, None]) * self._factors[chan, None]
 
@@ -155,7 +155,7 @@ class Micromed:
             if name == b'* * * Part 1 * * *':
                 continue
             markers.append(
-                {'name': name.decode(),
+                {'name': name.decode(encoding='latin-1'),  # micromed uses latin-1, not utf-8
                  'start': start / self._s_freq,
                  'end': start / self._s_freq,
                  })

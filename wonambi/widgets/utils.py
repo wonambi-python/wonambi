@@ -3,7 +3,7 @@
 from ast import literal_eval
 from logging import getLogger
 from math import ceil, floor
-from numpy import arange, NaN
+from numpy import arange, nan
 from os.path import dirname, join, realpath
 
 from PyQt5.QtCore import QRectF, QSettings, Qt
@@ -302,7 +302,7 @@ class FormFloat(QLineEdit):
         text = self.text()
 
         if text == 'N/A':
-            return NaN
+            return nan
 
         try:
             text = float(text)

@@ -4,7 +4,7 @@ from numpy import (append,
                    cumsum,
                    empty,
                    isnan,
-                   NaN
+                   nan
                    )
 from numpy.testing import assert_array_equal
 from pytest import raises
@@ -59,10 +59,10 @@ def _assert_begsam_endsam(begsam, endsam):
     dat_on_disk, intervals = _generate_dat_on_disk()
 
     expected_dat = arange(begsam, endsam).astype('float')
-    expected_dat[(expected_dat < 0) & (expected_dat > intervals[-1])] = NaN
+    expected_dat[(expected_dat < 0) & (expected_dat > intervals[-1])] = nan
 
     dat = empty(endsam - begsam)
-    dat.fill(NaN)
+    dat.fill(nan)
 
     for i_dat, blk, i_blk in _select_blocks(BLOCKS, begsam, endsam):
         # print('{: 3d}-{: 3d} = {: 3d}: {: 3d}-{: 3d}'.format(i_dat[0], i_dat[1], blk, i_blk[0], i_blk[1]))

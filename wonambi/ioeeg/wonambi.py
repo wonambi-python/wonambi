@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from json import dump, load
 from pathlib import Path
-from numpy import c_, empty, float64, NaN, memmap
+from numpy import c_, empty, float64, nan, memmap
 
 
 class Wonambi:
@@ -72,7 +72,7 @@ class Wonambi:
 
         Notes
         -----
-        When asking for an interval outside the data boundaries, it returns NaN
+        When asking for an interval outside the data boundaries, it returns nan
         for those values. It then converts the memmap to a normal numpy array,
         I think, and so it reads the data into memory. However, I'm not 100%
         sure that this is what happens.
@@ -90,13 +90,13 @@ class Wonambi:
         if begsam < 0:
 
             pad = empty((dat.shape[0], 0 - begsam))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[pad, dat]
 
         if endsam >= n_smp:
 
             pad = empty((dat.shape[0], endsam - n_smp))
-            pad.fill(NaN)
+            pad.fill(nan)
             dat = c_[dat, pad]
 
         return dat
