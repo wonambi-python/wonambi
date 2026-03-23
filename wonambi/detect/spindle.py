@@ -115,11 +115,12 @@ class DetectSpindle:
             if self.frequency is None:
                 self.frequency = (12, 15)
             self.duration = (0.3, 3)
-            self.det_wavelet = {'f0': mean(self.frequency),
-                                'sd': .8,
-                                'dur': 1.,
-                                'output': 'complex'
-                                }
+            # cmor parameters to approximate MATLAB cwt_temp('cmorFb-Fc')
+            self.det_cmor = {'fb': 13.5,
+                             'fc': 0.5,
+                             'fc_scaled': mean(self.frequency),
+                             'dur': 6.0
+                             }
             self.smooth = {'dur': .1,
                            'win': 'flat'}
             self.det_thresh = 4.5
@@ -602,8 +603,8 @@ def detect_Nir2011(dat_orig, s_freq, time, opts):
 
 
 def detect_Wamsley2012(dat_orig, s_freq, time, opts):
-    """Spindle detection based on Wamsley et al. 2012
-
+    """Spindle detection based on Wamsley et al. 2012 (cmor-style wavelet).
+    
     Parameters
     ----------
     dat_orig : ndarray (dtype='float')
@@ -634,7 +635,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
     ----------
     Wamsley, E. J. et al. Biol. Psychiatry 71, 154-61 (2012).
     """
-    dat_wav = transform_signal(dat_orig, s_freq, 'morlet', opts.det_wavelet)
+    dat_wav = transform_signal(dat_orig, s_freq, 'cmor_wamsley', opts.det_cmor)
     dat_det = real(dat_wav ** 2) ** 2
     dat_det = transform_signal(dat_det, s_freq, 'smooth', opts.smooth)
 
@@ -650,7 +651,7 @@ def detect_Wamsley2012(dat_orig, s_freq, time, opts):
 
         power_peaks = peak_in_power(events, dat_orig, s_freq, opts.power_peaks)
         powers = power_in_band(events, dat_orig, s_freq, opts.frequency)
-        sp_in_chan = make_spindles(events, power_peaks, powers, 
+        sp_in_chan = make_spindles(events, power_peaks, powers,
                                    absolute(dat_wav), dat_orig, time, s_freq)
 
     else:
@@ -1421,6 +1422,17 @@ def transform_signal(dat, s_freq, method, method_opt=None, dat2=None):
         b, a = butter(N, Wn, btype='lowpass')
         dat = filtfilt(b, a, dat)
     
+    if 'cmor_wamsley' == method:
+        fb = method_opt['fb']
+        fc = method_opt['fc']
+        fc_scaled = method_opt.get('fc_scaled', fc)
+        dur = method_opt.get('dur', 6.0)
+
+        # scale in samples, as in MATLAB cwt_temp
+        scale = fc * s_freq / fc_scaled
+        wm = _cmor_wamsley(fb, fc, scale, dur)
+        dat = fftconvolve(dat, wm, mode='same')
+
     if 'morlet' == method:
         f0 = method_opt['f0']
         sd = method_opt['sd']
@@ -2230,6 +2242,31 @@ def _merge_close(dat, events, time, min_interval):
             i[1] = i[0] + argmax(dat[i[0]:i[2]])
 
     return new_events
+
+
+def _cmor_wamsley(fb, fc, scale, dur=6.0):
+    """Complex Morlet wavelet approximating MATLAB cmor with CWT scaling.
+
+    Parameters
+    ----------
+    fb : float
+        bandwidth parameter (MATLAB cmor Fb)
+    fc : float
+        center frequency parameter (MATLAB cmor Fc)
+    scale : float
+        CWT scale (in samples) to target desired center frequency
+    dur : float
+        number of std-devs of the Gaussian envelope to include on each side
+    """
+    sigma_t = sqrt(fb / 2.0)
+    half_len = int(dur * sigma_t * scale)
+    if half_len < 1:
+        half_len = 1
+    t = arange(-half_len, half_len + 1)
+    tau = t / scale
+    norm = (pi * fb) ** (-0.5)
+    w = norm * exp(2j * pi * fc * tau) * exp(-(tau ** 2) / fb) / sqrt(scale)
+    return w
 
 
 def _wmorlet(f0, sd, sampling_rate, ns=5):
