@@ -2,6 +2,7 @@ Change Log
 ==========
 Version 7
 ----------
+- **7.16**: fixes for spindle detection including Wamsley2012
 - **7.15**: change all the NaN to nan (followup of v7.12)
 - **7.14**: micromed uses latin-1, not utf-8
 - **7.13**: release to pypi
