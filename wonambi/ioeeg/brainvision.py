@@ -77,7 +77,10 @@ class BrainVision:
         start_time = _read_datetime(self.mrk)
         self.s_freq = 1e6 / float(hdr['Common Infos']['SamplingInterval'])
         chan_name = [v[0] for v in hdr['Channel Infos'].values()]
-        self.gain = array([float(v[2]) for v in hdr['Channel Infos'].values()])
+        try:
+            self.gain = array([float(v[2]) for v in hdr['Channel Infos'].values()])
+        except Exception:
+            self.gain = array([1 for v in hdr['Channel Infos'].values()])
 
         # number of samples
         self.data_type = BV_DATATYPE[hdr['Binary Infos']['BinaryFormat']]
@@ -219,7 +222,11 @@ def _read_memmap(filename, dat_shape, begsam, endsam, datatype='double',
 def _read_datetime(mrk):
     for v in mrk['Marker Infos'].values():
         if v[0] == 'New Segment':
-            return datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
+            try:
+                start = datetime.strptime(v[-1], '%Y%m%d%H%M%S%f')
+            except Exception:
+                start = datetime.strptime('20000101000000000000', '%Y%m%d%H%M%S%f')
+            return start
     return DEFAULT_DATETIME
 
 
