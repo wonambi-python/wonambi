@@ -1,0 +1,71 @@
+name: AppVeyor
+
+on:
+  push:
+  pull_request:
+
+env:
+  MINICONDA: C:\Miniconda36-x64
+  DOWNLOADS: Downloads
+  PYTHON_ARCH: "64"
+
+defaults:
+  run:
+    shell: cmd
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.DOWNLOADS }}
+          key: ${{ runner.os }}-${{ env.DOWNLOADS }}-${{ hashFiles('tests\paths.py') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: '%LOCALAPPDATA%\pip\Cache'
+          key: ${{ runner.os }}-pip-Cache
+
+      - run: Start-FileDownload 'https://github.com/vispy/demo-data/raw/master/mesa/opengl32_mingw_64.dll' -FileName opengl32.dll
+        shell: powershell
+
+      - run: SET VISPY_GL_LIB=%CD%\opengl32.dll
+
+      - run: set PATH=%MINICONDA%;%MINICONDA%\Scripts;%PATH%
+
+      - run: conda config --set always_yes yes --set changeps1 no
+
+      - run: conda update -q conda
+
+      - run: conda info -a
+
+      - run: conda create -q -n test-environment python=3.6 numpy scipy
+
+      - run: activate test-environment
+
+      - run: conda install h5py
+
+      - run: pip install nibabel pyqt5 vispy
+
+      - run: pip install pytest pytest-qt pytest-cov codecov plotly
+
+      - run: pip install sphinx sphinx_rtd_theme
+
+      - run: pip install -e .
+
+      - run: python setup_wonambi.py --get_files
+
+      - run: python -c "import vispy; print(vispy.sys_info()); exit()"
+
+      - run: python setup_wonambi.py --tests
+
+      - run: pip uninstall -y pyqt5 pytest-qt nibabel
+
+      - run: python setup_wonambi.py --test_import
+
+      - run: pip install pyqt5 nibabel
+
+      - run: python setup_wonambi.py --docs
