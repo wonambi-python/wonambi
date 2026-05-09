@@ -29,7 +29,7 @@ jobs:
           path: '%LOCALAPPDATA%\pip\Cache'
           key: ${{ runner.os }}-pip-Cache
 
-      - run: Start-FileDownload 'https://github.com/vispy/demo-data/raw/master/mesa/opengl32_mingw_64.dll' -FileName opengl32.dll
+      - run: Invoke-WebRequest -Uri 'https://github.com/vispy/demo-data/raw/master/mesa/opengl32_mingw_64.dll' -OutFile opengl32.dll
         shell: powershell
 
       - run: SET VISPY_GL_LIB=%CD%\opengl32.dll
