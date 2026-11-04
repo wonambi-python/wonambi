@@ -267,7 +267,7 @@ def _clean_download():
 
 
 def _urlretrieve(url, filename):
-    with urlopen(url) as u, filename.open('wb') as f:
+    with urlopen(url, timeout=30) as u, filename.open('wb') as f:
             f.write(u.read())
 
 
